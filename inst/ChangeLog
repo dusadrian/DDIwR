@@ -1,0 +1,59 @@
+Version 0.3
+    o new function exportDDI(), for the DDI codebook version 2.5
+    o various bug fixes in setupfile()
+    o new argument "forcenum" to force imported string variables as numeric
+    o removed argument "trymiss", incompatible with multiple languages
+    o improved code for the SAS setup files
+    
+Version 0.2-0
+    o better arrangement of missing types in the R commands
+    o some improvements in the R code generation
+    o improved SAS setup file (thanks to Alexandre Kych)
+    o the package now reads both ".csv" and ".csv.gz" files
+    o new internal function getDelimiter() to try identifying the .csv column separator
+    o fixed a small bug preventing the identification and formatting of string variables
+      in SPSS
+    o fixed a bug dealing with missing values for SPSS setup files
+
+Version 0.1-0
+    o R and SAS versions are now produced, in addition to SPSS and Stata
+    o additional argument "saveFile" to both getMetadata() and setupfile()
+    
+Version 0.0-7
+    o fixed a small bug in setupfile()
+    o argument "outfile" not mandatory anymore
+    
+Version 0.0-6
+    o new function getMetadata() that reads an .xml file and produces the relevant .R
+      metadata file
+    o setupfile() now automatically detects .xml file(s) and uses the getMetadata()
+      function to use the DDI metadata from the XML files.
+    
+Version 0.0-5
+    o setupfile() now accepts csvfile as a path to the csv data
+    o argument "csvfile" renamed to "csv"
+    o all created setup files are saved in the current directory, in the "Setup files"
+      (created) folder
+    
+Version 0.0-4
+    o Various bug fixes, thanks to Sebastian Kocar
+    
+Version 0.0-3
+    o Better detection for ranges of missing values
+    
+Version 0.0-2
+    o Added batch mode support
+    o Reading .csv files now automatically detects three different delimiters: "," or
+      ";" or tab separated files.
+    o There is additional information for the user, indicating which variables in the
+      csv file
+       don't have any metadata information, or if there is metadata for variables not
+       existing in the .csv file.
+    o A warning is given if there is no header first row in the .csv file
+    o The "." sign to represent a missing is now detected and a NOTE is printed on the
+      screen.
+    o For the SPSS setup file, not more than 3 distinct missing values are allowed.
+    
+Version 0.0-1
+    o First version of the package
+

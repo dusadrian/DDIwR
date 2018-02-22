@@ -1,0 +1,10 @@
+Package: DDIwR
+Version: 0.3
+Date: 2018-01-20
+Title: DDI with R
+Authors@R: c(person("Adrian", "Dusa", role = c("aut", "cre"),
+                      email = "dusa.adrian@unibuc.ro"))
+Depends: R (>= 3.3.0)
+Imports: XML, foreign
+Description: Useful functions for various DDI (Data Documentation Initiative) related inputs and outputs.
+License: GPL (>= 2)

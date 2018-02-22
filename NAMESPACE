@@ -1,0 +1,11 @@
+export(exportDDI,
+       setupfile,
+       splitrows,
+       treatPath,
+       getDelimiter,
+       getFiles,
+       getMetadata,
+       getEnter)
+import(XML)
+import(foreign)
+importFrom("utils", "file_test", "read.csv")
