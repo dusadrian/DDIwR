@@ -29,15 +29,14 @@ The argument \code{OS} can be either:\cr
 The end of line separator changes only when the target OS is different from the
 running OS.
 
-For the moment, only DDI version 2.5 (Codebook) is supported, but the next version
-will include the latest DDI version 3.2 (Lifecycle).
+For the moment, only DDI version 2.5 (Codebook) is supported, but DDI version 3.2
+(Lifecycle) is planned to be implemented.
 }
 
 
 \value{
-A list containing two components
-"varlab" for all variable labels, and
-"vallab" for all value labels
+A list containing all variabiles in the DDI file, and their corresponding
+variable labels, value labels (if applicable) and missing values if found.
 }
 
 
