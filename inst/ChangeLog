@@ -1,4 +1,5 @@
 Version 0.3
+    o replaced package XML with package xml2 (thanks to Ruben Arslan for the suggestion)
     o new function exportDDI(), for the DDI codebook version 2.5
     o various bug fixes in setupfile()
     o new argument "forcenum" to force imported string variables as numeric
