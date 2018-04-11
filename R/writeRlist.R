@@ -1,8 +1,4 @@
-writeRlist <- function(Rlist, OS = "windows", attr = FALSE, indent) {
-    
-    if (missing(indent)) {
-        indent <- 4
-    }
+writeRlist <- function(Rlist, OS = "windows", attr = FALSE, indent = 4) {
     
     if (OS == "") {
         OS <- Sys.info()[['sysname']]
@@ -43,7 +39,7 @@ writeRlist <- function(Rlist, OS = "windows", attr = FALSE, indent) {
                     cat(values[lbl])
                 }
                 
-                cat(ifelse(lbl < length(labl), paste(",", enter, sep = ""), ")"), sep = "")
+                cat(ifelse(lbl < length(labl), paste(",", enter, sep = ""), paste(enter, rs(2), ")", sep = "")))
             }
         }
         
