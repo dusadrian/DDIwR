@@ -21,7 +21,7 @@ setupfile(obj = "", type = "all", csv = "", miss = "", uniqueid = "",
              located, for batch processing.}
   \item{type}{The type of setup file, can be: "SPSS", "Stata", "SAS", "R",
               or "all" (default).}
-  \item{csv}{The original dataset, on the basis of which the SPSS setup file
+  \item{csv}{The original dataset, on the basis of which the setup file
              commands are created, or a path to the directory where the .csv files
              are located, for batch processing.}
   \item{miss}{A vector of missing values, or missing labels.}
