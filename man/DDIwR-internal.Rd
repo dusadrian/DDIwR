@@ -6,6 +6,7 @@
 \alias{getEnter}
 \alias{splitrows}
 \alias{test}
+\alias{writeRlist}
 
 \title{Internal Functions}
 
