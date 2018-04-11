@@ -5,7 +5,9 @@ export(exportDDI,
        getDelimiter,
        getFiles,
        getMetadata,
-       getEnter)
-import(XML)
+       getEnter,
+       writeRlist)
+import(xml2)
 import(foreign)
 importFrom("utils", "file_test", "read.csv")
+importFrom("stats", "na.omit")
