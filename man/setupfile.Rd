@@ -17,18 +17,19 @@ setupfile(obj = "", type = "all", csv = "", miss = "", uniqueid = "",
 
 \arguments{
   \item{obj}{A list object containing the variables, along with their subcomponents
-             labels and values, or a path to a directory where these objects are
-             located, for batch processing.}
+        labels and values, or a path to a directory where these objects are located,
+        for batch processing.}
   \item{type}{The type of setup file, can be: "SPSS", "Stata", "SAS", "R",
-              or "all" (default).}
-  \item{csv}{The original dataset, on the basis of which the setup file
-             commands are created, or a path to the directory where the .csv files
-             are located, for batch processing.}
-  \item{miss}{A vector of missing values, or missing labels.}
+        or "all" (default).}
+  \item{csv}{The original dataset, on the basis of which the setup file commands
+        are created, or a path to the directory where the .csv files are located,
+        for batch processing.}
+  \item{miss}{A vector of missing values, or missing labels, for automatic detection
+        in case the input \bold{\code{obj}} does not contain this information.}
   \item{uniqueid}{Character, the name of the unique identifier variable}
   \item{SD}{The row delimiter for the Stata commands, can be for example "" or ";"}
   \item{delimiter}{The column delimiter to be used for reading the .csv file,
-                   default is ","}
+        default is ","}
   \item{OS}{The target operating system, for the eol - end of line separator.}
   \item{outfile}{Character, the name of the setup file being created.}
   \item{forcenum}{A vector of column names which should be forced as numeric.}
