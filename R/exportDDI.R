@@ -45,12 +45,22 @@ exportDDI <- function(obj, file = "", indent = 4, OS = "") {
         
         cat(rs(3), "<labl>", obj[[i]]$label, "</labl>", enter, sep = "")
         
+        miss <- NULL
+        if (any(grepl("missing", names(obj[[i]])))) {
+            miss <- obj[[i]]$missing
+        }
+        
+        if (length(miss) > 0) {
+            cat(rs(3), "<invalrng>", enter, sep = "")
+                for (j in seq(length(miss))) {
+                    cat(rs(4), sprintf("<item UNITS = \"REAL\" VALUE = \"%s\"/>", miss[j]), enter, sep = "")
+                }
+            cat(rs(3), "</invalrng>", enter, sep = "")
+        }
+        
+        
         if (any(grepl("values", names(obj[[i]])))) {
-            miss <- NULL
-            if (any(grepl("missing", names(obj[[i]])))) {
-                miss <- obj[[i]]$missing
-            }
-            
+                
             for (v in seq(length(obj[[i]]$values))) {
                 lbls <- obj[[i]]$values
                 cat(rs(3), "<catgry", ifelse(is.element(lbls[v], miss), " missing=\"Yes\"", ""), ">", enter, sep = "")
