@@ -2,19 +2,20 @@
 
 \alias{getMetadata}
 
-\title{Get metadata information from an XML file}
+\title{Extract metadata information}
 
 \description{
-This function reads an XML file containing a DDI codebook version 2.5 and
-returns the variable labels and value labels.
+This function reads an XML file containing a DDI codebook version 2.5, or an
+SPSS file and returns a list containing the variable labels, value labels,
+plus some other useful information.
 }
 
 \usage{
-getMetadata(xmlpath, OS = "windows", saveFile = FALSE, ...)
+getMetadata(x, OS = "windows", saveFile = FALSE, ...)
 }
 
 \arguments{
-  \item{xmlpath}{A path to an XML file with a DDI codebook}
+  \item{x}{A path to a file, or a tibble object}
   \item{OS}{The target operating system, for the eol - end of line separator}
   \item{saveFile}{Boolean, save an .R file in the same folder}
   \item{...}{Additional arguments for this function (internal uses only)}
@@ -35,8 +36,8 @@ For the moment, only DDI version 2.5 (Codebook) is supported, but DDI version 3.
 
 
 \value{
-A list containing all variabiles in the DDI file, and their corresponding
-variable labels, value labels (if applicable) and missing values if found.
+A list containing all variables, their corresponding variable labels and value labels,
+and (if applicable) missing values if found.
 }
 
 

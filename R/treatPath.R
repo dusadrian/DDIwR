@@ -1,20 +1,15 @@
-treatPath <- function(intrnpath, type = "R") {
-    if (length(intrnpath) > 1) {
+treatPath <- function(path, type = "R", single = FALSE, check = TRUE) {
+    if (length(path) > 1) {
         cat("\n")
-        if (type == "R") {
-            stop("The lbls argument should contain a single path to the list object.\n\n", call. = FALSE)
-        }
-        else if (type == "csv") {
-            stop("The csvfile argument should contain a single path to the .csv file.\n\n", call. = FALSE)
+        # if (type == "R") {
+        #     stop("The <codeBook> argument should contain a single path to the list object.\n\n", call. = FALSE)
+        # }
+        if (type == "csv") {
+            stop("The <csv> argument should contain a single path to the .csv file.\n\n", call. = FALSE)
         }
     }
     
     currdir <- getwd()
-    
-    
-    ## MUST USE:
-    # basename(path)
-    # dirname(path)
     
     ## PERHAPS IMPORTANT:
     # normalizePath() to deal with the symbolic links, relative paths and absolute paths
@@ -23,20 +18,15 @@ treatPath <- function(intrnpath, type = "R") {
     # file_test("-d", basename(path))
     
     
-    lastpart <- basename(intrnpath)
-    pathname <- dirname(intrnpath)
+    lastpart <- basename(path)
+    pathname <- dirname(path)
     
     # check if a path exists, before the lastpart
     pathexists <- pathname != "."
     
-    
-    
-    # return(list(lastpart=lastpart, pathname=pathname, pathexists=pathexists, file=lastpartisfile))
-    
-    
     if (pathexists) {
         
-        if (!file.exists(pathname)) {
+        if (!file.exists(pathname) & check) {
             cat("\n")
             stop(paste("Cannot find the path up to \"", pathname, "\".\n",
                        "Please check that path, or try changing the working directory.\n\n", sep=""), call. = FALSE)
@@ -45,18 +35,19 @@ treatPath <- function(intrnpath, type = "R") {
     }
     
     allfiles <- FALSE
-        
+
     if (!file.exists(file.path(pathname, lastpart))) {
         filesplit <- unlist(strsplit(lastpart, split="\\."))
+        
         if (length(filesplit) >= 2) {
             if (filesplit[1] == "*") {
                 allfiles <- TRUE
             }
         }
         
-        if (!allfiles) {
+        if (!allfiles & check) {
             cat("\n")
-            stop(paste("There is no \"", lastpart, "\" in the directory \"", pathname, "/\".\n\n", sep=""), call. = FALSE)
+            stop(paste("There is no \"", lastpart, "\" in the directory \"", ifelse(pathname == ".", getwd(), pathname), "/\".\n\n", sep=""), call. = FALSE)
         }
     }
     
@@ -77,6 +68,11 @@ treatPath <- function(intrnpath, type = "R") {
         if (file_test("-d", file.path(pathname, lastpart))) {
             # if it's a subfolder
             
+            if (single) {
+                cat("\n")
+                stop(paste("A file name should be provided, not a directory.\n\n", sep=""), call. = FALSE)
+            }
+            
             completePath <- file.path(pathname, lastpart)
             
             fileobj <- getFiles(dirpath = completePath, type = type)
@@ -91,7 +87,10 @@ treatPath <- function(intrnpath, type = "R") {
             files <- lastpart
             filesplit <- unlist(strsplit(lastpart, split="\\."))
             filenames <- filesplit[1]
-            fileext <- toupper(paste(filesplit[seq(2, length(filesplit))], collapse="."))
+            fileext <- NA
+            if (length(filesplit) >= 2) {
+                fileext <- toupper(paste(filesplit[seq(2, length(filesplit))], collapse="."))
+            }
         }
     }
     
@@ -101,6 +100,10 @@ treatPath <- function(intrnpath, type = "R") {
         }
     }
     
-    return(list(completePath=completePath, files=files, filenames=filenames, fileext=fileext))
-    
+    return(list(
+        completePath = completePath,
+        files = files,
+        filenames = filenames,
+        fileext = fileext
+        ))
 }

@@ -9,28 +9,32 @@ This function creates a DDI version 2.5, XML file structure.
 }
 
 \usage{
-exportDDI(obj, file = "", indent = 4, OS = "")
+exportDDI(codebook, file = "", embed = TRUE, OS = "", indent = 4)
 }
 
 
 \arguments{
-  \item{obj}{A list object containing the variables, along with their subcomponents
-             labels and values, or a path to a directory where these objects are
-             located, for batch processing.}
+  \item{codebook}{A list object containing the metadata, or a path to a directory where
+        these objects are located, for batch processing}
   \item{file}{either a character string naming a file or a connection open for
               writing. "" indicates output to the console.}
+  \item{embed}{Embed the CSV datafile in the XML file, if present.}
+  \item{OS}{The target operating system, for the eol - end of line character(s)}
   \item{indent}{Indent width, in number of spaces}
-  \item{OS}{The target operating system, for the eol - end of line separator.}
 }
 
 \details{
-The information object is essentially a list containing as many components as the 
-number of variables in the (meta)data. For each variable, there should a mandatory
-subcomponent called \bold{\code{label}} (that contains the variable's label) and,
-if the variable is of a categorical type, another subcomponent called 
-\bold{\code{values}}.
+The information object is essentially a list having two main list components:
 
-Additional informations about the variables can be added as further subcomponents,
+- \bold{\code{fileDscr}}, if the data is provided in a subcomponent named
+\bold{\code{datafile}}
+
+- \bold{\code{dataDscr}}, having as many components as the number of variables
+in the (meta)data. For each variable, there should a mandatory subcomponent called
+\bold{\code{label}} (that contains the variable's label) and, if the variable is of
+a categorical type, another subcomponent called \bold{\code{values}}.
+
+Additional informations about the variables can be specified as further subcomponents,
 combining DDI specific data but also other information that might not be covered
 by DDI:
 
@@ -59,15 +63,12 @@ values in the variable are going to be treated as missing values, and it is goin
 to be exported as the attribute \code{missing} of the DDI subelement
 \bold{\code{catgry}}.
 
-- \bold{\code{uniqueid}} is not DDI specific, but it helps pointing which of the
-variables in the (meta)data represents the unique identifier of the cases.
-
 
 There are many more possible attributes and DDI elements to be added in the
-information object, future versions of this function will likely expand to others.
+information object, future versions of this function will likely expand.
 
-For the moment, only DDI codebook version 2.5 is exported, future versions might
-also produce DDI Lifecycle version 3.
+For the moment, only DDI codebook version 2.5 is exported, but DDI Lifecycle is
+also possible.
 
 
 The argument \bold{\code{OS}} can be either:\cr
@@ -92,28 +93,25 @@ An XML file containing a DDI version 2.5 metadata.
 
 
 \examples{
-test <- list()
-
-test$ID <- list(
+codeBook <- list(dataDscr = list(
+ID = list(
     label = "Questionnaire ID",
     type = "num",
     measurement = "interval",
     uniqueid = TRUE
-)
-
-test$V1 <- list(
+),
+V1 = list(
     label = "Label for the first variable",
     values = c(
         "No"             =  0, 
         "Yes"            =  1,
         "Not applicable" = -7,
         "Not answered"   = -9),
-    missing = c(-7, -9),
+    missing = c(-9, -7),
     type = "cat",
     measurement = "nominal"
-)
-
-test$V2 <- list(
+),
+V2 = list(
     label = "Label for the second variable",
     values = c(
         "Very little"    =  1, 
@@ -125,9 +123,8 @@ test$V2 <- list(
     missing = c(-8),
     type = "cat",
     measurement = "ordinal"
-)
-
-test$V3 <- list(
+),
+V3 = list(
     label = "Label for the third variable",
     values = c(
         "First answer"   = "A", 
@@ -136,28 +133,26 @@ test$V3 <- list(
     missing = c(-8),
     type = "cat",
     measurement = "nominal"
-)
-
-test$V4 <- list(
+),
+V4 = list(
     label = "Number of children",
     values = c(
         "Don't know"     = -8,
         "Not answered"   = -9),
-    missing = c(-8, -9),
+    missing = c(-9, -8),
     type = "numcat",
     measurement = "ratio"
-)
-
-test$V5 <- list(
+),
+V5 = list(
     label = "Political party reference",
     type = "char",
-     txt = "When the respondent indicated his political party reference, his/her open response
+    txt = "When the respondent indicated his political party reference, his/her open response
 was recoded on a scale of 1-99 with parties with a left-wing orientation coded on the low end
 of the scale and parties with a right-wing orientation coded on the high end of the scale.
 Categories 90-99 were reserved miscellaneous responses."
-)
+)))
 
-exportDDI(test)
+exportDDI(codeBook, file = "codebook.xml")
 
 }
 

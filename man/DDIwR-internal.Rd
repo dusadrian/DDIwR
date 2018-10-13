@@ -1,11 +1,16 @@
 \name{DDIwR-internal}
 
-\alias{treatPath}
+\alias{checkType}
+\alias{convertibble}
+\alias{getDecimals}
 \alias{getDelimiter}
-\alias{getFiles}
 \alias{getEnter}
+\alias{getFiles}
+\alias{getXML}
 \alias{splitrows}
 \alias{test}
+\alias{tibbleMetadata}
+\alias{treatPath}
 \alias{writeRlist}
 
 \title{Internal Functions}

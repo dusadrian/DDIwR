@@ -1,54 +1,74 @@
-setupfile <- function(obj = "", type = "all", csv = "", miss = "", uniqueid = "",
-                      SD = "", delimiter = ",", OS = "windows", outfile = "",
-                      forcenum = c(""), ...) {
+setupfile <- function(codebook, file = "", type = "all", csv = "", OS = "", ...) {
     
-    
-    # change the internalbls argument into a very unique name, just in case the
-    # list object in the external R file(s) are named "internalbls" as well
-    internalbls <- obj
-    internalbls_objname <- deparse(substitute(obj))
-    rm(obj)
-    
+    # TO DO: when codebook is a path to a file or directory, it should be (only) XML and not R anymore
+
     other.args <- list(...)
     
-    if ("pathIsFolder" %in% names(other.args)) {
-        pathIsFolder <- other.args$pathIsFolder
+    outdir <- identical(file, "")
+    if (is.element("outdir", names(other.args))) {
+        outdir <- other.args$outdir
     }
     
     saveFile <- FALSE
-    if ("saveFile" %in% names(other.args)) {
+    if (is.element("saveFile", names(other.args))) {
         saveFile <- other.args$saveFile
     }
     
     indent <- 4
-    if ("indent" %in% names(other.args)) {
+    if (is.element("indent", names(other.args))) {
         indent <- other.args$indent
+    }
+    
+    script <- FALSE
+    if (is.element("script", names(other.args))) {
+        script <- other.args$script
+    }
+
+    forcenum  <- ""
+    if (is.element("forcenum", names(other.args))) {
+        forcenum <- other.args$forcenum
+    }
+
+    delim <- ","
+    if (is.element("delim", names(other.args))) {
+        delim <- other.args$delim
+    }
+    else if (is.element("sep", names(other.args))) {
+        delim <- other.args$sep
     }
     
     if (OS == "") {
         OS <- Sys.info()[['sysname']]
     }
+
+    `possibleNumeric` <- function(x) {
+        # as.character converts everything (especially factors)
+        return(!any(is.na(suppressWarnings(as.numeric(na.omit(as.character(x)))))) & !all(is.na(x)))
+    }
     
-    getNofDecimals <- function(number) {
-        decs <- nchar(format(abs(number),scientific=FALSE))-(trunc(log10(max(1,trunc(abs(number)))))+1)-1
-        return(ifelse(decs < 0, 0, decs))
+    `asNumeric` <- function(x) {
+        return(suppressWarnings(as.numeric(as.character(x))))
     }
     
     
-    
-    if (all(is.character(internalbls))) { # all() just in case someone provides a vector by mistake
+
+    if (missing(codebook)) {
+        cat("\n")
+        stop("Argument \"codebook\" is missing, with no default.\n\n", call. = FALSE)
+    }
+    else if (all(is.character(codebook))) { # all() just in case someone provides a vector by mistake
         
-        if (length(internalbls) > 1) {
+        if (length(codebook) > 1) {
             cat("\n")
-            stop("The lbls argument should contain a single path to the list object.\n\n", call. = FALSE)
+            stop("The \"codebook\" argument should contain a single path to the list object.\n\n", call. = FALSE)
         }
         
         xmlfiles <- FALSE
         
-        labelist <- treatPath(internalbls, type = "R")
+        labelist <- treatPath(codebook, type = "R")
         
         if (length(labelist) == 1) {
-            labelist <- treatPath(internalbls, type = "XML")
+            labelist <- treatPath(codebook, type = "XML")
             if (length(labelist) == 1) {
                 cat("\n")
                 stop(gsub("XML", "R or .XML", labelist), call. = FALSE)
@@ -63,11 +83,7 @@ setupfile <- function(obj = "", type = "all", csv = "", miss = "", uniqueid = ""
             }
         }
         
-        pathIsFolder <- length(labelist$fileext) > 1
-        
-        if (!file.exists("Setup files")) {
-            dir.create("Setup files")
-        }
+        outdir <- outdir | length(labelist$fileext) > 1
         
         csvdatadir <- FALSE # by default
         
@@ -82,7 +98,7 @@ setupfile <- function(obj = "", type = "all", csv = "", miss = "", uniqueid = ""
             if (csv != "") {
                 if (length(csv) > 1) {
                     cat("\n")
-                    stop("The csv argument should contain a single path to the list object.\n\n", call. = FALSE)
+                    stop("The \"csv\" argument should contain a single path to the .csv file.\n\n", call. = FALSE)
                 }
                 
                 csvlist <- treatPath(csv, type = "csv")
@@ -132,18 +148,12 @@ setupfile <- function(obj = "", type = "all", csv = "", miss = "", uniqueid = ""
             cat("Processing (no data directory):\n")
         }
         
-        
-        # when pathIsFolder, it is unlikely that uniqueid is the same for all data files
-        # so set uniqueid to "" to ignore it.
-        
-        # if (pathIsFolder) {
-        #     uniqueid <- ""
-        # }
-        
         for (i in seq(length(labelist$files))) {
             
             if (xmlfiles) {
-                internalblsObject <- getMetadata(file.path(labelist$completePath, labelist$files[i]), fromsetupfile = TRUE, saveFile = saveFile)
+                obj <- DDIwR::getMetadata(file.path(labelist$completePath, labelist$files[i]), fromsetupfile = TRUE, saveFile = saveFile)
+                dataDscrObject <- obj$dataDscr
+                data <- obj$fileDscr$datafile
             }
             else {
                 aa <- ls()
@@ -153,45 +163,45 @@ setupfile <- function(obj = "", type = "all", csv = "", miss = "", uniqueid = ""
                 })
                 
                 bb <- ls()
-                bb <- bb[-which(bb == "aa")]
+                bb <- setdiff(bb, aa) # bb[-which(bb == "aa")]
             }
             
             currentdir <- getwd()
             
             if (csvdatadir) {
                 
-                if (labelist$filenames[i] %in% csvnames) {
+                if (is.element(labelist$filenames[i], csvnames)) {
                     cat(labelist$filenames[i], "\n")
                     position <- match(labelist$filenames[i], csvnames)
                     
                     
                     for (j in seq(length(position))) {
                         
-                        if (csvext[position[j]] %in% c("CSV", "CSV.GZ")) {
-                                                                                                   # delimiter is already set from the function's formal argument
-                            csvreadfile <- read.csv(file.path(datadir, csvfiles[position[j]]), sep = delimiter, header = TRUE, as.is = TRUE)
+                        if (is.element(csvext[position[j]], c("CSV", "CSV.GZ"))) {
+                                                                                                   # delim is already set from the function's formal argument
+                            csvreadfile <- read.csv(file.path(datadir, csvfiles[position[j]]), sep = delim, header = TRUE, as.is = TRUE)
                             
                             if (ncol(csvreadfile) == 1) {
-                                delimiter <- getDelimiter(file.path(datadir, csvfiles[position[j]]))
+                                delim <- getDelimiter(file.path(datadir, csvfiles[position[j]]))
                                 
-                                if (delimiter == "unknown") {
+                                if (delim == "unknown") {
                                     stop(paste("Unknown column separator for the file", csvfiles[position[j]],
                                                "\nShould be either \",\" or \";\" or tab separated.\n\n"), call. = FALSE)
                                 }
                                 
-                                csvreadfile <- read.csv(file.path(datadir, csvfiles[position[j]]), sep = delimiter, header = TRUE, as.is = TRUE)
+                                csvreadfile <- read.csv(file.path(datadir, csvfiles[position[j]]), sep = delim, header = TRUE, as.is = TRUE)
                             }
                             
                             
                             if (!xmlfiles) {
-                                internalblsObject <- get(setdiff(bb, aa))
+                                dataDscrObject <- get(setdiff(bb, aa))
                             }
                             
-                            tryCatch(Recall(internalblsObject, type = type, miss = miss, csv = csvreadfile, uniqueid = uniqueid, SD = SD,
-                                            delimiter = delimiter, OS = OS, outfile = labelist$filenames[i], pathIsFolder = pathIsFolder, ... = ...),
+                            tryCatch(Recall(dataDscrObject, type = type, csv = csvreadfile, delim = delim, OS = OS,
+                                            file = labelist$filenames[i], outdir = outdir, ... = ...),
                                 error = function(x) {
                                     # if no sink() is needed, an invisible warning message will be returned
-                                    tryCatch(sink(), warning=function(y) return(invisible(y)))
+                                    tryCatch(sink(), warning = function(y) return(invisible(y)))
                                     setwd(currentdir)
                                     cat(paste("     There is an error associated with the file \"", labelist$filenames[i], "\", see below:\n     ", sep=""))
                                     cat(as.character(x))
@@ -202,11 +212,11 @@ setupfile <- function(obj = "", type = "all", csv = "", miss = "", uniqueid = ""
                 else {
                     cat(labelist$filenames[i], "(no .csv file)", "\n")
                     if (!xmlfiles) {
-                        internalblsObject <- get(setdiff(bb, aa))
+                        dataDscrObject <- get(setdiff(bb, aa))
                     }
                     
-                    tryCatch(Recall(internalblsObject, type = type, miss = miss, uniqueid = uniqueid, SD = SD, 
-                                    delimiter = delimiter, OS = OS, outfile = labelist$filenames[i], pathIsFolder = pathIsFolder, ... = ...),
+                    tryCatch(Recall(dataDscrObject, type = type, delim = delim, OS = OS,
+                                    file = labelist$filenames[i], outdir = outdir, ... = ...),
                         error = function(x) {
                             tryCatch(sink(), warning=function(y) return(invisible(y)))
                             setwd(currentdir)
@@ -221,10 +231,13 @@ setupfile <- function(obj = "", type = "all", csv = "", miss = "", uniqueid = ""
                 if (is.data.frame(csv)) {
                     if (length(labelist$filenames) == 1) {
                         if (!xmlfiles) {
-                            internalblsObject <- get(setdiff(bb, aa))
+                            obj <- get(setdiff(bb, aa))
+                            dataDscrObject <- obj$dataDscr
+                            data <- obj$fileDscr$datafile
                         }
-                        tryCatch(Recall(internalblsObject, type = type, miss = miss, csv = csv, uniqueid = uniqueid, SD = SD,
-                                        delimiter = delimiter, OS = OS, outfile = labelist$filenames[i], pathIsFolder = pathIsFolder, ... = ...),
+
+                        tryCatch(Recall(dataDscrObject, type = type, csv = csv, delim = delim, OS = OS,
+                                        file = labelist$filenames[i], outdir = outdir, ... = ...),
                         error = function(x) {
                             tryCatch(sink(), warning=function(y) return(invisible(y)))
                             setwd(currentdir)
@@ -236,10 +249,10 @@ setupfile <- function(obj = "", type = "all", csv = "", miss = "", uniqueid = ""
                 else {
                     # there is really no csv data
                         if (!xmlfiles) {
-                            internalblsObject <- get(setdiff(bb, aa))
+                            dataDscrObject <- get(setdiff(bb, aa))
                         }
-                        tryCatch(Recall(internalblsObject, type = type, miss = miss, uniqueid = uniqueid, SD = SD, 
-                                        delimiter = delimiter, OS = OS, outfile = labelist$filenames[i], pathIsFolder = pathIsFolder, ... = ...),
+                        tryCatch(Recall(dataDscrObject, type = type, delim = delim, OS = OS,
+                                        file = labelist$filenames[i], outdir = outdir, ... = ...),
                         error = function(x) {
                             tryCatch(sink(), warning=function(y) return(invisible(y)))
                             setwd(currentdir)
@@ -254,35 +267,33 @@ setupfile <- function(obj = "", type = "all", csv = "", miss = "", uniqueid = ""
             }
         }
         
-        # if (pathIsFolder & (type == "all" | type == "R")) {
-        #     cat("\nMissing values not treated for R when using an entire directory.\n")
-        #     cat("Run individual commands and specify the uniqueid for each dataset.\n")
-        # }
-        
         cat("\nSetup files created in:\n", file.path(currentdir, "Setup files"), "\n\n", sep="")
         
         return(invisible())
     }
+    else if (is.list(codebook)) {
+        data <- codebook[["fileDscr"]][["datafile"]]
+        dataDscr <- codebook[["dataDscr"]]
+        dataDscr_objname <- deparse(substitute(codebook))
+    }
+    else {
+        cat("\n")
+        stop("Unknown input for the argument \"codebook\".\n\n", call. = FALSE)
+    }
     
-    # if (identical(miss, "")) {
-        missngs <- unique(unlist(lapply(internalbls, function(x) {
-            if (is.element("missing", names(x))) {
-                return(names(x$values)[is.element(x$values, x$missing)])
-            }
-        })))
-        
-        if (!is.null(missngs)) {
-            miss <- missngs
+    missing <- unique(unlist(lapply(dataDscr, function(x) {
+        if (all(is.element(c("values", "missing"), names(x)))) {
+            return(names(x$values)[is.element(x$values, x$missing)])
         }
-    # }
+    })))
     
-    
+
     csvlist <- NULL # initialization
     if (all(is.character(csv))) {
         if (all(csv != "")) {
             if (length(csv) > 1) {
                 cat("\n")
-                stop("The csv argument should contain a single path to the list object.\n\n", call. = FALSE)
+                stop("The \"csv\" argument should contain a single path to the .csv file.\n\n", call. = FALSE)
             }
             
             csvlist <- treatPath(csv, type = "CSV")
@@ -290,7 +301,7 @@ setupfile <- function(obj = "", type = "all", csv = "", miss = "", uniqueid = ""
                 # no error
                 if (length(csvlist$files) > 1) {
                     cat("\n")
-                    stop("There is only one object containing labels and multiple csv files.\n\n", call. = FALSE)
+                    stop("There is only one object containing metadata and multiple csv files.\n\n", call. = FALSE)
                 }
             }
             else {
@@ -306,27 +317,26 @@ setupfile <- function(obj = "", type = "all", csv = "", miss = "", uniqueid = ""
             if (is.list(x)) {
                 return(is.element("label", names(x)))
             }
-            else {
-                return(FALSE)
-            }
+            
+            return(FALSE)
         })))
     }
     
     
-    if (is.null(names(internalbls)) | !checkvarlab(internalbls)) {
+    if (is.null(names(dataDscr)) | !checkvarlab(dataDscr)) {
         cat("\n")
-        stop("The object does not contain variables and / or labels.\n\n", call. = FALSE)
+        stop("The argument <codebook> does not contain variables and / or labels.\n\n", call. = FALSE)
     }
     
-    if (!(type %in% c("SPSS", "Stata", "SAS", "R", "all"))) {
+    if (!is.element(type, c("SPSS", "Stata", "SAS", "R", "all"))) {
         cat("\n")
-        stop("The argument <type> can only be: \"SPSS\", \"Stata\", \"SAS\", \"R\", or \"all\".\n\n", call. = FALSE)
+        stop("The argument \"type\" should be one of: \"SPSS\", \"Stata\", \"SAS\", \"R\", or \"all\".\n\n", call. = FALSE)
     }
     
     enter <- getEnter(OS=OS)
     
-    names(internalbls) <- toupper(names(internalbls))
-    varnames <- names(internalbls)
+    names(dataDscr) <- toupper(names(dataDscr))
+    varnames <- names(dataDscr)
     maxchars <- max(nchar(varnames))
     varcheck <- rep(0, length(varnames))
     formats <- FALSE
@@ -345,19 +355,19 @@ setupfile <- function(obj = "", type = "all", csv = "", miss = "", uniqueid = ""
     if (csv_is_df | csv_is_path) {
         
         if (!is.null(csvlist)) {
-                                                                                           # delimiter is already set from the function's formal argument
-            csvreadfile <- read.csv(file.path(csvlist$completePath, csvlist$files[1]), sep = delimiter, header = TRUE, as.is=TRUE)
+                                                                                           # delim is already set from the function's formal argument
+            csvreadfile <- read.csv(file.path(csvlist$completePath, csvlist$files[1]), sep = delim, header = TRUE, as.is=TRUE)
             
             if (ncol(csvreadfile) == 1) {
             
-                delimiter <- getDelimiter(file.path(csvlist$completePath, csvlist$files[1]))
+                delim <- getDelimiter(file.path(csvlist$completePath, csvlist$files[1]))
                 
-                if (delimiter == "unknown") {
+                if (delim == "unknown") {
                     stop(paste("Unknown column separator for the file", csvlist$files[1],
                                "\nShould be either \",\" or \";\" or tab separated.\n\n"), call. = FALSE)
                 }
                 
-                csvreadfile <- read.csv(file.path(csvlist$completePath, csvlist$files[1]), sep = delimiter, header = TRUE, as.is=TRUE)
+                csvreadfile <- read.csv(file.path(csvlist$completePath, csvlist$files[1]), sep = delim, header = TRUE, as.is=TRUE)
             }
             
             # cat("\n")
@@ -419,9 +429,9 @@ setupfile <- function(obj = "", type = "all", csv = "", miss = "", uniqueid = ""
         if (gofurther) {
             
             # filter the variable labels
-            internalbls <- internalbls[is.element(varnames, csvnames)]
+            dataDscr <- dataDscr[is.element(varnames, csvnames)]
             
-            varnames <- names(internalbls)
+            varnames <- names(dataDscr)
             maxchars <- max(nchar(varnames))
             varcheck <- rep(0, length(varnames))
             vartypes <- emptyvars <- vector(mode="list", length=ncol(csv))
@@ -498,13 +508,13 @@ setupfile <- function(obj = "", type = "all", csv = "", miss = "", uniqueid = ""
                 
                 maxvarchar <- max(nofchars)
                 
-                hasvalues <- is.element("values", names(internalbls[[csvnames[i]]]))
+                hasvalues <- is.element("values", names(dataDscr[[csvnames[i]]]))
                 
                 if (hasvalues) {
-                    if (is.character(internalbls[[csvnames[i]]]$values)) {
+                    if (is.character(dataDscr[[csvnames[i]]]$values)) {
                         vartypes[i] <- "string"
                         # gofurther <- FALSE
-                        maxvarchar <- max(maxvarchar, nchar(internalbls[[csvnames[i]]]$values))
+                        maxvarchar <- max(maxvarchar, nchar(dataDscr[[csvnames[i]]]$values))
                     }
                 }
                 
@@ -517,8 +527,8 @@ setupfile <- function(obj = "", type = "all", csv = "", miss = "", uniqueid = ""
                     }
                     else {
                         if (hasvalues) {
-                            if (is.numeric(internalbls[[csvnames[i]]]$values)) {
-                                maxvarchar <- max(maxvarchar, nchar(internalbls[[csvnames[i]]]$values))
+                            if (is.numeric(dataDscr[[csvnames[i]]]$values)) {
+                                maxvarchar <- max(maxvarchar, nchar(dataDscr[[csvnames[i]]]$values))
                             }
                         }
                     }
@@ -554,32 +564,70 @@ setupfile <- function(obj = "", type = "all", csv = "", miss = "", uniqueid = ""
     
     
     
-    stringvars <- lapply(internalbls, function(x) {
+    stringvars <- lapply(dataDscr, function(x) {
         charvar <- FALSE
         if (is.element("values", names(x))) {
             charvar <- is.character(x$values)
         }
         return(charvar)
     })
+
     
-    
-    if (identical(outfile, "")) {
-        if (grepl("\"", internalbls_objname)) {
-            outfile <- readline("Name for the setup file:\n")
+    if (outdir) {
+        file <- dataDscr_objname
+    }
+    else {
+        if (identical(file, "")) {
+            if (grepl("\"", dataDscr_objname)) {
+                file <- readline("Name for the setup file:\n")
+            }
+            else {
+                file <- dataDscr_objname
+            }
         }
         else {
-            outfile <- internalbls_objname
+            tp <- treatPath(file, check = FALSE)
+            if (is.na(tp$fileext)) {
+                if (identical(type, "all")) {
+                    cat("\n")
+                    stop("Could not determine the file type.\n\n", call. = FALSE)
+                }
+                else {
+                    if (type == "SPSS") file <- file.path(tp$completePath, paste(tp$files, "sps", sep = "."))
+                    if (type == "Stata") file <- file.path(tp$completePath, paste(tp$files, "do", sep = "."))
+                    if (type == "SAS") file <- file.path(tp$completePath, paste(tp$files, "sas", sep = "."))
+                    if (type == "R") file <- file.path(tp$completePath, paste(tp$files, "R", sep = "."))
+                }
+            }
+            else {
+                if (!identical(type, "all")) {
+                    if ((tp$fileext == "SPS" & type != "SPSS") |
+                        (tp$fileext == "SO" & type != "Stata") |
+                        (tp$fileext == "SAS" & type != "SAS") |
+                        (tp$fileext == "R" & type != "R")) {
+                        cat("\n")
+                        stop("Incompatible type and file extension.\n\n", call. = FALSE)
+                    }
+                }
+                else {
+                    if (tp$fileext == "SPS") type <- "SPSS"
+                    if (tp$fileext == "DO") type <- "Stata"
+                    if (tp$fileext == "SAS") type <- "SAS"
+                    if (tp$fileext == "R") type <- "R"
+                }
+            }
         }
     }
     
-    hasvalues <- unlist(lapply(internalbls, function(x) is.element("values", names(x))))
-    uniquevals <- unique(lapply(internalbls[hasvalues], function(x) return(x$values)))
+    
+    hasvalues <- unlist(lapply(dataDscr, function(x) is.element("values", names(x))))
+    uniquevals <- unique(lapply(dataDscr[hasvalues], function(x) return(x$values)))
     
     uniqueList <- lapply(uniquevals, function(uniques) {
-        vars <- sapply(names(internalbls)[hasvalues],
+        vars <- sapply(names(dataDscr)[hasvalues],
                      function(x) {
-                         ifelse(length(internalbls[[x]]$values) == length(uniques),
-                                all(names(internalbls[[x]]$values) == names(uniques)), FALSE)
+                         ifelse(length(dataDscr[[x]]$values) == length(uniques),
+                                all(names(dataDscr[[x]]$values) == names(uniques)), FALSE)
                      })
         return(names(vars[vars]))
     })
@@ -590,12 +638,12 @@ setupfile <- function(obj = "", type = "all", csv = "", miss = "", uniqueid = ""
     
     if (!identical(forcenum, c(""))) {
         
-        if (!all(forcenum %in% csvnames)) {
+        if (!all(is.element(forcenum, csvnames))) {
             cat("The following <numerical> variable names were not found in the data:\n",
-                "\"", paste(forcenum[!forcenum %in% csvnames], collapse="\", \""), "\"\n\n", sep="")
+                "\"", paste(setdiff(forcenum, csvnames), collapse="\", \""), "\"\n\n", sep="")
         }
         
-        which_numerical <- csvnames[csvnames %in% forcenum]
+        which_numerical <- intersect(csvnames, forcenum)
         
         if (length(which_numerical) > 0) {
             
@@ -615,21 +663,24 @@ setupfile <- function(obj = "", type = "all", csv = "", miss = "", uniqueid = ""
     
     
     if (type == "SPSS" | type == "all") {
-        internalbls2 <- internalbls
+        dataDscr2 <- dataDscr
         printMISSING <- FALSE
-        
-        if (!file.exists("Setup files")) {
-            dir.create("Setup files")
-        }
-        
-        if (!file.exists(file.path("Setup files", "SPSS"))) {
-            dir.create(file.path("Setup files", "SPSS"))
-        }
-        
-        
         currentdir <- getwd()
-        setwd(file.path("Setup files", "SPSS"))
-        sink(ifelse(length(grep("\\.sps", outfile)) > 0, outfile, paste(outfile, ".sps", sep="")))
+        
+        if (outdir) {
+            if (!file.exists("Setup files")) {
+                dir.create("Setup files")
+            }
+            
+            if (!file.exists(file.path("Setup files", "SPSS"))) {
+                dir.create(file.path("Setup files", "SPSS"))
+            }
+
+            setwd(file.path("Setup files", "SPSS"))
+        }
+        
+        
+        sink(ifelse(length(grep("\\.sps", file)) > 0, file, paste(file, ".sps", sep="")))
         
         cat("* ------------------------------------------------------------------------------", enter, enter,
             "* --- CONFIGURATION SECTION - START ---", enter, enter, enter, sep="")
@@ -660,7 +711,7 @@ setupfile <- function(obj = "", type = "all", csv = "", miss = "", uniqueid = ""
                 " /FILE=csvpath", enter,
                 " /DELCASE=LINE", enter,
                 " /ARRANGEMENT=DELIMITED", enter,
-                " /DELIMITERS='", ifelse(delimiter == "\t", "\\t", delimiter), "'", enter,
+                " /DELIMITERS='", ifelse(delim == "\t", "\\t", delim), "'", enter,
                 " /QUALIFIER='\"'", enter,
                 " /FIRSTCASE=2", enter,
                 " /IMPORTCASE=ALL", enter,
@@ -684,19 +735,15 @@ setupfile <- function(obj = "", type = "all", csv = "", miss = "", uniqueid = ""
             stringvars <- stringvars[unlist(stringvars)]
             for (i in names(stringvars)) {
                 
-                vals <- seq(length(internalbls2[[i]]$values))
+                vals <- seq(length(dataDscr2[[i]]$values))
+                nummiss <- logical(length(vals))
+
+                missvals <- !is.na(match(names(dataDscr2[[i]]$values), missing))
                 
-                if (is.numeric(miss)) {
-                    missvals <- !is.na(match(miss, internalbls2[[i]]$values))
-                }
-                else {
-                    missvals <- !is.na(match(names(internalbls2[[i]]$values), miss))
-                }
-                
+
                 if (any(missvals)) {
-                    nummiss <- logical(length(missvals))
                     for (j in which(missvals)) {
-                        missval <- suppressWarnings(as.numeric(internalbls2[[i]]$values[j]))
+                        missval <- suppressWarnings(as.numeric(dataDscr2[[i]]$values[j]))
                         if (!is.na(missval)) {
                             if (!is.element(missval, vals)) {
                                 vals[j] <- missval
@@ -720,9 +767,9 @@ setupfile <- function(obj = "", type = "all", csv = "", miss = "", uniqueid = ""
                     
                     for (j in vals[!nummiss]) {
                         
-                        postcommand <- paste(postcommand, internalbls2[[i]]$values[j], "\"", " = ", j, sep = "")
-                        command <- paste(command, internalbls2[[i]]$values[j], "\"", " = ", j, sep = "")
-                        if (j == length(internalbls2[[i]]$values[!nummiss])) {
+                        postcommand <- paste(postcommand, dataDscr2[[i]]$values[j], "\"", " = ", j, sep = "")
+                        command <- paste(command, dataDscr2[[i]]$values[j], "\"", " = ", j, sep = "")
+                        if (j == length(dataDscr2[[i]]$values[!nummiss])) {
                             command <- paste(command, ") (else = copy) INTO TEMPVRBL .", enter, "EXECUTE .", enter, enter, sep="")
                         }
                         else {
@@ -743,8 +790,8 @@ setupfile <- function(obj = "", type = "all", csv = "", miss = "", uniqueid = ""
                     cat("DELETE VARIABLES TEMPVRBL .", enter, "EXECUTE .", enter, enter, sep="")
                 }
                 
-                names(vals) <- names(internalbls2[[i]]$values)
-                internalbls2[[i]]$values <- vals
+                names(vals) <- names(dataDscr2[[i]]$values)
+                dataDscr2[[i]]$values <- vals
             }
             cat(enter, enter, sep="")
         }
@@ -778,7 +825,7 @@ setupfile <- function(obj = "", type = "all", csv = "", miss = "", uniqueid = ""
             "VARIABLE LABELS", enter, sep="")
         
         for (i in seq(length(varnames))) {
-            cat(varnames[i], paste(rep(" ", maxchars - nchar(varnames[i])), collapse=""), " \"", internalbls2[[i]]$label[1], "\"", sep="")
+            cat(varnames[i], paste(rep(" ", maxchars - nchar(varnames[i])), collapse=""), " \"", dataDscr2[[i]]$label[1], "\"", sep="")
             if (i == length(varnames)) {
                 cat(" .", enter, "EXECUTE .", sep="")
             }
@@ -795,11 +842,11 @@ setupfile <- function(obj = "", type = "all", csv = "", miss = "", uniqueid = ""
             
             cat(splitrows(uniqueList[[i]], enter, 80), enter, sep="")
             
-            #if (all(is.character(internalbls2[[n]]$values))) {
-            #    cat(paste(paste("\"", internalbls2[[n]]$values, "\" \"", names(internalbls2[[n]]$values), "\"", sep=""), collapse="\n"))
+            #if (all(is.character(dataDscr2[[n]]$values))) {
+            #    cat(paste(paste("\"", dataDscr2[[n]]$values, "\" \"", names(dataDscr2[[n]]$values), "\"", sep=""), collapse="\n"))
             #}
             #else {
-                cat(paste(paste(internalbls2[[n]]$values, " \"", names(internalbls2[[n]]$values), "\"", sep=""), collapse=enter))
+                cat(paste(paste(dataDscr2[[n]]$values, " \"", names(dataDscr2[[n]]$values), "\"", sep=""), collapse=enter))
             #}
             if (i == length(uniqueList)) {
                 cat(" .", enter, "EXECUTE .", enter, sep="")
@@ -811,23 +858,16 @@ setupfile <- function(obj = "", type = "all", csv = "", miss = "", uniqueid = ""
         cat(enter, enter, sep="")
         
         
-        if (!identical(miss, "")) {
+        if (!is.null(missing)) {
         
-            if (is.numeric(miss)) {
-                missvars <- lapply(internalbls2[hasvalues], function(x) !is.na(match(miss, x$values)))
-                withmiss <- as.vector(unlist(lapply(missvars, any)))
-                missvals <- lapply(missvars[withmiss], function(x) sort(as.vector(miss[x])))
-            }
-            else {
-                missvars <- lapply(internalbls2[hasvalues], function(x) !is.na(match(names(x$values), miss)))
-                withmiss <- as.vector(unlist(lapply(missvars, any)))
-                missvals <- lapply(which(withmiss), function(x) sort(as.vector(internalbls2[hasvalues][[x]]$values[missvars[[x]]])))
-            }
+            missvars <- lapply(dataDscr2[hasvalues], function(x) !is.na(match(names(x$values), missing)))
+            withmiss <- as.vector(unlist(lapply(missvars, any)))
+            missvals <- lapply(which(withmiss), function(x) sort(as.vector(dataDscr2[hasvalues][[x]]$values[missvars[[x]]])))
             
             
             missvals <- unique(lapply(missvals, function(x) {
-                if (!any(is.na(suppressWarnings(as.numeric(x))))) {
-                    x <- as.numeric(x)
+                if (possibleNumeric(x)) {
+                    x <- asNumeric(x)
                 }
                 return(x)
             }))
@@ -841,9 +881,9 @@ setupfile <- function(obj = "", type = "all", csv = "", miss = "", uniqueid = ""
                 for (i in seq(length(missvals))) {
                     vars <- NULL
                     for (j in withmiss2) {
-                        y <- unname(internalbls2[[which(hasvalues)[j]]]$values[missvars[[j]]])
+                        y <- unname(dataDscr2[[which(hasvalues)[j]]]$values[missvars[[j]]])
                         if (all(is.element(missvals[[i]], y)) & length(missvals[[i]]) == length(y)) {
-                            vars <- c(vars, names(internalbls2)[which(hasvalues)[j]])
+                            vars <- c(vars, names(dataDscr2)[which(hasvalues)[j]])
                         }
                     }
                     uniqueMissList[[i]] <- vars
@@ -870,9 +910,9 @@ setupfile <- function(obj = "", type = "all", csv = "", miss = "", uniqueid = ""
                                 # check if the missing values range doesn't contain any other (non-missing) values
                                 checklist <- list()
                                 for (mv in uniqueMissList[[i]]) {
-                                    allvalues <- internalbls2[[mv]]$values
-                                    nonmiss <- allvalues[!allvalues %in% missvals[[i]]]
-                                    checklist[[mv]] <- any(nonmiss %in% seq(min(missvals[[i]]), max(missvals[[i]])))
+                                    allvalues <- dataDscr2[[mv]]$values
+                                    nonmiss <- setdiff(allvalues, missvals[[i]])
+                                    checklist[[mv]] <- any(is.element(nonmiss, seq(min(missvals[[i]]), max(missvals[[i]]))))
                                 }
                                 
                                 checklist <- unlist(checklist)
@@ -926,7 +966,7 @@ setupfile <- function(obj = "", type = "all", csv = "", miss = "", uniqueid = ""
             }
         }
         else {
-            for (n in names(internalbls2)) {
+            for (n in names(dataDscr2)) {
                 cat(toupper(n), enter, sep="")
             }
         }
@@ -947,119 +987,126 @@ setupfile <- function(obj = "", type = "all", csv = "", miss = "", uniqueid = ""
     }
     
     
-    
     if (type == "Stata" | type == "all") {
-        internalbls2 <- internalbls
-        
-        if (!file.exists("Setup files")) {
-            dir.create("Setup files")
-        }
-        
-        if (!file.exists(file.path("Setup files", "Stata"))) {
-            dir.create(file.path("Setup files", "Stata"))
-        }
-        
+        dataDscr2 <- dataDscr
         currentdir <- getwd()
-        setwd(file.path("Setup files", "Stata"))
-        sink(ifelse(length(grep("\\.do", outfile)) > 0, outfile, paste(outfile, ".do", sep="")))
+
+        if (outdir) {
+            if (!file.exists("Setup files")) {
+                dir.create("Setup files")
+            }
+            
+            if (!file.exists(file.path("Setup files", "Stata"))) {
+                dir.create(file.path("Setup files", "Stata"))
+            }
+
+            setwd(file.path("Setup files", "Stata"))
+        }
         
-        cat("/* Initialization commands */", enter,
-            "clear", enter,
-            "capture log close", enter,
-            "set more off", enter,
-            "version 12.0", enter,
-            "set linesize 250", enter,
-            "set varabbrev off", enter,
-            "set memory 1G // not necessary in Stata 12",
-            ifelse(SD == ";", "\n#delimit ;", ""), enter, enter, enter,
-            "* ----------------------------------------------------------------------------",
-            ifelse(SD == ";", " ;", ""), enter, enter,
-            "* --- CONFIGURATION SECTION - START ---",
-            ifelse(SD == ";", "                                        ;", ""), enter, enter,
-            "* The following command should contain the complete path and",
-            ifelse(SD == ";", "                   ;", ""), enter,
-            "* name of the Stata log file.",
-            ifelse(SD == ";", "                                                  ;", ""), enter,
-            "* Change LOG_FILENAME to your filename, below:",
-            ifelse(SD == ";", "                                 ;", ""), enter,
-            "local log_file \"LOG_FILENAME\"",
-            ifelse(SD == ";", " ;", ""), enter, enter, enter,
-            "* The following command should contain the complete path and",
-            ifelse(SD == ";", "                   ;", ""), enter,
-            "* name of the CSV file, usual file extension \".csv\"",
-            ifelse(SD == ";", "                            ;", ""), enter,
-            "* Change CSV_DATA_PATH to your filename, below:",
-            ifelse(SD == ";", "                                ;", ""), enter,
-            "local csvpath \"CSV_DATA_PATH\"",
-            ifelse(SD == ";", " ;", ""), enter, enter, enter,
-            "* The following command should contain the complete path and",
-            ifelse(SD == ";", "                   ;", ""), enter,
-            "* name of the STATA file, usual file extension \".dta\"",
-            ifelse(SD == ";", "                          ;", ""), enter,
-            "* Change STATA_DATA_PATH to your filename, below:",
-            ifelse(SD == ";", "                              ;", ""), enter,
-            "local statapath \"STATA_DATA_PATH\"",
-            ifelse(SD == ";", " ;", ""), enter, enter, enter,
-            "* --- CONFIGURATION SECTION - END ---",
-            ifelse(SD == ";", "                                          ;", ""), enter, enter,
-            "* ----------------------------------------------------------------------------",
-            ifelse(SD == ";", " ;", ""), enter, enter, enter, enter,
-            "* There should be nothing to change below this line",
-            ifelse(SD == ";", "                            ;", ""), enter,
-            "* ----------------------------------------------------------------------------",
-            ifelse(SD == ";", " ;", ""), enter, enter, enter, enter,         
-            "log using \"`log_file'\", replace text",
-            ifelse(SD == ";", " ;", ""), enter, enter,
-            "insheet using \"`csvpath'\", comma names case",
-            ifelse(SD == ";", " ;", ""), enter, enter,
-            "* Note that some variables in the csv raw data file might be in lowercase",
-            ifelse(SD == ";", "      ;", ""), enter,
-            "* To ensure that the dataset contains only variable names in uppercase",
-            ifelse(SD == ";", "         ;", ""), enter, enter,
-            "foreach var of varlist _all {",
-            ifelse(SD == ";", " ;", ""), enter,
-            "    local newname = upper(\"`var'\")",
-            ifelse(SD == ";", " ;", ""), enter,
-            "    cap rename \`var\' \`newname\'",
-            ifelse(SD == ";", " ;", ""), enter,
-            "}",
-            ifelse(SD == ";", " ;", ""), enter, enter, enter, sep="")
+        sink(file)
+        
+        if (script) {
+            cat("use \"",  normalizePath(other.args$to), "\"", enter, sep = "")
+        }
+        else {
+            cat("/* Initialization commands */", enter,
+                "clear", enter,
+                "capture log close", enter,
+                "set more off", enter,
+                "version 12.0", enter,
+                "set linesize 250", enter,
+                "set varabbrev off", enter,
+                "set memory 1G // not necessary in Stata 12",
+                enter, enter, enter,
+                "* ----------------------------------------------------------------------------",
+                enter, enter,
+                "* --- CONFIGURATION SECTION - START ---",
+                enter, enter,
+                "* The following command should contain the complete path and",
+                enter,
+                "* name of the Stata log file.",
+                enter,
+                "* Change LOG_FILENAME to your filename, below:",
+                enter,
+                "local log_file \"LOG_FILENAME\"",
+                enter, enter, enter,
+                "* The following command should contain the complete path and",
+                enter,
+                "* name of the CSV file, usual file extension \".csv\"",
+                enter,
+                "* Change CSV_DATA_PATH to your filename, below:",
+                enter,
+                "local csvpath \"CSV_DATA_PATH\"",
+                enter, enter, enter,
+                "* The following command should contain the complete path and",
+                enter,
+                "* name of the STATA file, usual file extension \".dta\"",
+                enter,
+                "* Change STATA_DATA_PATH to your filename, below:",
+                enter,
+                "local statapath \"STATA_DATA_PATH\"",
+                enter, enter, enter,
+                "* --- CONFIGURATION SECTION - END ---",
+                enter, enter,
+                "* ----------------------------------------------------------------------------",
+                enter, enter, enter, enter,
+                "* There should be nothing to change below this line",
+                enter,
+                "* ----------------------------------------------------------------------------",
+                enter, enter, enter, enter,         
+                "log using \"`log_file'\", replace text",
+                enter, enter,
+                "insheet using \"`csvpath'\", comma names case",
+                enter, enter,
+                "* Note that some variables in the csv raw data file might be in lowercase",
+                enter,
+                "* To ensure that the dataset contains only variable names in uppercase",
+                enter, enter,
+                "foreach var of varlist _all {",
+                enter,
+                "    local newname = upper(\"`var'\")",
+                enter,
+                "    cap rename \`var\' \`newname\'",
+                enter,
+                "}",
+                enter, enter, enter, sep="")
+        }
         
         
         if (any(unlist(stringvars))) {
-            cat("* Recode string variables which have labels, to numeric variables", ifelse(SD == ";", " ;", ""), enter, enter, sep="")
+            cat("* Recode string variables which have labels, to numeric variables", enter, enter, sep="")
             for (i in seq(length(stringvars))) {
                 
                 if (stringvars[[i]]) {
                 
                     ## sort() is necessary because Stata automatically transforms
                     # character to numeric using the labels in alfabetical ascending order (TO VERIFY THAT!!)
-                    vallabs <- internalbls2[[names(stringvars)[i]]]$values
+                    vallabs <- dataDscr2[[names(stringvars)[i]]]$values
                     
                     vals <- seq(length(vallabs))
                     names(vals) <- names(vallabs)
                     
                     # if (emptyvars[[i]]) {
                     #     cat("* Variable ", toupper(names(stringvars)[i]), " is completely empty, recoding command skipped",
-                    #         ifelse(SD == ";", " ;", ""), enter, sep="")
+                    #         enter, sep="")
                     # }
                     # else {
                         # if (any(grepl("^[0-9]", vallabs))) {
-                            cat("generate TEMPVAR = .", ifelse(SD == ";", " ;", ""), enter, sep="")
+                            cat("generate TEMPVAR = .", enter, sep="")
                             for (j in vals) {
-                                cat("replace TEMPVAR = ", j, " if ", toupper(names(stringvars)[i]), " == \"", vallabs[j], ifelse(SD == ";", "\" ;", "\""), enter, sep="")
+                                cat("replace TEMPVAR = ", j, " if ", toupper(names(stringvars)[i]), " == \"", vallabs[j], enter, sep="")
                             }
-                            cat("drop ", toupper(names(stringvars)[i]), ifelse(SD == ";", " ;", ""), enter,
-                                "rename TEMPVAR ", toupper(names(stringvars)[i]), ifelse(SD == ";", " ;", ""), enter, sep="")
+                            cat("drop ", toupper(names(stringvars)[i]), enter,
+                                "rename TEMPVAR ", toupper(names(stringvars)[i]), enter, sep="")
                         ## }
                         ## else {
-                        ##     cat("encode (", toupper(names(stringvars)[i]), "), generate (TEMPVAR)", ifelse(SD == ";", " ;", ""), enter,
-                        ##         "drop ", toupper(names(stringvars)[i]), ifelse(SD == ";", " ;", ""), enter,
-                        ##         "rename TEMPVAR ", toupper(names(stringvars)[i]), ifelse(SD == ";", " ;", ""), enter, sep="")
+                        ##     cat("encode (", toupper(names(stringvars)[i]), "), generate (TEMPVAR)", enter,
+                        ##         "drop ", toupper(names(stringvars)[i]), enter,
+                        ##         "rename TEMPVAR ", toupper(names(stringvars)[i]), enter, sep="")
                         ## }
                     # }
                     
-                    internalbls2[[names(stringvars)[i]]]$values <- vals
+                    dataDscr2[[names(stringvars)[i]]]$values <- vals
                     cat(enter)
                 }
             }
@@ -1067,86 +1114,90 @@ setupfile <- function(obj = "", type = "all", csv = "", miss = "", uniqueid = ""
         }
         
         
-        
         if (length(numerical_with_strings) > 0) {
-            cat("* Force variables as numeric", ifelse(SD == ";", " ;", ""), enter, enter, sep="")
+            cat("* Force variables as numeric", enter, enter, sep="")
             
             for (i in names(numerical_with_strings)) {
                 
                 tempvar <- csv[, i]
                 
                 for (j in sort(unique(tempvar[numerical_with_strings[[i]]]))) {
-                    cat("replace ", toupper(i), " = \"\" if ", toupper(i), " == \"", j, ifelse(SD == ";", "\" ;", "\""), enter, sep="")
+                    cat("replace ", toupper(i), " = \"\" if ", toupper(i), " == \"", j, enter, sep="")
                 }
                 
-                cat ("destring ", toupper(i), ", replace", ifelse(SD == ";", " ;", ""), enter, enter, sep="")
+                cat ("destring ", toupper(i), ", replace", enter, enter, sep="")
                 
             }
             cat(enter)
         }
+
+        
+        if (!is.null(missing)) {
+
+            missvars <- lapply(dataDscr2[hasvalues], function(x) !is.na(match(names(x$values), missing)))
+            withmiss <- as.vector(unlist(lapply(missvars, any)))
+            missvals <- lapply(which(withmiss), function(x) sort(as.vector(dataDscr2[hasvalues][[x]]$values[missvars[[x]]])))
+            
+            
+            missvals <- unique(lapply(missvals, function(x) {
+                if (!any(is.na(suppressWarnings(as.numeric(x))))) {
+                    x <- as.numeric(x)
+                }
+                return(x)
+            }))
+            
+            msngs <- sort(unique(unlist(missvals)))
+
+            # sink()
+            # setwd(currentdir)
+
+            # return(list(dataDscr2 = dataDscr2, missing = missing, hasvalues = hasvalues, missvals = missvals, msngs = msngs))
+
+        }
         
         
         
-        maxchars <- max(nchar(names(internalbls2)))
+        maxchars <- max(nchar(names(dataDscr2)))
         
-        cat("* Definition of variable labels", ifelse(SD == ";", " ;", ""), enter, enter, sep="")
+        cat("* Definition of variable labels", enter, enter, sep="")
         
         # cat(maxchars, enter)
         
-        for (n in names(internalbls)) {
-            cat(paste("label variable ", toupper(n), paste(rep(" ", maxchars - nchar(n)), collapse=""), " \"", internalbls2[[n]]$label[1], "\"", ifelse(SD == ";", " ;", ""), enter, sep=""))
+        for (n in names(dataDscr)) {
+            cat(paste("label variable ", toupper(n), paste(rep(" ", maxchars - nchar(n)), collapse=""), " \"", dataDscr2[[n]]$label[1], "\"", enter, sep=""))
         }
         cat(enter, enter, sep="")
         
-        cat("* Definition of category labels", ifelse(SD == ";", " ;", ""), enter, enter, sep="")
+        cat("* Definition of category labels", enter, enter, sep="")
         
         for (i in seq(length(uniqueList))) {
             n <- uniqueList[[i]][1]
             
             headerlabel <- paste("label define LABELS_GROUP_", i, sep="")
             
-            if (SD == ";") {
-                cat(headerlabel, enter,
-                    paste(paste(paste(internalbls2[[n]]$values, " \"", names(internalbls2[[n]]$values), "\"", sep=""),
-                                collapse=enter), #paste("\n", paste(rep(" ", nchar(headerlabel)), collapse=""), sep="")),
-                          " ;", enter, enter, sep=""),
-                    sep="")
-            }
-            else if (SD == "///") {
-                cat(headerlabel, " ///", enter,
-                    paste(paste(paste(internalbls2[[n]]$values, " \"", names(internalbls2[[n]]$values), "\"", sep=""),
-                                collapse=" ///", enter), enter, enter, sep=""), sep="")
-            }
-            else if (SD == "/*") {
-                cat(headerlabel, " /*", enter,
-                    paste("*/ ", paste(paste(internalbls2[[n]]$values, " \"", names(internalbls2[[n]]$values), "\"", sep=""),
-                                collapse=paste(" /*", enter, "*/ ", sep="")),
-                          enter, enter, sep=""),
-                    sep="")
-            }
-            else {
-                cat(paste("label define LABELS_GROUP_", i, " ", sep=""),
-                    paste(paste(paste(internalbls2[[n]]$values, " \"", names(internalbls2[[n]]$values), "\"", sep=""),
-                                collapse=" "),
-                          enter, sep=""),
-                    sep="")
-            }
+            cat(paste("label define LABELS_GROUP_", i, " ", sep=""),
+                paste(paste(paste(dataDscr2[[n]]$values, " \"", names(dataDscr2[[n]]$values), "\"", sep=""),
+                            collapse=" "),
+                        enter, sep=""),
+                sep="")
         }
         
         cat(enter, enter, sep="")
-        cat("* Attachment of category labels to variables", ifelse(SD == ";", " ;", ""), enter, enter, sep="")
+        cat("* Attachment of category labels to variables", enter, enter, sep="")
         
         for (i in seq(length(uniqueList))) {
             n <- uniqueList[[i]][1]
             for (j in uniqueList[[i]]) {
-                cat(paste("label values ", toupper(j), paste(rep(" ", maxchars - nchar(j)), collapse=""), " LABELS_GROUP_", i, ifelse(SD == ";", " ;", ""), enter, sep=""))
+                cat(paste("label values ", toupper(j), paste(rep(" ", maxchars - nchar(j)), collapse=""), " LABELS_GROUP_", i, enter, sep=""))
             }
         }
         
-        cat("\ncompress", ifelse(SD == ";", " ;", ""), enter,
-            "save \"`statapath'\", replace", ifelse(SD == ";", " ;", ""), enter, enter,
-            "log close", ifelse(SD == ";", " ;", ""), enter,
-            "set more on", ifelse(SD == ";", "\n#delimit cr", ""), enter, sep="")
+        if (!script) {
+            cat(enter, "compress", enter,
+            "save \"`statapath'\", replace", enter, enter,
+            "log close", enter,
+            "set more on", enter, sep="")
+        }
         
         sink()
         setwd(currentdir)
@@ -1154,18 +1205,22 @@ setupfile <- function(obj = "", type = "all", csv = "", miss = "", uniqueid = ""
     
     
     if (type == "SAS" | type == "all") {
-        internalbls2 <- internalbls
-        if (!file.exists("Setup files")) {
-            dir.create("Setup files")
-        }
-        
-        if (!file.exists(file.path("Setup files", "SAS"))) {
-            dir.create(file.path("Setup files", "SAS"))
-        }
-        
+        dataDscr2 <- dataDscr
         currentdir <- getwd()
-        setwd(file.path("Setup files", "SAS"))
-        sink(ifelse(length(grep("\\.sas", outfile)) > 0, outfile, paste(outfile, ".sas", sep="")))
+
+        if (outdir) {
+            if (!file.exists("Setup files")) {
+                dir.create("Setup files")
+            }
+            
+            if (!file.exists(file.path("Setup files", "SAS"))) {
+                dir.create(file.path("Setup files", "SAS"))
+            }
+
+            setwd(file.path("Setup files", "SAS"))
+        }
+        
+        sink(ifelse(length(grep("\\.sas", file)) > 0, file, paste(file, ".sas", sep="")))
         
         cat("* ------------------------------------------------------------------------------ ;", enter, enter,
             "* --- CONFIGURATION SECTION - START ---                                          ;", enter, enter, enter, sep="")                                            
@@ -1200,7 +1255,7 @@ setupfile <- function(obj = "", type = "all", csv = "", miss = "", uniqueid = ""
             cat("* --- Read the raw data file ---                                                 ;", enter, enter,
                 "DATA sasimport;", enter, enter,
                 "INFILE csvpath", enter,
-                "       DLM=", ifelse(delimiter == "\t", "'09'X", paste("\"", delimiter, "\"", sep="")), enter,
+                "       DLM=", ifelse(delim == "\t", "'09'X", paste("\"", delim, "\"", sep="")), enter,
                 "       FIRSTOBS=2", enter,
                 #### "       TERMSTR=&eol", enter, #### line commented out
                 "       DSD", enter,
@@ -1224,7 +1279,7 @@ setupfile <- function(obj = "", type = "all", csv = "", miss = "", uniqueid = ""
             for (i in names(stringvars)) {
                 if (stringvars[[i]]) {
                     
-                    x <- internalbls2[[i]]$values
+                    x <- dataDscr2[[i]]$values
                     vals <- seq(length(x))
                     names(vals) <- names(x)
                     
@@ -1247,7 +1302,7 @@ setupfile <- function(obj = "", type = "all", csv = "", miss = "", uniqueid = ""
                             "RUN;", enter, enter, sep="")
                     # }
                     
-                    internalbls2[[i]]$values <- vals
+                    dataDscr2[[i]]$values <- vals
                 }
             }
             
@@ -1281,7 +1336,7 @@ setupfile <- function(obj = "", type = "all", csv = "", miss = "", uniqueid = ""
         if (any(unlist(stringvars)) | length(numerical_with_strings) > 0) {
             cat("* --- Reorder the variables in their original positions ---                      ;", enter, enter,
                 "DATA sasimport;", enter, enter,
-                "    RETAIN ", gsub(",", "", splitrows(toupper(names(internalbls2)), enter, 70, "           ")), ";", enter, enter,
+                "    RETAIN ", gsub(",", "", splitrows(toupper(names(dataDscr2)), enter, 70, "           ")), ";", enter, enter,
                 "    SET sasimport;", enter, enter,
                 "RUN;", enter, enter,
                 "* ------------------------------------------------------------------------------ ;", enter, enter, enter, sep="")
@@ -1294,7 +1349,7 @@ setupfile <- function(obj = "", type = "all", csv = "", miss = "", uniqueid = ""
             "    SET sasimport;", enter, enter, sep="")
         
         for (i in seq(length(varnames))) {
-            cat("    LABEL ", varnames[i], paste(rep(" ", maxchars - nchar(varnames[i]) + 1), collapse=""), "=", " \"", internalbls2[[i]]$label[1], "\";", enter, sep="")
+            cat("    LABEL ", varnames[i], paste(rep(" ", maxchars - nchar(varnames[i]) + 1), collapse=""), "=", " \"", dataDscr2[[i]]$label[1], "\";", enter, sep="")
         }
         
         cat(enter, "RUN;", enter, enter,
@@ -1306,7 +1361,7 @@ setupfile <- function(obj = "", type = "all", csv = "", miss = "", uniqueid = ""
         for (i in seq(length(uniqueList))) {
             n <- uniqueList[[i]][1]
             cat(paste("VALUE LABELS_", i, "_GROUP", enter, sep=""),
-                paste(paste(paste("      ", internalbls2[[n]]$values, "=\"", names(internalbls2[[n]]$values), "\"", sep=""),
+                paste(paste(paste("      ", dataDscr2[[n]]$values, "=\"", names(dataDscr2[[n]]$values), "\"", sep=""),
                             collapse=enter), #paste("\n", paste(rep(" ", nchar(headerlabel)), collapse=""), sep="")),
                       ";", enter, enter, sep=""),
                 sep="")
@@ -1338,26 +1393,26 @@ setupfile <- function(obj = "", type = "all", csv = "", miss = "", uniqueid = ""
         sink()
         setwd(currentdir)
     }
-    
-    
+
     
     if (type == "R" | type == "all") {
-        internalbls2 <- internalbls
         printMISSING <- FALSE
-        
-        
-        if (!file.exists("Setup files")) {
-            dir.create("Setup files")
-        }
-        
-        if (!file.exists(file.path("Setup files", "R"))) {
-            dir.create(file.path("Setup files", "R"))
-        }
-        
         currentdir <- getwd()
-        setwd(file.path("Setup files", "R"))
         
-        sink(ifelse(length(grep("\\.R", outfile)) > 0, outfile, paste(outfile, ".R", sep="")))
+        if (outdir) {
+            if (!file.exists("Setup files")) {
+                dir.create("Setup files")
+            }
+            
+            if (!file.exists(file.path("Setup files", "R"))) {
+                dir.create(file.path("Setup files", "R"))
+            }
+
+            setwd(file.path("Setup files", "R"))
+        }
+        
+        
+        sink(ifelse(length(grep("\\.R", file)) > 0, file, paste(file, ".R", sep="")))
         
         cat("# ------------------------------------------------------------------------------", enter, enter,
             "# --- CONFIGURATION SECTION - START ---", enter, enter, enter, sep="")
@@ -1377,7 +1432,8 @@ setupfile <- function(obj = "", type = "all", csv = "", miss = "", uniqueid = ""
                   
         # if (formats) {
             cat("# --- Read the raw data ---", enter, enter,
-                "rdatafile <- read.csv(csvpath, sep = \"", ifelse(delimiter == "\t", "\\t", delimiter), "\")",
+                "# package readr should be installed", enter,
+                "rdatafile <- readr::read_delim(csvpath, delim = \"", ifelse(delim == "\t", "\\t", delim), "\")",
                 enter, enter, "names(rdatafile) <- toupper(names(rdatafile))    # all variable names to upper case",
                 enter, enter, enter, sep="")
         # }
@@ -1385,60 +1441,9 @@ setupfile <- function(obj = "", type = "all", csv = "", miss = "", uniqueid = ""
         #     cat("# \"rdatafile\" should be an R data.frame (usually read from a .csv file)\n\n")
         # }
         
-        cat("# --- Specify the unique ID variable ---", enter, enter,
-            "# The following command should contain the name of the unique ID variable", enter,
-            "# in the .csv file (to identify missing observations in different variables).", enter,
-            "# Change \"\" to your unique ID variable name (using upper case letters), below:", enter, enter,
-            "uniqueid <- \"\"", enter, enter, enter, enter, sep = "")
-        
-        
         cat("# --- CONFIGURATION SECTION -  END  ---", enter, enter,
             "# There should be nothing to change below this line", enter,                                                            
             "# ------------------------------------------------------------------------------", enter, enter, enter, enter, sep="")
-        
-        
-        if (any(unlist(stringvars))) {
-            cat("# --- Recode string variables which have labels, to numeric variables ---", enter, enter, sep="")
-            stringvars <- stringvars[unlist(stringvars)]
-            for (i in names(stringvars)) {
-                
-                vals <- seq(length(internalbls2[[i]]$values))
-                
-                if (is.numeric(miss)) {
-                    missvals <- !is.na(match(miss, internalbls2[[i]]$values))
-                }
-                else {
-                    missvals <- !is.na(match(names(internalbls2[[i]]$values), miss))
-                }
-                
-                if (any(missvals)) {
-                    nummiss <- logical(length(missvals))
-                    for (j in which(missvals)) {
-                        missval <- suppressWarnings(as.numeric(internalbls2[[i]]$values[j]))
-                        if (!is.na(missval)) {
-                            if (!is.element(missval, vals)) {
-                                vals[j] <- missval
-                                nummiss[j] <- TRUE
-                            }
-                        }
-                    }
-                }
-                
-                
-                x <- internalbls2[[i]]$values
-                names(vals) <- names(x)
-                
-                cat("tempvar <- rep(NA, length(rdatafile$", toupper(i), "))", enter, enter, sep="")
-                for (j in seq(length(vals))) {
-                    cat("tempvar[rdatafile$", toupper(i), " == \"", x[j], "\"] <- ", vals[j], enter, sep="")
-                }
-                
-                cat(enter, "rdatafile[ , \"", toupper(i), "\"] <- tempvar", enter, enter, sep="")
-                
-                internalbls2[[i]]$values <- vals
-            }
-        }
-        
         
         
         if (length(numerical_with_strings) > 0) {
@@ -1453,96 +1458,12 @@ setupfile <- function(obj = "", type = "all", csv = "", miss = "", uniqueid = ""
             }
         }
         
-        cat(enter, enter,
-            "# ------------------------------------------------------------------------------",
-            enter, enter,
-            "# --- Set the variable metadata attributes --- ", enter, enter, sep="")
+        cat("# --- Set the variable metadata attributes --- ", enter,
+            "# package haven should be installed", enter, enter, sep="")
         
-        writeRlist(internalbls2, OS = OS, attr = TRUE, indent = indent)
+        tibbleMetadata(dataDscr, OS = OS, indent = indent)
         
         cat(enter, enter, sep = "")
-        
-        
-        uniquevar <- unlist(lapply(internalbls2, function(x) {
-            uniqueid <- FALSE
-            if (any(is.element("uniqueid", names(x)))) {
-                uniqueid <- x$uniqueid
-            }
-            return(uniqueid)
-        }))
-        
-        if (sum(uniquevar) == 1) {
-            uniqueid <- names(internalbls2)[uniquevar]
-        }
-        
-        checkMISSING <- rep(FALSE, 3)
-        checkMISSING[1] <- TRUE
-        # checkMISSING[1] <- is.data.frame(csv)
-        checkMISSING[2] <- !identical(miss, "")
-        checkMISSING[3] <- !identical(uniqueid, "")
-        
-        
-        if (all(checkMISSING)) {
-        # if (is.data.frame(csv) & uniqueid != "") {
-            
-            if (is.numeric(miss)) {
-                missvars <- lapply(internalbls2[hasvalues], function(x) !is.na(match(miss, x)))
-                withmiss <- as.vector(unlist(lapply(missvars, any)))
-                missvals <- lapply(missvars[withmiss], function(x) miss[x])
-                names(missvals) <- names(internalbls2[hasvalues])[withmiss]
-            }
-            else {
-                missvars <- lapply(internalbls2[hasvalues], function(x) !is.na(match(names(x$values), miss)))
-                withmiss <- as.vector(unlist(lapply(missvars, any)))
-                missvals <- lapply(which(withmiss), function(x) as.vector(internalbls2[hasvalues][[x]]$values[missvars[[x]]]))
-                names(missvals) <- names(internalbls2[hasvalues])[withmiss]
-            }
-            
-            uniqueid <- toupper(uniqueid)
-            
-            if (length(missvals) > 0) {
-                
-                cat("# ------------------------------------------------------------------------------",
-                    enter, enter, "# --- Set the missing values attributes --- ", enter, enter,
-                    "# only if the uniqueid variable really exists,", enter,
-                    "# and it has no duplicate or missing values", enter, enter, 
-                    "if (!identical(uniqueid, \"\")) {", enter, 
-                    "    uniqueid <- rdatafile[, uniqueid]", sep = "")
-                
-                for (i in seq(length(missvals))) {
-                    values <- internalbls2[[names(missvals)[i]]]$values
-                    
-                    cat(enter, enter, "    attr(rdatafile$", toupper(names(missvals)[i]),", \"metadata\")$misscases <- list(", enter, sep = "")
-                    
-                    for (j in seq(length(missvals[[i]]))) {
-                        cat("        \"", missvals[[i]][j], "\" = sort(uniqueid[rdatafile$",
-                            toupper(names(missvals)[i]), " == ", missvals[[i]][j], "])",
-                            ifelse(j == length(missvals[[i]]), "", ","),
-                            enter, sep = "")
-                    }
-                    cat("    )", enter, sep = "")
-                    
-                    # here, though, it is likely to have multiple missing values
-                    # in the future, missvals[[i]] might be a list to accommodate for ranges
-                    
-                    if (length(unlist(missvals[[i]])) == 1) {
-                        cat("    rdatafile$", toupper(names(missvals)[i]), "[rdatafile$",
-                            toupper(names(missvals)[i]), " == ", unlist(missvals[[i]]),
-                            "] <- NA", sep="")
-                    }
-                    else {
-                        cat("    rdatafile$", toupper(names(missvals)[i]), "[is.element(rdatafile$",
-                            toupper(names(missvals)[i]), ", c(", paste(unlist(missvals[[i]]), collapse = ", "),
-                            "))] <- NA", sep = "")
-                    }
-                }
-                
-                cat(enter, "}", enter, enter, enter, enter,
-                "# ------------------------------------------------------------------------------",
-                enter, enter, sep="")
-            }
-        }
-        
         
         cat("# --- Save the R data file --- ", enter, enter,
             "rfilename <- unlist(strsplit(basename(rdatapath), split=\"\\\\.\"))[1]", enter,
@@ -1553,11 +1474,11 @@ setupfile <- function(obj = "", type = "all", csv = "", miss = "", uniqueid = ""
             "# ------------------------------------------------------------------------------",
             enter, enter,
             "# --- Clean up the working space --- ", enter, enter,
-            "rm(rfilename, rdatafile, csvpath, rdatapath, uniqueid", sep="")
+            "rm(rfilename, rdatafile, csvpath, rdatapath", sep="")
         
-        if (any(unlist(stringvars))) {
-            cat(", tempvar, ", toupper(paste(names(stringvars)[unlist(stringvars)], collapse=", ")), sep="")
-        }
+        # if (any(unlist(stringvars))) {
+        #     cat(", tempvar")
+        # }
         
         cat(")", enter, sep="")
         
@@ -1565,21 +1486,6 @@ setupfile <- function(obj = "", type = "all", csv = "", miss = "", uniqueid = ""
         
         # finish writing and close the .R file
         sink()
-        
-        if (any(checkMISSING)) {
-            if (!all(checkMISSING)) {
-                if (!checkMISSING[1]) {
-                    cat("    Data not found, check the \"csv\" argument or the \"data\" directory.\n")
-                }
-                if (!checkMISSING[2]) {
-                    cat("    The \"miss\" argument needs to be specified.\n")
-                }
-                if (!checkMISSING[3]) {
-                    cat("    The uniqueid variable has to be specified.\n")
-                }
-                cat("    Missing values not treated for the R setup file.\n\n")
-            }
-        }
         
         setwd(currentdir)
         

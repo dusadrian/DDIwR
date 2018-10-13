@@ -1,4 +1,4 @@
-getFiles <- function(dirpath = ".", type="", currdir) {
+getFiles <- function(dirpath = ".", type = "", currdir) {
     
     
     # get all files

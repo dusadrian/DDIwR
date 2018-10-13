@@ -1,4 +1,4 @@
-writeRlist <- function(Rlist, OS = "windows", attr = FALSE, indent = 4) {
+`writeRlist` <- function(dataDscr, OS = "windows", indent = 4) {
     
     if (OS == "") {
         OS <- Sys.info()[['sysname']]
@@ -9,51 +9,62 @@ writeRlist <- function(Rlist, OS = "windows", attr = FALSE, indent = 4) {
         paste(rep(" ", x*indent), collapse="")
     }
     
+    if (is.element("dataDscr", names(dataDscr))) {
+        dataDscr <- dataDscr$dataDscr
+    }
     
-    
-    for (i in seq(length(Rlist))) {
+    for (i in seq(length(dataDscr))) {
         
-        if (attr) {
-            cat("attr(rdatafile$", names(Rlist)[i], ", \"metadata\") <- list(", enter, sep = "")
-        }
-        else {
-            cat("metadata$", names(Rlist)[i], " <- list(", enter, sep = "")
-        }
+        cat(names(dataDscr)[i], " = list(", enter, sep = "")
         
-        cat(rs(1), "label = \"", Rlist[[i]]$label, "\"", sep = "") 
+        cat(rs(1), "label = \"", dataDscr[[i]]$label, "\"", sep = "") 
         
-        if (is.element("values", names(Rlist[[i]]))) {
+        if (is.element("values", names(dataDscr[[i]]))) {
             cat(",", enter, rs(1), "values = c(", enter, sep = "")
             
-            values <- Rlist[[i]]$values
+            values <- dataDscr[[i]]$values
             notNum <- any(is.na(suppressWarnings(as.numeric(values))))
             labl <- names(values)
             
             for (lbl in seq(length(values))) {
                 cat(rs(2), "\"", labl[lbl], "\" = ", sep = "")
-                
-                if (notNum) {
-                    cat("\"", values[lbl], "\"", sep = "")
-                }
-                else {
-                    cat(values[lbl])
-                }
-                
+                quote <- ifelse(notNum, "\"", "")
+                cat(quote, values[lbl], quote, sep = "")
                 cat(ifelse(lbl < length(labl), paste(",", enter, sep = ""), paste(enter, rs(2), ")", sep = "")))
             }
         }
         
-        if (is.element("missing", names(Rlist[[i]]))) {
-            missng <- Rlist[[i]]$missing
+        if (is.element("missing", names(dataDscr[[i]]))) {
+            missng <- dataDscr[[i]]$missing
             notNum <- any(is.na(suppressWarnings(as.numeric(missng))))
             cat(",", enter, sep = "")
-            # here, if more feature will be added (like type or measurement), enter should be eliminated
             cat(rs(1), "missing = ", ifelse(length(missng) > 1,
                 paste("c(", paste(missng, collapse = ifelse(notNum, "\", \"", ", ")), ")", sep = ""),
                 ifelse(notNum, paste("\"", missng, "\"", sep = ""), missng)), sep = "")
         }
-            
         
-        cat(enter, ")", enter, enter, sep = "") # close the variable specific list
+        if (is.element("missrange", names(dataDscr[[i]]))) {
+            missrange <- dataDscr[[i]]$missrange
+            cat(",", enter, sep = "")
+            cat(rs(1), "missrange = c(", paste(missrange, collapse = ", "), ")", sep = "")
+        }
+        
+        if (is.element("type", names(dataDscr[[i]]))) {
+            cat(",", enter, sep = "")
+            cat(rs(1), "type = \"", dataDscr[[i]]$type, "\"", sep = "")
+        }
+        
+        if (is.element("measurement", names(dataDscr[[i]]))) {
+            cat(",", enter, sep = "")
+            cat(rs(1), "measurement = \"", dataDscr[[i]]$measurement, "\"", sep = "")
+        }
+            
+        if (attr) {
+            cat(enter, ")", enter, enter, sep = "") # close the variable specific list
+        }
+        else {
+            cat(enter, ifelse(i == length(dataDscr), ")", "),"), enter, sep = "")
+        }
     }
 }
+

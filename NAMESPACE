@@ -1,13 +1,20 @@
-export(exportDDI,
+export(checkType,
+       convertibble,
+       exportDDI,
        setupfile,
        splitrows,
        treatPath,
+       getDecimals,
        getDelimiter,
+       getEnter,
        getFiles,
        getMetadata,
-       getEnter,
+       getXML,
+       tibbleMetadata,
+       transfer,
        writeRlist)
 import(xml2)
-import(foreign)
-importFrom("utils", "file_test", "read.csv")
+import(haven)
+importFrom("readr", "read_csv", "write_csv", "format_csv")
+importFrom("utils", "capture.output", "file_test", "read.csv", "packageVersion")
 importFrom("stats", "na.omit")

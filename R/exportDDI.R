@@ -1,90 +1,203 @@
-exportDDI <- function(obj, file = "", indent = 4, OS = "") {
+`exportDDI` <- function(codebook, file = "", embed = TRUE, OS = "", indent = 4) {
+    
+    `generateUUID` <- function(x) {
+        toreturn <- rep(NA, x)
+        first <- sample(c(LETTERS, letters), x, replace = TRUE)
+        for (i in seq(x)) {
+            toreturn[i] <- paste(c(first[i], sample(c(LETTERS, letters, 0:9), 15, replace = TRUE)), collapse = "")
+        }
+        return(toreturn)
+        # a safer way is to use unique() but it is highly unlikely this would be needed
+        # toreturn <- unique(toreturn)
+        # if (length(toreturn) == x) return(toreturn)
+    }
+
+    `possibleNumeric` <- function(x) {
+        # as.character converts everything (especially factors)
+        return(!any(is.na(suppressWarnings(as.numeric(na.omit(as.character(x)))))) & !all(is.na(x)))
+    }
+    
+    `asNumeric` <- function(x) {
+        return(suppressWarnings(as.numeric(as.character(x))))
+    }
+    
+    `repeatSpace` <- function(times) {
+        paste(rep(" ", times*indent), collapse="")
+    }
+
+    `catText` <- function(x, ...) {
+        cat(repeatSpace(x), paste(unlist(list(...)), collapse = ""), enter, sep = "")
+    }
+    
+    if (OS == "") {
+        OS <- Sys.info()[["sysname"]]
+    }
+
+    enter <- getEnter(OS = OS)
+
+    data <- codebook[["fileDscr"]][["datafile"]]
+    obj  <- codebook[["dataDscr"]]
+    
+    uuid <- generateUUID(length(obj) + 1)
+    
+    prodate <- as.character(Sys.time())
+    version <- as.character(packageVersion("DDIwR"))
+    varnames <- names(obj)
     
     if (!identical(file, "")) {
         sink(file)
     }
-    
-    # other.args <- list(...)
-    if (OS == "") {
-        OS <- Sys.info()[['sysname']]
-    }
-    enter <- getEnter(OS=OS)
-    
-    rs <- function(x) {
-        paste(rep(" ", x*indent), collapse="")
-    }
-    
+
+    prodDate <- as.character(Sys.time())
+    version <- as.character(packageVersion("DDIwR"))
+
     varnames <- names(obj)
-    cat("<?xml version='1.0' encoding='UTF-8'?>", enter, sep = "")
-    cat("<codeBook xmlns=\"ddi:codebook:2_5\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"ddi:codebook:2_5 http://www.ddialliance.org/Specification/DDI-Codebook/2.5/XMLSchema/codebook.xsd\" version=\"2.5\">", enter, sep = "")
-    cat(rs(1), "<dataDscr>", enter, sep = "")
+    catText(0, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>")
+    catText(0, "<codeBook", enter,
+        "version=\"2.5\"", enter,
+        "xmlns=\"ddi:codebook:2_5\"", enter,
+        "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"", enter, 
+        "xsi:schemaLocation=\"http://www.ddialliance.org/Specification/DDI-Codebook/2.5/XMLSchema/codebook.xsd\">")
+    catText(1, "<docDscr>")
+    catText(2, "<citation>")
+    catText(3, "<titlStmt>")
+    catText(4, "<titl>Generic title</titl>")
+    catText(3, "</titlStmt>")
+    catText(3, "<prodStmt>")
+    catText(4, "<prodDate date=\"", prodDate, "\">", prodDate, "</prodDate>")
+    catText(4, "<software version=\"", version,"\">R package DDIwR</software>")
+    catText(3, "</prodStmt>")
+    catText(2, "</citation>")
+    catText(1, "</docDscr>")
+
+    catText(1, "<stdyDscr>")
+    catText(2, "<citation>")
+    catText(3, "<titlStmt>")
+    catText(4, "<titl>Generic title</titl>")
+    catText(3, "</titlStmt>")
+    catText(2, "</citation>")
+    catText(1, "</stdyDscr>")
+    
+    catText(1, "<fileDscr ID=\"", uuid[length(uuid)], "\">")
+
+    if (!is.null(data)) {
+        if (!is.data.frame(data)) {
+            cat("\n")
+            stop("The 'datafile' component should be a data frame.\n\n", call. = FALSE)
+        }
+
+        catText(2, "<fileTxt>")
+        catText(3, "<dimensns>")
+        catText(4, "<caseQnty>", nrow(data), "</caseQnty>")
+        catText(4, "<varQnty>", ncol(data), "</varQnty>")
+        catText(3, "</dimensns>")
+        catText(2, "</fileTxt>")
+
+        if (embed) {
+            catText(2, "<notes>")
+            catText(0, "<![CDATA[# start data #\n",
+                readr::format_csv(data, na = ""),
+                "# end data #\n]]>")
+            catText(2, "</notes>")
+        }
+    }
+
+    catText(1, "</fileDscr>")
+
+    catText(1, "<dataDscr>")
+
     for (i in seq(length(obj))) {
-        intrvl <- "" # if numeric, whether "discrete" or "contin"
-        # if (any(grepl("type", names(obj[[i]])))) {
-        #     if (grepl("num", obj[[i]]$type)) {
         
-        #     }
-        # }
+        dcml <- ""
+        if (!is.null(data)) {
+            dcml <- c(" dcml=\"",
+                      ifelse(possibleNumeric(data[[i]]), getDecimals(asNumeric(data[[i]])),  0),
+                      "\"")
+        }
         
         nature <- ""
-        if (any(grepl("measurement", names(obj[[i]])))) {
-            nature <- paste(" nature=\"", obj[[i]]$measurement, "\"", sep = "")
+        if(any(grepl("measurement", names(obj[[i]])))) {
+            nature <- c(" nature=\"", obj[[i]]$measurement, "\"")
+        }
+                         
+        
+        catText(2, "<var ID=\"", uuid[i], "\" name=\"", varnames[i], "\" files=\"", uuid[length(uuid)], "\"", dcml, nature, ">")
+        
+        if (!is.null(obj[[i]]$label)) {
+            catText(3, "<labl>", obj[[i]]$label, "</labl>")
         }
         
-        reptype <- ""
-        if (any(grepl("type", names(obj[[i]])))) {
-            if (identical("char", obj[[i]]$type))
-            reptype <- " representationType=\"text\""
+        missing <- NULL
+        if (is.element("missing", names(obj[[i]]))) {
+            missing <- obj[[i]]$missing
         }
-        
-        cat(rs(2), "<var name=\"", varnames[i], "\"", nature, intrvl, reptype, ">", enter, sep = "")
-            
-        if (any(grepl("type", names(obj[[i]])))) {
-            cat(rs(3), "<varFormat type=\"", ifelse(grepl("char", obj[[i]]$type), "character", "numeric"), "\"/>", enter, sep = "")
+
+        missrange <- NULL
+        if (is.element("missrange", names(obj[[i]]))) {
+            missrange <- obj[[i]]$missrange
         }
+
         
-        cat(rs(3), "<labl>", obj[[i]]$label, "</labl>", enter, sep = "")
-        
-        miss <- NULL
-        if (any(grepl("missing", names(obj[[i]])))) {
-            miss <- obj[[i]]$missing
-        }
-        
-        if (length(miss) > 0) {
-            cat(rs(3), "<invalrng>", enter, sep = "")
-                for (j in seq(length(miss))) {
-                    cat(rs(4), sprintf("<item UNITS = \"REAL\" VALUE = \"%s\"/>", miss[j]), enter, sep = "")
+        if (length(missrange) > 0) {
+            catText(3, "<invalrng>")
+
+            if (any(is.element(missrange, c(-Inf, Inf)))) {
+                if (identical(missrange[1], -Inf)) {
+                    catText(4, sprintf("<range UNITS=\"INT\" max=\"%s\"/>", missrange[2]))
                 }
-            cat(rs(3), "</invalrng>", enter, sep = "")
+                else {
+                    catText(4, sprintf("<range UNITS=\"INT\" min=\"%s\"/>", missrange[1]))
+                }
+            }
+            else {
+                catText(4, sprintf("<range UNITS=\"INT\" min=\"%s\" max=\"%s\"/>", missrange[1], missrange[2]))
+            }
+                
+            catText(3, "</invalrng>")
         }
         
         
         if (any(grepl("values", names(obj[[i]])))) {
+
+            tbl <- table(data[[names(obj)[i]]])
                 
             for (v in seq(length(obj[[i]]$values))) {
                 lbls <- obj[[i]]$values
-                cat(rs(3), "<catgry", ifelse(is.element(lbls[v], miss), " missing=\"Yes\"", ""), ">", enter, sep = "")
+                ismiss <- is.element(lbls[v], missing)
+                if (length(missrange) > 0) {
+                    ismiss <- ismiss | (lbls[v] >= missrange[1] & lbls[v] <= missrange[2])
+                }
+
+                catText(3, "<catgry", ifelse(ismiss, " missing=\"Y\"", ""), ">")
+                catText(4, "<catValu>",  lbls[v],  "</catValu>")
+                catText(4, "<labl>",  names(lbls)[v],  "</labl>")
                 
-                cat(rs(4), "<catValu>",  lbls[v],  "</catValu>", enter, sep = "")
-                
-                cat(rs(4), "<labl>",  names(lbls)[v],  "</labl>", enter, sep = "")
-                
-                cat(rs(3), "</catgry>", enter, sep = "")
+                if (!is.null(data)) {
+                    freq <- tbl[match(lbls[v], names(tbl))]
+                    catText(4, "<catStat type=\"freq\">", 
+                            ifelse(is.na(freq), 0, freq), 
+                            "</catStat>")
+                }
+
+                catText(3, "</catgry>")
             }
+        }
+
+        if (any(grepl("type", names(obj[[i]])))) {
+            catText(3, "<varFormat type=\"", ifelse(grepl("char", obj[[i]]$type), "character", "numeric"), "\"/>")
         }
         
         if (any(grepl("txt", names(obj[[i]])))) {
-            cat(rs(3), "<txt>", enter, sep = "")
-            cat("<![CDATA[", obj[[i]]$txt, "]]>", enter, sep = "")
-            cat(rs(3), "</txt>", enter, sep = "")
+            catText(3, "<txt>")
+            catText(0, "<![CDATA[", obj[[i]]$txt, "]]>")
+            catText(3, "</txt>")
         }
         
-        cat(rs(2), "</var>", enter, sep = "")
+        catText(2, "</var>")
     }
     
-    
-    cat(rs(1), "</dataDscr>", enter, sep = "")
-    cat("</codeBook>", enter, sep = "")
+    catText(1, "</dataDscr>")
+    catText(0, "</codeBook>")
     
     if (!identical(file, "")) {
         sink()
