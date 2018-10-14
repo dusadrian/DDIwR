@@ -85,6 +85,10 @@
             cat("\n")
             stop("The 'datafile' component should be a data frame.\n\n", call. = FALSE)
         }
+        else if (!identical(toupper(names(data)), toupper(names(obj)))) {
+            cat("\n")
+            stop("Variables in the data do not match the variables in the data description.\n\n", call. = FALSE)
+        }
 
         catText(2, "<fileTxt>")
         catText(3, "<dimensns>")
@@ -126,7 +130,7 @@
         if (!is.null(obj[[i]]$label)) {
             catText(3, "<labl>", obj[[i]]$label, "</labl>")
         }
-        
+
         missing <- NULL
         if (is.element("missing", names(obj[[i]]))) {
             missing <- obj[[i]]$missing
@@ -155,14 +159,39 @@
                 
             catText(3, "</invalrng>")
         }
+
+        lbls <- obj[[i]]$values
         
+        if (!is.null(data)) {
+            vals <- data[[names(obj)[i]]]
+            if (possibleNumeric(vals)) {
+                vals <- asNumeric(vals)
+
+                if (!is.null(lbls)) {
+                    ismiss <- is.element(lbls, missing)
+                    if (length(missrange) > 0) {
+                        ismiss <- ismiss | (lbls >= missrange[1] & lbls <= missrange[2])
+                    }
+                    vals[is.element(vals, lbls[ismiss])] <- NA
+                }
+
+                catText(3, "<sumStat type=\"min\">", min(vals, na.rm = TRUE), "</sumStat>")
+                catText(3, "<sumStat type=\"max\">", max(vals, na.rm = TRUE), "</sumStat>")
+                
+                if (!all(is.element(vals[!is.na(vals)], lbls))) { # numeric variable
+                    catText(3, "<sumStat type=\"mean\">", mean(vals, na.rm = TRUE), "</sumStat>")
+                    catText(3, "<sumStat type=\"medn\">", median(vals, na.rm = TRUE), "</sumStat>")
+                    catText(3, "<sumStat type=\"stdev\">", sd(vals, na.rm = TRUE), "</sumStat>")
+                }
+            }
+        }
         
         if (any(grepl("values", names(obj[[i]])))) {
 
             tbl <- table(data[[names(obj)[i]]])
+            
+            for (v in seq(length(lbls))) {
                 
-            for (v in seq(length(obj[[i]]$values))) {
-                lbls <- obj[[i]]$values
                 ismiss <- is.element(lbls[v], missing)
                 if (length(missrange) > 0) {
                     ismiss <- ismiss | (lbls[v] >= missrange[1] & lbls[v] <= missrange[2])
