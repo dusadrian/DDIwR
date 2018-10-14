@@ -161,6 +161,7 @@
         }
 
         lbls <- obj[[i]]$values
+        type <- obj[[i]]$type
         
         if (!is.null(data)) {
             vals <- data[[names(obj)[i]]]
@@ -175,13 +176,15 @@
                     vals[is.element(vals, lbls[ismiss])] <- NA
                 }
 
-                catText(3, "<sumStat type=\"min\">", min(vals, na.rm = TRUE), "</sumStat>")
-                catText(3, "<sumStat type=\"max\">", max(vals, na.rm = TRUE), "</sumStat>")
+                printnum <- length(setdiff(vals[!is.na(vals)], lbls)) > 4
+                if (!is.null(type)) printnum <- printnum | grepl("num", type)
                 
-                if (!all(is.element(vals[!is.na(vals)], lbls))) { # numeric variable
-                    catText(3, "<sumStat type=\"mean\">", mean(vals, na.rm = TRUE), "</sumStat>")
-                    catText(3, "<sumStat type=\"medn\">", median(vals, na.rm = TRUE), "</sumStat>")
-                    catText(3, "<sumStat type=\"stdev\">", sd(vals, na.rm = TRUE), "</sumStat>")
+                if (printnum) { # numeric variable
+                    catText(3, "<sumStat type=\"min\">", format(min(vals, na.rm = TRUE), scientific = FALSE), "</sumStat>")
+                    catText(3, "<sumStat type=\"max\">", format(max(vals, na.rm = TRUE), scientific = FALSE), "</sumStat>")
+                    catText(3, "<sumStat type=\"mean\">", format(mean(vals, na.rm = TRUE), scientific = FALSE), "</sumStat>")
+                    catText(3, "<sumStat type=\"medn\">", format(median(vals, na.rm = TRUE), scientific = FALSE), "</sumStat>")
+                    catText(3, "<sumStat type=\"stdev\">", format(sd(vals, na.rm = TRUE), scientific = FALSE), "</sumStat>")
                 }
             }
         }
@@ -204,7 +207,7 @@
                 if (!is.null(data)) {
                     freq <- tbl[match(lbls[v], names(tbl))]
                     catText(4, "<catStat type=\"freq\">", 
-                            ifelse(is.na(freq), 0, freq), 
+                            ifelse(is.na(freq), 0, format(freq, scientific = FALSE)), 
                             "</catStat>")
                 }
 
