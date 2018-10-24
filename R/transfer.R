@@ -1,4 +1,4 @@
-`transfer` <- function(from, to, embed = FALSE, execute = "", ...) {
+`transfer` <- function(from, to, embed = FALSE, executable = "", ...) {
     if (missing(from)) {
         cat("\n")
         stop("Argument 'from' is missing.\n\n", call. = FALSE)
@@ -50,7 +50,34 @@
     }
     
     tp_from <- treatPath(from, single = TRUE)
+
+    if (identical(toupper(to), "DDI") | identical(toupper(to), "XML")) {
+        to <- file.path(tp_from$completePath, paste(tp_from$filenames, "xml", sep = "."))
+    }
+    else if (identical(toupper(to), "SPSS")) {
+        to <- file.path(tp_from$completePath, paste(tp_from$filenames, "sav", sep = "."))
+    }
+    else if (identical(toupper(to), "STATA")) {
+        to <- file.path(tp_from$completePath, paste(tp_from$filenames, "dta", sep = "."))
+    }
+    else if (identical(toupper(to), "SAS")) {
+        to <- file.path(tp_from$completePath, paste(tp_from$filenames, "sas7bdat", sep = "."))
+    }
+    else if (identical(toupper(to), "R")) {
+        to <- file.path(tp_from$completePath, paste(tp_from$filenames, "Rdata", sep = "."))
+    }
+
     tp_to <- treatPath(to, single = TRUE, check = FALSE)
+    knownext <- c("R", "SAS7BDAT", "SAV", "DTA", "XML")
+
+    if (is.na(tp_to$fileext)) {
+        cat("\n")
+        stop(sprintf("Cannot determine the destination software without an extension.\n\n", dQuote("to")), call. = FALSE)
+    }
+    else if (!is.element(tp_to$fileext, knownext)) {
+        cat("\n")
+        stop(sprintf("Unknown destination software.\n\n", dQuote("to")), call. = FALSE)
+    }
 
     if (tp_from$fileext == "XML") {
         codeBook <- getMetadata(from)
@@ -80,10 +107,19 @@
         data <- haven::read_spss(from, user_na = TRUE)
         codeBook <- getMetadata(from)
     }
+    else if (tp_from$fileext == "POR") {
+        data <- haven::read_por(from, user_na = TRUE)
+        codeBook <- getMetadata(from)
+    }
 
 
+    if (!identical(executable, "")) {
+        tmpfile <- tempfile()
+        tp_temp <- treatPath(tmpfile)
+    }
 
-    if (tp_to$fileext == "SAV") {
+
+    if (identical(tp_to$fileext, "SAV")) {
         haven::write_sav(data, to)
     }
     else if (tp_to$fileext == "XML") {
@@ -96,39 +132,50 @@
         exportDDI(codeBook, to, embed = embed, OS = OS)
         
     }
-    else if (tp_to$fileext == "DTA") {
+    else if (identical(tp_to$fileext, "DTA")) {
         codeBook$fileDscr$datafile <- data
         haven::write_dta(data, to, version = version)
 
-        setupfile(codeBook, file = "temp.do", script = TRUE, to = to)
-        
-        # sink("temp.do")
+        if (!identical(executable, "")) {
+            tp_Stata <- treatPath(executable) # just to make sure the executable exists
+            temp <- file.path(tp_temp$completePath, paste(tp_temp$files, "do", sep = ".")
+            # Here, OS is not always the same with the above OS (that is a target, this is current)
+            OS <- Sys.info()[["sysname"]] == "Darwin"
 
-        # cat(paste(c("use \"/Users/dusadrian/1/test.dta\"",
-        # "replace AGR = .a if AGR == -7",
-        # "replace AGR = .b if AGR == -1",
-        # "replace AGE = .a if AGE == -7",
-        # "replace AGE = .b if AGE == -1",
-        # "save \"/Users/dusadrian/1/test.dta\", replace",
-        # ""
-        # ), collapse = "\n"))
+            setupfile(codeBook, file = temp, script = TRUE, to = to)
 
-        # sink()
+            if (OS == "Darwin") { # | OS == "Linux"
+                tc <- tryCatchWEM(system(paste(executable, " -e do ", temp, sep = ""), intern = TRUE, ignore.stderr = TRUE))
+                # system("/Applications/Stata/Stata.app/Contents/MacOS/Stata -e do tempscript.do")
+            }
+            else if (OS == "Windows") {
+                tc <- tryCatchWEM(system(paste("\"", executable, "\"", " /e do ", temp, sep = ""), intern = TRUE, ignore.stderr = TRUE))
+                # system("\"C:/Program Files/Stata12/Stata.exe\" /e do C:/tempscript.do")
+            }
 
-        return()
+            unlink(temp)
+            unlink(file.path(tp_Stata$completePath, "temp.log"))
 
-        tc <- tryCatchWEM(system(paste(execute, "-e do temp.do"), intern = TRUE, ignore.stderr = TRUE))
-
-        # system("/Applications/Stata/Stata.app/Contents/MacOS/Stata -e do temp.do")
-        unlink("temp.do")
-
-        if (is.element("error", names(tc))) {
-            cat("\n")
-            stop("The file was produced, but there was an error executing the recoding script.\n\n", call. = FALSE)
+            if (is.element("error", names(tc))) {
+                cat("\n")
+                stop("The file was produced, but there was an error with the executable.\n\n", call. = FALSE)
+            }
         }
-        ## eventual # unlink("temp.log")
+    }
+    else if (identical(tp_to$fileext, "SAS7BDAT")) {
 
+        if (!identical(executable, "")) {
+            tp_SAS <- treatPath(executable) # just to make sure the executable exists
+            temp <- file.path(tp_temp$completePath, paste(tp_temp$files, "sas", sep = ".")
+            # /path-to/sas tempscript.sas
+            # c:\path-to\sas.exe -sysin tempscript.sas
+            # Linux:
+            # /opt/sas/sasb /pathto/tempscript.sas –log /pathtologfile/prog.log –print /pathtooutput/prog.lst
+
+        }
     }
 
+    if (!identical(executable, "")) {
+        unlink(tmpfile)
+    }
 }
-
