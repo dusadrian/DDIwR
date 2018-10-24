@@ -9,6 +9,10 @@ treatPath <- function(path, type = "R", single = FALSE, check = TRUE) {
         }
     }
     
+    if (!is.character(path)) {
+        cat("\n")
+        stop("The path should be specified in a string.\n\n", call. = FALSE)
+    }
     currdir <- getwd()
     
     ## PERHAPS IMPORTANT:
@@ -19,17 +23,22 @@ treatPath <- function(path, type = "R", single = FALSE, check = TRUE) {
     
     
     lastpart <- basename(path)
-    pathname <- dirname(path)
+    pathname <- suppressWarnings(normalizePath(dirname(path)))
     
     # check if a path exists, before the lastpart
     pathexists <- pathname != "."
     
     if (pathexists) {
         
-        if (!file.exists(pathname) & check) {
-            cat("\n")
-            stop(paste("Cannot find the path up to \"", pathname, "\".\n",
-                       "Please check that path, or try changing the working directory.\n\n", sep=""), call. = FALSE)
+        if (!file.exists(pathname)) {
+            if (check) {
+                cat("\n")
+                stop(paste("Cannot find the path up to \"", pathname, "\".\n",
+                        "Please check that path, or try changing the working directory.\n\n", sep=""), call. = FALSE)
+            }
+            else {
+                pathname <- file.path(getwd(), pathname)
+            }
         }
         
     }
