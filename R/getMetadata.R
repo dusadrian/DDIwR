@@ -75,6 +75,11 @@ function(x, OS = "windows", saveFile = FALSE, ...) {
         fromsetupfile <- other.args$fromsetupfile
     }
     
+    embed <- FALSE
+    if (is.element("embed", names(other.args))) {
+        embed <- other.args$embed
+    }
+    
     tp <- DDIwR::treatPath(x, type = "*")
     
     singlefile <- length(tp$files) == 1
@@ -83,6 +88,8 @@ function(x, OS = "windows", saveFile = FALSE, ...) {
     if (!fromsetupfile & !singlefile) {
         cat("Processing:\n")
     }
+
+    data <- NULL
     
     for (ff in seq(length(tp$files))) {
         if (!fromsetupfile & !singlefile) {
@@ -219,8 +226,8 @@ function(x, OS = "windows", saveFile = FALSE, ...) {
             }
         }
         else if (tp$fileext == "SAV") {
-            sav <- haven::read_spss(file.path(tp$completePath, tp$files[ff]), user_na = TRUE)
-            dataDscr <- extract(sav)
+            data <- haven::read_spss(file.path(tp$completePath, tp$files[ff]), user_na = TRUE)
+            dataDscr <- extract(data)
         }
         
         if (saveFile) {
@@ -255,6 +262,9 @@ function(x, OS = "windows", saveFile = FALSE, ...) {
         }
 
         codeBook$dataDscr <- dataDscr
+        if (embed & !is.null(data)) {
+            codeBook$fileDscr$datafile <- data
+        }
         
         return(invisible(codeBook))
     }
