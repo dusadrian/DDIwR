@@ -1,4 +1,4 @@
-`tibbleMetadata` <- function(dataDscr, OS = "windows", indent = 4) {
+`tibbleMetadata` <- function(dataDscr, OS = "", indent = 4) {
     if (OS == "") {
         OS <- Sys.info()[['sysname']]
     }
