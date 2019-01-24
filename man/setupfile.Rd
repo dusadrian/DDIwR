@@ -9,12 +9,12 @@ This function creates a setup file, based on a list of variable and value labels
 }
 
 \usage{
-setupfile(codebook, file = "", type = "all", csv = "", OS = "", ...)
+setupfile(codeBook, file = "", type = "all", csv = "", OS = "", ...)
 }
 
 
 \arguments{
-  \item{codebook}{A list object containing the metadata, or a path to a directory where
+  \item{codeBook}{A list object containing the metadata, or a path to a directory where
         these objects are located, for batch processing}
   \item{file}{Character, the (path to the) setup file to be created}
   \item{type}{The type of setup file, can be: "SPSS", "Stata", "SAS", "R",
@@ -67,10 +67,10 @@ In batch mode, the code starts with the argument \bold{\code{delim = ","}}, but 
 that will match the variable names in the metadata file. At the initial version 0.1-0,
 the automatically detected delimiters include \code{";"} and \code{"\t"}.
 
-The argument \code{OS} can be either:\cr
-\code{"windows"} (default), or \code{"Windows"}, \code{"Win"}, \code{"win"},\cr
-\code{"MacOS"}, \code{"Darwin"}, \code{"Apple"}, \code{"Mac"}, \code{"mac"},\cr
-\code{"Linux"}, \code{"linux"}.
+The argument \code{OS} (case insensitive) can be either:\cr
+\code{"Windows"} (default), or \code{"Win"},\cr
+\code{"MacOS"}, \code{"Darwin"}, \code{"Apple"}, \code{"Mac"},\cr
+\code{"Linux"}.\cr
 
 The end of line character(s) changes only when the target OS is different from the
 running OS.
