@@ -5,27 +5,38 @@
 \title{Extract metadata information}
 
 \description{
-This function reads an XML file containing a DDI codebook version 2.5, or an
-SPSS file and returns a list containing the variable labels, value labels,
-plus some other useful information.
+Extract a list containing the variable labels, value labels and any available
+information about missing values.
 }
 
 \usage{
-getMetadata(x, OS = "windows", saveFile = FALSE, ...)
+getMetadata(x, OS = "Windows", save = FALSE, ...)
 }
 
 \arguments{
   \item{x}{A path to a file, or a tibble object}
   \item{OS}{The target operating system, for the eol - end of line separator}
-  \item{saveFile}{Boolean, save an .R file in the same folder}
+  \item{save}{Boolean, save an .R file in the same folder}
   \item{...}{Additional arguments for this function (internal uses only)}
 }
 
 \details{
-The argument \code{OS} can be either:\cr
-\code{"windows"} (default), or \code{"Windows"}, \code{"Win"}, \code{"win"},\cr
-\code{"MacOS"}, \code{"Darwin"}, \code{"Apple"}, \code{"Mac"}, \code{"mac"},\cr
-\code{"Linux"}, \code{"linux"}.\cr
+This function reads an XML file containing a DDI codebook version 2.5, or an
+SPSS file and returns a list containing the variable labels, value labels,
+plus some other useful information.
+
+It additionally attempts to automatically detect a type for each variable:
+\tabular{rl}{
+  \bold{\code{cat}}: \tab categorical\cr
+  \bold{\code{num}}: \tab numerical\cr
+  \bold{\code{numcat}}: \tab numerical variable with very few values (ex. number of children)\cr
+  \tab for which a table of frequencies is possible in addition to frequencies
+}
+
+The argument \code{OS} (case insensitive) can be either:\cr
+\code{"Windows"} (default), or \code{"Win"},\cr
+\code{"MacOS"}, \code{"Darwin"}, \code{"Apple"}, \code{"Mac"},\cr
+\code{"Linux"}.\cr
 
 The end of line separator changes only when the target OS is different from the
 running OS.
@@ -38,6 +49,10 @@ For the moment, only DDI version 2.5 (Codebook) is supported, but DDI version 3.
 \value{
 A list containing all variables, their corresponding variable labels and value labels,
 and (if applicable) missing values if found.
+}
+
+\author{
+Adrian Dusa
 }
 
 
