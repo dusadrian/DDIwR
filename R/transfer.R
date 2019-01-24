@@ -37,11 +37,15 @@
         }
     }
 
+    `wholeNumber` <- function(x) {
+        all(floor(x) == x, na.rm = TRUE)
+    }
+
     other.args <- list(...)
 
-    OS <- ""
+    targetOS <- "" # for the XML file output of function exportDDI()
     if (is.element("OS", names(other.args))) {
-        OS <- other.args$OS
+        targetOS <- other.args$OS
     }
 
     version <- 12
@@ -60,122 +64,212 @@
     else if (identical(toupper(to), "STATA")) {
         to <- file.path(tp_from$completePath, paste(tp_from$filenames, "dta", sep = "."))
     }
-    else if (identical(toupper(to), "SAS")) {
-        to <- file.path(tp_from$completePath, paste(tp_from$filenames, "sas7bdat", sep = "."))
-    }
     else if (identical(toupper(to), "R")) {
-        to <- file.path(tp_from$completePath, paste(tp_from$filenames, "Rdata", sep = "."))
+        to <- file.path(tp_from$completePath, paste(tp_from$filenames, "rds", sep = "."))
     }
+    # else if (identical(toupper(to), "SAS")) {
+    #     to <- file.path(tp_from$completePath, paste(tp_from$filenames, "sas7bdat", sep = "."))
+    # }
 
     tp_to <- treatPath(to, single = TRUE, check = FALSE)
-    knownext <- c("R", "SAS7BDAT", "SAV", "DTA", "XML")
+    known_extensions <- c("RDS", "SAV", "DTA", "XML") # , "SAS7BDAT"
 
     if (is.na(tp_to$fileext)) {
         cat("\n")
         stop(sprintf("Cannot determine the destination software without an extension.\n\n", dQuote("to")), call. = FALSE)
     }
-    else if (!is.element(tp_to$fileext, knownext)) {
+    else if (!is.element(tp_to$fileext, known_extensions)) {
         cat("\n")
         stop(sprintf("Unknown destination software.\n\n", dQuote("to")), call. = FALSE)
     }
-
+    
     if (tp_from$fileext == "XML") {
         codeBook <- getMetadata(from)
-
+        
         if (is.element("datafile", names(codeBook[["fileDscr"]]))) {
             data <- codeBook[["fileDscr"]][["datafile"]]
         }
         else {
             files <- getFiles(tp_from$completePath, "*")
+            
             csvexists <- FALSE
-            csvfiles <- is.element("CSV", toupper(files$fileext))
+            csvfiles <- toupper(files$fileext) == "CSV"
             if (any(csvfiles)) {
                 csvexists <- is.element(toupper(tp_from$filenames), toupper(files$filenames[csvfiles]))
                 csvfile <- files$files[csvfiles][match(toupper(tp_from$filenames), toupper(files$filenames[csvfiles]))]
             }
-
+            
             if (!csvexists) {
                 cat("\n")
-                stop("Data not found.\n\n", call. = FALSE)
+                stop("Datafile not found.\n\n", call. = FALSE)
             }
 
-            data <- suppressMessages(readr::read_csv(file.path(tp_from$completePath, csvfile)))
-            data <- convertibble(data, codeBook$dataDscr)
+            # data <- suppressMessages(readr::read_csv(file.path(tp_from$completePath, csvfile)))
+            data <- read.csv(file.path(tp_from$completePath, csvfile), as.is = TRUE)
+            if (ncol(data) == length(codeBook$dataDscr) + 1) {
+                rownames(data) <- data[, 1]
+                data <- data[, -1, drop = FALSE]
+            }
+            # return(list(data = data, codeBook = codeBook))
+            data <- convertibble(tibble::as_tibble(data), codeBook$dataDscr)
         }
     }
-    else if (tp_from$fileext == "SAV") {
-        data <- haven::read_spss(from, user_na = TRUE)
-        codeBook <- getMetadata(from)
-    }
-    else if (tp_from$fileext == "POR") {
-        data <- haven::read_por(from, user_na = TRUE)
-        codeBook <- getMetadata(from)
+    else {
+        if (tp_from$fileext == "SAV") {
+            data <- haven::read_spss(from, user_na = TRUE)
+        }
+        else if (tp_from$fileext == "POR") {
+            data <- haven::read_por(from, user_na = TRUE)
+        }
+        else if (tp_from$fileext == "DTA") {
+            data <- haven::read_dta(from)
+        }
+        else if (tp_from$fileext == "RDS") {
+            data <- readr::read_rds(from)
+        }
+        # else if (tp_from$fileext == "SAS7BDAT") {
+        #     data <- haven::read_sas(from)
+        # }
+
+        codeBook <- getMetadata(data)
     }
 
-
+    
     if (!identical(executable, "")) {
         tmpfile <- tempfile()
-        tp_temp <- treatPath(tmpfile)
+        tp_temp <- treatPath(tmpfile, check = FALSE)
     }
 
+    # The current OS might not always be the same with the target OS aboe
+    currentOS <- Sys.info()[["sysname"]]
+
+    tc <- NULL
 
     if (identical(tp_to$fileext, "SAV")) {
         haven::write_sav(data, to)
+
+        if (!identical(executable, "")) {
+            tp_SPSS <- treatPath(executable) # just to make sure the executable exists
+            tempsps <- file.path(tp_temp$completePath, paste(tp_temp$files, "sps", sep = "."))
+            tempspj <- file.path(tp_temp$completePath, paste(tp_temp$files, "spj", sep = "."))
+
+            enter <- getEnter(OS = currentOS)
+
+            # temp <- "1/test.sps"
+            
+            setupfile(codeBook, file = tempsps, type = "SPSS", script = TRUE, to = to, OS = currentOS)
+
+            sink(tempspj)
+            cat("<?xml version=\"1.0\" encoding=\"UTF-8\"?>", enter,
+                "<job xmlns=\"http://xml.spss.com/spss/production\"", enter,
+                "print=\"false\" syntaxErrorHandling=\"continue\"", enter,
+                "syntaxFormat=\"interactive\"", enter,
+                "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"", enter,
+                "xsi:schemaLocation=\"http://xml.spss.com/spss/production http://xml.spss.com/spss/production/production-1.0.xsd\">", enter,
+                "<output outputFormat=\"viewer\" outputPath=\"\"/>", enter,
+                "<syntax syntaxPath=\"", tempsps, "\"/>", enter,
+                "</job>")
+
+            # TO DO: check how a .spj file looks like in recent versions of SPSS
+
+            if (currentOS == "Darwin") {
+                # Applications/IBM/SPSS/Statistics/23/SPSS/Statistics.app/Contents/MacOS/stats test.spj -production silent
+            }
+            else if (currentOS == "Windows") {
+                tc <- tryCatchWEM(system(paste(executable, tempspj, "-production silent"), intern = TRUE, ignore.stderr = TRUE))
+                # C:/Program Files/IBM/SPSS/Statistics/23/stats.exe  C:/test.spj -production silent
+            }
+            else if (currentOS == "Linux") {
+
+            }
+
+            suppressMessages(unlink(tempsps))
+            suppressMessages(unlink(tempspj))
+        }
     }
     else if (tp_to$fileext == "XML") {
         codeBook$fileDscr$datafile <- data
         if (!embed) {
-            readr::write_csv(data, file.path(tp_from$completePath, paste(tp_to$filenames[1], "csv", sep = ".")))
+            write.csv(as.data.frame(data), file.path(tp_from$completePath, paste(tp_to$filenames[1], "csv", sep = ".")), row.names = FALSE)
+            # readr::write_csv(data, file.path(tp_from$completePath, paste(tp_to$filenames[1], "csv", sep = ".")))
         }
         
-        # return(list(codeBook = codeBook, file = to, embed = embed, OS = OS))
-        exportDDI(codeBook, to, embed = embed, OS = OS)
+        # return(list(codeBook = codeBook, file = to, embed = embed, OS = targetOS))
+        exportDDI(codeBook, to, embed = embed, OS = targetOS)
         
     }
     else if (identical(tp_to$fileext, "DTA")) {
-        codeBook$fileDscr$datafile <- data
+        
+        colnms <- colnames(data)
+        for (i in seq(ncol(data))) {
+            if (!is.null(codeBook$dataDscr[[colnms[i]]]$values)) {
+                if (is.numeric(codeBook$dataDscr[[colnms[i]]]$values)) {
+                    if (!wholeNumber(data[[colnms[i]]])) {
+                        cat("\n")
+                        stop("Stata does not support categorical variables with non-integer values.\n\n", call. = FALSE)
+                    }
+                }
+            }
+        }
+        
         haven::write_dta(data, to, version = version)
 
         if (!identical(executable, "")) {
+            codeBook$fileDscr$datafile <- data
+
             tp_Stata <- treatPath(executable) # just to make sure the executable exists
-            temp <- file.path(tp_temp$completePath, paste(tp_temp$files, "do", sep = ".")
-            # Here, OS is not always the same with the above OS (that is a target, this is current)
-            OS <- Sys.info()[["sysname"]] == "Darwin"
+            temp <- file.path(tp_temp$completePath, paste(tp_temp$files, "do", sep = "."))
+            # temp <- "/Users/dusadrian/1/tmp.do"
 
-            setupfile(codeBook, file = temp, script = TRUE, to = to)
+            setupfile(codeBook, file = temp, type = "Stata", script = TRUE, to = to, OS = currentOS)
 
-            if (OS == "Darwin") { # | OS == "Linux"
+            if (currentOS == "Darwin") {
                 tc <- tryCatchWEM(system(paste(executable, " -e do ", temp, sep = ""), intern = TRUE, ignore.stderr = TRUE))
                 # system("/Applications/Stata/Stata.app/Contents/MacOS/Stata -e do tempscript.do")
             }
-            else if (OS == "Windows") {
+            else if (currentOS == "Windows") {
                 tc <- tryCatchWEM(system(paste("\"", executable, "\"", " /e do ", temp, sep = ""), intern = TRUE, ignore.stderr = TRUE))
                 # system("\"C:/Program Files/Stata12/Stata.exe\" /e do C:/tempscript.do")
             }
-
-            unlink(temp)
-            unlink(file.path(tp_Stata$completePath, "temp.log"))
-
-            if (is.element("error", names(tc))) {
-                cat("\n")
-                stop("The file was produced, but there was an error with the executable.\n\n", call. = FALSE)
+            else if (currentOS == "Linux") {
+                tc <- tryCatchWEM(system(paste("\"", executable, "\"", " -b do ", temp, " &", sep = ""), intern = TRUE, ignore.stderr = TRUE))
             }
+
+            suppressMessages(unlink(temp))
+            suppressMessages(unlink(file.path(tp_Stata$completePath, "temp.log")))
         }
     }
-    else if (identical(tp_to$fileext, "SAS7BDAT")) {
+    else if (identical(tp_to$fileext, "RDS")) {
+        readr::write_rds(data, to)
+    }
+    # else if (identical(tp_to$fileext, "SAS7BDAT")) {
 
-        if (!identical(executable, "")) {
-            tp_SAS <- treatPath(executable) # just to make sure the executable exists
-            temp <- file.path(tp_temp$completePath, paste(tp_temp$files, "sas", sep = ".")
-            # /path-to/sas tempscript.sas
-            # c:\path-to\sas.exe -sysin tempscript.sas
-            # Linux:
-            # /opt/sas/sasb /pathto/tempscript.sas –log /pathtologfile/prog.log –print /pathtooutput/prog.lst
+    #     # perhaps ask https://github.com/rogerjdeangelis
+    
+    #     if (!identical(executable, "")) {
+    #         tp_SAS <- treatPath(executable) # just to make sure the executable exists
+    #         temp <- file.path(tp_temp$completePath, paste(tp_temp$files, "sas", sep = "."))
 
-        }
+    #         setupfile(codeBook, file = temp, type = "Stata", script = TRUE, to = to, OS = currentOS)
+
+    #         # There is no SAS for MacOS
+    #         if (currentOS == "Windows") {
+    #             tc <- tryCatchWEM(system(paste(executable, "-sysin", temp), intern = TRUE, ignore.stderr = TRUE))
+    #             # system("C:/path-to\sas.exe -sysin C:/tempscript.sas")
+    #         }
+    #         else if (currentOS == "Linux") {
+    #             tc <- tryCatchWEM(system(paste(executable, temp))) # ?
+    #             # /opt/sas/sasb /pathto/tempscript.sas –log /pathtologfile/prog.log –print /pathtooutput/prog.lst
+    #         }
+
+    #         suppressMessages(unlink(temp))
+    #     }
+    # }
+
+    if (is.element("error", names(tc))) {
+        cat("\n")
+        stop("The file was produced, but there was an error with the executable.\n\n", call. = FALSE)
     }
 
-    if (!identical(executable, "")) {
-        unlink(tmpfile)
-    }
+    return(invisible(NULL))
 }
