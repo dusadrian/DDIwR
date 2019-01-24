@@ -1,15 +1,16 @@
 getEnter <- function(OS) {
 
-    detectedOS <- Sys.info()[['sysname']]
+    currentOS <- Sys.info()[['sysname']]
+    targetOS <- toupper(OS)
     
-    if (OS == "Windows" | OS == "windows" | OS == "Win" | OS == "win") {
-        enter <- ifelse(detectedOS == "Windows", "\n", "\r\n")
+    if (targetOS == "WINDOWS" | targetOS == "WIN") {
+        enter <- ifelse(currentOS == "Windows", "\n", "\r\n")
     }
-    else if (OS == "Linux" | OS == "linux") {
+    else if (targetOS == "LINUX") {
         enter <- "\n"
     }
-    else if (OS == "Darwin" | OS == "MacOS" | OS == "Apple" | OS == "Mac" | OS == "mac") {
-        enter <- ifelse(detectedOS == "Darwin", "\n", "\r")
+    else if (targetOS == "DARWIN" | targetOS == "MACOS" | targetOS == "APPLE" | targetOS == "MAC") {
+        enter <- ifelse(currentOS == "Darwin", "\n", "\r")
     }
     else {
         cat("\n")
