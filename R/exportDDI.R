@@ -1,5 +1,7 @@
 `exportDDI` <- function(codebook, file = "", embed = TRUE, OS = "", indent = 4) {
     
+    # http://www.ddialliance.org/Specification/DDI-Codebook/2.5/XMLSchema/field_level_documentation.html
+
     `generateUUID` <- function(x) {
         toreturn <- rep(NA, x)
         first <- sample(c(LETTERS, letters), x, replace = TRUE)
@@ -115,7 +117,7 @@
         dcml <- ""
         if (!is.null(data)) {
             dcml <- c(" dcml=\"",
-                      ifelse(possibleNumeric(data[[i]]), getDecimals(asNumeric(data[[i]])),  0),
+                      ifelse(possibleNumeric(data[[i]]), getDecimals(asNumeric(na.omit(data[[i]]))),  0),
                       "\"")
         }
         
@@ -128,8 +130,11 @@
         catText(2, "<var ID=\"", uuid[i], "\" name=\"", varnames[i], "\" files=\"", uuid[length(uuid)], "\"", dcml, nature, ">")
         
         if (!is.null(obj[[i]]$label)) {
-            catText(3, "<labl>", obj[[i]]$label, "</labl>")
+            if (!is.na(obj[[i]]$label)) {
+                catText(3, "<labl>", obj[[i]]$label, "</labl>")
+            }
         }
+        
 
         missing <- NULL
         if (is.element("missing", names(obj[[i]]))) {
