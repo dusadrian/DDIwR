@@ -10,6 +10,11 @@
         return(suppressWarnings(as.numeric(as.character(x))))
     }
 
+    # integer numbers, but not necessarily declared as integers
+    `wholeNumber` <- function(x) {
+        all(floor(x) == x, na.rm = TRUE)
+    }
+
     for (i in names(x)) {
         
         if (is.element("values", names(dataDscr[[i]]))) {
@@ -27,8 +32,12 @@
             labels <- dataDscr[[i]]$values
             
             var <- unname(unlist(unclass(x[, i])))
+
             if (possibleNumeric(var)) {
                 var <- asNumeric(var)
+                if (wholeNumber(var)) {
+                    var <- as.integer(var)
+                }
             }
             else {
                 var <- as.character(var)
