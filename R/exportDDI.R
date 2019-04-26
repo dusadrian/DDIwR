@@ -13,15 +13,6 @@
         # toreturn <- unique(toreturn)
         # if (length(toreturn) == x) return(toreturn)
     }
-
-    `possibleNumeric` <- function(x) {
-        # as.character converts everything (especially factors)
-        return(!any(is.na(suppressWarnings(as.numeric(na.omit(as.character(x)))))) & !all(is.na(x)))
-    }
-    
-    `asNumeric` <- function(x) {
-        return(suppressWarnings(as.numeric(as.character(x))))
-    }
     
     `repeatSpace` <- function(times) {
         paste(rep(" ", times*indent), collapse="")
@@ -117,7 +108,7 @@
         dcml <- ""
         if (!is.null(data)) {
             dcml <- c(" dcml=\"",
-                      ifelse(possibleNumeric(data[[i]]), getDecimals(asNumeric(na.omit(data[[i]]))),  0),
+                      ifelse(admisc::possibleNumeric(data[[i]]), getDecimals(admisc::asNumeric(na.omit(data[[i]]))),  0),
                       "\"")
         }
         
@@ -170,8 +161,8 @@
         
         if (!is.null(data)) {
             vals <- data[[names(obj)[i]]]
-            if (possibleNumeric(vals)) {
-                vals <- asNumeric(vals)
+            if (admisc::possibleNumeric(vals)) {
+                vals <- admisc::asNumeric(vals)
 
                 if (!is.null(lbls)) {
                     ismiss <- is.element(lbls, missing)

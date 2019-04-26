@@ -1,20 +1,6 @@
 
 `convertibble` <- function(x, dataDscr) {
 
-    `possibleNumeric` <- function(x) {
-        # as.character converts everything (especially factors)
-        return(!any(is.na(suppressWarnings(as.numeric(na.omit(as.character(x)))))) & !all(is.na(x)))
-    }
-    
-    `asNumeric` <- function(x) {
-        return(suppressWarnings(as.numeric(as.character(x))))
-    }
-
-    # integer numbers, but not necessarily declared as integers
-    `wholeNumber` <- function(x) {
-        all(floor(x) == x, na.rm = TRUE)
-    }
-
     for (i in names(x)) {
         
         if (is.element("values", names(dataDscr[[i]]))) {
@@ -33,11 +19,8 @@
             
             var <- unname(unlist(unclass(x[, i])))
 
-            if (possibleNumeric(var)) {
-                var <- asNumeric(var)
-                if (wholeNumber(var)) {
-                    var <- as.integer(var)
-                }
+            if (admisc::possibleNumeric(var)) {
+                var <- admisc::asNumeric(var)
             }
             else {
                 var <- as.character(var)
@@ -49,6 +32,11 @@
         attr(x[[i]], "label") <- dataDscr[[i]]$label
 
     }
+
+    x[] <- lapply(x, function(x) {
+                attr(x, "format.spss") <- getFormat(x)
+                return(x)
+            })
 
     return(x)
 }

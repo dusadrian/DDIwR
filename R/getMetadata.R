@@ -1,27 +1,9 @@
 `getMetadata` <- 
-function(x, OS = "Windows", save = FALSE, ...) {
+function(x, save = FALSE, OS = "Windows", ...) {
     
     # TODO: detect DDI version or ask the version through a dedicated argument
     # http://www.ddialliance.org/Specification/DDI-Codebook/2.5/XMLSchema/field_level_documentation.html
     
-    `possibleNumeric` <- function(x) {
-        # as.character converts everything (especially factors)
-        return(!any(is.na(suppressWarnings(as.numeric(na.omit(as.character(x)))))) & !all(is.na(x)))
-    }
-    
-    `asNumeric` <- function(x) {
-        return(suppressWarnings(as.numeric(as.character(x))))
-    }
-
-    `trimstr` <- function(x, what = " ", side = "both") {
-        what <- ifelse(what == " ", "[[:space:]]", ifelse(what == "*", "\\*", what))
-        pattern <- switch(side,
-        both = paste("^", what, "+|", what, "+$", sep = ""),
-        left = paste("^", what, "+", sep = ""),
-        right = paste(what, "+$", sep = "")
-        )
-        gsub(pattern, "", x)
-    }
     
     `cleanup` <- function(x, cdata = TRUE) {
 
@@ -73,7 +55,7 @@ function(x, OS = "Windows", save = FALSE, ...) {
                 toreturn$missrange <- missrange
             }
             
-            toreturn$type <- DDIwR::checkType(x, labels, possibleNumeric(x))
+            toreturn$type <- DDIwR::checkType(x, labels, admisc::possibleNumeric(x))
 
             return(toreturn)
         })
@@ -139,7 +121,7 @@ function(x, OS = "Windows", save = FALSE, ...) {
             
             
             # lapply(xml_find_all(xml, "/d1:codeBook/d1:dataDscr/d1:var"), function(x) {
-            #     list(label = trimstr(xml_text(xml_find_first(x, "d1:labl"))))
+            #     list(label = admisc::trimstr(xml_text(xml_find_first(x, "d1:labl"))))
             # })
             
             xmlns <- xml2::xml_ns(xml)
@@ -165,7 +147,7 @@ function(x, OS = "Windows", save = FALSE, ...) {
             codeBook$dataDscr <- lapply(varlab, function(x) list(label = x))
             
             xpath <- sprintf("/%scodeBook/%sdataDscr/%svar/@name", dns, dns, dns)
-            names(codeBook$dataDscr) <- trimstr(xml2::xml_text(xml2::xml_find_all(xml, xpath)))
+            names(codeBook$dataDscr) <- admisc::trimstr(xml2::xml_text(xml2::xml_find_all(xml, xpath)))
             
             for (i in seq(length(codeBook$dataDscr))) {
                 # nms <- xml_name(xml_contents(xml_find_all(xml, sprintf("/d1:codeBook/d1:dataDscr/d1:var[%s]", i))))
@@ -177,8 +159,8 @@ function(x, OS = "Windows", save = FALSE, ...) {
                 missng <- NULL
                 missrange <- NULL
                 xpath <- sprintf("%sinvalrng/%srange", dns, dns)
-                missrange[1] <- asNumeric(xml2::xml_attr(xml2::xml_find_first(vars[i], xpath), "min"))
-                missrange[2] <- asNumeric(xml2::xml_attr(xml2::xml_find_first(vars[i], xpath), "max"))
+                missrange[1] <- admisc::asNumeric(xml2::xml_attr(xml2::xml_find_first(vars[i], xpath), "min"))
+                missrange[2] <- admisc::asNumeric(xml2::xml_attr(xml2::xml_find_first(vars[i], xpath), "max"))
                 if (all(is.na(missrange))) {
                     missrange <- NULL
                 }
@@ -208,8 +190,8 @@ function(x, OS = "Windows", save = FALSE, ...) {
                     values <- values[!is.na(labl)]
                     labl <- cleanup(labl[!is.na(labl)])
                     
-                    if (possibleNumeric(values)) {
-                        values <- asNumeric(values)
+                    if (admisc::possibleNumeric(values)) {
+                        values <- admisc::asNumeric(values)
                     }
                     
                     codeBook$dataDscr[[i]]$values <- values
@@ -218,8 +200,8 @@ function(x, OS = "Windows", save = FALSE, ...) {
                 
                 
                 if (length(missng) > 0) {
-                    if (possibleNumeric(missng)) {
-                        missng <- asNumeric(missng)
+                    if (admisc::possibleNumeric(missng)) {
+                        missng <- admisc::asNumeric(missng)
                     }
                     missng <- sort(unique(missng))
 
@@ -270,7 +252,7 @@ function(x, OS = "Windows", save = FALSE, ...) {
             }
         }
         else {
-            if (tp$fileext == "SAV") {
+            if (tp$fileext[ff] == "SAV") {
                 data <- haven::read_spss(file.path(tp$completePath, tp$files[ff]), user_na = TRUE)
             }
             else if (tp$fileext[ff] == "POR") {
@@ -279,7 +261,7 @@ function(x, OS = "Windows", save = FALSE, ...) {
             else if (tp$fileext[ff] == "DTA") {
                 data <- haven::read_dta(file.path(tp$completePath, tp$files[ff]))
             }
-            else if (tp_from$fileext == "RDS") {
+            else if (tp$fileext[ff] == "RDS") {
                 data <- readr::read_rds(file.path(tp$completePath, tp$files[ff]))
             }
             # else if (tp$fileext[ff] == "SAS7BDAT") {
