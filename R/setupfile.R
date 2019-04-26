@@ -40,15 +40,6 @@ setupfile <- function(codeBook, file = "", type = "all", csv = "", OS = "", ...)
     if (OS == "") {
         OS <- Sys.info()[['sysname']]
     }
-
-    `possibleNumeric` <- function(x) {
-        # as.character converts everything (especially factors)
-        return(!any(is.na(suppressWarnings(as.numeric(na.omit(as.character(x)))))) & !all(is.na(x)))
-    }
-    
-    `asNumeric` <- function(x) {
-        return(suppressWarnings(as.numeric(as.character(x))))
-    }
     
     `getmissvaRs` <- function(dataDscr) {
         lapply(dataDscr, function(x) {
@@ -460,8 +451,7 @@ setupfile <- function(codeBook, file = "", type = "all", csv = "", OS = "", ...)
         }
         
         nrowscsv <- nrow(csv)
-        
-        
+
         
         if (gofurther) {
             
@@ -512,24 +502,20 @@ setupfile <- function(codeBook, file = "", type = "all", csv = "", OS = "", ...)
                     # a multibyte error should be the only one that nchar() throws
                     # don't know what other error would be possible with nchar()
                     
-                    tempvar2 <- tempvar
-                    error <- unlist(strsplit(nofchars[[1]], split=" "))
+                    tempvar2 <- as.character(tempvar)
+                    error <- unlist(strsplit(nofchars[[1]], split = " "))
                     tempvar2 <- tempvar2[-as.numeric(error[length(error)])]
                     
                     cat("    There are multibyte characters in this data (ex. ", csvnames[i], ", position ", error[length(error)], ")\n", sep = "")
                     
-                    multibyte <- TRUE
-                    
-                    while(multibyte) {
+                    while (TRUE) {
                         
-                        nofchars <- tryCatch(nchar(as.character(tempvar2)), error = function(x) return(x))
-                        if (is.list(nofchars)) {
-                            error <- unlist(strsplit(nofchars[[1]], split=" "))
-                            tempvar2 <- tempvar2[-as.numeric(error[length(error)])]
-                        }
-                        else {
-                            multibyte <- FALSE
-                        }
+                        nofchars <- tryCatch(nchar(tempvar2), error = function(x) return(x))
+                        
+                        if (!is.list(nofchars)) break
+
+                        error <- unlist(strsplit(nofchars[[1]], split = " "))
+                        tempvar2 <- tempvar2[-as.numeric(error[length(error)])]
                     }
                     
                     if (length(nofchars) == 0) {
@@ -571,12 +557,8 @@ setupfile <- function(codeBook, file = "", type = "all", csv = "", OS = "", ...)
                         }
                     }
                     
-                    if (decimals) {
-                        spssformats[i] <- paste("F", maxvarchar, ".2", sep = "")
-                    }
-                    else {
-                        spssformats[i] <- paste("F", maxvarchar, ".0", sep = "")
-                    }
+                    spssformats[i] <- sprintf("F%d.%d", maxvarchar, ifelse(decimals, 2, 0))
+
                 }
                 else if (vartypes[i] == "string") {
                     sasformats[i] <- "$"
@@ -793,7 +775,7 @@ setupfile <- function(codeBook, file = "", type = "all", csv = "", OS = "", ...)
                     
                     if (is.element("missing", names(dataDscr2[[i]]))) {
                         for (j in dataDscr2[[i]][["missing"]]) {
-                            missval <- asNumeric(j)
+                            missval <- admisc::asNumeric(j)
                             if (!is.na(missval)) {
                                 if (!is.element(missval, newvalues)) {
                                     newvalues[j] <- missval
