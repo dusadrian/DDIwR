@@ -10,13 +10,14 @@ information about missing values.
 }
 
 \usage{
-getMetadata(x, OS = "Windows", save = FALSE, ...)
+getMetadata(x, save = FALSE, OS = "Windows", ...)
 }
 
 \arguments{
   \item{x}{A path to a file, or a tibble object}
-  \item{OS}{The target operating system, for the eol - end of line separator}
   \item{save}{Boolean, save an .R file in the same folder}
+  \item{OS}{The target operating system, for the eol - end of line separator,
+            if saving the file}
   \item{...}{Additional arguments for this function (internal uses only)}
 }
 
@@ -24,6 +25,10 @@ getMetadata(x, OS = "Windows", save = FALSE, ...)
 This function reads an XML file containing a DDI codebook version 2.5, or an
 SPSS file and returns a list containing the variable labels, value labels,
 plus some other useful information.
+
+It is also possible to extract a limited information from a Stata file, but
+especially the missing values are not yet imported by package \bold{\pkg{haven}}.
+
 
 It additionally attempts to automatically detect a type for each variable:
 \tabular{rl}{
@@ -33,7 +38,8 @@ It additionally attempts to automatically detect a type for each variable:
   \tab for which a table of frequencies is possible in addition to frequencies
 }
 
-The argument \code{OS} (case insensitive) can be either:\cr
+By default, this function extracts the metadata into an R list object, but when the argument
+\code{save} is activated, the argument \code{OS} (case insensitive) can be either:\cr
 \code{"Windows"} (default), or \code{"Win"},\cr
 \code{"MacOS"}, \code{"Darwin"}, \code{"Apple"}, \code{"Mac"},\cr
 \code{"Linux"}.\cr
@@ -48,7 +54,7 @@ For the moment, only DDI version 2.5 (Codebook) is supported, but DDI version 3.
 
 \value{
 A list containing all variables, their corresponding variable labels and value labels,
-and (if applicable) missing values if found.
+and (if applicable) missing values if imported and found.
 }
 
 \author{

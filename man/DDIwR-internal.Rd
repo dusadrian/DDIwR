@@ -6,6 +6,7 @@
 \alias{getDelimiter}
 \alias{getEnter}
 \alias{getFiles}
+\alias{getFormat}
 \alias{getXML}
 \alias{splitrows}
 \alias{test}
