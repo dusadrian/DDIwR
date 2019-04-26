@@ -23,7 +23,7 @@ treatPath <- function(path, type = "R", single = FALSE, check = TRUE) {
     
     
     lastpart <- basename(path)
-    pathname <- suppressWarnings(normalizePath(dirname(path)))
+    pathname <- suppressWarnings(normalizePath(dirname(path), winslash = "/"))
     
     # check if a path exists, before the lastpart
     pathexists <- pathname != "."
