@@ -30,7 +30,7 @@
         decimals <- any(x - floor(x) > 0)
     }
 
-    return(sprintf("%d%d%d%d", 
+    return(sprintf("%s%s%s%d", 
         ifelse(string, "A", "F"), 
         maxvarchar, 
         ifelse(string, "", "."),
