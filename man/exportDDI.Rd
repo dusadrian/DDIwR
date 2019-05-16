@@ -97,8 +97,7 @@ codeBook <- list(dataDscr = list(
 ID = list(
     label = "Questionnaire ID",
     type = "num",
-    measurement = "interval",
-    uniqueid = TRUE
+    measurement = "interval"
 ),
 V1 = list(
     label = "Label for the first variable",
