@@ -1,6 +1,6 @@
 Package: DDIwR
-Version: 0.3
-Date: 2019-04-18
+Version: 0.3-1
+Date: 2019-05-16
 Title: DDI with R
 Authors@R: c(person("Adrian", "Dusa", role = c("aut", "cre"),
                       email = "dusa.adrian@unibuc.ro"))
