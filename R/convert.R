@@ -114,8 +114,10 @@
     tc <- NULL
 
     if (tp_to$fileext == "XML") {
-        codeBook$fileDscr$datafile <- data
-        if (!embed) {
+        if (embed) {
+            codeBook$fileDscr$datafile <- data
+        }
+        else {
             write.csv(as.data.frame(data), file.path(tp_from$completePath, paste(tp_to$filenames[1], "csv", sep = ".")), row.names = FALSE)
             # readr::write_csv(data, file.path(tp_from$completePath, paste(tp_to$filenames[1], "csv", sep = ".")))
         }
