@@ -244,7 +244,7 @@ function(x, save = FALSE, OS = "Windows", ...) {
 
                 if (identical(type, "character")) {
                     xpath <- sprintf("%stxt", dns)
-                    txt <- cleanup(xml_text(xml_find_first(vars[i], xpath)))
+                    txt <- cleanup(xml2::xml_text(xml2::xml_find_first(vars[i], xpath)))
                     if (!is.na(txt)) {
                         codeBook$dataDscr[[i]]$txt <- txt
                     }
@@ -290,14 +290,15 @@ function(x, save = FALSE, OS = "Windows", ...) {
         }
     }
     
+    
     if (singlefile) {
-        
         if (!is.na(notes)) {
             if (grepl("# start data #", notes)) {
+                spss <- ifelse(is.element("spss", names(other.args)), other.args$spss, TRUE)
                 notes <- unlist(strsplit(notes, split = "\\n"))
                 data <- notes[seq(which(grepl("# start data #", notes)) + 1, which(grepl("# end data #", notes)) - 1)]
                 data <- read.csv(text = paste(data, collapse = "\n"), as.is = TRUE)
-                data <- convertibble(tibble::as_tibble(data), codeBook$dataDscr)
+                data <- convertibble(tibble::as_tibble(data), codeBook$dataDscr, spss = spss)
                 embed <- TRUE
                 # data <- suppressMessages(readr::read_csv(paste(data, collapse = "\n")))
             }

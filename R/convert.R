@@ -52,7 +52,7 @@
     }
     
     if (tp_from$fileext == "XML") {
-        codeBook <- getMetadata(from)
+        codeBook <- getMetadata(from, spss = identical(tp_to$fileext, "SAV"))
         
         if (is.element("datafile", names(codeBook[["fileDscr"]]))) {
             data <- codeBook[["fileDscr"]][["datafile"]]
@@ -79,7 +79,7 @@
                 data <- data[, -1, drop = FALSE]
             }
             # return(list(data = data, codeBook = codeBook))
-            data <- convertibble(tibble::as_tibble(data), codeBook$dataDscr)
+            data <- convertibble(tibble::as_tibble(data), codeBook$dataDscr, spss = identical(tp_to$fileext, "SAV"))
         }
     }
     else {
