@@ -15,7 +15,7 @@ getMetadata(x, save = FALSE, OS = "Windows", ...)
 
 \arguments{
   \item{x}{A path to a file, or a tibble object}
-  \item{save}{Boolean, save an .R file in the same folder}
+  \item{save}{Boolean, save an .R file in the same directory}
   \item{OS}{The target operating system, for the eol - end of line separator,
             if saving the file}
   \item{...}{Additional arguments for this function (internal uses only)}

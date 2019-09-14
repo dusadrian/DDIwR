@@ -1,10 +1,10 @@
 Package: DDIwR
 Version: 0.4
-Date: 2019-08-06
+Date: 2019-09-14
 Title: DDI with R
 Authors@R: c(person("Adrian", "Dusa", role = c("aut", "cre"),
                       email = "dusa.adrian@unibuc.ro"))
 Depends: R (>= 3.3.0)
-Imports: admisc (>= 0.3), haven, readr, tibble, xml2
+Imports: admisc (>= 0.4), haven, readr, tibble, xml2
 Description: Useful functions for various DDI (Data Documentation Initiative) related inputs and outputs.
 License: GPL (>= 2)
