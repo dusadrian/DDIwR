@@ -1,6 +1,8 @@
 
-`convertibble` <- function(x, dataDscr) {
+`convertibble` <- function(x, dataDscr, ...) {
 
+    pN <- unlist(lapply(x, function(x) admisc::possibleNumeric(x)))
+    
     for (i in names(x)) {
         
         if (is.element("values", names(dataDscr[[i]]))) {
@@ -19,7 +21,7 @@
             
             var <- unname(unlist(unclass(x[, i])))
 
-            if (admisc::possibleNumeric(var)) {
+            if (pN[i]) {
                 var <- admisc::asNumeric(var)
             }
             else {
@@ -33,10 +35,15 @@
 
     }
 
-    x[] <- lapply(x, function(x) {
+    other.args <- list(...)
+    if (is.element("spss", names(other.args))) {
+        if (other.args$spss) {
+            x[] <- lapply(x, function(x) {
                 attr(x, "format.spss") <- getFormat(x)
                 return(x)
             })
+        }
+    }
 
     return(x)
 }
