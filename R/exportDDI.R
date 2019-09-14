@@ -101,11 +101,11 @@
             cat(s2, "<notes>", enter, sep = "")
             cat(s0, "<![CDATA[# start data #", enter,
                 readr::format_csv(data, na = ""),
-                "# end data #\n]]>", enter, sep = "")
+                "# end data #", enter, "]]>", enter, sep = "")
             cat(s2, "</notes>", enter, sep = "")
         }
 
-        pN <- unlist(lapply(data[names(obj)], function(x) admisc::possibleNumeric(x, labelled = haven::is.labelled(x))))
+        pN <- unlist(lapply(data[names(obj)], function(x) admisc::possibleNumeric(x)))
         aN <- lapply(data[, names(pN)[pN]], function(x) admisc::asNumeric(x))
 
     }

@@ -1,4 +1,9 @@
 `getFormat` <- function(x) {
+
+    if (all(is.na(x))) {
+        return("A0")
+    }
+    
     string <- is.character(x)
     x2 <- as.character(x)
 
@@ -19,7 +24,7 @@
 
     maxvarchar <- max(nofchars, na.rm = TRUE)
 
-    if (is.labelled(x)) {
+    if (haven::is.labelled(x)) {
         labels <- attr(x, "labels")
         maxvarchar <- max(maxvarchar, nchar(labels))
         if (is.character(labels)) string <- TRUE
