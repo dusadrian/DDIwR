@@ -151,7 +151,9 @@ of the scale and parties with a right-wing orientation coded on the high end of 
 Categories 90-99 were reserved miscellaneous responses."
 )))
 
+\dontrun{
 exportDDI(codeBook, file = "codebook.xml")
+}
 
 }
 
