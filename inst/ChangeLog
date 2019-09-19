@@ -1,3 +1,7 @@
+Version 0.4
+    o improved function convert() for speed
+    o sync-ed with the latest version of package admisc
+    
 Version 0.3
     o new function convert(), to convert from one statistical package to another
     o new function exportDDI(), for DDI codebook version 2.5
