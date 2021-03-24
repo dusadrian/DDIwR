@@ -1,3 +1,8 @@
+Version 0.5
+    o fixed bug in convertibble() when a variable is character yet
+      the value labels, and the na_values are numeric
+    o various other improvements to internal functions
+    
 Version 0.4
     o improved function convert() for speed
     o sync-ed with the latest version of package admisc
@@ -65,4 +70,3 @@ Version 0.0-2
     
 Version 0.0-1
     o First version of the package
-

@@ -1,4 +1,4 @@
-treatPath <- function(path, type = "R", single = FALSE, check = TRUE) {
+treatPath <- function(path, type = "*", single = FALSE, check = TRUE) {
     if (length(path) > 1) {
         cat("\n")
         # if (type == "R") {
@@ -15,14 +15,9 @@ treatPath <- function(path, type = "R", single = FALSE, check = TRUE) {
     }
     currdir <- getwd()
     
-    ## PERHAPS IMPORTANT:
-    # normalizePath() to deal with the symbolic links, relative paths and absolute paths
-    
-    ## file_test() determines if basename is a file or a folder
-    # file_test("-d", basename(path))
-    
     
     lastpart <- basename(path)
+    # normalizePath() deals with the symbolic links, relative paths and absolute paths
     pathname <- suppressWarnings(normalizePath(dirname(path), winslash = "/"))
     
     # check if a path exists, before the lastpart
@@ -34,7 +29,7 @@ treatPath <- function(path, type = "R", single = FALSE, check = TRUE) {
             if (check) {
                 cat("\n")
                 stop(paste("Cannot find the path up to \"", pathname, "\".\n",
-                        "Please check that path, or try changing the working directory.\n\n", sep=""), call. = FALSE)
+                        "Please check that path, or try changing the working directory.\n\n", sep = ""), call. = FALSE)
             }
             else {
                 pathname <- file.path(getwd(), pathname)
@@ -44,13 +39,16 @@ treatPath <- function(path, type = "R", single = FALSE, check = TRUE) {
     }
     
     allfiles <- FALSE
-
     if (!file.exists(file.path(pathname, lastpart))) {
-        filesplit <- unlist(strsplit(lastpart, split="\\."))
+        # something like /path/to/*.R
+        # where lastpart is *.R
+        filesplit <- unlist(strsplit(lastpart, split = "\\."))
         
         if (length(filesplit) >= 2) {
             if (filesplit[1] == "*") {
                 allfiles <- TRUE
+                type <- filesplit[2]
+                lastpart <- ""
             }
         }
         
@@ -58,61 +56,27 @@ treatPath <- function(path, type = "R", single = FALSE, check = TRUE) {
             cat("\n")
             stop(paste("There is no \"", lastpart, "\" in the directory \"", ifelse(pathname == ".", getwd(), pathname), "/\".\n\n", sep=""), call. = FALSE)
         }
-    }
-    
-    completePath <- pathname
-    
-    fileobj <- "" # a default neutral value
-    
-    if (allfiles) {
-        fileobj <- getFiles(dirpath = ".", type = filesplit[2])
-        if (length(fileobj) > 1) { # otherwise it's just an error message from getFiles()
-            files <- fileobj$files
-            filenames <- fileobj$filenames
-            fileext <- toupper(fileobj$fileext)
-        }
+        
+        fileobj <- list(
+            completePath = pathname,
+            files = lastpart,
+            filenames = filesplit[1],
+            fileext = toupper(filesplit[2])
+        )
     }
     else {
-        
+    
+        ## file_test() determines if a file or a directory
         if (file_test("-d", file.path(pathname, lastpart))) {
-            # if it's a subfolder
-            
             if (single) {
                 cat("\n")
-                stop(paste("A file name should be provided, not a directory.\n\n", sep=""), call. = FALSE)
-            }
-            
-            completePath <- file.path(pathname, lastpart)
-            
-            fileobj <- getFiles(dirpath = completePath, type = type)
-            
-            if (length(fileobj) > 1) { # otherwise it's just an error message from getFiles()
-                files <- fileobj$files
-                filenames <- fileobj$filenames
-                fileext <- toupper(fileobj$fileext)
+                stop(paste("A file name should be provided, not a directory.\n\n", sep = ""), call. = FALSE)
             }
         }
-        else {
-            files <- lastpart
-            filesplit <- unlist(strsplit(lastpart, split="\\."))
-            filenames <- filesplit[1]
-            fileext <- NA
-            if (length(filesplit) >= 2) {
-                fileext <- toupper(paste(filesplit[seq(2, length(filesplit))], collapse="."))
-            }
-        }
+        
+        fileobj <- getFiles(path = file.path(pathname, lastpart), type = type)
+        
     }
     
-    if (length(fileobj) == 1) {
-        if (fileobj != "") {
-            return(fileobj)
-        }
-    }
-    
-    return(list(
-        completePath = completePath,
-        files = files,
-        filenames = filenames,
-        fileext = fileext
-        ))
+    return(fileobj)
 }

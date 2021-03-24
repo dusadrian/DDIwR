@@ -1,7 +1,8 @@
 setupfile <- function(codeBook, file = "", type = "all", csv = "", OS = "", ...) {
     
     # TO DO: when codeBook is a path to a file or directory, it should be (only) XML and not R anymore
-
+    on.exit(suppressWarnings(sink()))
+    
     other.args <- list(...)
     
     outdir <- identical(file, "")
@@ -461,7 +462,7 @@ setupfile <- function(codeBook, file = "", type = "all", csv = "", OS = "", ...)
             varnames <- names(dataDscr)
             maxchars <- max(nchar(varnames))
             varcheck <- rep(0, length(varnames))
-            vartypes <- emptyvars <- vector(mode="list", length=ncol(csv))
+            vartypes <- emptyvars <- vector(mode = "list", length = ncol(csv))
             names(vartypes) <- names(emptyvars) <- csvnames
             
             printNOTE <- FALSE

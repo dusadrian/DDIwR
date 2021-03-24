@@ -33,6 +33,7 @@ function(x, save = FALSE, OS = "Windows", ...) {
 
         codeBook <- list()
         codeBook$dataDscr <- lapply(data, function(x) {
+            
             toreturn <- list(label = attr(x, "label"))
             labels <- attr(x, "labels")
             if (!is.null(labels)) {

@@ -1,64 +1,65 @@
-getFiles <- function(dirpath = ".", type = "", currdir) {
+getFiles <- function(path = ".", type = "*", currdir) {
     
-    
+    lastpart <- basename(path)
+    pathname <- suppressWarnings(normalizePath(dirname(path), winslash = "/"))
+    path <- file.path(pathname, lastpart)
+
     # get all files
-    files <- list.files(dirpath)
+    if (file_test("-d", path)) {
+        files <- list.files(path)
+    }
+    else {
+        files <- lastpart
+    }
     
     if (length(files) == 0) {
-        return(paste("The directory", dirpath, "is empty.\n\n"))
+        return(paste("The directory", path, "is empty.\n\n"))
     }
     
-    # split all files by "." to separate names from extentions
-    filesplit <- strsplit(files, split="\\.")
-    
-    # get rid of files without extensions, and (sub)directory names
-    noext <- unlist(lapply(filesplit, length))
-    files <- files[noext > 1]
-    filesplit <- filesplit[noext > 1]
-    
-    if (length(filesplit) == 0) {
-        return(paste("The directory \"", dirpath, "\" doesn't contain any known files.\n\n", sep=""))
+    fileext <- tools::file_ext(files)
+    files <- files[fileext != ""]
+
+    if (length(files) == 0) {
+        return(paste("The directory \"", path, "\" doesn't contain any known files.\n\n", sep=""))
     }
-    
-    
-    # get the file extensions
-    fileext <- unlist(lapply(filesplit, function(x) {
-        # we want the last part(s) of the split
-        return(paste(x[-1], collapse="."))
-    }))
-    
+
+    fileext <- fileext[fileext != ""]
+    if (length(wgz <- which(toupper(fileext) == "GZ")) > 0) {
+        if (length(wcsv <- grepl("\\.CSV", toupper(files[wgz]))) > 0) {
+            fcsv <- lapply(strsplit(files[wgz][wcsv], split = "\\."), function(x) {
+                lx <- length(x)
+                return(c(paste(x[seq(lx - 2)], collapse = "."), paste(x[seq(lx - 1, lx)], collapse = ".")))
+            })
+            
+            csvext <- unlist(lapply(fcsv, "[[", 2))
+            # files[wgz][wcsv] <- unlist(lapply(fcsv, "[[", 1))
+
+            fileext[wgz][wcsv] <- csvext
+        }
+    }
+
     
     if (type != "*") {
         # check if there is any file with the right extension
         fileidxs <- which(toupper(fileext) == toupper(type))
         if (toupper(type) == "CSV" & any(toupper(fileext) == "CSV.GZ")) {
-            fileidxs <- which(toupper(fileext) %in% c("CSV", "CSV.GZ"))
+            fileidxs <- which(is.element(toupper(fileext), c("CSV", "CSV.GZ")))
         }
         
         if (length(fileidxs) == 0) {
-            return(paste("There is no .", type, " type file in the directory \"", dirpath, "\"\n\n", sep=""))
+            return(paste("There is no .", type, " type file in the directory \"", path, "\"\n\n", sep=""))
         }
         
         # if code survives this far, filter all the "right" files from all files
         files <- files[fileidxs]
+        fileext <- fileext[fileidxs]
     }
     
-    # split the files again, just in case some of them were not the right type
-    filesplit <- strsplit(files, split="\\.")
+    filenames <- files
+    for (i in seq(length(files))) {
+        filenames[i] <- gsub(paste(".", fileext[i], sep = ""), "", filenames[i])
+    }
     
-    # get the file names
-    # the code below is necessary just in case the filename contains a "."
-    # e.g. test.1.R
-    filenames <- unlist(lapply(filesplit, function(x) {
-        # we want all parts except the last, to restore the original filename
-        return(paste(x[1], collapse="."))
-    }))
-    
-    # get the file extensions again
-    fileext <- unlist(lapply(filesplit, function(x) {
-        paste(x[-1], collapse=".")
-    }))
-    
-    return(list(files=files, filenames=filenames, fileext=fileext))
+    return(list(completePath = pathname, files = files, filenames = filenames, fileext = toupper(fileext)))
     
 }

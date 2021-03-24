@@ -26,6 +26,9 @@
             }
             else {
                 var <- as.character(var)
+                labels <- unlist(lapply(labels, as.character))
+                na_values <- unlist(lapply(na_values, as.character))
+                na_range <- unlist(lapply(na_range, as.character))
             }
             
             x[[i]] <- haven::labelled_spss(var, labels, na_values, na_range)

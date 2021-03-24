@@ -8,7 +8,7 @@
 This function converts (or transfers) between R, Stata, SPSS, SAS, and DDI XML files.
 Unlike the regular import / export functions from packages \bold{\pkg{haven}} or
 \bold{\pkg{rio}}, this function uses the DDI standard as an exchange platform and
-also attempts a conversion of the missing values.
+makes the first steps towards converting the user defined missing values.
 }
 
 \usage{
@@ -44,7 +44,7 @@ letters, the lowest numerical value being assigned to the letter \code{a}.
 Additional parameters can be specified via the three dots argument \bold{\code{...}}, that are
 passed to the respective functions from package \bold{\pkg{haven}}. For instance the function
 \bold{\code{\link[haven]{write_dta}()}} has an additional argument called \bold{\code{version}}
-(from 8 to a maximum and default value of 14) when writing a Stata file.
+when writing a Stata file.
 
 Note that this function creates a target file in the same directory as the source file, which is
 different from importing the source file into R. To import a file, users should refer to the

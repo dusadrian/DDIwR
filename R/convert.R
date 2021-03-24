@@ -16,8 +16,18 @@
         targetOS <- other.args$OS
     }
 
-    
-    tp_from <- treatPath(from, single = TRUE)
+    Robject <- FALSE
+    if (is.character(from)) {
+        tp_from <- treatPath(from, type = "*", single = TRUE)
+    }
+    else if (all(is.element(c("tbl_df", "data.frame"), class(from)))) {
+        Robject <- TRUE
+        tp_from <- list(completePath = ".", filenames = as.character(substitute(from)), fileext = "RDS")
+    }
+    else {
+        cat("\n")
+        stop("Unsuitable input.\n\n", call. = FALSE)
+    }
 
     if (identical(toupper(to), "DDI") | identical(toupper(to), "XML")) {
         to <- file.path(tp_from$completePath, paste(tp_from$filenames, "xml", sep = "."))
@@ -61,7 +71,7 @@
             files <- getFiles(tp_from$completePath, "*")
             
             csvexists <- FALSE
-            csvfiles <- toupper(files$fileext) == "CSV"
+            csvfiles <- files$fileext == "CSV"
             if (any(csvfiles)) {
                 csvexists <- is.element(toupper(tp_from$filenames), toupper(files$filenames[csvfiles]))
                 csvfile <- files$files[csvfiles][match(toupper(tp_from$filenames), toupper(files$filenames[csvfiles]))]
@@ -92,11 +102,14 @@
         else if (tp_from$fileext == "DTA") {
             data <- haven::read_dta(from)
         }
-        else if (tp_from$fileext == "RDS") {
-            data <- readr::read_rds(from)
-        }
         else if (tp_from$fileext == "SAS7BDAT") {
             data <- haven::read_sas(from)
+        }
+        else if (tp_from$fileext == "RDS" & !Robject) {
+            data <- readr::read_rds(from)
+        }
+        else {
+            data <- from
         }
 
         codeBook <- getMetadata(data)
@@ -147,13 +160,33 @@
             }
         }
 
-        callist <- list(data = data, path = to)
-
+        
+        callist <- list(data = data)
+        
         if (is.element("version", names(other.args))) {
             callist$version <- other.args$version
         }
+
         
-        do.call(haven::write_dta, callist)
+        # if (requireNamespace("readstata13", quietly = TRUE)) {
+
+        #     attr(callist$data, "var.labels") <- lapply(data, function(x) {
+        #         result <- attr(x, "label", exact = TRUE)
+        #         result <- lapply(result, function(x){
+        #             if (is.null(x)) "" else x
+        #         })
+        #         base::unlist(result, use.names = TRUE)
+        #     })
+            
+        #     callist$file <- to
+        #     callist$compress <- TRUE
+        #     do.call(readstata13::save.dta13, callist)
+        # }
+        # else {
+            callist$path <- to
+            do.call(haven::write_dta, callist)
+        # }
+
 
         if (!identical(binpath, "")) {
             codeBook$fileDscr$datafile <- data
@@ -187,26 +220,26 @@
 
         haven::write_sas(data, to)
 
-    #     # perhaps ask https://github.com/rogerjdeangelis
+        #     # perhaps ask https://github.com/rogerjdeangelis
 
-    #     if (!identical(binpath, "")) {
-    #         tp_SAS <- treatPath(binpath) # just to make sure the executable exists
-    #         temp <- file.path(tp_temp$completePath, paste(tp_temp$files, "sas", sep = "."))
+        #     if (!identical(binpath, "")) {
+        #         tp_SAS <- treatPath(binpath) # just to make sure the executable exists
+        #         temp <- file.path(tp_temp$completePath, paste(tp_temp$files, "sas", sep = "."))
 
-    #         setupfile(codeBook, file = temp, type = "SAS", script = TRUE, to = to, OS = currentOS)
+        #         setupfile(codeBook, file = temp, type = "SAS", script = TRUE, to = to, OS = currentOS)
 
-    #         # There is no SAS for MacOS
-    #         if (currentOS == "Windows") {
-    #             tc <- admisc::tryCatchWEM(system(paste(binpath, "-sysin", temp), intern = TRUE, ignore.stderr = TRUE))
-    #             # system("C:/path-to\sas.exe -sysin C:/tempscript.sas")
-    #         }
-    #         else if (currentOS == "Linux") {
-    #             tc <- admisc::tryCatchWEM(system(paste(binpath, temp))) # ?
-    #             # /opt/sas/sasb /pathto/tempscript.sas -log /pathtologfile/prog.log -print /pathtooutput/prog.lst
-    #         }
+        #         # There is no SAS for MacOS
+        #         if (currentOS == "Windows") {
+        #             tc <- admisc::tryCatchWEM(system(paste(binpath, "-sysin", temp), intern = TRUE, ignore.stderr = TRUE))
+        #             # system("C:/path-to\sas.exe -sysin C:/tempscript.sas")
+        #         }
+        #         else if (currentOS == "Linux") {
+        #             tc <- admisc::tryCatchWEM(system(paste(binpath, temp))) # ?
+        #             # /opt/sas/sasb /pathto/tempscript.sas -log /pathtologfile/prog.log -print /pathtooutput/prog.lst
+        #         }
 
-    #         suppressMessages(unlink(temp))
-    #     }
+        #         suppressMessages(unlink(temp))
+        #     }
     }
 
     if (is.element("error", names(tc))) {
