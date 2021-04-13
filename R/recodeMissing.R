@@ -29,7 +29,7 @@
     # build a dictionary based on existing metadata
 
     allMissing <- vector(mode = "list", length = length(dataset))
-    names(allMissing) <- names(x)
+    names(allMissing) <- names(dataset)
     
     for (i in seq(length(dataset))) {
         

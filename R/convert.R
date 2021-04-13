@@ -137,6 +137,10 @@
     currentOS <- Sys.info()[["sysname"]]
 
     tc <- NULL
+    dictionary <- NULL
+    if (is.element("dictionary" , names(other.args))) {
+        dictionary <- other.args[["dictionary"]]
+    }
 
     if (tp_to$fileext == "XML") {
         codeBook$fileDscr$datafile <- data
@@ -156,7 +160,7 @@
             return(x)
         })
         
-        haven::write_sav(data, to)
+        haven::write_sav(recodeMissing(data, to = "SPSS", dictionary = dictionary), to)
     }
     else if (identical(tp_to$fileext, "DTA")) {
         
@@ -171,9 +175,8 @@
                 }
             }
         }
-
         
-        callist <- list(data = data)
+        callist <- list(data = recodeMissing(data, to = "Stata", dictionary = dictionary))
         
         if (is.element("version", names(other.args))) {
             callist$version <- other.args$version
