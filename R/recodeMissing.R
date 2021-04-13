@@ -61,18 +61,54 @@
         allMissing[[i]] <- missing
     }
 
+    missingSPSS <- missingStata <- NULL
+    if (sum(spss) > 0) {
+        missingSPSS <- sort(unique(unname(unlist(allMissing[spss]))))
+    }
 
-    missingSPSS <- sort(unique(unname(unlist(allMissing[spss]))))
-    missingStata <- sort(unique(unname(unlist(allMissing[!spss]))))
-
+    if (sum(!spss)> 0) {
+        missingStata <- sort(unique(unname(unlist(allMissing[!spss]))))
+    }
 
     if (to == "SPSS") {
-        torecode <- setdiff(seq(-1, -100), missingSPSS)[seq(length(missingStata))]
-        names(torecode) <- missingStata
+        if (sum(!spss) == 0) {
+            message("Variables are already defined as SPSS")
+            return(dataset)
+        }
+
+        if (sum(spss) == 0) { # all variables are defined in Stata style
+            torecode <- -1 * seq(length(missingStata))
+            names(torecode) <- missingStata
+        }
+        else { # mix of Stata and SPSS variables
+            torecode <- setdiff(seq(-1, -100), missingSPSS)[seq(length(missingStata))]
+            names(torecode) <- missingStata
+        }
     }
     else if (to == "STATA") {
+        if (sum(spss) == 0) { # No SPSS variables
+            message("Variables are already defined as Stata")
+            return(dataset)
+        }
+
         torecode <- missingSPSS
-        names(torecode) <- setdiff(letters, missingStata)[seq(length(missingSPSS))]
+
+        if (sum(!spss) == 0) { # all variables are defined in SPSS style
+            if (length(torecode) > length(letters)) {
+                cat("\n")
+                stop(sprintf("Too many unique missing values (%s), Stata allows only 26.\n\n", length(torecode)), call. = FALSE)
+            }
+            names(torecode) <- letters[seq(length(missingSPSS))]
+        }
+        else { # mix of Stata and SPSS variables
+            available <- setdiff(letters, missingStata)
+            if (length(torecode) > length(available)) {
+                cat("\n")
+                stop(sprintf("Too many unique missing values (%s), with only %s Stata slots available.\n\n",
+                            length(torecode), length(available)), call. = FALSE)
+            }
+            names(torecode) <- setdiff(letters, missingStata)[seq(length(torecode))]
+        }
     }
 
     if (is.null(dictionary)) {
