@@ -138,36 +138,36 @@
         }
         
 
-        missing <- NULL
-        if (is.element("missing", names(obj[[i]]))) {
-            missing <- obj[[i]]$missing
+        na_values <- NULL
+        if (is.element("na_values", names(obj[[i]]))) {
+            na_values <- obj[[i]]$na_values
         }
 
-        missrange <- NULL
-        if (is.element("missrange", names(obj[[i]]))) {
-            missrange <- obj[[i]]$missrange
+        na_range <- NULL
+        if (is.element("na_range", names(obj[[i]]))) {
+            na_range <- obj[[i]]$na_range
         }
 
         
-        if (length(missrange) > 0) {
+        if (length(na_range) > 0) {
             cat(s3, "<invalrng>", enter, sep = "")
 
-            if (any(is.element(missrange, c(-Inf, Inf)))) {
-                if (identical(missrange[1], -Inf)) {
-                    cat(s4, sprintf("<range UNITS=\"INT\" max=\"%s\"/>", missrange[2]), enter, sep = "")
+            if (any(is.element(na_range, c(-Inf, Inf)))) {
+                if (identical(na_range[1], -Inf)) {
+                    cat(s4, sprintf("<range UNITS=\"INT\" max=\"%s\"/>", na_range[2]), enter, sep = "")
                 }
                 else {
-                    cat(s4, sprintf("<range UNITS=\"INT\" min=\"%s\"/>", missrange[1]), enter, sep = "")
+                    cat(s4, sprintf("<range UNITS=\"INT\" min=\"%s\"/>", na_range[1]), enter, sep = "")
                 }
             }
             else {
-                cat(s4, sprintf("<range UNITS=\"INT\" min=\"%s\" max=\"%s\"/>", missrange[1], missrange[2]), enter, sep = "")
+                cat(s4, sprintf("<range UNITS=\"INT\" min=\"%s\" max=\"%s\"/>", na_range[1], na_range[2]), enter, sep = "")
             }
                 
             cat(s3, "</invalrng>", enter, sep = "")
         }
 
-        lbls <- obj[[i]]$values
+        lbls <- obj[[i]]$labels
         type <- obj[[i]]$type
         
         if (!is.null(data)) {
@@ -175,9 +175,9 @@
                 vals <- aN[[names(obj)[i]]]
 
                 if (!is.null(lbls)) {
-                    ismiss <- is.element(lbls, missing)
-                    if (length(missrange) > 0) {
-                        ismiss <- ismiss | (lbls >= missrange[1] & lbls <= missrange[2])
+                    ismiss <- is.element(lbls, na_values)
+                    if (length(na_range) > 0) {
+                        ismiss <- ismiss | (lbls >= na_range[1] & lbls <= na_range[2])
                     }
                     vals[is.element(vals, lbls[ismiss])] <- NA
                 }
@@ -195,15 +195,15 @@
             }
         }
         
-        if (any(grepl("values", names(obj[[i]])))) {
+        if (any(grepl("labels", names(obj[[i]])))) {
 
             tbl <- table(data[[names(obj)[i]]])
             
             for (v in seq(length(lbls))) {
                 
-                ismiss <- is.element(lbls[v], missing)
-                if (length(missrange) > 0) {
-                    ismiss <- ismiss | (lbls[v] >= missrange[1] & lbls[v] <= missrange[2])
+                ismiss <- is.element(lbls[v], na_values)
+                if (length(na_range) > 0) {
+                    ismiss <- ismiss | (lbls[v] >= na_range[1] & lbls[v] <= na_range[2])
                 }
 
                 cat(s3, "<catgry", ifelse(ismiss, " missing=\"Y\"", ""), ">", enter, sep = "")

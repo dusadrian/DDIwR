@@ -1,4 +1,4 @@
-`convert` <- function(from, to, embed = FALSE, binpath = "", ...) {
+`convert` <- function(from, to, embed = FALSE, ...) {
     if (missing(from)) {
         cat("\n")
         stop("Argument 'from' is missing.\n\n", call. = FALSE)
@@ -116,9 +116,21 @@
     }
 
     
-    if (!identical(binpath, "")) {
-        tmpfile <- tempfile()
-        tp_temp <- treatPath(tmpfile, check = FALSE)
+    na_vars <- unlist(lapply(data, function(x) {
+        
+        if (inherits(x, "haven_labelled")) {
+            if (is.double(x)) {
+                return(any(is_tagged_na(x)))
+            }
+
+            return(!is.null(attr(x, "na_values")))
+        }
+
+        return(FALSE)
+    }))
+
+    if (any(na_vars)) {
+        
     }
 
     # The current OS might not always be the same with the target OS aboe
@@ -154,7 +166,7 @@
                 if (admisc::possibleNumeric(values)) {
                     if (!admisc::wholeNumeric(admisc::asNumeric(values))) {
                         cat("\n")
-                        stop(sprintf("Stata does not allow labels for non-integer values (e.g. \"%s\").\n\n", colnms[i]), call. = FALSE)
+                        stop(sprintf("Stata does not allow labels for non-integer variables (e.g. \"%s\").\n\n", colnms[i]), call. = FALSE)
                     }
                 }
             }
@@ -186,32 +198,6 @@
             callist$path <- to
             do.call(haven::write_dta, callist)
         # }
-
-
-        if (!identical(binpath, "")) {
-            codeBook$fileDscr$datafile <- data
-
-            tp_Stata <- treatPath(binpath) # just to make sure the executable exists
-            temp <- file.path(tp_temp$completePath, paste(tp_temp$files, "do", sep = "."))
-            # temp <- "/Users/dusadrian/1/tmp.do"
-
-            setupfile(codeBook, file = temp, type = "Stata", script = TRUE, to = to, OS = currentOS)
-
-            if (currentOS == "Darwin") {
-                tc <- admisc::tryCatchWEM(system(paste(binpath, " -e do ", temp, sep = ""), intern = TRUE, ignore.stderr = TRUE))
-                # system("/Applications/Stata/Stata.app/Contents/MacOS/Stata -e do tempscript.do")
-            }
-            else if (currentOS == "Windows") {
-                tc <- admisc::tryCatchWEM(system(paste("\"", binpath, "\"", " /e do ", temp, sep = ""), intern = TRUE, ignore.stderr = TRUE))
-                # system("\"C:/Progra~1/Stata12/Stata.exe\" /e do C:/tempscript.do")
-            }
-            else if (currentOS == "Linux") {
-                tc <- admisc::tryCatchWEM(system(paste("\"", binpath, "\"", " -b do ", temp, " &", sep = ""), intern = TRUE, ignore.stderr = TRUE))
-            }
-
-            suppressMessages(unlink(temp))
-            suppressMessages(unlink(file.path(tp_Stata$completePath, "temp.log")))
-        }
     }
     else if (identical(tp_to$fileext, "RDS")) {
         readr::write_rds(data, to)
@@ -221,25 +207,6 @@
         haven::write_sas(data, to)
 
         #     # perhaps ask https://github.com/rogerjdeangelis
-
-        #     if (!identical(binpath, "")) {
-        #         tp_SAS <- treatPath(binpath) # just to make sure the executable exists
-        #         temp <- file.path(tp_temp$completePath, paste(tp_temp$files, "sas", sep = "."))
-
-        #         setupfile(codeBook, file = temp, type = "SAS", script = TRUE, to = to, OS = currentOS)
-
-        #         # There is no SAS for MacOS
-        #         if (currentOS == "Windows") {
-        #             tc <- admisc::tryCatchWEM(system(paste(binpath, "-sysin", temp), intern = TRUE, ignore.stderr = TRUE))
-        #             # system("C:/path-to\sas.exe -sysin C:/tempscript.sas")
-        #         }
-        #         else if (currentOS == "Linux") {
-        #             tc <- admisc::tryCatchWEM(system(paste(binpath, temp))) # ?
-        #             # /opt/sas/sasb /pathto/tempscript.sas -log /pathtologfile/prog.log -print /pathtooutput/prog.lst
-        #         }
-
-        #         suppressMessages(unlink(temp))
-        #     }
     }
 
     if (is.element("error", names(tc))) {

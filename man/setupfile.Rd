@@ -39,12 +39,6 @@ If \bold{\code{file}} is specified, the argument \bold{\code{type}} is automatic
 determined from the file's extension, otherwise when \bold{\code{type = "all"}}, the
 function produces one setup file for each supported type.
 
-Missing values are expected to be supplied with the information object \bold{\code{obj}},
-otherwise the argument\bold{ \code{missing}} expects either:\cr
-- a vector of missing values (e.g. -1, -2, -3, if such values refer to
-missings throughout the entire dataset), or\cr
-- a vector of labels that should be interpreted as missings
-
 If batch processing multiple files, the function will inspect all files in the
 provided directory, and retain only those with the extension  \code{.R} or \code{.r}
 or DDI versions with the extension \code{.xml} or \code{.XML} (it will
@@ -53,7 +47,7 @@ or if the \code{.xml} files do not contain a DDI structured metadata file).
 
 If the metadata directory contains a subdirectory called \code{"data"} or
 \code{"Data"}, it will match the name of the metadata file with the name of the
-\code{.csv} file (their names have to be *exactly* the same, irrespective of
+\code{.csv} file (their names have to be *exactly* the same, regardless of
 their extension).
 
 The \bold{\code{csv}} argument can provide a data frame object produced by reading the
@@ -91,44 +85,44 @@ ID = list(
 ),
 V1 = list(
     label = "Label for the first variable",
-    values = c(
+    labels = c(
         "No"             =  0, 
         "Yes"            =  1,
         "Not applicable" = -7,
         "Not answered"   = -9),
-    missing = c(-9, -7),
+    na_values = c(-9, -7),
     type = "cat",
     measurement = "nominal"
 ),
 V2 = list(
     label = "Label for the second variable",
-    values = c(
+    labels = c(
         "Very little"    =  1, 
         "Little"         =  2,
         "So, so"         =  3,
         "Much"           =  4,
         "Very much"      =  5,
         "Don't know"     = -8),
-    missing = c(-8),
+    na_values = c(-8),
     type = "cat",
     measurement = "ordinal"
 ),
 V3 = list(
     label = "Label for the third variable",
-    values = c(
+    labels = c(
         "First answer"   = "A", 
         "Second answer"  = "B",
         "Don't know"     = -8),
-    missing = c(-8),
+    na_values = c(-8),
     type = "cat",
     measurement = "nominal"
 ),
 V4 = list(
     label = "Number of children",
-    values = c(
+    labels = c(
         "Don't know"     = -8,
         "Not answered"   = -9),
-    missing = c(-9, -8),
+    na_values = c(-9, -8),
     type = "numcat",
     measurement = "ratio"
 )))

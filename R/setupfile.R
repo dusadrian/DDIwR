@@ -42,41 +42,41 @@ setupfile <- function(codeBook, file = "", type = "all", csv = "", OS = "", ...)
         OS <- Sys.info()[['sysname']]
     }
     
-    `getmissvaRs` <- function(dataDscr) {
+    `variablesMissing` <- function(dataDscr) {
         lapply(dataDscr, function(x) {
-            if (!is.element("values", names(x))) return(FALSE)
+            if (!is.element("labels", names(x))) return(FALSE)
 
-            values <- x[["values"]]
-            ismiss <- is.element(values, x[["missing"]])
+            labels <- x[["labels"]]
+            ismiss <- is.element(labels, x[["na_values"]])
             
-            missrange <- x[["missrange"]]
-            if (length(missrange) > 0) {
-                ismiss <- ismiss | (values >= missrange[1] & values <= missrange[2])
+            if (is.element("na_range", names(x))) {
+                na_range <- x[["na_range"]]
+                ismiss <- ismiss | (labels >= na_range[1] & labels <= na_range[2])
             }
 
             return(ismiss)
         })
     }
 
-    `getmissvaLs` <- function(dataDscr, range = FALSE) {
+    `valuesMissing` <- function(dataDscr, range = FALSE) {
         lapply(dataDscr, function(x) {
-            missing <- NULL
-            if (is.element("missing", names(x))) {
-                missing <- sort(x[["missing"]])
+            na_values <- NULL
+            if (is.element("na_values", names(x))) {
+                na_values <- sort(x[["na_values"]])
             }
-            values <- x[["values"]]
-            missrange <- x[["missrange"]]
-            if (length(missrange) > 0) {
+            labels <- x[["labels"]]
+            na_range <- x[["na_range"]]
+            if (length(na_range) > 0) {
                 if (range) {
-                    if (missrange[1] == -Inf) missrange[1] <- "LO"
-                    if (missrange[2] == Inf) missrange[1] <- "HI"
-                    missing <- c(missing, paste(missrange, collapse = " THRU "))
+                    if (na_range[1] == -Inf) na_range[1] <- "LO"
+                    if (na_range[2] == Inf) na_range[1] <- "HI"
+                    na_values <- c(na_values, paste(na_range, collapse = " THRU "))
                 }
                 else {
-                    missing <- c(missing, values[values >= missrange[1] & values <= missrange[2]])
+                    na_values <- c(na_values, labels[labels >= na_range[1] & labels <= na_range[2]])
                 }
             }
-            return(missing)
+            return(na_values)
         })
     }
     
@@ -313,8 +313,8 @@ setupfile <- function(codeBook, file = "", type = "all", csv = "", OS = "", ...)
     }
     
     anymissing <- any(unlist(lapply(dataDscr, function(x) {
-        if (!is.element("values", names(x))) return(FALSE)
-        return(is.element("missing", names(x)) | is.element("missing", names(x)))
+        if (!is.element("labels", names(x))) return(FALSE)
+        return(is.element("na_values", names(x)))
     })))
     
     
@@ -533,13 +533,13 @@ setupfile <- function(codeBook, file = "", type = "all", csv = "", OS = "", ...)
                 
                 maxvarchar <- max(nofchars)
                 
-                haslabels <- is.element("values", names(dataDscr[[csvnames[i]]]))
+                haslabels <- is.element("labels", names(dataDscr[[csvnames[i]]]))
                 
                 if (haslabels) {
-                    if (is.character(dataDscr[[csvnames[i]]][["values"]])) {
+                    if (is.character(dataDscr[[csvnames[i]]][["labels"]])) {
                         vartypes[i] <- "string"
                         # gofurther <- FALSE
-                        maxvarchar <- max(maxvarchar, nchar(dataDscr[[csvnames[i]]][["values"]]))
+                        maxvarchar <- max(maxvarchar, nchar(dataDscr[[csvnames[i]]][["labels"]]))
                     }
                 }
                 
@@ -552,8 +552,8 @@ setupfile <- function(codeBook, file = "", type = "all", csv = "", OS = "", ...)
                     }
                     else {
                         if (haslabels) {
-                            if (is.numeric(dataDscr[[csvnames[i]]][["values"]])) {
-                                maxvarchar <- max(maxvarchar, nchar(dataDscr[[csvnames[i]]][["values"]]))
+                            if (is.numeric(dataDscr[[csvnames[i]]][["labels"]])) {
+                                maxvarchar <- max(maxvarchar, nchar(dataDscr[[csvnames[i]]][["labels"]]))
                             }
                         }
                     }
@@ -587,8 +587,8 @@ setupfile <- function(codeBook, file = "", type = "all", csv = "", OS = "", ...)
     
     stringvars <- lapply(dataDscr, function(x) {
         charvar <- FALSE
-        if (is.element("values", names(x))) {
-            charvar <- is.character(x[["values"]])
+        if (is.element("labels", names(x))) {
+            charvar <- is.character(x[["labels"]])
         }
         return(charvar)
     })
@@ -641,14 +641,14 @@ setupfile <- function(codeBook, file = "", type = "all", csv = "", OS = "", ...)
     }
     
     
-    haslabels <- unlist(lapply(dataDscr, function(x) is.element("values", names(x))))
-    uniquevals <- unique(lapply(dataDscr[haslabels], function(x) return(x[["values"]])))
+    haslabels <- unlist(lapply(dataDscr, function(x) is.element("labels", names(x))))
+    uniquevals <- unique(lapply(dataDscr[haslabels], function(x) return(x[["labels"]])))
     
     
     uniqueList <- lapply(uniquevals, function(uniques) {
         vars <- sapply(dataDscr[haslabels],
                     function(x) {
-                        identical(x[["values"]], uniques)
+                        identical(x[["labels"]], uniques)
                     })
         return(names(vars[vars]))
     })
@@ -768,14 +768,12 @@ setupfile <- function(codeBook, file = "", type = "all", csv = "", OS = "", ...)
                 stringvars <- stringvars[unlist(stringvars)]
                 for (i in names(stringvars)) {
                     
-                    oldvalues <- dataDscr2[[i]][["values"]]
+                    oldvalues <- dataDscr2[[i]][["labels"]]
                     newvalues <- seq(length(oldvalues))
                     nummiss <- logical(length(newvalues))
-
-                    # missvaLs <- getmissvaRs(dataDscr2[i])[[1]]
                     
-                    if (is.element("missing", names(dataDscr2[[i]]))) {
-                        for (j in dataDscr2[[i]][["missing"]]) {
+                    if (is.element("na_values", names(dataDscr2[[i]]))) {
+                        for (j in dataDscr2[[i]][["na_values"]]) {
                             missval <- admisc::asNumeric(j)
                             if (!is.na(missval)) {
                                 if (!is.element(missval, newvalues)) {
@@ -800,9 +798,9 @@ setupfile <- function(codeBook, file = "", type = "all", csv = "", OS = "", ...)
                         
                         for (j in newvalues[!nummiss]) {
                             
-                            postcommand <- paste(postcommand, dataDscr2[[i]][["values"]][j], "\"", " = ", j, sep = "")
-                            command <- paste(command, dataDscr2[[i]][["values"]][j], "\"", " = ", j, sep = "")
-                            if (j == length(dataDscr2[[i]][["values"]][!nummiss])) {
+                            postcommand <- paste(postcommand, dataDscr2[[i]][["labels"]][j], "\"", " = ", j, sep = "")
+                            command <- paste(command, dataDscr2[[i]][["labels"]][j], "\"", " = ", j, sep = "")
+                            if (j == length(dataDscr2[[i]][["labels"]][!nummiss])) {
                                 command <- paste(command, ") (else = copy) INTO TEMPVRBL .", enter, "EXECUTE .", enter, enter, sep = "")
                             }
                             else {
@@ -824,10 +822,10 @@ setupfile <- function(codeBook, file = "", type = "all", csv = "", OS = "", ...)
                     }
                     
                     names(newvalues) <- names(oldvalues)
-                    dataDscr2[[i]][["values"]] <- newvalues
+                    dataDscr2[[i]][["labels"]] <- newvalues
 
-                    if (is.element("missing", names(dataDscr2[[i]]))) {
-                        dataDscr2[[i]][["missing"]] <- newvalues[match(dataDscr2[[i]][["missing"]], oldvalues)]
+                    if (is.element("na_values", names(dataDscr2[[i]]))) {
+                        dataDscr2[[i]][["na_values"]] <- newvalues[match(dataDscr2[[i]][["na_values"]], oldvalues)]
                     }
                 }
                 cat(enter, enter, sep = "")
@@ -879,11 +877,11 @@ setupfile <- function(codeBook, file = "", type = "all", csv = "", OS = "", ...)
 
                 cat(splitrows(uniqueList[[i]], enter, 80), enter, sep = "")
                 
-                #if (all(is.character(dataDscr2[[n]][["values"]]))) {
-                #    cat(paste(paste("\"", dataDscr2[[n]][["values"]], "\" \"", names(dataDscr2[[n]][["values"]]), "\"", sep = ""), collapse="\n"))
+                #if (all(is.character(dataDscr2[[n]][["labels"]]))) {
+                #    cat(paste(paste("\"", dataDscr2[[n]][["labels"]], "\" \"", names(dataDscr2[[n]][["labels"]]), "\"", sep = ""), collapse="\n"))
                 #}
                 #else {
-                    cat(paste(paste(dataDscr2[[n]][["values"]], " \"", names(dataDscr2[[n]][["values"]]), "\"", sep = ""), collapse=enter))
+                    cat(paste(paste(dataDscr2[[n]][["labels"]], " \"", names(dataDscr2[[n]][["labels"]]), "\"", sep = ""), collapse=enter))
                 #}
                 if (i == length(uniqueList)) {
                     cat(" .", enter, "EXECUTE .", enter, sep = "")
@@ -901,10 +899,10 @@ setupfile <- function(codeBook, file = "", type = "all", csv = "", OS = "", ...)
         
         if (anymissing) {
 
-            missvaRs <- getmissvaRs(dataDscr2)
+            missvaRs <- variablesMissing(dataDscr2)
             withmiss <- unlist(lapply(missvaRs, any))
 
-            missvaLs <- getmissvaLs(dataDscr2[withmiss], range = TRUE)
+            missvaLs <- valuesMissing(dataDscr2[withmiss], range = TRUE)
             nms <- names(missvaLs)
             uniqueMissList <- lapply(unique(missvaLs), function(x) {
                 nms[unlist(lapply(missvaLs, function(y) {
@@ -950,7 +948,7 @@ setupfile <- function(codeBook, file = "", type = "all", csv = "", OS = "", ...)
                             # check if the missing values range doesn't contain any other (non-missing) values
                             checklist <- list()
                             for (mv in uniqueMissList[[i]]) {
-                                allvalues <- dataDscr2[[mv]][["values"]]
+                                allvalues <- dataDscr2[[mv]][["labels"]]
                                 nonmiss <- setdiff(allvalues, missvaLs[[i]])
                                 checklist[[mv]] <- any(is.element(nonmiss, seq(min(missvaLs[[i]]), max(missvaLs[[i]]))))
                             }
@@ -1132,7 +1130,7 @@ setupfile <- function(codeBook, file = "", type = "all", csv = "", OS = "", ...)
             
             for (i in names(stringvars)) {
 
-                oldvalues <- dataDscr2[[i]][["values"]]
+                oldvalues <- dataDscr2[[i]][["labels"]]
 
                 # recode every letter to a number, but keep the potentially numbers
                 # something like "A", "B" and "-9" will be recoded to 1, 2 and -9
@@ -1149,11 +1147,11 @@ setupfile <- function(codeBook, file = "", type = "all", csv = "", OS = "", ...)
                 }
                 cat("drop ", toupper(i), enter, "rename TEMPVAR ", toupper(i), enter, enter, sep = "")
                 
-                dataDscr2[[i]][["values"]] <- newvalues
+                dataDscr2[[i]][["labels"]] <- newvalues
 
                 # just in case the old missing values were not numbers
-                if (is.element("missing", names(dataDscr2[[i]]))) {
-                    dataDscr2[[i]][["missing"]] <- newvalues[match(dataDscr2[[i]][["missing"]], oldvalues)]
+                if (is.element("na_values", names(dataDscr2[[i]]))) {
+                    dataDscr2[[i]][["na_values"]] <- newvalues[match(dataDscr2[[i]][["na_values"]], oldvalues)]
                 }
             }
 
@@ -1184,11 +1182,11 @@ setupfile <- function(codeBook, file = "", type = "all", csv = "", OS = "", ...)
         
         if (anymissing) {
 
-            missvaRs <- getmissvaRs(dataDscr2)
+            missvaRs <- variablesMissing(dataDscr2)
             withmiss <- unlist(lapply(missvaRs, any))
             
             uniquemiss <- sort(unique(unlist(mapply(function(x, y) {
-                x[["values"]][y]
+                x[["labels"]][y]
             }, dataDscr2[withmiss], missvaRs[withmiss], SIMPLIFY = FALSE))))
 
             newmiss <- paste(".", letters[seq(length(uniquemiss))], sep = "")
@@ -1200,8 +1198,8 @@ setupfile <- function(codeBook, file = "", type = "all", csv = "", OS = "", ...)
             dataDscr3 <- dataDscr2
 
             dataDscr3[withmiss] <- mapply(function(x, y) {
-                x[["values"]][y] <- newmiss[match(x[["values"]][y], uniquemiss)]
-                x[["missing"]]   <- newmiss[match(x[["missing"]],   uniquemiss)]
+                x[["labels"]][y] <- newmiss[match(x[["labels"]][y], uniquemiss)]
+                x[["na_values"]]   <- newmiss[match(x[["na_values"]],   uniquemiss)]
                 return(x)
             }, dataDscr2[withmiss], missvaRs[withmiss], SIMPLIFY = FALSE)
 
@@ -1209,7 +1207,7 @@ setupfile <- function(codeBook, file = "", type = "all", csv = "", OS = "", ...)
             
             for (i in names(dataDscr2[withmiss])) {
                 for (j in which(missvaRs[[i]])) {
-                    cat("replace ", i, " = ", dataDscr3[[i]][["values"]][j], " if ", i, " == ", dataDscr2[[i]][["values"]][j], enter, sep = "")
+                    cat("replace ", i, " = ", dataDscr3[[i]][["labels"]][j], " if ", i, " == ", dataDscr2[[i]][["labels"]][j], enter, sep = "")
                 }
             }
 
@@ -1240,7 +1238,7 @@ setupfile <- function(codeBook, file = "", type = "all", csv = "", OS = "", ...)
             headerlabel <- paste("label define LABELS_GROUP_", i, sep = "")
             
             cat(paste("label define LABELS_GROUP_", i, " ", sep = ""),
-                paste(paste(paste(dataDscr2[[n]][["values"]], " \"", names(dataDscr2[[n]][["values"]]), "\"", sep = ""),
+                paste(paste(paste(dataDscr2[[n]][["labels"]], " \"", names(dataDscr2[[n]][["labels"]]), "\"", sep = ""),
                             collapse=" "),
                         enter, sep = ""),
                 sep = "")
@@ -1357,7 +1355,7 @@ setupfile <- function(codeBook, file = "", type = "all", csv = "", OS = "", ...)
             for (i in names(stringvars)) {
                 if (stringvars[[i]]) {
                     
-                    oldvalues <- dataDscr2[[i]][["values"]]
+                    oldvalues <- dataDscr2[[i]][["labels"]]
                     
                     # recode every letter to a number, but keep the potentially numbers
                     # something like "A", "B" and "-9" will be recoded to 1, 2 and -9
@@ -1382,9 +1380,9 @@ setupfile <- function(codeBook, file = "", type = "all", csv = "", OS = "", ...)
                         "RUN;", enter, enter, sep = "")
                     
                     # just in case the old missing values were not numbers
-                    dataDscr2[[i]][["values"]] <- newvalues
-                    if (is.element("missing", names(dataDscr2[[i]]))) {
-                        dataDscr2[[i]][["missing"]] <- newvalues[match(dataDscr2[[i]][["missing"]], oldvalues)]
+                    dataDscr2[[i]][["labels"]] <- newvalues
+                    if (is.element("na_values", names(dataDscr2[[i]]))) {
+                        dataDscr2[[i]][["na_values"]] <- newvalues[match(dataDscr2[[i]][["na_values"]], oldvalues)]
                     }
                 }
             }
@@ -1427,11 +1425,11 @@ setupfile <- function(codeBook, file = "", type = "all", csv = "", OS = "", ...)
 
 
         if (anymissing) {
-            missvaRs <- getmissvaRs(dataDscr2)
+            missvaRs <- variablesMissing(dataDscr2)
             withmiss <- unlist(lapply(missvaRs, any))
             
             uniquemiss <- sort(unique(unlist(mapply(function(x, y) {
-                x[["values"]][y]
+                x[["labels"]][y]
             }, dataDscr2[withmiss], missvaRs[withmiss], SIMPLIFY = FALSE))))
 
             newmiss <- paste(".", letters[seq(length(uniquemiss))], sep = "")
@@ -1439,8 +1437,8 @@ setupfile <- function(codeBook, file = "", type = "all", csv = "", OS = "", ...)
             dataDscr3 <- dataDscr2
 
             dataDscr3[withmiss] <- mapply(function(x, y) {
-                x[["values"]][y] <- newmiss[match(x[["values"]][y], uniquemiss)]
-                x[["missing"]]   <- newmiss[match(x[["missing"]],   uniquemiss)]
+                x[["labels"]][y] <- newmiss[match(x[["labels"]][y], uniquemiss)]
+                x[["na_values"]]   <- newmiss[match(x[["na_values"]],   uniquemiss)]
                 return(x)
             }, dataDscr2[withmiss], missvaRs[withmiss], SIMPLIFY = FALSE)
 
@@ -1556,7 +1554,7 @@ setupfile <- function(codeBook, file = "", type = "all", csv = "", OS = "", ...)
                   
         # if (formats) {
             cat("# --- Read the raw data ---", enter, enter,
-                "# package readr should be installed", enter,
+                "# package tibble should be installed", enter,
                 # "rdatafile <- readr::read_delim(csvpath, delim = \"", ifelse(delim == "\t", "\\t", delim), "\")",
                 "rdatafile <- tibble::as_tibble(read.csv(csvpath))", 
                 enter, enter, "names(rdatafile) <- toupper(names(rdatafile))    # all variable names to upper case",
@@ -1616,5 +1614,3 @@ setupfile <- function(codeBook, file = "", type = "all", csv = "", OS = "", ...)
         
     }
 }
-
-

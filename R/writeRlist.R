@@ -1,12 +1,20 @@
-`writeRlist` <- function(dataDscr, OS = "windows", indent = 4) {
+`writeRlist` <- function(dataDscr, OS = "windows", indent = 4, dirpath = "", filename = "") {
+    
+    on.exit(suppressWarnings(sink()))
     
     if (OS == "") {
         OS <- Sys.info()[['sysname']]
     }
     enter <- getEnter(OS=OS)
+
+    currentdir <- getwd()
+    setwd(dirpath)
+
+    sink(sprintf("%s.R", filename))
+    cat("codeBook <- list(dataDscr = list(", enter)
     
     rs <- function(x) {
-        paste(rep(" ", x*indent), collapse="")
+        paste(rep(" ", x * indent), collapse="")
     }
     
     if (is.element("dataDscr", names(dataDscr))) {
@@ -19,10 +27,11 @@
         
         cat(rs(1), "label = \"", dataDscr[[i]]$label, "\"", sep = "") 
         
-        if (is.element("values", names(dataDscr[[i]]))) {
-            cat(",", enter, rs(1), "values = c(", enter, sep = "")
+        if (is.element("labels", names(dataDscr[[i]]))) {
+            cat(",", enter, rs(1), "labels = c(", enter, sep = "")
             
-            values <- dataDscr[[i]]$values
+            values <- dataDscr[[i]]$labels
+            names(values) <- cleanup(names(values))
             notNum <- any(is.na(suppressWarnings(as.numeric(values))))
             labl <- names(values)
             
@@ -34,19 +43,19 @@
             }
         }
         
-        if (is.element("missing", names(dataDscr[[i]]))) {
-            missng <- dataDscr[[i]]$missing
-            notNum <- any(is.na(suppressWarnings(as.numeric(missng))))
+        if (is.element("na_values", names(dataDscr[[i]]))) {
+            na_values <- dataDscr[[i]]$na_values
+            notNum <- any(is.na(suppressWarnings(as.numeric(na_values))))
             cat(",", enter, sep = "")
-            cat(rs(1), "missing = ", ifelse(length(missng) > 1,
-                paste("c(", paste(missng, collapse = ifelse(notNum, "\", \"", ", ")), ")", sep = ""),
-                ifelse(notNum, paste("\"", missng, "\"", sep = ""), missng)), sep = "")
+            cat(rs(1), "na_values = ", ifelse(length(na_values) > 1,
+                paste("c(", paste(na_values, collapse = ifelse(notNum, "\", \"", ", ")), ")", sep = ""),
+                ifelse(notNum, paste("\"", na_values, "\"", sep = ""), na_values)), sep = "")
         }
         
-        if (is.element("missrange", names(dataDscr[[i]]))) {
-            missrange <- dataDscr[[i]]$missrange
+        if (is.element("na_range", names(dataDscr[[i]]))) {
+            na_range <- dataDscr[[i]]$na_range
             cat(",", enter, sep = "")
-            cat(rs(1), "missrange = c(", paste(missrange, collapse = ", "), ")", sep = "")
+            cat(rs(1), "na_range = c(", paste(na_range, collapse = ", "), ")", sep = "")
         }
         
         if (is.element("type", names(dataDscr[[i]]))) {
@@ -59,12 +68,15 @@
             cat(rs(1), "measurement = \"", dataDscr[[i]]$measurement, "\"", sep = "")
         }
             
-        if (attr) {
-            cat(enter, ")", enter, enter, sep = "") # close the variable specific list
-        }
-        else {
+        # if (attr) {
+        #     cat(enter, ")", enter, enter, sep = "") # close the variable specific list
+        # }
+        # else {
             cat(enter, ifelse(i == length(dataDscr), ")", "),"), enter, sep = "")
-        }
+        # }
     }
-}
 
+    cat("))", enter)
+    sink()
+    setwd(currentdir)
+}

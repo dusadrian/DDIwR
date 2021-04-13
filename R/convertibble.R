@@ -5,19 +5,19 @@
     
     for (i in names(x)) {
         
-        if (is.element("values", names(dataDscr[[i]]))) {
+        if (is.element("labels", names(dataDscr[[i]]))) {
 
             na_values <- NULL
-            if (is.element("missing", names(dataDscr[[i]]))) {
-                na_values <- dataDscr[[i]]$missing
+            if (is.element("na_values", names(dataDscr[[i]]))) {
+                na_values <- dataDscr[[i]]$na_values
             }
 
             na_range <- NULL
-            if (is.element("missrange", names(dataDscr[[i]]))) {
-                na_range <- dataDscr[[i]]$missrange
+            if (is.element("na_range", names(dataDscr[[i]]))) {
+                na_range <- dataDscr[[i]]$na_range
             }
 
-            labels <- dataDscr[[i]]$values
+            labels <- dataDscr[[i]]$labels
             
             var <- unname(unlist(unclass(x[, i])))
 
