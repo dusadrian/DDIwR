@@ -80,10 +80,10 @@
     }
     else {
         if (to == "SPSS") {
-            diffs <- setdiff(unname(torecode), unname(dictionary))
-        }
-        else {
             diffs <- setdiff(names(torecode), names(dictionary))
+        }
+        else if (to == "STATA") {
+            diffs <- setdiff(unname(torecode), unname(dictionary))
         }
 
         if (length(diffs) > 0) {
