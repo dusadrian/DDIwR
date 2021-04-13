@@ -1,3 +1,9 @@
+Version 0.6
+    o updated code to the latest version of package haven
+    o (consequently) removed argument "binpath" from function convert()
+    o new function recodeMissing()
+    o new function collectMetadata()
+    
 Version 0.5
     o fixed bug in convertibble() when a variable is character yet
       the value labels, and the na_values are numeric

@@ -1,6 +1,7 @@
 \name{DDIwR-internal}
 
 \alias{checkType}
+\alias{cleanup}
 \alias{convertibble}
 \alias{getDecimals}
 \alias{getDelimiter}

@@ -30,8 +30,8 @@ the European Union's Seventh Framework Programme (FP7/2007-2013) under grant agr
     \tabular{ll}{
     Package: \tab DDIwR\cr
     Type:    \tab Package\cr
-    Version: \tab 0.5\cr
-    Date:    \tab 2020-04-25\cr
+    Version: \tab 0.5-5\cr
+    Date:    \tab 2021-04-12\cr
     License: \tab GPL (>= 2)\cr
     }
 }
@@ -49,4 +49,3 @@ Adrian Dusa
 }
 
 \keyword{package}
-
