@@ -860,7 +860,7 @@ setupfile <- function(codeBook, file = "", type = "all", csv = "", OS = "", ...)
                 "VARIABLE LABELS", enter, sep = "")
             
             for (i in seq(length(varnames))) {
-                cat(varnames[i], paste(rep(" ", maxchars - nchar(varnames[i])), collapse=""), " \"", dataDscr2[[i]]$label[1], "\"", sep = "")
+                cat(varnames[i], paste(rep(" ", maxchars - nchar(varnames[i])), collapse=""), " \"", dataDscr2[[i]][["label"]][1], "\"", sep = "")
                 if (i == length(varnames)) {
                     cat(" .", enter, "EXECUTE .", sep = "")
                 }
@@ -1226,7 +1226,7 @@ setupfile <- function(codeBook, file = "", type = "all", csv = "", OS = "", ...)
         # cat(maxchars, enter)
         
         for (n in names(dataDscr)) {
-            cat(paste("label variable ", toupper(n), paste(rep(" ", maxchars - nchar(n)), collapse=""), " \"", dataDscr2[[n]]$label[1], "\"", enter, sep = ""))
+            cat(paste("label variable ", toupper(n), paste(rep(" ", maxchars - nchar(n)), collapse=""), " \"", dataDscr2[[n]][["label"]][1], "\"", enter, sep = ""))
         }
         cat(enter, enter, sep = "")
         
@@ -1468,7 +1468,7 @@ setupfile <- function(codeBook, file = "", type = "all", csv = "", OS = "", ...)
                 "    SET ", sasimport, ";", enter, enter, sep = "")
             
             for (i in seq(length(varnames))) {
-                cat("    LABEL ", varnames[i], paste(rep(" ", maxchars - nchar(varnames[i]) + 1), collapse=""), "=", " \"", dataDscr2[[i]]$label[1], "\";", enter, sep = "")
+                cat("    LABEL ", varnames[i], paste(rep(" ", maxchars - nchar(varnames[i]) + 1), collapse=""), "=", " \"", dataDscr2[[i]][["label"]][1], "\";", enter, sep = "")
             }
             
             cat(enter, "RUN;", enter, enter, sep = "")
@@ -1554,9 +1554,8 @@ setupfile <- function(codeBook, file = "", type = "all", csv = "", OS = "", ...)
                   
         # if (formats) {
             cat("# --- Read the raw data ---", enter, enter,
-                "# package tibble should be installed", enter,
                 # "rdatafile <- readr::read_delim(csvpath, delim = \"", ifelse(delim == "\t", "\\t", delim), "\")",
-                "rdatafile <- tibble::as_tibble(read.csv(csvpath))", 
+                "rdatafile <- read.csv(csvpath)", 
                 enter, enter, "names(rdatafile) <- toupper(names(rdatafile))    # all variable names to upper case",
                 enter, enter, enter, sep = "")
         # }
@@ -1582,9 +1581,9 @@ setupfile <- function(codeBook, file = "", type = "all", csv = "", OS = "", ...)
         }
         
         cat("# --- Set the variable metadata attributes --- ", enter,
-            "# package haven should be installed", enter, enter, sep = "")
+            "# packages haven and mixed should be installed", enter, enter, sep = "")
         
-        tibbleMetadata(dataDscr, OS = OS, indent = indent)
+        writeMetadata(dataDscr, OS = OS, indent = indent)
         
         cat(enter, enter, sep = "")
         

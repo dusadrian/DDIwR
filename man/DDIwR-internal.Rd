@@ -2,7 +2,7 @@
 
 \alias{checkType}
 \alias{cleanup}
-\alias{convertibble}
+\alias{make_labelled}
 \alias{getDecimals}
 \alias{getDelimiter}
 \alias{getEnter}
@@ -11,7 +11,7 @@
 \alias{getXML}
 \alias{splitrows}
 \alias{test}
-\alias{tibbleMetadata}
+\alias{writeMetadata}
 \alias{treatPath}
 \alias{writeRlist}
 

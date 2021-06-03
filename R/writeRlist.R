@@ -25,12 +25,12 @@
         
         cat(names(dataDscr)[i], " = list(", enter, sep = "")
         
-        cat(rs(1), "label = \"", dataDscr[[i]]$label, "\"", sep = "") 
+        cat(rs(1), "label = \"", dataDscr[[i]][["label"]], "\"", sep = "") 
         
         if (is.element("labels", names(dataDscr[[i]]))) {
             cat(",", enter, rs(1), "labels = c(", enter, sep = "")
             
-            values <- dataDscr[[i]]$labels
+            values <- dataDscr[[i]][["labels"]]
             names(values) <- cleanup(names(values))
             notNum <- any(is.na(suppressWarnings(as.numeric(values))))
             labl <- names(values)

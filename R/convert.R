@@ -20,7 +20,7 @@
     if (is.character(from)) {
         tp_from <- treatPath(from, type = "*", single = TRUE)
     }
-    else if (all(is.element(c("tbl_df", "data.frame"), class(from)))) {
+    else if (is.element("data.frame", class(from))) {
         Robject <- TRUE
         tp_from <- list(completePath = ".", filenames = as.character(substitute(from)), fileext = "RDS")
     }
@@ -89,7 +89,7 @@
                 data <- data[, -1, drop = FALSE]
             }
             # return(list(data = data, codeBook = codeBook))
-            data <- convertibble(tibble::as_tibble(data), codeBook$dataDscr, spss = identical(tp_to$fileext, "SAV"))
+            data <- make_labelled(data, codeBook$dataDscr, spss = identical(tp_to$fileext, "SAV"))
         }
     }
     else {
@@ -115,23 +115,6 @@
         codeBook <- getMetadata(data)
     }
 
-    
-    na_vars <- unlist(lapply(data, function(x) {
-        
-        if (inherits(x, "haven_labelled")) {
-            if (is.double(x)) {
-                return(any(is_tagged_na(x)))
-            }
-
-            return(!is.null(attr(x, "na_values")))
-        }
-
-        return(FALSE)
-    }))
-
-    if (any(na_vars)) {
-        
-    }
 
     # The current OS might not always be the same with the target OS aboe
     currentOS <- Sys.info()[["sysname"]]
@@ -160,7 +143,7 @@
             return(x)
         })
         
-        haven::write_sav(recodeMissing(data, to = "SPSS", dictionary = dictionary), to)
+        haven::write_sav(recodeMissing(data, to = "SPSS", dictionary = dictionary, tomixed = FALSE), to)
     }
     else if (identical(tp_to$fileext, "DTA")) {
         
@@ -203,7 +186,7 @@
         # }
     }
     else if (identical(tp_to$fileext, "RDS")) {
-        readr::write_rds(data, to)
+        readr::write_rds(mixed::as_mixed(data), to)
     }
     else if (identical(tp_to$fileext, "SAS7BDAT")) {
 

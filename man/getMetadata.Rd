@@ -14,7 +14,7 @@ getMetadata(x, save = FALSE, OS = "Windows", ...)
 }
 
 \arguments{
-  \item{x}{A path to a file, or a tibble object}
+  \item{x}{A path to a file, or a data frame object}
   \item{save}{Boolean, save an .R file in the same directory}
   \item{OS}{The target operating system, for the eol - end of line separator,
             if saving the file}

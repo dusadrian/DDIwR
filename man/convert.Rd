@@ -8,7 +8,7 @@
 This function converts (or transfers) between R, Stata, SPSS, SAS, and DDI XML files.
 Unlike the regular import / export functions from packages \bold{\pkg{haven}} or
 \bold{\pkg{rio}}, this function uses the DDI standard as an exchange platform and
-makes the first steps towards converting the user defined missing values.
+facilitates a consistent conversion of the missing values.
 }
 
 \usage{
@@ -16,7 +16,7 @@ convert(from, to, embed = FALSE, ...)
 }
 
 \arguments{
-  \item{from}{A path to a file, or a tibble object}
+  \item{from}{A path to a file, or a data frame object}
   \item{to}{Character, the name of a software package or a path to a specific file}
   \item{embed}{Boolean, embed the data when generating a DDI XML file}
   \item{...}{Additional parameters passed to exporting functions, see the Details section}
@@ -41,8 +41,7 @@ when writing a Stata file.
 Note that this function creates a target file in the same directory as the source file, which is
 different from importing the source file into R. To import a file, users should refer to the
 specific functions from package \bold{\pkg{haven}}, such as \bold{\code{\link[haven]{read_sav}()}}
-or \bold{\code{\link[haven]{read_dta}()}} etc., and be aware the result object is a
-\bold{\code{tibble}}.
+or \bold{\code{\link[haven]{read_dta}()}} etc.
 
 The current version reads and creates DDI Codebook version 2.5, with future versions to extend
 the functionality for DDI Lifecycle versions 3.x and link to the future package \bold{DDI4R}
@@ -51,13 +50,12 @@ to embed a CSV version of the raw data into the XML file containing the Codebook
 \code{notes} child of the \code{fileDscr} component. This type of Codebook is unique to this
 package and automatically detected when converting to another statistical software.
 
-Future versions will attempt to extend converting the missing values to SAS types, but otherwise
+Future versions will attempt to extend converting the missing values to SAS types. In the meantime,
 users can also use a setup file produced by function \bold{\code{\link{setupfile}()}} and run the
 commands manually.
 
-When importing a file, the R object of choice is a tibble because is the only type of object in R
-that allows specifying multiple (coded) missing values. It also plays nicely with the SPSS types of
-variables, which are the most commonly used in the social sciences.
+When converting from SPSS to R, the result is a data frame containing mixed labelled variables, as
+defined in package \pkg{mixed}.
 }
 
 
@@ -70,7 +68,7 @@ DDI - Data Documentation Initiative, see \href{https://www.ddialliance.org/}{htt
 }
 
 
-\seealso{\code{\link{setupfile}}, \code{\link{getMetadata}}, \code{\link[tibble]{tibble}}, \code{\link[haven]{labelled}}} 
+\seealso{\code{\link{setupfile}}, \code{\link{getMetadata}}, \code{\link[mixed]{mixed_labelled}}, \code{\link[haven]{labelled}}} 
 
 
 \examples{

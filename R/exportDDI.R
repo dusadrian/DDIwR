@@ -131,9 +131,9 @@
         
         cat(s2, "<var ID=\"", uuid[i], "\" name=\"", varnames[i], "\" files=\"", uuid[length(uuid)], "\"", dcml, nature, ">", enter, sep = "")
         
-        if (!is.null(obj[[i]]$label)) {
-            if (!is.na(obj[[i]]$label)) {
-                cat(s3, "<labl>", obj[[i]]$label, "</labl>", enter, sep = "")
+        if (!is.null(obj[[i]][["label"]])) {
+            if (!is.na(obj[[i]][["label"]])) {
+                cat(s3, "<labl>", obj[[i]][["label"]], "</labl>", enter, sep = "")
             }
         }
         
@@ -167,7 +167,7 @@
             cat(s3, "</invalrng>", enter, sep = "")
         }
 
-        lbls <- obj[[i]]$labels
+        lbls <- obj[[i]][["labels"]]
         type <- obj[[i]]$type
         
         if (!is.null(data)) {

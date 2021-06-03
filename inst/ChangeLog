@@ -1,12 +1,14 @@
 Version 0.6
-    o updated code to the latest version of package haven
-    o (consequently) removed argument "binpath" from function convert()
+    o when converting to R objects, variables are automatically coerced
+      to mixed labelled objects (see package mixed for details)
+    o updated code to the latest version of package haven, and
+      (consequently) removed argument "binpath" from function convert()
     o new function recodeMissing()
     o new function collectMetadata()
     
 Version 0.5
-    o fixed bug in convertibble() when a variable is character yet
-      the value labels, and the na_values are numeric
+    o fixed bug in make_labelled() when a variable is character,
+      yet the value labels and the defined missing values are numeric
     o various other improvements to internal functions
     
 Version 0.4
@@ -19,7 +21,7 @@ Version 0.3
     o new function getMetadata(), to extract metadata information from statistical package
       files (such as SPSS or Stata)
     o replaced package XML with package xml2 (thanks to Ruben Arslan for the suggestion)
-    o changed the design of the R setup file, employing tibble as a standard metadata carrier
+    o changed the design of the R setup file, employing labelled variables
     o R package haven is now used to deal with missing values and missing ranges
     o removed formal arguments "delim", "miss", "trymiss", "uniqueid" and "SD" from function
       setupfile()

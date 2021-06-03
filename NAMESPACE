@@ -4,7 +4,6 @@ export(
     cleanup,
     collectMetadata,
     convert,
-    convertibble,
     exportDDI,
     setupfile,
     splitrows,
@@ -16,14 +15,14 @@ export(
     getFormat,
     getMetadata,
     getXML,
+    make_labelled,
     recodeMissing,
-    tibbleMetadata,
+    writeMetadata,
     writeRlist
 )
 import(xml2)
 import(haven)
-import(labelled)
-importFrom("tibble", "as_tibble")
+import(mixed)
 importFrom("readr", "read_csv", "write_csv", "format_csv")
 importFrom("utils", "capture.output", "file_test", "read.csv", "write.csv", "packageVersion")
 importFrom("stats", "median", "sd", "na.omit")

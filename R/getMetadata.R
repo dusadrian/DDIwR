@@ -140,8 +140,8 @@ function(x, save = FALSE, OS = "Windows", ...) {
                         values <- admisc::asNumeric(values)
                     }
                     
-                    codeBook$dataDscr[[i]]$labels <- values
-                    names(codeBook$dataDscr[[i]]$labels) <- labl
+                    codeBook$dataDscr[[i]][["labels"]] <- values
+                    names(codeBook$dataDscr[[i]][["labels"]]) <- labl
                 }
                 
                 
@@ -245,7 +245,7 @@ function(x, save = FALSE, OS = "Windows", ...) {
                 # data <- suppressMessages(readr::read_csv(paste(data, collapse = "\n")))
                 # and instead:
                 data <- read.csv(text = paste(data, collapse = "\n"), as.is = TRUE)
-                data <- convertibble(tibble::as_tibble(data), codeBook$dataDscr, spss = spss)
+                data <- make_labelled(data, codeBook$dataDscr, spss = spss)
                 #----------------
                 embed <- TRUE
             }
