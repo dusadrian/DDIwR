@@ -1581,7 +1581,7 @@ setupfile <- function(codeBook, file = "", type = "all", csv = "", OS = "", ...)
         }
         
         cat("# --- Set the variable metadata attributes --- ", enter,
-            "# packages haven and mixed should be installed", enter, enter, sep = "")
+            "# packages haven and declared should be installed", enter, enter, sep = "")
         
         writeMetadata(dataDscr, OS = OS, indent = indent)
         

@@ -23,20 +23,20 @@
             valstring <- paste(paste("\"", labels, "\"", sep = ""),
                                paste(quote, values, quote, sep = ""),
                                sep = " = ", collapse = ",\n               ")
-            cat("rdatafile[[\"", names(dataDscr)[i], "\"]] <- haven::labelled(rdatafile[[\"", names(dataDscr)[i], "\"]],", enter, sep="")
-            cat(rs(1), "labels = c(", valstring, "),", enter, sep = "")
-            cat(rs(1), "label = \"", dataDscr[[i]][["label"]], "\"", sep = "")
-            cat(enter, ")", enter, sep = "")
+            cat("rdatafile[[\"", names(dataDscr)[i], "\"]] <- declared::declared(rdatafile[[\"", names(dataDscr)[i], "\"]],", enter, sep="")
+            cat(paste0(rs(1), "labels = c(", valstring, "),", enter))
             
             if (is.element("na_values", names(dataDscr[[i]]))) {
-                cat(enter, "mixed::missing_values(rdatafile[[\"", names(dataDscr)[i], "\"]]) <- c(", paste(quote, dataDscr[[i]]$na_values, quote, sep = "", collapse = ", "), ")", sep = "")
+                cat(paste0(rs(1), "na_values = c(", paste(quote, dataDscr[[i]]$na_values, quote, sep = "", collapse = ", "), "),", enter))
             }
-
+            
             if (is.element("na_range", names(dataDscr[[i]]))) {
-                cat(enter, "mixed::missing_range(rdatafile[[\"", names(dataDscr)[i], "\"]]) <- c(", paste(quote, dataDscr[[i]]$na_range, quote, sep = "", collapse = ", "), ")", sep = "")
+                cat(paste0(rs(1), "na_range = c(", paste(quote, dataDscr[[i]]$na_range, quote, sep = "", collapse = ", "), "),", enter))
             }
 
-            cat(enter, enter, enter, sep = "")
+            cat(rs(1), "label = \"", dataDscr[[i]][["label"]], "\"", sep = "")
+            cat(paste0(enter, ")", enter, enter, enter))
+
         }
     }
 }

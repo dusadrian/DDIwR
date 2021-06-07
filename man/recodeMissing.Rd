@@ -29,7 +29,7 @@ starting with "a".
 If the dataset contains mixed variables with SPSS and Stata style missing values,
 unless otherwise specified in a dictionary it uses other codes than the existing ones.
 
-For the SPSS type of missing values, the resulting variables are coerced to a mixed
+For the SPSS type of missing values, the resulting variables are coerced to a declared
 labelled format.
 }
 
@@ -39,11 +39,11 @@ A data frame with all missing values recoded.
 
 
 \examples{
-x <- data.frame(A = mixed_labelled(c(1:5, -9),
+x <- data.frame(A = declared(c(1:5, -9),
                               labels = c(Good = 1, Bad = 5, NR = -9),
                               na_values = -9),
                 B = labelled(c(1:5, tagged_na('a')), labels = c(DK = tagged_na('a'))),
-                C = mixed_labelled(c(1, -8, 3:5, -9),
+                C = declared(c(1, -8, 3:5, -9),
                               labels = c(DK = -8, NR = -9),
                               na_values = c(-8, -9)))
 #        A     B      C

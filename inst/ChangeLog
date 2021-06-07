@@ -1,6 +1,6 @@
 Version 0.6
     o when converting to R objects, variables are automatically coerced
-      to mixed labelled objects (see package mixed for details)
+      to declared labelled objects (see package declared for details)
     o updated code to the latest version of package haven, and
       (consequently) removed argument "binpath" from function convert()
     o new function recodeMissing()

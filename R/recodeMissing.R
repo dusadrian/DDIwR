@@ -1,11 +1,11 @@
 `recodeMissing` <- function(dataset, to = c("SPSS", "Stata"), dictionary = NULL, ...) {
     to <- toupper(match.arg(to))
     
-    to_mixed <- TRUE
+    to_declared <- TRUE
     
     oa <- list(...)
-    if (is.element("to_mixed", names(oa))) {
-        to_mixed <- oa$to_mixed
+    if (is.element("to_declared", names(oa))) {
+        to_declared <- oa$to_declared
     }
     
     if (is.data.frame(dataset)) {
@@ -31,7 +31,7 @@
 
     dataDscr <- collectMetadata(dataset)
     
-    spss <- unlist(lapply(dataset, function(x) inherits(x, "haven_labelled_spss") | inherits(x, "mixed_labelled")))
+    spss <- unlist(lapply(dataset, function(x) inherits(x, "haven_labelled_spss") | inherits(x, "declared")))
     
     # build a dictionary based on existing metadata
 
@@ -44,7 +44,7 @@
         attrx <- attributes(x)
         attributes(x) <- NULL
 
-        if (is.element("mixed_labelled", attrx$class) & to == "STATA") {
+        if (is.element("declared", attrx$class) & to == "STATA") {
             na_index <- attrx$na_index
             
             if (!is.null(na_index)) {
@@ -175,16 +175,16 @@
                 }
                 
                 if (length(values) > 3) {
-                    if (to_mixed) {
-                        dataset[[i]] <- mixed::mixed_labelled(x, labels = labels, label = metadata[["label"]], na_range = range(sort(values_i)))
+                    if (to_declared) {
+                        dataset[[i]] <- declared::declared(x, labels = labels, label = metadata[["label"]], na_range = range(sort(values_i)))
                     }
                     else {
                         dataset[[i]] <- haven::labelled_spss(x, labels = labels, label = metadata[["label"]], na_range = range(sort(values_i)))
                     }
                 }
                 else {
-                    if (to_mixed) {
-                        dataset[[i]] <- mixed::mixed_labelled(x, labels = labels, label = metadata[["label"]], na_values = values_i)
+                    if (to_declared) {
+                        dataset[[i]] <- declared::declared(x, labels = labels, label = metadata[["label"]], na_values = values_i)
                     }
                     else {
                         dataset[[i]] <- haven::labelled_spss(x, labels = labels, label = metadata[["label"]], na_values = values_i)

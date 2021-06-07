@@ -22,7 +22,7 @@ export(
 )
 import(xml2)
 import(haven)
-import(mixed)
+import(declared)
 importFrom("readr", "read_csv", "write_csv", "format_csv")
 importFrom("utils", "capture.output", "file_test", "read.csv", "write.csv", "packageVersion")
 importFrom("stats", "median", "sd", "na.omit")

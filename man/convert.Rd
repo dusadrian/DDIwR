@@ -54,8 +54,8 @@ Future versions will attempt to extend converting the missing values to SAS type
 users can also use a setup file produced by function \bold{\code{\link{setupfile}()}} and run the
 commands manually.
 
-When converting from SPSS to R, the result is a data frame containing mixed labelled variables, as
-defined in package \pkg{mixed}.
+When converting from SPSS to R, the result is a data frame containing declared labelled variables, as
+defined in package \pkg{declared}.
 }
 
 
@@ -68,7 +68,7 @@ DDI - Data Documentation Initiative, see \href{https://www.ddialliance.org/}{htt
 }
 
 
-\seealso{\code{\link{setupfile}}, \code{\link{getMetadata}}, \code{\link[mixed]{mixed_labelled}}, \code{\link[haven]{labelled}}} 
+\seealso{\code{\link{setupfile}}, \code{\link{getMetadata}}, \code{\link[declared]{declared}}, \code{\link[haven]{labelled}}} 
 
 
 \examples{

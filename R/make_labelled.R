@@ -19,7 +19,7 @@
             v <- admisc::asNumeric(v)
         }
         
-        x[[i]] <- mixed::mixed_labelled(v, labels, na_values, na_range, label)
+        x[[i]] <- declared::declared(v, labels, na_values, na_range, label)
 
     }
 

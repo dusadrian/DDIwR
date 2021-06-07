@@ -143,7 +143,7 @@
             return(x)
         })
         
-        haven::write_sav(recodeMissing(data, to = "SPSS", dictionary = dictionary, tomixed = FALSE), to)
+        haven::write_sav(recodeMissing(data, to = "SPSS", dictionary = dictionary, to_declared = FALSE), to)
     }
     else if (identical(tp_to$fileext, "DTA")) {
         
@@ -186,7 +186,7 @@
         # }
     }
     else if (identical(tp_to$fileext, "RDS")) {
-        readr::write_rds(mixed::as_mixed(data), to)
+        readr::write_rds(declared::as_declared(data), to)
     }
     else if (identical(tp_to$fileext, "SAS7BDAT")) {
 
