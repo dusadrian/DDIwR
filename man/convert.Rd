@@ -12,7 +12,7 @@ facilitates a consistent conversion of the missing values.
 }
 
 \usage{
-convert(from, to, embed = FALSE, ...)
+convert(from, to = NULL, embed = FALSE, ...)
 }
 
 \arguments{

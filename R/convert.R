@@ -1,13 +1,13 @@
-`convert` <- function(from, to, embed = FALSE, ...) {
+`convert` <- function(from, to = NULL, embed = FALSE, ...) {
     if (missing(from)) {
         cat("\n")
         stop("Argument 'from' is missing.\n\n", call. = FALSE)
     }
     
-    if (missing(to)) {
-        cat("\n")
-        stop(sprintf("Argument %s is missing.\n\n", dQuote("to")), call. = FALSE)
-    }
+    # if (missing(to)) {
+    #     cat("\n")
+    #     stop(sprintf("Argument %s is missing.\n\n", dQuote("to")), call. = FALSE)
+    # }
 
     other.args <- list(...)
 
@@ -29,37 +29,41 @@
         stop("Unsuitable input.\n\n", call. = FALSE)
     }
 
-    if (identical(toupper(to), "DDI") | identical(toupper(to), "XML")) {
-        to <- file.path(tp_from$completePath, paste(tp_from$filenames, "xml", sep = "."))
-    }
-    else if (identical(toupper(to), "SPSS")) {
-        to <- file.path(tp_from$completePath, paste(tp_from$filenames, "sav", sep = "."))
-    }
-    else if (identical(toupper(to), "STATA")) {
-        to <- file.path(tp_from$completePath, paste(tp_from$filenames, "dta", sep = "."))
-    }
-    else if (identical(toupper(to), "R")) {
-        to <- file.path(tp_from$completePath, paste(tp_from$filenames, "rds", sep = "."))
-    }
-    else if (identical(toupper(to), "SAS")) {
-        to <- file.path(tp_from$completePath, paste(tp_from$filenames, "sas7bdat", sep = "."))
-    }
-    else if (!grepl("[.]", to)) {
-        cat("\n")
-        stop(sprintf("Unknown destination software.\n\n", dQuote("to")), call. = FALSE)
+    if (!is.null(to)) {
+        
+        if (identical(toupper(to), "DDI") | identical(toupper(to), "XML")) {
+            to <- file.path(tp_from$completePath, paste(tp_from$filenames, "xml", sep = "."))
+        }
+        else if (identical(toupper(to), "SPSS")) {
+            to <- file.path(tp_from$completePath, paste(tp_from$filenames, "sav", sep = "."))
+        }
+        else if (identical(toupper(to), "STATA")) {
+            to <- file.path(tp_from$completePath, paste(tp_from$filenames, "dta", sep = "."))
+        }
+        else if (identical(toupper(to), "R")) {
+            to <- file.path(tp_from$completePath, paste(tp_from$filenames, "rds", sep = "."))
+        }
+        else if (identical(toupper(to), "SAS")) {
+            to <- file.path(tp_from$completePath, paste(tp_from$filenames, "sas7bdat", sep = "."))
+        }
+        else if (!grepl("[.]", to)) {
+            cat("\n")
+            stop(sprintf("Unknown destination software.\n\n", dQuote("to")), call. = FALSE)
+        }
+
+        tp_to <- treatPath(to, single = TRUE, check = FALSE)
+        known_extensions <- c("RDS", "SAV", "DTA", "XML", "SAS7BDAT") # 
+
+        if (is.na(tp_to$fileext)) {
+            cat("\n")
+            stop(sprintf("Cannot determine the destination software without an extension.\n\n", dQuote("to")), call. = FALSE)
+        }
+        else if (!is.element(tp_to$fileext, known_extensions)) {
+            cat("\n")
+            stop(sprintf("Unknown destination software.\n\n", dQuote("to")), call. = FALSE)
+        }
     }
 
-    tp_to <- treatPath(to, single = TRUE, check = FALSE)
-    known_extensions <- c("RDS", "SAV", "DTA", "XML", "SAS7BDAT") # 
-
-    if (is.na(tp_to$fileext)) {
-        cat("\n")
-        stop(sprintf("Cannot determine the destination software without an extension.\n\n", dQuote("to")), call. = FALSE)
-    }
-    else if (!is.element(tp_to$fileext, known_extensions)) {
-        cat("\n")
-        stop(sprintf("Unknown destination software.\n\n", dQuote("to")), call. = FALSE)
-    }
     
     if (tp_from$fileext == "XML") {
         codeBook <- getMetadata(from, spss = identical(tp_to$fileext, "SAV"))
@@ -125,6 +129,10 @@
         dictionary <- other.args[["dictionary"]]
     }
 
+    if (is.null(to)) {
+        tp_to <- list(fileext = "RDS")
+    }
+
     if (tp_to$fileext == "XML") {
         codeBook$fileDscr$datafile <- data
         if (!embed) {
@@ -186,7 +194,11 @@
         # }
     }
     else if (identical(tp_to$fileext, "RDS")) {
-        readr::write_rds(declared::as_declared(data), to)
+        data <- declared::as_declared(data)
+        if (!is.null(to)) {
+            readr::write_rds(data, to)
+        }
+        invisible(return(data))
     }
     else if (identical(tp_to$fileext, "SAS7BDAT")) {
 

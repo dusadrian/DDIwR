@@ -1,4 +1,5 @@
 Version 0.6
+    o function convert() now invisibly returns the imported data
     o when converting to R objects, variables are automatically coerced
       to declared labelled objects (see package declared for details)
     o updated code to the latest version of package haven, and
