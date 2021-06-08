@@ -150,7 +150,7 @@
             attr(x, "format.spss") <- getFormat(x)
             return(x)
         })
-        
+
         haven::write_sav(recodeMissing(data, to = "SPSS", dictionary = dictionary, to_declared = FALSE), to)
     }
     else if (identical(tp_to$fileext, "DTA")) {
@@ -198,7 +198,7 @@
         if (!is.null(to)) {
             readr::write_rds(data, to)
         }
-        invisible(return(data))
+        return(invisible(data))
     }
     else if (identical(tp_to$fileext, "SAS7BDAT")) {
 
