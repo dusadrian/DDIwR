@@ -8,6 +8,7 @@ Authors@R: person(given = "Adrian", family = "Dusa",
                   comment = c(ORCID = "0000-0002-3525-9253"))
 Depends: R (>= 3.5.0)
 Imports: admisc (>= 0.12), readr, declared, haven, tools, xml2
+Remotes: dusadrian/declared
 Description: Useful functions for various DDI (Data Documentation Initiative) related inputs and outputs.
 License: GPL (>= 2)
 URL: https://github.com/dusadrian/DDIwR
