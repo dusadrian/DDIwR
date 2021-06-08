@@ -3,9 +3,10 @@
     
     to_declared <- TRUE
     
-    oa <- list(...)
-    if (is.element("to_declared", names(oa))) {
-        to_declared <- oa$to_declared
+    dots <- list(...)
+    
+    if (is.element("to_declared", names(dots))) {
+        to_declared <- dots$to_declared
     }
     
     if (is.data.frame(dataset)) {
@@ -31,7 +32,7 @@
 
     dataDscr <- collectMetadata(dataset)
     
-    spss <- unlist(lapply(dataset, function(x) inherits(x, "haven_labelled_spss") | inherits(x, "declared")))
+    spss <- unlist(lapply(dataset, function(x) (inherits(x, "haven_labelled_spss") | inherits(x, "declared"))))
     
     # build a dictionary based on existing metadata
 
@@ -92,54 +93,65 @@
     if (sum(!spss)> 0) {
         missingStata <- sort(unique(unname(unlist(allMissing[!spss]))))
     }
-
+    
     if (to == "SPSS") {
-        if (sum(!spss) == 0) {
-            message("Variables are already defined as SPSS")
-            return(dataset)
+        if (is.null(missingStata)) {
+            torecode <- NULL
         }
-
-        if (sum(spss) == 0) { # all variables are defined in Stata style
-            torecode <- -1 * seq(length(missingStata))
-            names(torecode) <- missingStata
-        }
-        else { # mix of Stata and SPSS variables
-            torecode <- setdiff(seq(-1, -100), missingSPSS)[seq(length(missingStata))]
-            names(torecode) <- missingStata
+        else {
+            if (sum(!spss) == 0) {
+                message("Variables are already defined as SPSS")
+                return(dataset)
+            }
+            
+            if (sum(spss) == 0) { # all variables are defined in Stata style
+                torecode <- -1 * seq(length(missingStata))
+                names(torecode) <- missingStata
+            }
+            else { # mix of Stata and SPSS variables
+                return(missingStata)
+                torecode <- setdiff(seq(-1, -100), missingSPSS)[seq(length(missingStata))]
+                names(torecode) <- missingStata
+            }
         }
     }
     else if (to == "STATA") {
-        
-        if (sum(spss) == 0) { # No SPSS variables
-            message("Variables are already defined as Stata")
-            return(dataset)
-        }
 
-        torecode <- missingSPSS
-        torecode[torecode < 0] <- rev(torecode[torecode < 0])
-
-        if (sum(!spss) == 0) { # all variables are defined in SPSS style
-            if (length(torecode) > length(letters)) {
-                cat("\n")
-                stop(sprintf("Too many unique missing values (%s), Stata allows only 26.\n\n", length(torecode)), call. = FALSE)
-            }
-            names(torecode) <- letters[seq(length(missingSPSS))]
+        if (is.null(missingSPSS)) {
+            torecode <- NULL
         }
-        else { # mix of Stata and SPSS variables
-            available <- setdiff(letters, missingStata)
-            if (length(torecode) > length(available)) {
-                cat("\n")
-                stop(sprintf("Too many unique missing values (%s), with only %s Stata slots available.\n\n",
-                            length(torecode), length(available)), call. = FALSE)
+        else {
+            if (sum(spss) == 0) { # No SPSS variables
+                message("Variables are already defined as Stata")
+                return(dataset)
             }
-            names(torecode) <- setdiff(letters, missingStata)[seq(length(torecode))]
+
+            torecode <- missingSPSS
+            torecode[torecode < 0] <- rev(torecode[torecode < 0])
+
+            if (sum(!spss) == 0) { # all variables are defined in SPSS style
+                if (length(torecode) > length(letters)) {
+                    cat("\n")
+                    stop(sprintf("Too many unique missing values (%s), Stata allows only 26.\n\n", length(torecode)), call. = FALSE)
+                }
+                names(torecode) <- letters[seq(length(missingSPSS))]
+            }
+            else { # mix of Stata and SPSS variables
+                available <- setdiff(letters, missingStata)
+                if (length(torecode) > length(available)) {
+                    cat("\n")
+                    stop(sprintf("Too many unique missing values (%s), with only %s Stata slots available.\n\n",
+                                length(torecode), length(available)), call. = FALSE)
+                }
+                names(torecode) <- setdiff(letters, missingStata)[seq(length(torecode))]
+            }
         }
     }
 
     if (is.null(dictionary)) {
         dictionary <- torecode
     }
-    else {
+    else if (!is.null(torecode)) {
         if (to == "SPSS") {
             diffs <- setdiff(names(torecode), names(dictionary))
         }
@@ -153,45 +165,52 @@
         }
     }
     
+    values <- NULL
     # now recode the respective variables according to the dictionary
-    nms <- names(dictionary)
-    values <- unname(dictionary)
+    if (!is.null(dictionary)) {
+        nms <- names(dictionary)
+        values <- unname(dictionary)
+    }
     
     for (i in seq(ncol(dataset))) {
         x <- unclass(dataset[[i]])
         metadata <- dataDscr[[i]]
+        values_i <- metadata[["na_values"]]
         labels <- metadata[["labels"]]
 
         
         if (to == "SPSS") {
-            if (!spss[i]) {
-
-                values_i <- values[is.element(nms, metadata$na_values)]
+            if (!spss[i] & !is.null(dictionary)) {
+                values_i <- values[is.element(nms, metadata[["na_values"]])]
                 for (d in seq(length(values_i))) {
-                    if (nchar(metadata$na_values[d]) == 1) {
-                        x[haven::is_tagged_na(x, metadata$na_values[d])] <- values_i[d]
-                        labels[haven::is_tagged_na(labels, metadata$na_values[d])] <- values_i[d]
-                    }
-                }
-                
-                if (length(values) > 3) {
-                    if (to_declared) {
-                        dataset[[i]] <- declared::declared(x, labels = labels, label = metadata[["label"]], na_range = range(sort(values_i)))
-                    }
-                    else {
-                        dataset[[i]] <- haven::labelled_spss(x, labels = labels, label = metadata[["label"]], na_range = range(sort(values_i)))
-                    }
-                }
-                else {
-                    if (to_declared) {
-                        dataset[[i]] <- declared::declared(x, labels = labels, label = metadata[["label"]], na_values = values_i)
-                    }
-                    else {
-                        dataset[[i]] <- haven::labelled_spss(x, labels = labels, label = metadata[["label"]], na_values = values_i)
+                    if (nchar(metadata[["na_values"]][d]) == 1) {
+                        x[haven::is_tagged_na(x, metadata[["na_values"]][d])] <- values_i[d]
+                        labels[haven::is_tagged_na(labels, metadata[["na_values"]][d])] <- values_i[d]
                     }
                 }
             }
             
+            if (!admisc::possibleNumeric(labels)) {
+                x <- as.character(x)
+                values_i <- as.character(values_i)
+            }
+
+            if (length(values) > 3) {
+                if (to_declared) {
+                    dataset[[i]] <- declared::declared(x, labels = labels, label = metadata[["label"]], na_range = range(sort(values_i)))
+                }
+                else {
+                    dataset[[i]] <- haven::labelled_spss(x, labels = labels, label = metadata[["label"]], na_range = range(sort(values_i)))
+                }
+            }
+            else {
+                if (to_declared) {
+                    dataset[[i]] <- declared::declared(x, labels = labels, label = metadata[["label"]], na_values = values_i)
+                }
+                else {
+                    dataset[[i]] <- haven::labelled_spss(x, labels = labels, label = metadata[["label"]], na_values = values_i)
+                }
+            }
         }
         else if (to == "STATA") {
             
