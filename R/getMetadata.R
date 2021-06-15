@@ -5,6 +5,7 @@ function(x, save = FALSE, OS = "Windows", ...) {
     # http://www.ddialliance.org/Specification/DDI-Codebook/2.5/XMLSchema/field_level_documentation.html
     
     
+    dots <- list(...)
     error <- TRUE
     
     if (is.data.frame(x)) {
@@ -24,23 +25,25 @@ function(x, save = FALSE, OS = "Windows", ...) {
     }
 
     if (error) {
+        if (is.element("error_null", names(dots))) {
+            return(NULL)
+        }
         cat("\n")
         stop("The input does not seem to contain any metadata.\n\n", call. = FALSE)
     }
 
 
-    other.args <- list(...)
     
     enter <- getEnter(OS)
     
     fromsetupfile <- FALSE
-    if (is.element("fromsetupfile", names(other.args))) {
-        fromsetupfile <- other.args$fromsetupfile
+    if (is.element("fromsetupfile", names(dots))) {
+        fromsetupfile <- dots$fromsetupfile
     }
     
     embed <- FALSE
-    if (is.element("embed", names(other.args))) {
-        embed <- other.args$embed
+    if (is.element("embed", names(dots))) {
+        embed <- dots$embed
     }
     
     tp <- DDIwR::treatPath(x, type = "*")
@@ -224,8 +227,8 @@ function(x, save = FALSE, OS = "Windows", ...) {
         if (save) {
             
             indent <- 4
-            if (is.element("indent", names(other.args))) {
-                indent <- other.args$indent
+            if (is.element("indent", names(dots))) {
+                indent <- dots$indent
             }
             
             writeRlist(codeBook$dataDscr, OS = OS, indent = indent, dirpath = tp$completePath, filename = tp$filenames[ff])
@@ -237,7 +240,7 @@ function(x, save = FALSE, OS = "Windows", ...) {
     if (singlefile) {
         if (!is.na(notes)) {
             if (grepl("# start data #", notes)) {
-                spss <- ifelse(is.element("spss", names(other.args)), other.args$spss, TRUE)
+                spss <- ifelse(is.element("spss", names(dots)), dots$spss, TRUE)
                 notes <- unlist(strsplit(notes, split = "\\n"))
                 data <- notes[seq(which(grepl("# start data #", notes)) + 1, which(grepl("# end data #", notes)) - 1)]
                 #----------------

@@ -116,7 +116,7 @@
             data <- from
         }
 
-        codeBook <- getMetadata(data)
+        codeBook <- getMetadata(data, error_null = TRUE)
     }
 
 
@@ -134,6 +134,10 @@
     }
 
     if (tp_to$fileext == "XML") {
+        if (is.null(codeBook)) {
+            cat("\n")
+            stop("The input does not seem to contain any metadata.\n\n", call. = FALSE)
+        }
         codeBook$fileDscr$datafile <- data
         if (!embed) {
             write.csv(as.data.frame(data), file.path(tp_from$completePath, paste(tp_to$filenames[1], "csv", sep = ".")), row.names = FALSE)
@@ -144,7 +148,6 @@
         exportDDI(codeBook, to, embed = embed, OS = targetOS)
     }
     else if (identical(tp_to$fileext, "SAV")) {
-
         data[] <- lapply(data, function(x) {
             if (any(names(attributes(x)) == "format.spss")) return(x)
             attr(x, "format.spss") <- getFormat(x)
@@ -154,7 +157,11 @@
         haven::write_sav(recodeMissing(data, to = "SPSS", dictionary = dictionary, to_declared = FALSE), to)
     }
     else if (identical(tp_to$fileext, "DTA")) {
-        
+        if (is.null(codeBook)) {
+            cat("\n")
+            stop("The input does not seem to contain any metadata.\n\n", call. = FALSE)
+        }
+
         colnms <- colnames(data)
         for (i in seq(ncol(data))) {
             if (!is.null(values <- codeBook$dataDscr[[colnms[i]]]$values)) {
@@ -194,11 +201,9 @@
         # }
     }
     else if (identical(tp_to$fileext, "RDS")) {
-        data <- declared::as_declared(data)
         if (!is.null(to)) {
-            readr::write_rds(data, to)
+            readr::write_rds(declared::as_declared(data), to)
         }
-        return(invisible(data))
     }
     else if (identical(tp_to$fileext, "SAS7BDAT")) {
 
@@ -211,6 +216,6 @@
         cat("\n")
         stop("The file was produced, but there was an error with the binary executable.\n\n", call. = FALSE)
     }
-
-    return(invisible(NULL))
+    
+    return(invisible(as.data.frame(declared::as_declared(data))))
 }
