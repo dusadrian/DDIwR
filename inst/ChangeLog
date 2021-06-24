@@ -1,9 +1,11 @@
 Version 0.6
     o function convert() now invisibly returns the imported data
+    o function convert() now accepts Excel files for both input and output
+    o improved function exportDDI(), now correctly using special characters
     o when converting to R objects, variables are automatically coerced
       to declared labelled objects (see package declared for details)
-    o updated code to the latest version of package haven, and
-      (consequently) removed argument "binpath" from function convert()
+    o updated code to the latest version of package haven, and (consequently)
+      removed argument "binpath" from function convert()
     o new function recodeMissing()
     o new function collectMetadata()
     
@@ -19,13 +21,13 @@ Version 0.4
 Version 0.3
     o new function convert(), to convert from one statistical package to another
     o new function exportDDI(), for DDI codebook version 2.5
-    o new function getMetadata(), to extract metadata information from statistical package
-      files (such as SPSS or Stata)
+    o new function getMetadata(), to extract metadata information from statistical
+      package files (such as SPSS or Stata)
     o replaced package XML with package xml2 (thanks to Ruben Arslan for the suggestion)
     o changed the design of the R setup file, employing labelled variables
     o R package haven is now used to deal with missing values and missing ranges
-    o removed formal arguments "delim", "miss", "trymiss", "uniqueid" and "SD" from function
-      setupfile()
+    o removed formal arguments "delim", "miss", "trymiss", "uniqueid" and "SD" from
+      function setupfile()
     o improved code for the SAS setup files
     o various bug fixes in function setupfile()
     

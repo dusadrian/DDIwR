@@ -5,11 +5,7 @@
         xml <- readLines(path)
         
         nms <- grepl("xmlns", xml[which(grepl("codeBook", xml))[1]])
-        error <- "Unknown error reading the XML file"
-        
-        if (!nms & any(grepl("&", xml))) {
-            error <- "Invalid XML file: \"&\" character(s) present without a namespace"
-        }
+        error <- "Unable to read the XML file"
         
         cat("\n")
         stop(error, call. = FALSE)

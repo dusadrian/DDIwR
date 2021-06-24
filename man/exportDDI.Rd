@@ -88,7 +88,7 @@ An XML file containing a DDI version 2.5 metadata.
 }
 
 \seealso{
-\url{http://www.ddialliance.org/Specification/DDI-Codebook/2.5/XMLSchema/field_level_documentation.html}
+\url{https://ddialliance.org/Specification/DDI-Codebook/2.5/XMLSchema/field_level_documentation.html}
 }
 
 

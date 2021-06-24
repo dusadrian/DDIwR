@@ -9,12 +9,13 @@ Collect metadata from a data frame containing labelled variables.
 }
 
 \usage{
-collectMetadata(dataset)
+collectMetadata(dataset, ...)
 }
 
 
 \arguments{
 \item{dataset}{A data frame}
+\item{...}{Other internal arguments}
 }
 
 \value{

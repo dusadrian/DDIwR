@@ -1,4 +1,11 @@
-`collectMetadata` <- function(dataset) {
+`collectMetadata` <- function(dataset, ...) {
+    dots <- list(...)
+
+    error_null <- TRUE
+    if (is.element("error_null", names(dots))) {
+        error_null <- dots$error_null
+    }
+
     if (is.data.frame(dataset)) {
         error <- TRUE
         i <- 1
@@ -10,7 +17,7 @@
             i <- i + 1
         }
 
-        if (error) {
+        if (error && error_null) {
             cat("\n")
             stop("The input does not seem to contain any metadata.\n\n", call. = FALSE)
         }
@@ -46,7 +53,7 @@
         na_values <- attr(x, "na_values", exact = TRUE)
         if (is.null(na_values)) {
             if (is.double(x)) {
-                natags <- unique(haven::na_tag(x))
+                natags <- unique(haven::na_tag(c(unclass(x), unclass(labels))))
                 natags <- natags[!is.na(natags)]
                 if (length(natags) > 0) {
                     result$na_values <- sort(natags)

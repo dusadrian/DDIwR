@@ -1,6 +1,6 @@
 `exportDDI` <- function(codebook, file = "", embed = TRUE, OS = "", indent = 4) {
     
-    # http://www.ddialliance.org/Specification/DDI-Codebook/2.5/XMLSchema/field_level_documentation.html
+    # https://ddialliance.org/Specification/DDI-Codebook/2.5/XMLSchema/field_level_documentation.html
 
     `generateUUID` <- function(x) {
         toreturn <- rep(NA, x)
@@ -16,6 +16,13 @@
     
     `repeatSpace` <- function(times) {
         paste(rep(" ", times*indent), collapse="")
+    }
+
+    `replaceChars` <- function(x) {
+        x <- gsub("&", "&amp;", x)
+        x <- gsub("<", "&lt;", x)
+        x <- gsub(">", "&gt;", x)
+        return(x)
     }
 
     s0 <- repeatSpace(0)
@@ -46,8 +53,8 @@
     
     if (!identical(file, "")) {
         sink(file)
+        on.exit(sink())
     }
-
     prodDate <- as.character(Sys.time())
     version <- as.character(packageVersion("DDIwR"))
 
@@ -57,7 +64,7 @@
         "version=\"2.5\"", enter,
         "xmlns=\"ddi:codebook:2_5\"", enter,
         "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"", enter, 
-        "xsi:schemaLocation=\"http://www.ddialliance.org/Specification/DDI-Codebook/2.5/XMLSchema/codebook.xsd\">", enter, sep = "")
+        "xsi:schemaLocation=\"https://ddialliance.org/Specification/DDI-Codebook/2.5/XMLSchema/codebook.xsd\">", enter, sep = "")
     cat(s1, "<docDscr>", enter, sep = "")
     cat(s2, "<citation>", enter, sep = "")
     cat(s3, "<titlStmt>", enter, sep = "")
@@ -105,8 +112,8 @@
             cat(s2, "</notes>", enter, sep = "")
         }
 
-        pN <- unlist(lapply(data[names(obj)], function(x) admisc::possibleNumeric(x)))
-        aN <- lapply(data[, names(pN)[pN]], function(x) admisc::asNumeric(x))
+        pN <- unlist(lapply(data[names(obj)], function(x) admisc::possibleNumeric(unclass(x))))
+        aN <- lapply(data[, names(pN)[pN]], function(x) admisc::asNumeric(unclass(x)))
 
     }
 
@@ -133,7 +140,7 @@
         
         if (!is.null(obj[[i]][["label"]])) {
             if (!is.na(obj[[i]][["label"]])) {
-                cat(s3, "<labl>", obj[[i]][["label"]], "</labl>", enter, sep = "")
+                cat(s3, "<labl>", replaceChars(obj[[i]][["label"]]), "</labl>", enter, sep = "")
             }
         }
         
@@ -207,8 +214,8 @@
                 }
 
                 cat(s3, "<catgry", ifelse(ismiss, " missing=\"Y\"", ""), ">", enter, sep = "")
-                cat(s4, "<catValu>",  lbls[v],  "</catValu>", enter, sep = "")
-                cat(s4, "<labl>",  names(lbls)[v],  "</labl>", enter, sep = "")
+                cat(s4, "<catValu>", replaceChars(lbls[v]),  "</catValu>", enter, sep = "")
+                cat(s4, "<labl>",  replaceChars(names(lbls)[v]),  "</labl>", enter, sep = "")
                 
                 if (!is.null(data)) {
                     freq <- tbl[match(lbls[v], names(tbl))]
@@ -237,7 +244,4 @@
     cat(s1, "</dataDscr>", enter, sep = "")
     cat(s0, "</codeBook>", enter, sep = "")
     
-    if (!identical(file, "")) {
-        sink()
-    }
 }

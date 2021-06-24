@@ -1,5 +1,8 @@
 `cleanup` <- function(x, cdata = TRUE) {
 
+    x <- gsub("&amp;", "&", x)
+    x <- gsub("&lt;", "<", x)
+    x <- gsub("&gt;", ">", x)
     x <- gsub("^[[:space:]]+|[[:space:]]+$", "", x)
     x <- gsub("\"", "'", x)
     for (l in letters) {

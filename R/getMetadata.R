@@ -6,9 +6,9 @@ function(x, save = FALSE, OS = "Windows", ...) {
     
     
     dots <- list(...)
-    error <- TRUE
     
     if (is.data.frame(x)) {
+        error <- TRUE
         i <- 1
         while (i <= ncol(x) & error) {
             attrx <- attributes(x[[i]])
@@ -17,22 +17,21 @@ function(x, save = FALSE, OS = "Windows", ...) {
             }
             i <- i + 1
         }
-        if (!error) {
+
+        if (error) {
+            if (is.element("error_null", names(dots))) {
+                return(NULL)
+            }
+
+            cat("\n")
+            stop("The input does not seem to contain any metadata.\n\n", call. = FALSE)
+        }
+        else {
             codeBook <- list()
             codeBook$dataDscr <- collectMetadata(x)
             return(invisible(codeBook))
         }
     }
-
-    if (error) {
-        if (is.element("error_null", names(dots))) {
-            return(NULL)
-        }
-        cat("\n")
-        stop("The input does not seem to contain any metadata.\n\n", call. = FALSE)
-    }
-
-
     
     enter <- getEnter(OS)
     
@@ -65,7 +64,6 @@ function(x, save = FALSE, OS = "Windows", ...) {
         if (tp$fileext[ff] == "XML") {
 
             codeBook <- list()
-
             xml <- getXML(file.path(tp$completePath, tp$files[ff]))
             
             

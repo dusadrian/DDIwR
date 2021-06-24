@@ -5,9 +5,9 @@
 \title{Convert a dataset from one statistical software to another}
 
 \description{
-This function converts (or transfers) between R, Stata, SPSS, SAS, and DDI XML files.
-Unlike the regular import / export functions from packages \bold{\pkg{haven}} or
-\bold{\pkg{rio}}, this function uses the DDI standard as an exchange platform and
+This function converts (or transfers) between R, Stata, SPSS, SAS, Excel and DDI XML
+files. Unlike the regular import / export functions from packages \bold{\pkg{haven}}
+or \bold{\pkg{rio}}, this function uses the DDI standard as an exchange platform and
 facilitates a consistent conversion of the missing values.
 }
 
@@ -24,24 +24,22 @@ convert(from, to = NULL, embed = FALSE, ...)
 
 \details{
 When the argument \bold{\code{to}} specifies a certain statistical package (\code{"R"},
-\code{"Stata"}, \code{"SPSS"} or \code{"SAS"}), the name of the destination file will be the
-same as the name of the input file from the argument \bold{\code{to}}, with an automatically
-added software specific extension.
+\code{"Stata"}, \code{"SPSS"}, \code{"SAS"}) or \code{"Excel"}, the name of the destination file
+will be idential to the one in the argument \bold{\code{from}}, with an automatically added
+software specific extension.
 
 Alternatively, the argument \bold{\code{to}} can be specified as a path to a specific file, in
 which case the software package is determined from its file extension. The following extentions
 are currently recognized: \code{.xml} for DDI, \code{.rds} for R, \code{.dta} for Stata,
-\code{.sav} for SPSS and \code{.sas7bdat} for SAS.
+\code{.sav} for SPSS, \code{.sas7bdat} for SAS, and \code{.xlsx} for Excel.
 
 Additional parameters can be specified via the three dots argument \bold{\code{...}}, that are
-passed to the respective functions from package \bold{\pkg{haven}}. For instance the function
-\bold{\code{\link[haven]{write_dta}()}} has an additional argument called \bold{\code{version}}
-when writing a Stata file.
+passed to the respective functions from packages \bold{\pkg{haven}} and \bold{\pkg{readxl}}. For
+instance the function \bold{\code{\link[haven]{write_dta}()}} has an additional argument called
+\bold{\code{version}} when writing a Stata file.
 
-Note that this function creates a target file in the same directory as the source file, which is
-different from importing the source file into R. To import a file, users should refer to the
-specific functions from package \bold{\pkg{haven}}, such as \bold{\code{\link[haven]{read_sav}()}}
-or \bold{\code{\link[haven]{read_dta}()}} etc.
+If the argument \bold{\code{to}} is left to \code{NULL}, the data is (invisibly) returned to the
+R enviroment.
 
 The current version reads and creates DDI Codebook version 2.5, with future versions to extend
 the functionality for DDI Lifecycle versions 3.x and link to the future package \bold{DDI4R}
@@ -64,7 +62,7 @@ Adrian Dusa
 }
 
 \references{
-DDI - Data Documentation Initiative, see \href{https://www.ddialliance.org/}{https://www.ddialliance.org/}
+DDI - Data Documentation Initiative, see \href{https://ddialliance.org/}{https://ddialliance.org/}
 }
 
 
@@ -86,6 +84,9 @@ convert("test.sav", to = "Stata")
 
 # To produce an R file:
 convert("test.sav", to = "R")
+
+# To produce an Excel file:
+convert("test.sav", to = "Excel")
 }
 }
 

@@ -4,6 +4,11 @@
     to_declared <- TRUE
     
     dots <- list(...)
+
+    error_null <- TRUE
+    if (is.element("error_null", names(dots))) {
+        error_null <- dots$error_null
+    }
     
     if (is.element("to_declared", names(dots))) {
         to_declared <- dots$to_declared
@@ -20,7 +25,7 @@
             i <- i + 1
         }
 
-        if (error) {
+        if (error && error_null) {
             cat("\n")
             stop("The input does not seem to contain any metadata about values and labels.\n\n", call. = FALSE)
         }
@@ -30,9 +35,11 @@
         stop("The input should be a data frame containing labelled variables.\n\n", call. = FALSE)
     }
 
-    dataDscr <- collectMetadata(dataset)
+    dataDscr <- collectMetadata(dataset, error_null = error_null)
     
-    spss <- unlist(lapply(dataset, function(x) (inherits(x, "haven_labelled_spss") | inherits(x, "declared"))))
+    spss <- unlist(lapply(dataset, function(x) {
+        !is.null(attr(x, "labels")) && (inherits(x, "haven_labelled_spss") || inherits(x, "declared"))
+    }))
     
     # build a dictionary based on existing metadata
 
@@ -100,7 +107,9 @@
         }
         else {
             if (sum(!spss) == 0) {
-                message("Variables are already defined as SPSS")
+                if (error_null) {
+                    message("Variables are already defined as SPSS")
+                }
                 return(dataset)
             }
             
@@ -109,7 +118,6 @@
                 names(torecode) <- missingStata
             }
             else { # mix of Stata and SPSS variables
-                return(missingStata)
                 torecode <- setdiff(seq(-1, -100), missingSPSS)[seq(length(missingStata))]
                 names(torecode) <- missingStata
             }
@@ -122,7 +130,9 @@
         }
         else {
             if (sum(spss) == 0) { # No SPSS variables
-                message("Variables are already defined as Stata")
+                if (error_null) {
+                    message("Variables are already defined as Stata")
+                }
                 return(dataset)
             }
 
@@ -177,51 +187,63 @@
         metadata <- dataDscr[[i]]
         values_i <- metadata[["na_values"]]
         labels <- metadata[["labels"]]
-
         
         if (to == "SPSS") {
             if (!spss[i] & !is.null(dictionary)) {
                 values_i <- values[is.element(nms, metadata[["na_values"]])]
-                for (d in seq(length(values_i))) {
-                    if (nchar(metadata[["na_values"]][d]) == 1) {
-                        x[haven::is_tagged_na(x, metadata[["na_values"]][d])] <- values_i[d]
-                        labels[haven::is_tagged_na(labels, metadata[["na_values"]][d])] <- values_i[d]
+                if (length(values_i) > 0) {
+                    for (d in seq(length(values_i))) {
+                        if (length(metadata[["na_values"]][d]) > 0 && nchar(metadata[["na_values"]][d]) == 1) {
+                            x[haven::is_tagged_na(x, metadata[["na_values"]][d])] <- values_i[d]
+                            labels[haven::is_tagged_na(labels, metadata[["na_values"]][d])] <- values_i[d]
+                        }
                     }
                 }
             }
             
             if (!admisc::possibleNumeric(labels)) {
                 x <- as.character(x)
-                values_i <- as.character(values_i)
+                if (length(values_i) > 0) {
+                    values_i <- as.character(values_i)
+                }
+            }
+            # cat(paste(i, "--", paste(values, collapse = ","), "--", paste(values_i, collapse = ","), "--", paste(metadata[["na_values"]], collapse = ","), "\n"))
+            callist <- list(x = x, labels = labels, label = metadata[["label"]])
+
+            if (length(values_i) > 0) {
+                if (is.character(values_i) && length(values_i) > 3) {
+                    values_i <- values_i[1:3]
+                }
+
+                if (length(values_i) > 3) {
+                    callist$na_range <- sort(range(values_i))
+                }
+                else {
+                    callist$na_values <- values_i
+                }
             }
 
-            if (length(values) > 3) {
-                if (to_declared) {
-                    dataset[[i]] <- declared::declared(x, labels = labels, label = metadata[["label"]], na_range = range(sort(values_i)))
-                }
-                else {
-                    dataset[[i]] <- haven::labelled_spss(x, labels = labels, label = metadata[["label"]], na_range = range(sort(values_i)))
-                }
+
+            if (to_declared) {
+                dataset[[i]] <- do.call(declared::declared, callist)
             }
             else {
-                if (to_declared) {
-                    dataset[[i]] <- declared::declared(x, labels = labels, label = metadata[["label"]], na_values = values_i)
-                }
-                else {
-                    dataset[[i]] <- haven::labelled_spss(x, labels = labels, label = metadata[["label"]], na_values = values_i)
-                }
+                dataset[[i]] <- do.call(haven::labelled_spss, callist)
             }
         }
         else if (to == "STATA") {
             
-            if (spss[i]) {
+            if (spss[i] & !is.null(dictionary)) {
                 attributes(x) <- NULL
                 for (d in seq(length(dictionary))) {
                     x[is.element(x, values[d])] <- haven::tagged_na(nms[d])
                     labels[is.element(labels, values[d])] <- haven::tagged_na(nms[d])
                 }
-
-                dataset[[i]] <- haven::labelled(x, labels = labels, label = metadata[["label"]])
+                
+                dataset[, i] <- haven::labelled(x, labels = labels, label = metadata[["label"]])
+            }
+            else {
+                dataset[, i] <- unclass(x)
             }
         }
     }
