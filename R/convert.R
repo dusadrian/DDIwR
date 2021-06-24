@@ -111,7 +111,7 @@
     }
     else {
         if (tp_from$fileext == "XLS" || tp_from$fileext == "XLSX") {
-            if (require(readxl, quietly = TRUE)) {
+            # if (require(readxl, quietly = TRUE)) {
                 callist <- list(path = from)
                 for (f in names(formals(read_excel))) {
                     if (is.element(f, names(dots))) {
@@ -120,7 +120,7 @@
                 }
                 
                 data <- do.call(paste("read", tolower(tp_from$fileext), sep = "_"), callist)
-            }
+            # }
         }
         else if (tp_from$fileext == "SAV") {
             data <- haven::read_spss(from, user_na = TRUE)
