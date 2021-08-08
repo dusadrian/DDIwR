@@ -1,3 +1,8 @@
+Version 0.7
+    o modified convert() for objects of class 'declared', to avoid a bug
+      in package haven that prevents exporting missing values to SPSS for
+      integer variables
+    
 Version 0.6
     o function convert() now invisibly returns the imported data
     o function convert() now accepts Excel files for both input and output

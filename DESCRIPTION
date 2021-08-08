@@ -7,7 +7,7 @@ Authors@R: person(given = "Adrian", family = "Dusa",
                   email = "dusa.adrian@unibuc.ro",
                   comment = c(ORCID = "0000-0002-3525-9253"))
 Depends: R (>= 3.5.0)
-Imports: admisc (>= 0.16), readr, declared, haven, tools, xml2, readxl, writexl
+Imports: admisc (>= 0.17), readr, declared (>= 0.6), haven, tools, xml2, readxl, writexl
 Description: Useful functions for various DDI (Data Documentation Initiative) related inputs and outputs.
     Converts data files to and from SPSS, Stata, SAS, R and Excel, including user declared missing values.
 License: GPL (>= 2)
