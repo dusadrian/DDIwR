@@ -177,7 +177,7 @@
                 return(x)
             })
             
-            haven::write_sav(data, to)
+            haven::write_sav(declared::as_haven(data), to)
         }
         else if (identical(tp_to$fileext, "DTA")) {
             colnms <- colnames(data)
