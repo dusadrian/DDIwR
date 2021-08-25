@@ -11,20 +11,25 @@
         i <- 1
         while (i <= ncol(dataset) & error) {
             attrx <- attributes(dataset[[i]])
-            if (any(is.element(c("label", "labels", "na_value", "na_range"), names(attrx)))) {
+            if (any(is.element(
+                c("label", "labels", "na_value", "na_range"),
+                names(attrx)
+            ))) {
                 error <- FALSE
             }
             i <- i + 1
         }
 
         if (error && error_null) {
-            cat("\n")
-            stop("The input does not seem to contain any metadata.\n\n", call. = FALSE)
+            admisc::stopError(
+                "The input does not seem to contain any metadata."
+            )
         }
     }
     else {
-        cat("\n")
-        stop("The input should be a dataframe containing labelled variables.\n\n", call. = FALSE)
+        admisc::stopError(
+            "The input should be a dataframe containing labelled variables."
+        )
     }
 
     output <- lapply(dataset, function(x) {
@@ -69,7 +74,11 @@
         }
         
         result$na_range <- attr(x, "na_range", exact = TRUE)
-        result$type <- DDIwR::checkType(x, labels, admisc::possibleNumeric(x))
+        result$type <- DDIwR::checkType(
+            x,
+            labels,
+            admisc::possibleNumeric(x)
+        )
 
         return(result)
     })

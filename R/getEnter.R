@@ -1,21 +1,25 @@
 getEnter <- function(OS) {
 
-    currentOS <- Sys.info()[['sysname']]
-    targetOS <- toupper(OS)
-    
-    if (targetOS == "WINDOWS" | targetOS == "WIN") {
-        enter <- ifelse(currentOS == "Windows", "\n", "\r\n")
+    current_os <- Sys.info()[["sysname"]]
+    target_os <- toupper(OS)
+
+    if (target_os == "WINDOWS" | target_os == "WIN") {
+        enter <- ifelse(current_os == "Windows", "\n", "\r\n")
     }
-    else if (targetOS == "LINUX") {
+    else if (target_os == "LINUX") {
         enter <- "\n"
     }
-    else if (targetOS == "DARWIN" | targetOS == "MACOS" | targetOS == "APPLE" | targetOS == "MAC") {
-        enter <- ifelse(currentOS == "Darwin", "\n", "\r")
+    else if (
+        target_os == "DARWIN" |
+        target_os == "MACOS" |
+        target_os == "APPLE" |
+        target_os == "MAC"
+    ) {
+        enter <- ifelse(current_os == "Darwin", "\n", "\r")
     }
     else {
-        cat("\n")
-        stop("The specified OS is not supported.\n\n", call. = FALSE)
+        admisc::stopError("The specified OS is not supported.")
     }
-    
+
     return(enter)
 }

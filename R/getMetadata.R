@@ -23,8 +23,7 @@ function(x, save = FALSE, OS = "Windows", ...) {
                 return(NULL)
             }
 
-            cat("\n")
-            stop("The input does not seem to contain any metadata.\n\n", call. = FALSE)
+            admisc::stopError("The input does not seem to contain any metadata.")
         }
         else {
             codeBook <- list()
