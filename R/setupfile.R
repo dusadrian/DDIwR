@@ -97,7 +97,7 @@
 
     if (missing(codeBook)) {
         admisc::stopError(
-            "The argument \"codeBook\" is missing, with no default."
+            "The argument <codeBook> is missing, with no default."
         )
     }
     else if (all(is.character(codeBook))) {
@@ -105,7 +105,7 @@
         if (length(codeBook) > 1) {
             admisc::stopError(
                 paste(
-                    "The argument \"codeBook\" should contain",
+                    "The argument <codeBook> should contain",
                     "a single path to the list object."
                 )
             )
@@ -146,7 +146,7 @@
                 if (length(csv) > 1) {
                     admisc::stopError(
                         paste(
-                            "The argument \"csv\" should contain",
+                            "The argument <csv> should contain",
                             "a single path to the .csv file."
                         )
                     )
@@ -537,7 +537,7 @@
             if (length(csv) > 1) {
                 admisc::stopError(
                     paste(
-                        "The \"csv\" argument should contain",
+                        "The argument <csv> should contain",
                         "a single path to the .csv file."
                     )
                 )
@@ -576,7 +576,7 @@
     if (is.null(names(dataDscr)) | !checkvarlab(dataDscr)) {
         admisc::stopError(
             paste(
-                "The argument \"codeBook\" does not",
+                "The argument <codeBook> does not",
                 "contain variables and / or labels."
             )
         )

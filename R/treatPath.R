@@ -5,7 +5,9 @@ treatPath <- function(path, type = "*", single = FALSE, check = TRUE) {
         #     admisc::stopError("The <codeBook> argument should contain a single path to the list object.")
         # }
         if (type == "csv") {
-            admisc::stopError("The argument \"csv\" should contain a single path to the .csv file.")
+            admisc::stopError(
+                "The argument <csv> should contain a single path to the .csv file."
+            )
         }
     }
     
@@ -86,7 +88,9 @@ treatPath <- function(path, type = "*", single = FALSE, check = TRUE) {
         ## file_test() determines if a file or a directory
         if (file_test("-d", file.path(pathname, lastpart))) {
             if (single) {
-                admisc::stopError("A file name should be provided, not a directory.")
+                admisc::stopError(
+                    "A file name should be provided, not a directory."
+                )
             }
         }
 
