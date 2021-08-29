@@ -1,3 +1,6 @@
+Version 0.8
+    o fixed bug exporting DDI .xml files
+    
 Version 0.7
     o proper production of setup files due to changing the codeBook structure
     o modified convert() for objects of class 'declared', to avoid a bug in
