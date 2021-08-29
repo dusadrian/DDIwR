@@ -174,24 +174,23 @@
         
         dcml <- ""
         if (!is.null(data)) {
-            dcml <- c(" dcml=\"",
+            dcml <- paste0(" dcml=\"",
                       ifelse(pN[names(obj)[i]], getDecimals(na.omit(aN[[names(obj)[i]]])),  0),
                       "\"")
         }
         
         nature <- ""
         if(any(grepl("measurement", names(obj[[i]])))) {
-            nature <- c(" nature=\"", obj[[i]]$measurement, "\"")
+            nature <- paste0(" nature=\"", obj[[i]]$measurement, "\"")
         }
                          
         
-        cat(paste(
-            s2, "<var ID=\"", uuid[i],
-            "\" name=\"", varnames[i],
-            "\" files=\"", uuid[length(uuid)],
-            "\"", dcml, nature, ">",
-            enter,
-            sep = ""
+        cat(paste0(
+            s2, "<var ID=\"", uuid[i], "\"",
+            " name=\"", varnames[i], "\"",
+            " files=\"", uuid[length(uuid)], "\"",
+            dcml, nature, ">",
+            enter
         ))
         
         if (!is.null(obj[[i]][["label"]])) {
