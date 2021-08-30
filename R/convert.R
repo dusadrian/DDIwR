@@ -144,7 +144,11 @@
 
             if (ncol(data) == length(codeBook$dataDscr) + 1) {
                 rownames(data) <- data[, 1]
-                data <- data[, -1, drop = FALSE]
+                data <- subset(
+                    data,
+                    select = seq(2, ncol(data))
+                )
+                # data <- data[, -1, drop = FALSE]
             }
             # return(list(data = data, codeBook = codeBook))
             data <- make_labelled(
@@ -207,7 +211,7 @@
 
     if (!is.null(to)) {
         if (tp_to$fileext == "XML") {
-            
+
             if (is.null(codeBook)) {
                 admisc::stopError(
                     "The input does not seem to contain any metadata."

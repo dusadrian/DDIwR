@@ -164,7 +164,14 @@
         ))
 
         aN <- lapply(
-            data[, names(pN)[pN], drop = FALSE],
+            subset(
+                data,
+                select = is.element(
+                    names(data),
+                    names(pN)[pN]
+                )
+            )
+            # data[, names(pN)[pN], drop = FALSE],
             function(x) admisc::asNumeric(unclass(x))
         )
 

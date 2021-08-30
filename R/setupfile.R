@@ -994,12 +994,13 @@
 
             # test which values are not numbers in the respective variables
 
-            # has_strings  <- lapply(csv[, which_numerical, drop = FALSE], function(x) {
+            # has_strings  <- lapply(subset(csv, select = which_numerical), function(x) {
             #    grep("^-?[0-9]+([.]?[0-9]+)?$", x, perl=TRUE, invert=TRUE)
             # })
 
             has_strings  <- lapply(
-                csv[, which_numerical, drop = FALSE],
+                subset(csv, select = which_numerical),
+                # csv[, which_numerical, drop = FALSE],
                 function(x) {
                     # as.character() is useful if the variable is an R factor
                     which(
