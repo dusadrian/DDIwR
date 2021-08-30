@@ -1,5 +1,5 @@
 Version 0.8
-    o fixed bug exporting DDI .xml files
+    o fixed bug exporting invalid DDI .xml files
     
 Version 0.7
     o proper production of setup files due to changing the codeBook structure
