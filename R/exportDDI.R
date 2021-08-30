@@ -170,7 +170,7 @@
                     names(data),
                     names(pN)[pN]
                 )
-            )
+            ),
             # data[, names(pN)[pN], drop = FALSE],
             function(x) admisc::asNumeric(unclass(x))
         )
