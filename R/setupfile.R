@@ -8,7 +8,7 @@
 
     dots <- list(...)
 
-    outdir <- identical(file, "")
+    outdir <- identical(file, "") # internal, logical argument
     if (is.element("outdir", names(dots))) {
         outdir <- dots$outdir
     }

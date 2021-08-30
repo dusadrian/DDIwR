@@ -207,32 +207,33 @@
 
     if (!is.null(to)) {
         if (tp_to$fileext == "XML") {
+            
             if (is.null(codeBook)) {
                 admisc::stopError(
                     "The input does not seem to contain any metadata."
                 )
             }
+
             codeBook$fileDscr$datafile <- data
 
             if (!embed) {
-                file <- file.path(
-                    tp_from$completePath,
-                    paste(
-                        tp_to$filenames[1],
-                        "csv",
-                        sep = "."
-                    )
-                )
-
                 write.csv(
+                    file = file.path(
+                        tp_to$completePath,
+                        paste(tp_to$filenames[1], "csv", sep = ".")
+                    ),
                     x = data,
-                    file = as.character(file),
                     row.names = FALSE
                 )
-                # return(file)
-                # readr::write_csv(data, file.path(tp_from$completePath, paste(tp_to$filenames[1], "csv", sep = ".")))
+                
+                # readr::write_csv(
+                #     data,
+                #     file.path(
+                #         tp_to$completePath,
+                #         paste(tp_to$filenames[1], "csv", sep = ".")
+                #     )
+                # )
             }
-
             # return(list(codeBook = codeBook, file = to, embed = embed, OS = targetOS))
             exportDDI(codeBook, to, embed = embed, OS = targetOS)
         }
