@@ -26,7 +26,7 @@
     else if (is.element("data.frame", class(from))) {
         Robject <- TRUE
         tp_from <- list(
-            completePath = ".",
+            completePath = "~",
             filenames = as.character(substitute(from)),
             fileext = "RDS"
         )
@@ -208,8 +208,12 @@
 
     # The current OS might not always be the same with the target OS aboe
     currentOS <- Sys.info()[["sysname"]]
-
+    
     if (!is.null(to)) {
+        if (Robject) {
+            data <- declared::undeclare(data)
+        }
+
         if (tp_to$fileext == "XML") {
 
             if (is.null(codeBook)) {
@@ -239,6 +243,7 @@
                 # )
             }
             # return(list(codeBook = codeBook, file = to, embed = embed, OS = targetOS))
+            
             exportDDI(codeBook, to, embed = embed, OS = targetOS)
         }
         else if (identical(tp_to$fileext, "SAV")) {
@@ -319,12 +324,14 @@
         else if (identical(tp_to$fileext, "XLSX")) {
             writexl::write_xlsx(data, to)
         }
-
     }
-
-    return(
-        invisible(
-            as.data.frame(declared::as_declared(data))
+    else {
+        
+        return(
+            invisible(
+                as.data.frame(declared::as_declared(data))
+            )
         )
-    )
+        
+    }
 }
