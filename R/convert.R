@@ -1,4 +1,4 @@
-`convert` <- function(from, to = NULL, embed = TRUE, ...) {
+`convert` <- function(from, to = NULL, declared = TRUE, embed = TRUE, ...) {
     if (missing(from)) {
         admisc::stopError("Argument 'from' is missing.")
     }
@@ -210,10 +210,6 @@
     currentOS <- Sys.info()[["sysname"]]
     
     if (!is.null(to)) {
-        if (Robject && any(unlist(lapply(data, declared::is_declared)))) {
-            data <- declared::as_haven(data)
-        }
-
         if (tp_to$fileext == "XML") {
 
             if (is.null(codeBook)) {
@@ -253,7 +249,7 @@
                 return(x)
             })
             
-            haven::write_sav(data, to)
+            haven::write_sav(declared::as_haven(data), to)
         }
         else if (identical(tp_to$fileext, "DTA")) {
             colnms <- colnames(data)
@@ -313,11 +309,16 @@
             # }
         }
         else if (identical(tp_to$fileext, "RDS")) {
-            readr::write_rds(declared::as_declared(data), to)
+            if (declared) {
+                readr::write_rds(declared::as_declared(data), to)
+            }
+            else {
+                readr::write_rds(data, to)
+            }
         }
         else if (identical(tp_to$fileext, "SAS7BDAT")) {
 
-            haven::write_sas(data, to)
+            haven::write_sas(declared::as_haven(data), to)
 
             #     # perhaps ask https://github.com/rogerjdeangelis
         }
@@ -327,13 +328,10 @@
     }
     else {
 
-        # return(invisible(data))
-        # generates an error when convert() is called via a httpuv server
-        # Error : Can't convert <character> to <double>.
-        # This is most likely because of vec_cast() in package vctrs
-        # but WHY does it appear only in the server context...?!?
-        
-        return(invisible(declared::as_declared(data)))
+        if (declared) {
+            return(invisible(declared::as_declared(data)))
+        }
 
+        return(invisible(data))
     }
 }
