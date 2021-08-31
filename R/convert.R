@@ -1,4 +1,4 @@
-`convert` <- function(from, to = NULL, embed = FALSE, ...) {
+`convert` <- function(from, to = NULL, embed = TRUE, ...) {
     if (missing(from)) {
         admisc::stopError("Argument 'from' is missing.")
     }
@@ -26,7 +26,7 @@
     else if (is.element("data.frame", class(from))) {
         Robject <- TRUE
         tp_from <- list(
-            completePath = "~",
+            completePath = normalizePath("~"),
             filenames = as.character(substitute(from)),
             fileext = "RDS"
         )
@@ -210,8 +210,8 @@
     currentOS <- Sys.info()[["sysname"]]
     
     if (!is.null(to)) {
-        if (Robject) {
-            data <- declared::undeclare(data)
+        if (Robject && any(unlist(lapply(data, declared::is_declared)))) {
+            data <- declared::as_haven(data)
         }
 
         if (tp_to$fileext == "XML") {
@@ -253,7 +253,7 @@
                 return(x)
             })
             
-            haven::write_sav(declared::as_haven(data), to)
+            haven::write_sav(data, to)
         }
         else if (identical(tp_to$fileext, "DTA")) {
             colnms <- colnames(data)
@@ -326,12 +326,14 @@
         }
     }
     else {
+
+        # return(invisible(data))
+        # generates an error when convert() is called via a httpuv server
+        # Error : Can't convert <character> to <double>.
+        # This is most likely because of vec_cast() in package vctrs
+        # but WHY does it appear only in the server context...?!?
         
-        return(
-            invisible(
-                as.data.frame(declared::as_declared(data))
-            )
-        )
-        
+        return(invisible(declared::as_declared(data)))
+
     }
 }
