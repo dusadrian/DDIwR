@@ -18,6 +18,7 @@ convert(from, to = NULL, embed = TRUE, ...)
 \arguments{
   \item{from}{A path to a file, or a data frame object}
   \item{to}{Character, the name of a software package or a path to a specific file}
+  \item{declared}{Logical, return the resulting data frame as a declared object}
   \item{embed}{Boolean, embed the data when generating a DDI XML file}
   \item{...}{Additional parameters passed to exporting functions, see the Details section}
 }
@@ -42,8 +43,8 @@ Additional parameters can be specified via the three dots argument
 
 If the argument \bold{\code{to}} is left to \code{NULL}, the data is (invisibly)
 returned to the R enviroment. Conversion to R, either in the working space or as
-a data file, will result in a data frame containing declared labelled variables,
-as defined in package \pkg{declared}.
+a data file, will result (by default) in a data frame containing declared
+labelled variables, as defined in package \pkg{declared}.
 
 The current version reads and creates DDI Codebook version 2.5, with future
 versions to extend the functionality for DDI Lifecycle versions 3.x and link to

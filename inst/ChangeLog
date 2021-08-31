@@ -1,5 +1,7 @@
 Version 0.8
     o fixed bug exporting invalid DDI .xml files
+    o new logical argument "declared" in function convert() allowing users to
+      control if variables in converted objects will have the class "declared"
     
 Version 0.7
     o proper production of setup files due to changing the codeBook structure

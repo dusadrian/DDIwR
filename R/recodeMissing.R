@@ -1,9 +1,4 @@
-`recodeMissing` <- 
-function(
-    dataset,
-    to = c("SPSS", "Stata"),
-    dictionary = NULL,
-    ...) {
+`recodeMissing` <- function(dataset, to = c("SPSS", "Stata"), dictionary = NULL, ...) {
 
     to <- toupper(match.arg(to))
 
