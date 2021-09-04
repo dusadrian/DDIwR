@@ -12,7 +12,7 @@ an exchange platform and facilitates a consistent conversion of the missing valu
 }
 
 \usage{
-convert(from, to = NULL, embed = TRUE, ...)
+convert(from, to = NULL, declared = TRUE, embed = TRUE, ...)
 }
 
 \arguments{
