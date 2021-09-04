@@ -1,3 +1,7 @@
+Version 0.9
+    o added the necessary "ddi:codebook:2_5" statement to the xsi:schemaLocation
+      in the codebook, to validate the resulting DDI .xml file
+    
 Version 0.8
     o fixed bug exporting invalid DDI .xml files
     o fixed bug exporting declared missing values to Excel
