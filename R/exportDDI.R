@@ -83,7 +83,7 @@
         "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"",
         enter, 
         "xsi:schemaLocation=\"",
-        "https://ddialliance.org/Specification/DDI-Codebook/2.5/XMLSchema/codebook.xsd",
+        "ddi:codebook:2_5 https://ddialliance.org/Specification/DDI-Codebook/2.5/XMLSchema/codebook.xsd",
         "\">",
         enter,
         sep = ""
