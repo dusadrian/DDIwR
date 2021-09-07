@@ -41,6 +41,14 @@ Additional parameters can be specified via the three dots argument
 \bold{\code{\link[haven]{write_dta}()}} has an additional argument called
 \bold{\code{version}} when writing a Stata file.
 
+The most important argument to consider is called \bold{\code{user_na}}, part of
+the function \bold{\code{\link[haven]{read_spss}()}}. Although it is defaulted
+to \code{FALSE} in package \bold{\pkg{haven}}, in package \bold{\pkg{DDIwR}} it
+is used as having the value of \code{TRUE}. Users who really want to deactivate
+it should explicitly specify \code{use_na = FALSE} in function 
+\bold{\code{{convert}()}}.
+
+
 If the argument \bold{\code{to}} is left to \code{NULL}, the data is (invisibly)
 returned to the R enviroment. Conversion to R, either in the working space or as
 a data file, will result (by default) in a data frame containing declared
@@ -55,8 +63,9 @@ child of the \code{fileDscr} component. This type of Codebook is unique to this
 package and automatically detected when converting to another statistical
 software.
 
-Future versions will attempt to extend converting the missing values to SAS
-types. In the meantime, users can also use a setup file produced by function
+Converting the missing values to SAS is not tested, but it relies on the same
+package \bold{\pkg{haven}} using the ReadStat C library. Should it not work, it
+is also possible to use a setup file produced by function
 \bold{\code{\link{setupfile}()}} and run the commands manually.
 
 When the argument \bold{\code{embed}} is deactivated, a CSV file will be

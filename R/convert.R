@@ -9,6 +9,15 @@
 
     dots <- list(...)
 
+    user_na <- TRUE
+    if (
+        is.element("user_na", names(dots)) &&
+        length(dots$user_na) == 1
+        && is.logical(dots$user_na)
+    ) {
+        user_na <- dots$user_na
+    }
+
     targetOS <- "" # for the XML file output of function exportDDI()
     if (is.element("OS", names(dots))) {
         targetOS <- dots$OS
@@ -178,10 +187,10 @@
             # }
         }
         else if (tp_from$fileext == "SAV") {
-            data <- haven::read_spss(from, user_na = TRUE)
+            data <- haven::read_spss(from, user_na = user_na)
         }
         else if (tp_from$fileext == "POR") {
-            data <- haven::read_por(from, user_na = TRUE)
+            data <- haven::read_por(from, user_na = user_na)
         }
         else if (tp_from$fileext == "DTA") {
             data <- haven::read_dta(from)
