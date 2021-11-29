@@ -88,9 +88,9 @@ V1 = list(
     labels = c(
         "No"             =  0, 
         "Yes"            =  1,
-        "Not applicable" = -7,
-        "Not answered"   = -9),
-    na_values = c(-9, -7),
+        "Not applicable" = -97,
+        "Not answered"   = -99),
+    na_values = c(-99, -97),
     type = "cat",
     measurement = "nominal"
 ),
@@ -102,8 +102,8 @@ V2 = list(
         "So, so"         =  3,
         "Much"           =  4,
         "Very much"      =  5,
-        "Don't know"     = -8),
-    na_values = c(-8),
+        "Don't know"     = -98),
+    na_values = c(-98),
     type = "cat",
     measurement = "ordinal"
 ),
@@ -112,17 +112,17 @@ V3 = list(
     labels = c(
         "First answer"   = "A", 
         "Second answer"  = "B",
-        "Don't know"     = -8),
-    na_values = c(-8),
+        "Don't know"     = -98),
+    na_values = c(-98),
     type = "cat",
     measurement = "nominal"
 ),
 V4 = list(
     label = "Number of children",
     labels = c(
-        "Don't know"     = -8,
-        "Not answered"   = -9),
-    na_values = c(-9, -8),
+        "Don't know"     = -98,
+        "Not answered"   = -99),
+    na_values = c(-99, -98),
     type = "numcat",
     measurement = "ratio"
 )))

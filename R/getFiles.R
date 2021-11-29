@@ -17,7 +17,7 @@ getFiles <- function(path = ".", type = "*", currdir) {
             paste(
                 "The directory",
                 path,
-                "is empty.\n\n"
+                "is empty."
             )
         )
     }
@@ -30,7 +30,7 @@ getFiles <- function(path = ".", type = "*", currdir) {
             paste(
                 "The directory \"",
                 path,
-                "\" doesn't contain any known files.\n\n",
+                "\" doesn't contain any known files.",
                 sep = ""
             )
         )
@@ -82,7 +82,7 @@ getFiles <- function(path = ".", type = "*", currdir) {
                     type,
                     " type file in the directory \"",
                     path,
-                    "\"\n\n",
+                    "\"",
                     sep = ""
                 )
             )

@@ -7,11 +7,68 @@
     on.exit(suppressWarnings(sink()))
 
     dots <- list(...)
+    type <- toupper(type)
+    exts <- c("sps", "do", "sas", "R")
+    types <- c("SPSS", "STATA", "SAS", "R")
+
+    # file <- ""
+    # if (is.element("file", names(dots))) {
+    #     file <- dots$file
+    # }
+
+    tp <- NULL
+    
+    recall <- FALSE
+    if (is.element("recall", names(dots))) {
+        recall <- dots$recall
+    }
+
 
     outdir <- identical(file, "") # internal, logical argument
     if (is.element("outdir", names(dots))) {
         outdir <- dots$outdir
     }
+
+    if (!identical(file, "")) {
+        tp <- treatPath(file, check = FALSE)
+            
+        if (is.na(tp$fileext)) {
+            if (identical(toupper(type), "ALL") & !recall) {
+                admisc::stopError("Unknown file type.")
+            }
+            else {
+                if (is.element(type, c(types, "ALL"))) {
+                    tp$fileext <- exts[which(types == type)]
+                }
+                else {
+                    admisc::stopError("Unknown destination type.")
+                }
+            }
+        }
+        else {
+            if (identical(toupper(type), "ALL")) {
+                if (is.element(toupper(tp$fileext), toupper(exts))) {
+                    type <- types[which(toupper(exts) == toupper(tp$fileext))]
+                }
+                else {
+                    admisc::stopError("Unknown file type.")
+                }
+            }
+            else {
+                if ((tp$fileext == "SPS" & toupper(type) != "SPSS") |
+                    (tp$fileext == "DO" & toupper(type) != "STATA") |
+                    (tp$fileext == "SAS" & toupper(type) != "SAS") |
+                    (tp$fileext == "R" & toupper(type) != "R")) {
+                    admisc::stopError("Incompatible type and file extension.")
+                }
+            }
+        }
+
+        if (length(tp$filenames) == 1) {
+            outdir <- FALSE
+        }
+    }
+
 
     saveFile <- FALSE
     if (is.element("saveFile", names(dots))) {
@@ -52,8 +109,9 @@
             labels <- x[["labels"]]
             ismiss <- is.element(labels, x[["na_values"]])
 
-            if (is.element("na_range", names(x))) {
+            if (is.element("na_range", names(x)) && admisc::possibleNumeric(labels)) {
                 na_range <- x[["na_range"]]
+                labels <- as.numeric(labels)
                 ismiss <- ismiss | (
                     labels >= na_range[1] & labels <= na_range[2]
                 )
@@ -83,7 +141,8 @@
                         )
                     )
                 }
-                else {
+                else if (admisc::possibleNumeric(labels)) {
+                    labels <- as.numeric(labels)
                     na_values <- c(
                         na_values,
                         labels[labels >= na_range[1] & labels <= na_range[2]]
@@ -111,23 +170,14 @@
             )
         }
 
-        xmlfiles <- FALSE
+        pathtofiles <- FALSE
 
-        labelist <- treatPath(codeBook, type = "R")
-
+        labelist <- treatPath(codeBook, check = FALSE)
         if (length(labelist) == 1) {
-            labelist <- treatPath(codeBook, type = "XML")
-            if (length(labelist) == 1) {
-                admisc::stopError(gsub("XML", "R or .XML", labelist))
-            }
-            else {
-                xmlfiles <- TRUE
-            }
+            admisc::stopError(labelist)
         }
-        else if (length(labelist$fileext) == 1) {
-            if (labelist$fileext == "XML") {
-                xmlfiles <- TRUE
-            }
+        else {
+            pathtofiles <- TRUE
         }
 
         outdir <- outdir | length(labelist$fileext) > 1
@@ -204,12 +254,14 @@
         }
 
 
+
         if (csvdatadir) {
             csvfiles <- csvlist$files
             csvnames <- csvlist$filenames
             csvext <- csvlist$fileext
-
-            cat("Processing (including data directory):\n")
+            if (outdir) {
+                cat("Processing (including data directory):\n")
+            }
         }
         else {
 
@@ -224,22 +276,24 @@
                 }
             }
 
-            cat("Processing (no data directory):\n")
+            if (outdir) {
+                cat("Processing (no data directory):\n")
+            }
         }
 
         for (i in seq(length(labelist$files))) {
 
-            if (xmlfiles) {
+            if (pathtofiles) {
                 obj <- DDIwR::getMetadata(
                     file.path(
                         labelist$completePath,
                         labelist$files[i]
                     ),
                     fromsetupfile = TRUE,
+                    embed = TRUE,
                     saveFile = saveFile
                 )
 
-                dataDscrObject <- obj[["dataDscr"]]
                 csv <- obj[["fileDscr"]][["datafile"]]
             }
             else {
@@ -278,8 +332,10 @@
             if (csvdatadir) {
 
                 if (is.element(labelist$filenames[i], csvnames)) {
-
-                    cat(paste(labelist$filenames[i], "\n"))
+                    
+                    if (outdir) {
+                        cat(paste(labelist$filenames[i], "\n"))
+                    }
 
                     position <- match(
                         labelist$filenames[i],
@@ -336,19 +392,20 @@
                             }
 
 
-                            if (!xmlfiles) {
-                                dataDscrObject <- get(setdiff(bb, aa))
+                            if (!pathtofiles) {
+                                obj <- get(setdiff(bb, aa))
                             }
 
                             tryCatch(
                                 Recall(
-                                    dataDscrObject,
+                                    obj,
                                     type = type,
                                     csv = csvreadfile,
                                     delim = delim,
                                     OS = OS,
                                     file = labelist$filenames[i],
                                     outdir = outdir,
+                                    recall = TRUE,
                                     ... = ...
                                 ),
                                 error = function(x) {
@@ -380,18 +437,19 @@
                         "\n"
                     ))
 
-                    if (!xmlfiles) {
-                        dataDscrObject <- get(setdiff(bb, aa))
+                    if (!pathtofiles) {
+                        obj <- get(setdiff(bb, aa))
                     }
 
                     tryCatch(
                         Recall(
-                            dataDscrObject,
+                            obj,
                             type = type,
                             delim = delim,
                             OS = OS,
                             file = labelist$filenames[i],
                             outdir = outdir,
+                            recall = TRUE,
                             ... = ...
                         ),
                         error = function(x) {
@@ -416,25 +474,40 @@
                 }
             }
             else {
-                cat(labelist$filenames[i], "\n")
+                if (outdir) {
+                    cat(labelist$filenames[i], "\n")
+                }
 
                 if (is.data.frame(csv)) {
                     if (length(labelist$filenames) == 1) {
-                        if (!xmlfiles) {
+                        if (!pathtofiles) {
                             obj <- get(setdiff(bb, aa))
-                            dataDscrObject <- obj$dataDscr
-                            data <- obj$fileDscr$datafile
                         }
+
+                        if (!identical(file, "")) {
+                            outdir <- FALSE
+                            labelist$filenames <- tp$filenames
+                        }
+                        
+                        # return(list(codeBook = obj,
+                        #             type = type,
+                        #             csv = csv,
+                        #             delim = delim,
+                        #             OS = OS,
+                        #             file = labelist$filenames,
+                        #             outdir = outdir,
+                        #             ... = ...))
 
                         tryCatch(
                             Recall(
-                                dataDscrObject,
+                                obj,
                                 type = type,
                                 csv = csv,
                                 delim = delim,
                                 OS = OS,
-                                file = labelist$filenames[i],
+                                file = labelist$filenames,
                                 outdir = outdir,
+                                recall = TRUE,
                                 ... = ...
                             ),
                             error = function(x) {
@@ -460,18 +533,19 @@
                 }
                 else {
                     # there is really no csv data
-                    if (!xmlfiles) {
-                        dataDscrObject <- get(setdiff(bb, aa))
+                    if (!pathtofiles) {
+                        obj <- get(setdiff(bb, aa))
                     }
 
                     tryCatch(
                         Recall(
-                            dataDscrObject,
+                            obj,
                             type = type,
                             delim = delim,
                             OS = OS,
                             file = labelist$filenames[i],
                             outdir = outdir,
+                            recall = TRUE,
                             ... = ...
                         ),
                         error = function(x) {
@@ -497,20 +571,22 @@
                 }
             }
 
-            if (!xmlfiles) {
+            if (!pathtofiles) {
                 rm(list = c(eval(setdiff(bb, aa)), "bb", "aa"))
             }
         }
 
-        cat(paste(
-            "\nSetup files created in:\n",
-            file.path(
-                currentdir,
-                "Setup files"
-            ),
-            "\n\n",
-            sep = ""
-        ))
+        if (outdir) {
+            cat(paste(
+                "\nSetup file(s) created in:\n",
+                file.path(
+                    currentdir,
+                    "Setup files"
+                ),
+                "\n\n",
+                sep = ""
+            ))
+        }
 
         return(invisible())
     }
@@ -582,13 +658,8 @@
         )
     }
 
-    if (
-        !is.element(
-            toupper(type),
-            c("SPSS", "STATA", "SAS", "R", "ALL")
-        )
-    ) {
-        admisc::stopError("Unknown destination software.")
+    if (!is.element(toupper(type), c(types, "ALL"))) {
+        admisc::stopError("Unknown destination type.")
     }
 
     enter <- getEnter(OS = OS)
@@ -899,7 +970,7 @@
         return(charvar)
     })
 
-    if (outdir) {
+    if (outdir && identical(file, "")) {
         file <- dataDscr_objname
     }
     else {
@@ -913,29 +984,34 @@
         }
         else {
             tp <- treatPath(file, check = FALSE)
+            
             if (is.na(tp$fileext)) {
-                if (identical(type, "all")) {
-                    admisc::stopError("Could not determine the file type.")
+                if (toupper(type) == "ALL") {
+                    outdir <- TRUE
                 }
                 else {
-                    if (type == "SPSS") file <- file.path(tp$completePath, paste(tp$files, "sps", sep = "."))
-                    if (type == "Stata") file <- file.path(tp$completePath, paste(tp$files, "do", sep = "."))
-                    if (type == "SAS") file <- file.path(tp$completePath, paste(tp$files, "sas", sep = "."))
-                    if (type == "R") file <- file.path(tp$completePath, paste(tp$files, "R", sep = "."))
+                    file <- file.path(
+                        tp$completePath,
+                        paste(
+                            tp$files,
+                            exts[which(types == toupper(type))],
+                            sep = "."
+                        )
+                    )
                 }
             }
             else {
-                if (!identical(type, "all")) {
-                    if ((tp$fileext == "SPS" & type != "SPSS") |
-                        (tp$fileext == "DO" & type != "Stata") |
-                        (tp$fileext == "SAS" & type != "SAS") |
-                        (tp$fileext == "R" & type != "R")) {
+                if (!identical(toupper(type), "ALL")) {
+                    if ((tp$fileext == "SPS" & toupper(type) != "SPSS") |
+                        (tp$fileext == "DO" & toupper(type) != "STATA") |
+                        (tp$fileext == "SAS" & toupper(type) != "SAS") |
+                        (tp$fileext == "R" & toupper(type) != "R")) {
                         admisc::stopError("Incompatible type and file extension.")
                     }
                 }
                 else {
                     if (tp$fileext == "SPS") type <- "SPSS"
-                    if (tp$fileext == "DO") type <- "Stata"
+                    if (tp$fileext == "DO") type <- "STATA"
                     if (tp$fileext == "SAS") type <- "SAS"
                     if (tp$fileext == "R") type <- "R"
                 }
@@ -1021,7 +1097,7 @@
 
 
 
-    if (type == "SPSS" | type == "all") {
+    if (toupper(type) == "SPSS" | toupper(type) == "ALL") {
         dataDscr2 <- dataDscr
         printMISSING <- FALSE
         currentdir <- getwd()
@@ -1200,7 +1276,7 @@
 
                     if (is.element("na_values", names(dataDscr2[[sv]]))) {
                         na_values <- dataDscr2[[sv]][["na_values"]]
-# print(na_values)
+
                         for (j in seq(length(na_values))) {
                             if (admisc::possibleNumeric(na_values[j])) {
                                 missval <- admisc::asNumeric(na_values[j])
@@ -1240,8 +1316,7 @@
                         )
                         postcommand <- "(\""
                         command <- paste(precommand, postcommand, sep = "")
-# print(newvalues)
-# print(nummiss)
+
                         for (j in seq(length(newvalues[!nummiss]))) {
                             jlabels <- dataDscr2[[sv]][["labels"]]
                             postcommand <- paste(
@@ -1748,7 +1823,7 @@
     }
 
 
-    if (type == "Stata" | type == "all") {
+    if (toupper(type) == "STATA" | toupper(type) == "ALL") {
 
         dataDscr2 <- dataDscr
         currentdir <- getwd()
@@ -2151,7 +2226,7 @@
     }
 
 
-    if (type == "SAS" | type == "all") {
+    if (toupper(type) == "SAS" | toupper(type) == "ALL") {
         dataDscr2 <- dataDscr
         currentdir <- getwd()
 
@@ -2649,7 +2724,7 @@
     }
 
     
-    if (type == "R" | type == "all") {
+    if (toupper(type) == "R" | toupper(type) == "ALL") {
         printMISSING <- FALSE
         currentdir <- getwd()
         

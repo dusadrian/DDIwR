@@ -1,4 +1,6 @@
-`convert` <- function(from, to = NULL, declared = TRUE, embed = TRUE, ...) {
+`convert` <- function(
+    from, to = NULL, declared = TRUE, recode = TRUE, embed = TRUE, ...
+) {
     if (missing(from)) {
         admisc::stopError("Argument 'from' is missing.")
     }
@@ -9,13 +11,29 @@
 
     dots <- list(...)
 
-    user_na <- TRUE
+
+    user_na <- TRUE # force reading the value labels
     if (
-        is.element("user_na", names(dots)) &&
-        length(dots$user_na) == 1
-        && is.logical(dots$user_na)
+        is.element("user_na", names(dots)) && is.atomic(dots$user_na) && 
+        length(dots$user_na) == 1 && is.logical(dots$user_na)
     ) {
         user_na <- dots$user_na
+    }
+
+    encoding <- "latin1"
+    if (
+        is.element("encoding", names(dots)) && is.atomic(dots$encoding) && 
+        length(dots$encoding) == 1 && is.character(dots$encoding)
+    ) {
+        encoding <- dots$encoding
+    }
+
+    chartonum <- TRUE
+    if (
+        is.element("chartonum", names(dots)) && is.atomic(dots$chartonum) && 
+        length(dots$chartonum) == 1 && is.logical(dots$chartonum)
+    ) {
+        chartonum <- dots$chartonum
     }
 
     targetOS <- "" # for the XML file output of function exportDDI()
@@ -106,7 +124,6 @@
         }
     }
 
-
     if (tp_from$fileext == "XML") {
         codeBook <- getMetadata(
             from,
@@ -187,23 +204,60 @@
             # }
         }
         else if (tp_from$fileext == "SAV") {
-            data <- haven::read_spss(from, user_na = user_na)
+            fargs <- names(formals(read_sav))
+            arglist <- dots[is.element(names(dots), fargs)]
+            arglist$file <- from
+            arglist$user_na <- user_na
+            arglist$encoding <- encoding
+            data <- do.call(haven::read_sav, arglist)
         }
         else if (tp_from$fileext == "POR") {
-            data <- haven::read_por(from, user_na = user_na)
+            fargs <- names(formals(read_por))
+            arglist <- dots[is.element(names(dots), fargs)]
+            arglist$file <- from
+            arglist$user_na <- user_na
+            data <- do.call(haven::read_por, arglist)
         }
         else if (tp_from$fileext == "DTA") {
-            data <- haven::read_dta(from)
-            data <- recodeMissing(
-                data,
-                to = "SPSS",
-                dictionary = dictionary,
-                to_declared = FALSE,
-                error_null = FALSE
-            )
+            fargs <- names(formals(read_dta))
+            arglist <- dots[is.element(names(dots), fargs)]
+            arglist$file <- from
+            arglist$encoding <- encoding
+            data <- do.call(haven::read_dta, arglist)
+
+            # return(list(data = data, to = to, dictionary = dictionary, chartonum = chartonum, to_declared = FALSE, error_null = FALSE))
+            if (recode) {
+                data <- recodeValues(
+                    dataset = data,
+                    to = "SPSS",
+                    dictionary = dictionary,
+                    chartonum = chartonum,
+                    to_declared = FALSE,
+                    error_null = FALSE
+                )
+            }
+            else {
+                declared <- FALSE
+            }
         }
         else if (tp_from$fileext == "SAS7BDAT") {
-            data <- haven::read_sas(from)
+            fargs <- names(formals(read_sas))
+            arglist <- dots[is.element(names(dots), fargs)]
+            arglist$file <- from
+            arglist$encoding <- encoding
+            data <- do.call(haven::read_sas, arglist)
+
+            if (recode) {
+                data <- recodeValues(
+                    dataset = data,
+                    to = "SPSS",
+                    dictionary = dictionary,
+                    chartonum = chartonum,
+                    to_declared = FALSE,
+                    error_null = FALSE
+                )
+            }
+
         }
         else if (tp_from$fileext == "RDS" & !Robject) {
             data <- readr::read_rds(from)
@@ -278,23 +332,24 @@
                         }
                     }
                 }
-
-                callist <- list(
-                    data = recodeMissing(
+                arglist <- list(
+                    data = recodeValues(
                         data,
                         to = "Stata",
                         dictionary = dictionary,
+                        chartonum = chartonum,
+                        to_declared = FALSE,
                         error_null = FALSE
                     )
                 )
             }
             else {
-                callist <- list(data = data)
+                arglist <- list(data = data)
             }
-
+            # return(data)
 
             if (is.element("version", names(dots))) {
-                callist$version <- dots$version
+                arglist$version <- dots$version
             }
 
 
@@ -313,8 +368,10 @@
             #     do.call(readstata13::save.dta13, callist)
             # }
             # else {
-                callist$path <- to
-                do.call(haven::write_dta, callist)
+                arglist$path <- to
+                
+                do.call(haven::write_dta, arglist)
+                # return(invisible(arglist$data))
             # }
         }
         else if (identical(tp_to$fileext, "RDS")) {

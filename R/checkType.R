@@ -10,7 +10,10 @@
         
         if (length(uniquevals) <= length(labels)) {
             # surely a categorical variable
-            return("cat")
+            if (admisc::possibleNumeric(labels)) {
+                return("cat")
+            }
+            return("catchar")
         }
         else {
             

@@ -6,6 +6,22 @@ function(x, save = FALSE, OS = "Windows", ...) {
     
     
     dots <- list(...)
+
+    user_na <- TRUE # force reading the value labels
+    if (
+        is.element("user_na", names(dots)) && is.atomic(dots$user_na) && 
+        length(dots$user_na) == 1 && is.logical(dots$user_na)
+    ) {
+        user_na <- dots$user_na
+    }
+
+    encoding <- "latin1"
+    if (
+        is.element("encoding", names(dots)) && is.atomic(dots$encoding) && 
+        length(dots$encoding) == 1 && is.character(dots$encoding)
+    ) {
+        encoding <- dots$encoding
+    }
     
     if (is.data.frame(x)) {
         error <- TRUE
@@ -144,16 +160,21 @@ function(x, save = FALSE, OS = "Windows", ...) {
                     names(codeBook$dataDscr[[i]][["labels"]]) <- labl
                 }
                 
-                
                 if (length(na_values) > 0) {
-                    if (admisc::possibleNumeric(na_values)) {
+                    
+                    if (admisc::possibleNumeric(na_values) & admisc::possibleNumeric(values)) {
                         na_values <- admisc::asNumeric(na_values)
                     }
+
                     na_values <- sort(unique(na_values))
 
-                    na_values <- na_values[na_values < na_range[1] | na_values > na_range[2]]
-
-                    if (length(na_values) > 0) codeBook$dataDscr[[i]]$na_values <- na_values
+                    if (!is.null(na_range) && is.numeric(na_values)) {
+                        na_values <- na_values[na_values < na_range[1] | na_values > na_range[2]]
+                    }
+                    
+                    if (length(na_values) > 0) {
+                        codeBook$dataDscr[[i]]$na_values <- na_values
+                    }
                 }
 
                 if (!is.null(na_range)) {
@@ -199,13 +220,26 @@ function(x, save = FALSE, OS = "Windows", ...) {
         }
         else {
             if (tp$fileext[ff] == "SAV") {
-                data <- haven::read_spss(file.path(tp$completePath, tp$files[ff]), user_na = TRUE)
+                fargs <- names(formals(read_sav))
+                arglist <- dots[is.element(names(dots), fargs)]
+                arglist$file <- file.path(tp$completePath, tp$files[ff])
+                arglist$user_na <- user_na
+                arglist$encoding <- encoding
+                data <- do.call(haven::read_sav, arglist)
             }
             else if (tp$fileext[ff] == "POR") {
-                data <- haven::read_por(file.path(tp$completePath, tp$files[ff]), user_na = TRUE)
+                fargs <- names(formals(read_sav))
+                arglist <- dots[is.element(names(dots), fargs)]
+                arglist$file <- file.path(tp$completePath, tp$files[ff])
+                arglist$user_na <- user_na
+                data <- do.call(haven::read_por, arglist)
             }
             else if (tp$fileext[ff] == "DTA") {
-                data <- haven::read_dta(file.path(tp$completePath, tp$files[ff]))
+                fargs <- names(formals(read_dta))
+                arglist <- dots[is.element(names(dots), fargs)]
+                arglist$file <- file.path(tp$completePath, tp$files[ff])
+                arglist$encoding <- encoding
+                data <- do.call(haven::read_dta, arglist)
             }
             else if (tp$fileext[ff] == "RDS") {
                 data <- readr::read_rds(file.path(tp$completePath, tp$files[ff]))
@@ -217,7 +251,7 @@ function(x, save = FALSE, OS = "Windows", ...) {
             # }
             
             codeBook <- list()
-            codeBook$dataDscr <- collectMetadata(x)
+            codeBook$dataDscr <- collectMetadata(data)
         }
         
         

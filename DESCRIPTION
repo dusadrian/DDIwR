@@ -1,13 +1,13 @@
 Package: DDIwR
-Version: 0.8-5
-Date: 2021-09-04
+Version: 0.9
+Date: 2021-11-14
 Title: DDI with R
 Authors@R: person(given = "Adrian", family = "Dusa",
                   role = c("aut", "cre", "cph"),
                   email = "dusa.adrian@unibuc.ro",
                   comment = c(ORCID = "0000-0002-3525-9253"))
 Depends: R (>= 3.5.0)
-Imports: admisc (> 0.17), readr, declared (> 0.6), haven, tools, xml2, readxl, writexl
+Imports: admisc (> 0.19), readr, declared (> 0.6), haven, tools, xml2, readxl, writexl
 Description: Useful functions for various DDI (Data Documentation Initiative) related inputs and outputs.
     Converts data files to and from SPSS, Stata, SAS, R and Excel, including user declared missing values.
 License: GPL (>= 2)

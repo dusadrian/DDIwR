@@ -3,6 +3,12 @@ Version 0.9
       in the codebook, to validate the resulting DDI .xml file
     o updated the documentation of function convert() to explain how to use the
       argument "user_na" from function read.spss() in package haven
+    o new argument "recode" in function convert(), to allow users to control
+      if the Stata missing values get recoded to actual numbers
+    o function recodeMissing() renamed to recodeValues()
+    o improved function setupfile(), now accepting datafiles as input
+    o more integration with read / write functions from package haven
+    o multiple improvements and bug fixes to the internal code
     
 Version 0.8
     o fixed bug exporting invalid DDI .xml files
@@ -26,7 +32,6 @@ Version 0.6
     o updated code to the latest version of package haven, and (consequently)
       removed argument "binpath" from function convert()
     o new function recodeMissing()
-    o new function collectMetadata()
     
 Version 0.5
     o fixed bug in make_labelled() when a variable is character,

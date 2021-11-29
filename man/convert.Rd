@@ -12,13 +12,14 @@ an exchange platform and facilitates a consistent conversion of the missing valu
 }
 
 \usage{
-convert(from, to = NULL, declared = TRUE, embed = TRUE, ...)
+convert(from, to = NULL, declared = TRUE, recode = TRUE, embed = TRUE, ...)
 }
 
 \arguments{
   \item{from}{A path to a file, or a data frame object}
   \item{to}{Character, the name of a software package or a path to a specific file}
   \item{declared}{Logical, return the resulting data frame as a declared object}
+  \item{recode}{Logical, recode missing values}
   \item{embed}{Boolean, embed the data when generating a DDI XML file}
   \item{...}{Additional parameters passed to exporting functions, see the Details section}
 }
@@ -42,7 +43,7 @@ Additional parameters can be specified via the three dots argument
 \bold{\code{version}} when writing a Stata file.
 
 The most important argument to consider is called \bold{\code{user_na}}, part of
-the function \bold{\code{\link[haven]{read_spss}()}}. Although it is defaulted
+the function \bold{\code{\link[haven]{read_sav}()}}. Although it is defaulted
 to \code{FALSE} in package \bold{\pkg{haven}}, in package \bold{\pkg{DDIwR}} it
 is used as having the value of \code{TRUE}. Users who really want to deactivate
 it should explicitly specify \code{use_na = FALSE} in function 
@@ -70,6 +71,11 @@ is also possible to use a setup file produced by function
 
 When the argument \bold{\code{embed}} is deactivated, a CSV file will be
 produced in the same directory, using the same file name as the XML file.
+
+The argument \bold{\code{recode}} controls how missing values are treated. If
+the input file has SPSS like numeric codes, they will be recoded to extended
+(a-z) missing types when converting to Stata or SAS. If the input has Stata like
+extended codes, they will be recoded to SPSS like numeric codes.
 }
 
 

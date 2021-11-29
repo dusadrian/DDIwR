@@ -1,7 +1,7 @@
 
 `make_labelled` <- function(x, dataDscr, ...) {
 
-    pN <- unlist(lapply(x, function(x) admisc::possibleNumeric(x)))
+    pN <- sapply(x, admisc::possibleNumeric)
     
     for (i in names(x)) {
         #------------------------------------------------------------------

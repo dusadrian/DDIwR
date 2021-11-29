@@ -2,6 +2,7 @@
 
 \alias{checkType}
 \alias{cleanup}
+\alias{collectMetadata}
 \alias{make_labelled}
 \alias{getDecimals}
 \alias{getDelimiter}
