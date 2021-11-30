@@ -267,6 +267,7 @@
         }
 
         codeBook <- getMetadata(data, error_null = FALSE)
+        codeBook$fileDscr$fileName <- tp_from$filenames
     }
 
     # The current OS might not always be the same with the target OS aboe

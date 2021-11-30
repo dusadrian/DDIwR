@@ -285,6 +285,8 @@ function(x, save = FALSE, OS = "Windows", ...) {
             }
         }
 
+        codeBook$fileDscr$fileName <- tp$filenames
+
         if (embed & !is.null(data)) {
             codeBook$fileDscr$datafile <- data
         }

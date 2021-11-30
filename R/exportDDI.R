@@ -139,6 +139,9 @@
         datas <- undeclare(data)
 
         cat(paste(s2, "<fileTxt>", enter, sep = ""))
+        if (!is.null(fileName <- codebook[["fileDscr"]][["fileName"]])) {
+            cat(paste(s3, "<fileName>", fileName, "</fileName>", enter, sep = ""))
+        }
         cat(paste(s3, "<dimensns>", enter, sep = ""))
         cat(paste(s4, "<caseQnty>", nrow(data), "</caseQnty>", enter, sep = ""))
         cat(paste(s4, "<varQnty>", ncol(data), "</varQnty>", enter, sep = ""))
@@ -440,6 +443,7 @@
     }
     
     cat(paste(s1, "</dataDscr>", enter, sep = ""))
+    cat(paste(s1, "<otherMat></otherMat>", enter, sep = ""))
     cat(paste(s0, "</codeBook>", enter, sep = ""))
     
 }
