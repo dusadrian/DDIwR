@@ -1,3 +1,11 @@
+Version 0.10
+    o new arguments "monolingual", "xmlang", "IDNo", "agency", "distrbtr" and
+      "URI" in function exportDDI()
+    o new argument "..." in function exportDDI(), to accept more incoming options
+    o removed formal argument "embed" from function convert(), but it is still
+      possible to be used via "..." and automatically passed to exportDDI()
+    o more validation checks when converting to DDI Codebook
+    
 Version 0.9
     o added the necessary "ddi:codebook:2_5" statement to the xsi:schemaLocation
       in the codebook, to validate the resulting DDI .xml file

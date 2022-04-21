@@ -1,6 +1,4 @@
-\name{DDIwR-package}
-
-\alias{DDIwR-package}
+\name{About the DDIwR package}
 
 \alias{DDIwR}
 

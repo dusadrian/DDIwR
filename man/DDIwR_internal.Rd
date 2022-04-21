@@ -1,4 +1,4 @@
-\name{DDIwR-internal}
+\name{DDIwR internal functions}
 
 \alias{checkType}
 \alias{cleanup}
