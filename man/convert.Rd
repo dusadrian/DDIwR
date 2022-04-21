@@ -12,16 +12,17 @@ an exchange platform and facilitates a consistent conversion of the missing valu
 }
 
 \usage{
-convert(from, to = NULL, declared = TRUE, recode = TRUE, embed = TRUE, ...)
+convert(from, to = NULL, declared = TRUE, recode = TRUE, ...)
 }
 
 \arguments{
   \item{from}{A path to a file, or a data frame object}
-  \item{to}{Character, the name of a software package or a path to a specific file}
+  \item{to}{Character, the name of a software package or a path to a specific
+    file}
   \item{declared}{Logical, return the resulting data frame as a declared object}
   \item{recode}{Logical, recode missing values}
-  \item{embed}{Boolean, embed the data when generating a DDI XML file}
-  \item{...}{Additional parameters passed to exporting functions, see the Details section}
+  \item{...}{Additional parameters passed to exporting functions, see the Details
+    section}
 }
 
 \details{
@@ -69,13 +70,16 @@ package \bold{\pkg{haven}} using the ReadStat C library. Should it not work, it
 is also possible to use a setup file produced by function
 \bold{\code{\link{setupfile}()}} and run the commands manually.
 
-When the argument \bold{\code{embed}} is deactivated, a CSV file will be
-produced in the same directory, using the same file name as the XML file.
-
 The argument \bold{\code{recode}} controls how missing values are treated. If
 the input file has SPSS like numeric codes, they will be recoded to extended
 (a-z) missing types when converting to Stata or SAS. If the input has Stata like
 extended codes, they will be recoded to SPSS like numeric codes.
+
+It is possible to employ additional formal arguments from the function
+\bold{\code{exportDDI()}}, using the three dots \bold{\code{...}}. For instance,
+its argument \bold{\code{embed}} (that is activated by default) can be used to
+deactivate embedding the data in the XML file, in which situation a CSV file will
+be produced in the same directory, using the same file name as the XML file.
 }
 
 
