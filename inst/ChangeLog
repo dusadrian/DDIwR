@@ -1,9 +1,12 @@
-Version 0.10
-    o new arguments "monolingual", "xmlang", "IDNo", "agency", "distrbtr" and
-      "URI" in function exportDDI()
+Version 0.11
+    o new argument "xmlns" in function exportDDI(), to allow creating XML files
+      using a namespace
     o new argument "..." in function exportDDI(), to accept more incoming options
+    
+Version 0.10
+    o new arguments "monolang" and "xmlang" in function exportDDI()
     o removed formal argument "embed" from function convert(), but it is still
-      possible to be used via "..." and automatically passed to exportDDI()
+      possible to be used via the "..." and automatically passed to exportDDI()
     o more validation checks when converting to DDI Codebook
     
 Version 0.9

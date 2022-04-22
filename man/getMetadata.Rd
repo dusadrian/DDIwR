@@ -52,8 +52,9 @@ is planned to be implemented.
 
 
 \value{
-A list containing all variables, their corresponding variable labels and value
-labels, and (if applicable) missing values if imported and found.
+An R list roughly equivalent to a DDI codebook, containing all variables, their
+corresponding variable labels and value labels, and (if applicable) missing
+values if imported and found.
 }
 
 \author{

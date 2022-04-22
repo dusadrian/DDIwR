@@ -10,9 +10,8 @@ This function creates a DDI Codebook version 2.5, XML file structure.
 
 \usage{
 exportDDI(
-    codebook, file = "", embed = TRUE, OS = "", indent = 4, monolingual = FALSE,
-    xmlang = "en", IDNo = "S0000", agency = "default", distrbtr = "default",
-    URI = "http://www.default.edu"
+    codebook, file = "", embed = TRUE, OS = "", indent = 4,
+    monolang = FALSE, xmlang = "en", xmlns = "", ...
 )
 }
 
@@ -25,12 +24,11 @@ exportDDI(
   \item{embed}{Embed the CSV datafile in the XML file, if present}
   \item{OS}{The target operating system, for the eol - end of line character(s)}
   \item{indent}{Indent width, in number of spaces}
-  \item{monolingual}{Logical, monolingual or multilingual document}
+  \item{monolang}{Logical, monolang or multilingual document}
   \item{xmlang}{ISO two letter code for the language used in the DDI elements}
-  \item{IDNo}{The study identification number at the responsible agency}
-  \item{agency}{Acronym of the responsible agency}
-  \item{distrbtr}{Full name of the distributing institution}
-  \item{URI}{An URL to access the electronic copy of the cited work}
+  \item{xmlns}{Character, namespace for the XML file (ignored if already present
+        in the codebook object)}
+  \item{...}{Other arguments, mainly for internal use}
 }
 
 \details{
@@ -85,7 +83,7 @@ planned for future releases.
 Argument \bold{\code{xmlang}} expects a two letter ISO country coding, for
 instance \code{"en"} to indicate English, or \code{"ro"} to indicate Romanian etc.
 
-If the document is monolingual, this argument is placed a single time for the
+If the document is monolang, this argument is placed a single time for the
 entire document, in the attributes of the \code{codeBook} element. For
 multilingual documents, it is placed in the attributes of various other
 (sub)elements, for instance \code{abstract} as an obvious one, or the study
@@ -101,6 +99,12 @@ running OS.
 
 The argument \bold{\code{indent}} controls how many spaces will be used in the
 XML file, to indent the different subelements.
+
+A small number of required DDI specific elements and attributes have generic
+default values but they may be specified using the three dots \bold{\code{...}}
+argument. For the current version, these are: \code{IDNo}, \code{titl},
+\code{agency}, \code{URI} (for the \code{holdings} element), \code{distrbtr},
+\code{abstract} and \code{level} (for the \code{otherMat} element).
 }
 
 \value{
@@ -174,6 +178,9 @@ V5 = list(
 
 \dontrun{
 exportDDI(codeBook, file = "codebook.xml")
+
+# using a namespace
+exportDDI(codeBook, file = "codebook.xml", xmlns = "ddi")
 }
 
 }
