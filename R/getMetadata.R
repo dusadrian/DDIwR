@@ -44,7 +44,8 @@ function(x, save = FALSE, OS = "Windows", ...) {
         else {
             codeBook <- list()
             codeBook$dataDscr <- collectMetadata(x)
-            return(invisible(codeBook))
+            
+            return(codeBook)
         }
     }
     
@@ -70,8 +71,10 @@ function(x, save = FALSE, OS = "Windows", ...) {
     }
 
     data <- NULL
+
+    result <- vector(mode = "list", length = length(tp$files))
     
-    for (ff in seq(length(tp$files))) {
+    for (ff in seq(length(result))) {
         if (!fromsetupfile & !singlefile) {
             cat(tp$files[ff], "\n")
         }
@@ -87,11 +90,20 @@ function(x, save = FALSE, OS = "Windows", ...) {
             # })
             
             xmlns <- xml2::xml_ns(xml)
-            # d1  <-> http://www.icpsr.umich.edu/DDI
+            # d1  <-> ddi:codebook:2_5"
             # xsi <-> http://www.w3.org/2001/XMLSchema-instance
-            
+            # xsd <-> http://www.w3.org/2001/XMLSchema
+            wns <- which(xmlns == "ddi:codebook:2_5")
+            if (length(wns) == 0) {
+                admisc::stopError("The XML document does not contain a DDI namespace.")
+            }
+
             # <d>efault <n>ame <s>pace
-            dns <- ifelse(is.element("d1", names(xmlns)), "d1:", "")
+            dns <- names(xmlns)[wns[1]]
+            if (dns != "d1") {
+                codeBook$xmlns <- dns
+            }
+            dns <- paste0(dns, ":")
             
             ### Unfortunately this does not work because some variables don't always have labels
             ### and we'll end up having a vector of labels that is shorter than the number of variables
@@ -254,6 +266,14 @@ function(x, save = FALSE, OS = "Windows", ...) {
             codeBook$dataDscr <- collectMetadata(data)
         }
         
+        codeBook$fileDscr$fileName <- tp$files[ff]
+
+        filetypes <- c("SPSS", "SPSS", "Stata", "SAS", "R", "DDI", "Excel", "Excel")
+        fileexts <- c("SAV", "POR", "DTA", "SAS7BDAT", "RDS", "XML", "XLS", "XLSX")
+
+        codeBook$fileDscr$fileType <- filetypes[which(fileexts == tp$fileext[ff])]
+
+        result[[ff]] <- codeBook
         
         if (save) {
             
@@ -266,7 +286,8 @@ function(x, save = FALSE, OS = "Windows", ...) {
             
         }
     }
-    
+
+    names(result) <- tp$filenames
     
     if (singlefile) {
         if (!is.na(notes)) {
@@ -284,13 +305,14 @@ function(x, save = FALSE, OS = "Windows", ...) {
                 embed <- TRUE
             }
         }
-
-        codeBook$fileDscr$fileName <- tp$filenames
-
+        
         if (embed & !is.null(data)) {
             codeBook$fileDscr$datafile <- data
         }
         
-        return(invisible(codeBook))
+        return(codeBook)
+    }
+    else {
+        return(result)
     }
 }
