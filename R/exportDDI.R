@@ -1,49 +1,47 @@
 `exportDDI` <- function(
-    codebook, file = "", embed = TRUE, OS = "", indent = 4, monolingual = FALSE,
-    xmlang = "en", IDNo = "S0000", agency = "default", distrbtr = "default",
-    URI = "http://www.default.edu"
+    codebook, file = "", embed = TRUE, OS = "", indent = 4,
+    monolang = FALSE, xmlang = "en", xmlns = "", ...
 ) {
-    
+    # https://ddialliance.org/Specification/DDI-Codebook/2.5/
     # https://ddialliance.org/Specification/DDI-Codebook/2.5/XMLSchema/field_level_documentation.html
     
+    check_arg <- function(x, vx, type = "c") {
+        valid <- is.atomic(vx) && length(vx) == 1
+        if (valid & type == "c") { # character
+            valid <- is.character(vx) & !admisc::possibleNumeric(vx)
+        }
 
-    ddi <- ""
-
-    # dots <- list(...)
-    # if (
-    #     is.element("ddi", names(dots)) && is.atomic(dots$ddi) && 
-    #     length(dots$ddi) == 1 && is.character(dots$ddi)
-    # ) {
-    #     ddi <- paste(dots$ddi, ":", sep = "")
-    # }
-
-    if (!is.atomic(xmlang) || !is.character(xmlang) || length(xmlang) != 1) {
-        admisc::stopError(
-            "Argument 'xmlang' should be a character vector of length 1"
-        )
+        if (!valid) {
+            admisc::stopError(
+                sprintf(
+                    "Argument '%s' should be a%s vector of length 1",
+                    x,
+                    ifelse(type == "c", " character", "")
+                )
+            )
+        }
     }
 
-    if (!is.atomic(agency) || !is.character(agency) || length(agency) != 1) {
-        admisc::stopError(
-            "Argument 'agency' should be a character vector of length 1"
-        )
+    check_dots <- function(x, default, type = "c") {
+        if (is.element(x, names(dots))) {
+            dotsx <- dots[[x]]
+            check_arg(x, dotsx, type = type)
+            return(dotsx)
+        }
+        return(default)
     }
-
-    if (!is.atomic(URI) || !is.character(URI) || length(URI) != 1) {
-        admisc::stopError(
-            "Argument 'URI' should be a character vector of length 1"
-        )
-    }
-
-    xmlang <- paste0(ifelse(isTRUE(monolingual), "", " "), "xml:lang=\"", xmlang, "\"")
-    agency <- paste0("\"", agency, "\"")
-    URI <- paste0("\"", URI, "\"")
 
     `generateUUID` <- function(x) {
         toreturn <- rep(NA, x)
         first <- sample(c(LETTERS, letters), x, replace = TRUE)
         for (i in seq(x)) {
-            toreturn[i] <- paste(c(first[i], sample(c(LETTERS, letters, 0:9), 15, replace = TRUE)), collapse = "")
+            toreturn[i] <- paste(
+                c(
+                    first[i],
+                    sample(c(LETTERS, letters, 0:9), 15, replace = TRUE)
+                ),
+                collapse = ""
+            )
         }
         return(toreturn)
         # a safer way is to use unique() but it is highly unlikely this would be needed
@@ -61,6 +59,28 @@
         x <- gsub(">", "&gt;", x)
         return(x)
     }
+
+    dots <- list(...)
+
+    IDNo <- check_dots("IDNo", "S0000", type = "any")
+    titl <- check_dots("titl", "Generic title")
+    agency <- check_dots("agency", "default")
+    URI <- check_dots("URI", "http://www.default.eu")
+    distrbtr <- check_dots("distrbtr", "Name of the distributing institution")
+    abstract <- check_dots("abstract", "Study abstract")
+    level <- check_dots("level", "0")
+
+    check_arg("xmlang", xmlang)
+    
+    xmlang <- paste0(
+        ifelse(isTRUE(monolang), "", " "),
+        "xml:lang=\"", xmlang, "\""
+    )
+
+    ns <- codebook[["xmlns"]]
+    if (is.null(ns)) ns <- xmlns
+    check_arg("xmlns", ns, "c")
+
 
     s0 <- repeatSpace(0)
     s1 <- repeatSpace(1)
@@ -111,93 +131,97 @@
     ))
 
     cat(paste(
-        s0, "<", ddi, "codeBook",
+        s0, "<", ns, ifelse(identical(ns, ""), "", ":"), "codeBook version=\"2.5\"",
         enter,
-        "version=\"2.5\"",
+        "ID=\"", generateUUID(1), "\"",
         enter,
-        ifelse(isTRUE(monolingual), paste0(xmlang, enter), ""),
-        "xmlns:ddi=\"ddi:codebook:2_5\"",
-        enter,
+        ifelse(isTRUE(monolang), paste0(xmlang, enter), ""),
         "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"",
         enter, 
+        "xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\"",
+        enter, 
         "xsi:schemaLocation=\"",
-        "ddi:codebook:2_5 https://ddialliance.org/Specification/DDI-Codebook/2.5/XMLSchema/codebook.xsd",
-        "\">",
+        "ddi:codebook:2_5 https://ddialliance.org/Specification/DDI-Codebook/2.5/XMLSchema/codebook.xsd\"",
+        enter,
+        paste0("xmlns", ifelse(identical(ns, ""), "", ":"), ns, "=\"ddi:codebook:2_5\">"),
         enter,
         sep = ""
     ))
 
-    if (isTRUE(monolingual)) {
+    if (!identical(ns, "")) ns <- paste0(ns, ":")
+
+    if (isTRUE(monolang)) {
         xmlang <- ""
     }
     
-    cat(paste(s1, "<", ddi, "docDscr>", enter, sep = ""))
-    cat(paste(s2, "<", ddi, "citation>", enter, sep = ""))
-    cat(paste(s3, "<", ddi, "titlStmt>", enter, sep = ""))
+    cat(paste(s1, "<", ns, "docDscr>", enter, sep = ""))
+    cat(paste(s2, "<", ns, "citation>", enter, sep = ""))
+    cat(paste(s3, "<", ns, "titlStmt>", enter, sep = ""))
     cat(paste(
-        s4, "<", ddi, "titl", xmlang, ">Generic title</", ddi, "titl>",
+        s4, "<", ns, "titl", xmlang, ">", titl, "</", ns, "titl>",
         enter,
         sep = ""
     ))
-    cat(paste(s3, "</", ddi, "titlStmt>", enter, sep = ""))
-    cat(paste(s3, "<", ddi, "prodStmt>", enter, sep = ""))
+    cat(paste(s3, "</", ns, "titlStmt>", enter, sep = ""))
+    cat(paste(s3, "<", ns, "prodStmt>", enter, sep = ""))
     cat(paste(
-        s4, "<", ddi, "prodDate date=\"", prodDate, "\">",
-        prodDate, "</", ddi, "prodDate>",
+        s4, "<", ns, "prodDate date=\"", prodDate, "\">",
+        prodDate, "</", ns, "prodDate>",
         enter,
         sep = ""
     ))
     cat(paste(
-        s4, "<", ddi, "software version=\"", version,
-        "\">R package DDIwR</", ddi, "software>",
+        s4, "<", ns, "software version=\"", version,
+        "\">R package DDIwR</", ns, "software>",
         enter, sep = ""
     ))
-    cat(paste(s3, "</", ddi, "prodStmt>", enter, sep = ""))
-    cat(paste(s2, "</", ddi, "citation>", enter, sep = ""))
-    cat(paste(s1, "</", ddi, "docDscr>", enter, sep = ""))
+    cat(paste(s3, "</", ns, "prodStmt>", enter, sep = ""))
+    cat(paste(s2, "</", ns, "citation>", enter, sep = ""))
+    cat(paste(s1, "</", ns, "docDscr>", enter, sep = ""))
 
-    cat(paste(s1, "<", ddi, "stdyDscr>", enter, sep = ""))
-    cat(paste(s2, "<", ddi, "citation>", enter, sep = ""))
+    cat(paste(s1, "<", ns, "stdyDscr>", enter, sep = ""))
+    cat(paste(s2, "<", ns, "citation>", enter, sep = ""))
 
-    cat(paste(s3, "<", ddi, "titlStmt>", enter, sep = ""))
+    cat(paste(s3, "<", ns, "titlStmt>", enter, sep = ""))
     cat(paste(
-        s4, "<", ddi, "titl", xmlang, ">Generic title</", ddi, "titl>",
+        s4, "<", ns, "titl", xmlang, ">", titl, "</", ns, "titl>",
         enter,
         sep = ""
     ))
     cat(paste(
-        s4, "<", ddi, "IDNo agency=", agency,">", IDNo, "</", ddi, "IDNo>",
+        s4, "<", ns, "IDNo agency=\"", agency,"\">", IDNo, "</", ns, "IDNo>",
         enter,
         sep = ""
     ))
-    cat(paste(s3, "</", ddi, "titlStmt>", enter, sep = ""))
+    cat(paste(s3, "</", ns, "titlStmt>", enter, sep = ""))
     
-    cat(paste(s3, "<", ddi, "distStmt>", enter, sep = ""))
+    cat(paste(s3, "<", ns, "distStmt>", enter, sep = ""))
     cat(paste(
-        s4, "<", ddi, "distrbtr", xmlang, ">", distrbtr,
-        "</", ddi, "distrbtr>",
+        s4, "<", ns, "distrbtr", xmlang, ">", distrbtr,
+        "</", ns, "distrbtr>",
         enter, sep = ""
     ))
-    cat(paste(s3, "</", ddi, "distStmt>", enter, sep = ""))
-    cat(paste(
-        s3, "<", ddi, "holdings URI=", URI,
-        ">Description of the study holdings</", ddi, "holdings>",
-        enter, sep = ""
-    ))
+    cat(paste(s3, "</", ns, "distStmt>", enter, sep = ""))
 
-    cat(paste(s2, "</", ddi, "citation>", enter, sep = ""))
-    cat(paste(s2, "<", ddi, "stdyInfo>", enter, sep = ""))
     cat(paste(
-        s3, "<", ddi, "abstract", xmlang, ">Study abstract</", ddi, "abstract>",
+        s3, "<", ns, "holdings URI=\"", URI,
+        "\">Description of the study holdings</", ns, "holdings>",
         enter, sep = ""
     ))
 
-    cat(paste(s2, "</", ddi, "stdyInfo>", enter, sep = ""))
+    cat(paste(s2, "</", ns, "citation>", enter, sep = ""))
+    cat(paste(s2, "<", ns, "stdyInfo>", enter, sep = ""))
+    cat(paste(
+        s3, "<", ns, "abstract", xmlang, ">", abstract, "</", ns, "abstract>",
+        enter, sep = ""
+    ))
 
-    cat(paste(s1, "</", ddi, "stdyDscr>", enter, sep = ""))
+    cat(paste(s2, "</", ns, "stdyInfo>", enter, sep = ""))
+
+    cat(paste(s1, "</", ns, "stdyDscr>", enter, sep = ""))
     
     cat(paste(
-        s1, "<", ddi, "fileDscr ID=\"", uuid[length(uuid)], "\">",
+        s1, "<", ns, "fileDscr ID=\"", uuid[length(uuid)], "\">",
         enter,
         sep = ""
     ))
@@ -216,18 +240,21 @@
 
         data <- declared::as.haven(data)
 
-        cat(paste(s2, "<", ddi, "fileTxt>", enter, sep = ""))
+        cat(paste(s2, "<", ns, "fileTxt>", enter, sep = ""))
         if (!is.null(fileName <- codebook[["fileDscr"]][["fileName"]])) {
-            cat(paste(s3, "<", ddi, "fileName>", fileName, "</", ddi, "fileName>", enter, sep = ""))
+            cat(paste(s3, "<", ns, "fileName>", fileName, "</", ns, "fileName>", enter, sep = ""))
         }
-        cat(paste(s3, "<", ddi, "dimensns>", enter, sep = ""))
-        cat(paste(s4, "<", ddi, "caseQnty>", nrow(data), "</", ddi, "caseQnty>", enter, sep = ""))
-        cat(paste(s4, "<", ddi, "varQnty>", ncol(data), "</", ddi, "varQnty>", enter, sep = ""))
-        cat(paste(s3, "</", ddi, "dimensns>", enter, sep = ""))
-        cat(paste(s2, "</", ddi, "fileTxt>", enter, sep = ""))
+        cat(paste(s3, "<", ns, "dimensns>", enter, sep = ""))
+        cat(paste(s4, "<", ns, "caseQnty>", nrow(data), "</", ns, "caseQnty>", enter, sep = ""))
+        cat(paste(s4, "<", ns, "varQnty>", ncol(data), "</", ns, "varQnty>", enter, sep = ""))
+        cat(paste(s3, "</", ns, "dimensns>", enter, sep = ""))
+        if (!is.null(fileType <- codebook[["fileDscr"]][["fileType"]])) {
+            cat(paste(s3, "<", ns, "fileType>", fileType, "</", ns, "fileType>", enter, sep = ""))
+        }
+        cat(paste(s2, "</", ns, "fileTxt>", enter, sep = ""))
 
         if (embed) {
-            cat(paste(s2, "<", ddi, "notes>", enter, sep = ""))
+            cat(paste(s2, "<", ns, "notes>", enter, sep = ""))
             cat(paste(
                 s0, "<![CDATA[# start data #",
                 enter,
@@ -236,7 +263,7 @@
                 enter,
                 sep = ""
             ))
-            cat(paste(s2, "</", ddi, "notes>", enter, sep = ""))
+            cat(paste(s2, "</", ns, "notes>", enter, sep = ""))
         }
 
         pN <- unlist(lapply(
@@ -258,8 +285,8 @@
 
     }
 
-    cat(paste(s1, "</", ddi, "fileDscr>", enter, sep = ""))
-    cat(paste(s1, "<", ddi, "dataDscr>", enter, sep = ""))
+    cat(paste(s1, "</", ns, "fileDscr>", enter, sep = ""))
+    cat(paste(s1, "<", ns, "dataDscr>", enter, sep = ""))
     for (i in seq(length(obj))) {
         dcml <- ""
         if (!is.null(data)) {
@@ -281,7 +308,7 @@
                          
         
         cat(paste0(
-            s2, "<", ddi, "var ID=\"", uuid[i], "\"",
+            s2, "<", ns, "var ID=\"", uuid[i], "\"",
             " name=\"", varnames[i], "\"",
             " files=\"", uuid[length(uuid)], "\"",
             dcml, nature, ">",
@@ -291,11 +318,11 @@
         if (!is.null(obj[[i]][["label"]])) {
             if (!is.na(obj[[i]][["label"]])) {
                 cat(paste(
-                    s3, "<", ddi, "labl", xmlang, ">",
+                    s3, "<", ns, "labl", xmlang, ">",
                     replaceChars(
                         obj[[i]][["label"]]
                     ),
-                    "</", ddi, "labl>",
+                    "</", ns, "labl>",
                     enter,
                     sep = ""
                 ))
@@ -315,7 +342,7 @@
 
         
         if (length(na_range) > 0) {
-            cat(paste(s3, "<", ddi, "invalrng>", enter, sep = ""))
+            cat(paste(s3, "<", ns, "invalrng>", enter, sep = ""))
 
             if (any(is.element(na_range, c(-Inf, Inf)))) {
                 if (identical(na_range[1], -Inf)) {
@@ -323,7 +350,7 @@
                         s4,
                         sprintf(
                             "<%srange UNITS=\"INT\" max=\"%s\"/>",
-                            ddi, na_range[2]
+                            ns, na_range[2]
                         ),
                         enter,
                         sep = ""
@@ -334,7 +361,7 @@
                         s4,
                         sprintf(
                             "<%srange UNITS=\"INT\" min=\"%s\"/>",
-                            ddi, na_range[1]
+                            ns, na_range[1]
                         ),
                         enter,
                         sep = ""
@@ -346,14 +373,14 @@
                     s4,
                     sprintf(
                         "<%srange UNITS=\"INT\" min=\"%s\" max=\"%s\"/>",
-                        ddi, na_range[1], na_range[2]
+                        ns, na_range[1], na_range[2]
                     ),
                     enter,
                     sep = ""
                 ))
             }
                 
-            cat(paste(s3, "</", ddi, "invalrng>", enter, sep = ""))
+            cat(paste(s3, "</", ns, "invalrng>", enter, sep = ""))
         }
 
         lbls <- obj[[i]][["labels"]]
@@ -377,60 +404,60 @@
                 if (printnum) { # numeric variable
                     cat(paste(
                         s3,
-                        "<", ddi, "sumStat type=\"min\">",
+                        "<", ns, "sumStat type=\"min\">",
                         format(
                             min(vals, na.rm = TRUE),
                             scientific = FALSE
                         ),
-                        "</", ddi, "sumStat>",
+                        "</", ns, "sumStat>",
                         enter,
                         sep = ""
                     ))
 
                     cat(paste(
                         s3,
-                        "<", ddi, "sumStat type=\"max\">",
+                        "<", ns, "sumStat type=\"max\">",
                         format(
                             max(vals, na.rm = TRUE),
                             scientific = FALSE
                         ),
-                        "</", ddi, "sumStat>",
+                        "</", ns, "sumStat>",
                         enter,
                         sep = ""
                     ))
                     
                     cat(paste(
                         s3,
-                        "<", ddi, "sumStat type=\"mean\">",
+                        "<", ns, "sumStat type=\"mean\">",
                         format(
                             mean(vals, na.rm = TRUE),
                             scientific = FALSE
                         ),
-                        "</", ddi, "sumStat>",
+                        "</", ns, "sumStat>",
                         enter,
                         sep = ""
                     ))
                     
                     cat(paste(
                         s3,
-                        "<", ddi, "sumStat type=\"medn\">",
+                        "<", ns, "sumStat type=\"medn\">",
                         format(
                             median(vals, na.rm = TRUE),
                             scientific = FALSE
                         ),
-                        "</", ddi, "sumStat>",
+                        "</", ns, "sumStat>",
                         enter,
                         sep = ""
                     ))
                     
                     cat(paste(
                         s3,
-                        "<", ddi, "sumStat type=\"stdev\">",
+                        "<", ns, "sumStat type=\"stdev\">",
                         format(
                             sd(vals, na.rm = TRUE),
                             scientific = FALSE
                         ),
-                        "</", ddi, "sumStat>",
+                        "</", ns, "sumStat>",
                         enter,
                         sep = ""
                     ))
@@ -452,23 +479,23 @@
 
                 cat(paste(
                     s3,
-                    "<", ddi, "catgry", ifelse(ismiss, " missing=\"Y\"", ""), ">",
+                    "<", ns, "catgry", ifelse(ismiss, " missing=\"Y\"", ""), ">",
                     enter,
                     sep = ""
                 ))
 
                 cat(paste(
                     s4,
-                    "<", ddi, "catValu>", replaceChars(lbls[v]), "</", ddi, "catValu>",
+                    "<", ns, "catValu>", replaceChars(lbls[v]), "</", ns, "catValu>",
                     enter,
                     sep = ""
                 ))
                 
                 cat(paste(
                     s4,
-                    "<", ddi, "labl", xmlang, ">",
+                    "<", ns, "labl", xmlang, ">",
                     replaceChars(names(lbls)[v]),
-                    "</", ddi, "labl>",
+                    "</", ns, "labl>",
                     enter,
                     sep = ""
                 ))
@@ -477,26 +504,26 @@
                     freq <- tbl[match(lbls[v], names(tbl))]
                     cat(paste(
                         s4,
-                        "<", ddi, "catStat type=\"freq\">", 
+                        "<", ns, "catStat type=\"freq\">", 
                         ifelse(
                             is.na(freq),
                             0,
                             format(freq, scientific = FALSE)
                         ), 
-                        "</", ddi, "catStat>",
+                        "</", ns, "catStat>",
                         enter,
                         sep = ""
                     ))
                 }
 
-                cat(paste(s3, "</", ddi, "catgry>", enter, sep = ""))
+                cat(paste(s3, "</", ns, "catgry>", enter, sep = ""))
             }
         }
 
         if (any(grepl("type", names(obj[[i]])))) {
             cat(paste(
                 s3,
-                "<", ddi, "varFormat type=\"",
+                "<", ns, "varFormat type=\"",
                 ifelse(
                     grepl("char", obj[[i]]$type),
                     "character",
@@ -509,21 +536,21 @@
         }
         
         if (any(grepl("txt", names(obj[[i]])))) {
-            cat(paste(s3, "<", ddi, "txt>", enter, sep = ""))
+            cat(paste(s3, "<", ns, "txt>", enter, sep = ""))
             cat(paste(
                 s0,
                 "<![CDATA[", obj[[i]]$txt, "]]>",
                 enter,
                 sep = ""
             ))
-            cat(paste(s3, "</", ddi, "txt>", enter, sep = ""))
+            cat(paste(s3, "</", ns, "txt>", enter, sep = ""))
         }
         
-        cat(paste(s2, "</", ddi, "var>", enter, sep = ""))
+        cat(paste(s2, "</", ns, "var>", enter, sep = ""))
     }
     
-    cat(paste(s1, "</", ddi, "dataDscr>", enter, sep = ""))
-    cat(paste(s1, "<", ddi, "otherMat></", ddi, "otherMat>", enter, sep = ""))
-    cat(paste(s0, "</", ddi, "codeBook>", enter, sep = ""))
+    cat(paste(s1, "</", ns, "dataDscr>", enter, sep = ""))
+    cat(paste(s1, "<", ns, "otherMat level=\"", level, "\"></", ns, "otherMat>", enter, sep = ""))
+    cat(paste(s0, "</", ns, "codeBook>", enter, sep = ""))
     
 }
