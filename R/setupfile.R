@@ -284,7 +284,7 @@
         for (i in seq(length(labelist$files))) {
 
             if (pathtofiles) {
-                obj <- DDIwR::getMetadata(
+                obj <- getMetadata(
                     file.path(
                         labelist$completePath,
                         labelist$files[i]
