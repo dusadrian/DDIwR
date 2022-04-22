@@ -271,7 +271,14 @@
         }
 
         codeBook <- getMetadata(data, error_null = FALSE)
-        codeBook$fileDscr$fileName <- tp_from$filenames
+        
+        
+        codeBook$fileDscr$fileName <- tp_from$files
+
+        filetypes <- c("SPSS", "SPSS", "Stata", "SAS", "R", "DDI", "Excel", "Excel")
+        fileexts <- c("SAV", "POR", "DTA", "SAS7BDAT", "RDS", "XML", "XLS", "XLSX")
+
+        codeBook$fileDscr$fileType <- filetypes[which(fileexts == tp_from$fileext)]
     }
     
     if (!is.null(to)) {
@@ -304,7 +311,6 @@
                 # )
             }
             # return(list(codeBook = codeBook, file = to))
-            
             exportDDI(codeBook, to, ... = ...)
         }
         else if (identical(tp_to$fileext, "SAV")) {
