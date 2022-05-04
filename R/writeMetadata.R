@@ -23,7 +23,7 @@
             valstring <- paste(paste("\"", labels, "\"", sep = ""),
                                paste(quote, values, quote, sep = ""),
                                sep = " = ", collapse = ",\n               ")
-            cat("rdatafile[[\"", names(dataDscr)[i], "\"]] <- declared::declared(rdatafile[[\"", names(dataDscr)[i], "\"]],", enter, sep="")
+            cat("rdatafile[[\"", names(dataDscr)[i], "\"]] <- declared(rdatafile[[\"", names(dataDscr)[i], "\"]],", enter, sep="")
             cat(paste0(rs(1), "labels = c(", valstring, "),", enter))
             
             if (is.element("na_values", names(dataDscr[[i]]))) {
