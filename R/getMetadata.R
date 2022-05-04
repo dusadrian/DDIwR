@@ -255,6 +255,7 @@ function(x, save = FALSE, OS = "Windows", ...) {
             }
             else if (tp$fileext[ff] == "RDS") {
                 data <- readr::read_rds(file.path(tp$completePath, tp$files[ff]))
+                # data <- readRDS(file.path(tp$completePath, tp$files[ff]))
             }
             # not sure about SAS, as far as I understand the metadata is not embedded in the datafile
             # sometimes it might sit into a separate, catalog file or something (need to investigate)
