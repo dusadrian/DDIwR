@@ -54,9 +54,15 @@
     }
 
     `replaceChars` <- function(x) {
+        # weird A character sometimes from SPSS encoding a single quote
+        achar <- rawToChar(as.raw(c(195, 130)))
+        irv <- c(194, 180)
+        tick <- unlist(strsplit(rawToChar(as.raw(irv)), split = ""))
+        tick <- c(paste0(achar, "'"), paste0(achar, tick), tick)
         x <- gsub("&", "&amp;", x)
         x <- gsub("<", "&lt;", x)
         x <- gsub(">", "&gt;", x)
+        x <- gsub(paste(tick, collapse = "|"), "'", x)
         return(x)
     }
 
@@ -238,8 +244,6 @@
             )
         }
 
-        data <- declared::as.haven(data)
-
         cat(paste(s2, "<", ns, "fileTxt>", enter, sep = ""))
         if (!is.null(fileName <- codebook[["fileDscr"]][["fileName"]])) {
             cat(paste(s3, "<", ns, "fileName>", fileName, "</", ns, "fileName>", enter, sep = ""))
@@ -258,7 +262,8 @@
             cat(paste(
                 s0, "<![CDATA[# start data #",
                 enter,
-                readr::format_csv(data, na = ""),
+                readr::format_csv(declared::as.haven(data), na = ""),
+                # vroom::vroom_format(data, delim = ",", na = ""),
                 "# end data #", enter, "]]>",
                 enter,
                 sep = ""
