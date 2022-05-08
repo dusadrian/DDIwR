@@ -37,7 +37,7 @@
         
         label <- attr(x, "label", exact = TRUE)
         if (!is.null(label)) {
-            result[["label"]] <- DDIwR::cleanup(label)
+            result[["label"]] <- cleanup(label)
         }
 
 
@@ -50,7 +50,7 @@
 
             labels <- labels[!is.na(labels) | tagged]
             if (length(labels) > 0) {
-                names(labels) <- DDIwR::cleanup(names(labels))
+                names(labels) <- cleanup(names(labels))
                 result[["labels"]] <- labels
             }
         }

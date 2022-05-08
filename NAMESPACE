@@ -17,6 +17,7 @@ export(
     getXML,
     make_labelled,
     recodeValues,
+    replaceTicks,
     writeMetadata,
     writeRlist
 )

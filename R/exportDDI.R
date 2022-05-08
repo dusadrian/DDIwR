@@ -5,7 +5,7 @@
     # https://ddialliance.org/Specification/DDI-Codebook/2.5/
     # https://ddialliance.org/Specification/DDI-Codebook/2.5/XMLSchema/field_level_documentation.html
     
-    check_arg <- function(x, vx, type = "c") {
+    `check_arg` <- function(x, vx, type = "c") {
         valid <- is.atomic(vx) && length(vx) == 1
         if (valid & type == "c") { # character
             valid <- is.character(vx) & !admisc::possibleNumeric(vx)
@@ -22,7 +22,7 @@
         }
     }
 
-    check_dots <- function(x, default, type = "c") {
+    `check_dots` <- function(x, default, type = "c") {
         if (is.element(x, names(dots))) {
             dotsx <- dots[[x]]
             check_arg(x, dotsx, type = type)
@@ -54,15 +54,10 @@
     }
 
     `replaceChars` <- function(x) {
-        # weird A character sometimes from SPSS encoding a single quote
-        achar <- rawToChar(as.raw(c(195, 130)))
-        irv <- c(194, 180)
-        tick <- unlist(strsplit(rawToChar(as.raw(irv)), split = ""))
-        tick <- c(paste0(achar, "'"), paste0(achar, tick), tick)
+        x <- replaceTicks(x)
         x <- gsub("&", "&amp;", x)
         x <- gsub("<", "&lt;", x)
         x <- gsub(">", "&gt;", x)
-        x <- gsub(paste(tick, collapse = "|"), "'", x)
         return(x)
     }
 

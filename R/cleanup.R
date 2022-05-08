@@ -13,9 +13,7 @@
         x <- gsub("<\\!\\[CDATA\\[|\\]\\]>", "", x)
     }
 
-    irv <- c(194, 180)
-    tick <- unlist(strsplit(rawToChar(as.raw(irv)), split = ""))
-    x <- gsub(paste(tick, collapse = "|"), "'", x)
+    x <- replaceTicks(x)
     
     return(x)
 }

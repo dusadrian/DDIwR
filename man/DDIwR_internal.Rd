@@ -10,6 +10,7 @@
 \alias{getFiles}
 \alias{getFormat}
 \alias{getXML}
+\alias{replaceTicks}
 \alias{splitrows}
 \alias{test}
 \alias{writeMetadata}
