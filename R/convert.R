@@ -30,11 +30,16 @@
     }
 
     encoding <- "UTF-8"
+    
     if (
-        is.element("encoding", names(dots)) && is.atomic(dots$encoding) && 
-        length(dots$encoding) == 1 && is.character(dots$encoding)
+        is.element("encoding", names(dots)) && is.atomic(dots$encoding)
     ) {
-        encoding <- dots$encoding
+        if (is.null(dots$encoding)) {
+            encoding <- NULL
+        }
+        else if (length(dots$encoding) == 1 && is.character(dots$encoding)) {
+            encoding <- dots$encoding
+        }
     }
 
     chartonum <- TRUE
