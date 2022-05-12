@@ -2788,7 +2788,6 @@
             cat(paste(
                 "# --- Read the raw data ---",
                 enter, enter,
-                # "rdatafile <- readr::read_delim(csvpath, delim = \"", ifelse(delim == "\t", "\\t", delim), "\")",
                 "rdatafile <- read.csv(csvpath)", 
                 enter, enter,
                 "names(rdatafile) <- toupper(names(rdatafile))    # all variable names to upper case",

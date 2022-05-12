@@ -257,8 +257,14 @@
             cat(paste(
                 s0, "<![CDATA[# start data #",
                 enter,
-                readr::format_csv(declared::as.haven(data), na = ""),
-                # vroom::vroom_format(data, delim = ",", na = ""),
+                sep = ""
+            ))
+
+            sink()
+            suppressWarnings(write.table(undeclare(data, drop = TRUE), file = file, sep = ",", na = "", row.names = FALSE, append = TRUE))
+            sink(file, append = TRUE)
+
+            cat(paste(
                 "# end data #", enter, "]]>",
                 enter,
                 sep = ""

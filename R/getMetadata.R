@@ -254,8 +254,7 @@ function(x, save = FALSE, OS = "Windows", ...) {
                 data <- do.call(haven::read_dta, arglist)
             }
             else if (tp$fileext[ff] == "RDS") {
-                data <- readr::read_rds(file.path(tp$completePath, tp$files[ff]))
-                # data <- readRDS(file.path(tp$completePath, tp$files[ff]))
+                data <- readRDS(file.path(tp$completePath, tp$files[ff]))
             }
             # not sure about SAS, as far as I understand the metadata is not embedded in the datafile
             # sometimes it might sit into a separate, catalog file or something (need to investigate)
@@ -296,13 +295,8 @@ function(x, save = FALSE, OS = "Windows", ...) {
                 spss <- ifelse(is.element("spss", names(dots)), dots$spss, TRUE)
                 notes <- unlist(strsplit(notes, split = "\\n"))
                 data <- notes[seq(which(grepl("# start data #", notes)) + 1, which(grepl("# end data #", notes)) - 1)]
-                #----------------
-                # don't remember why read_csv was not working
-                # data <- suppressMessages(readr::read_csv(paste(data, collapse = "\n")))
-                # and instead:
                 data <- read.csv(text = paste(data, collapse = "\n"), as.is = TRUE)
                 data <- make_labelled(data, codeBook$dataDscr, spss = spss)
-                #----------------
                 embed <- TRUE
             }
         }
