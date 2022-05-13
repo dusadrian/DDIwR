@@ -2,13 +2,14 @@ Version 0.11
     o new argument "xmlns" in function exportDDI(), to allow creating XML files
       using a namespace
     o new argument "..." in function exportDDI(), to accept more incoming options
-    
+    o improved setup file to import .csv file into R
+
 Version 0.10
     o new arguments "monolang" and "xmlang" in function exportDDI()
     o removed formal argument "embed" from function convert(), but it is still
       possible to be used via the "..." and automatically passed to exportDDI()
     o more validation checks when converting to DDI Codebook
-    
+
 Version 0.9
     o added the necessary "ddi:codebook:2_5" statement to the xsi:schemaLocation
       in the codebook, to validate the resulting DDI .xml file
@@ -20,20 +21,20 @@ Version 0.9
     o improved function setupfile(), now accepting datafiles as input
     o more integration with read / write functions from package haven
     o multiple improvements and bug fixes to the internal code
-    
+
 Version 0.8
     o fixed bug exporting invalid DDI .xml files
     o fixed bug exporting declared missing values to Excel
     o new logical argument "declared" in function convert() allowing users to
       control if variables in converted objects will have the class 'declared'
-    
+
 Version 0.7
     o proper production of setup files due to changing the codeBook structure
     o modified convert() for objects of class 'declared', to avoid a bug in
       package ReadStat that prevents exporting missing values to SPSS for
       integer variables
     o sync-ed with the latest version of package admisc
-    
+
 Version 0.6
     o function convert() now invisibly returns the imported data
     o function convert() now accepts Excel files for both input and output
@@ -43,16 +44,16 @@ Version 0.6
     o updated code to the latest version of package haven, and (consequently)
       removed argument "binpath" from function convert()
     o new function recodeMissing()
-    
+
 Version 0.5
     o fixed bug in make_labelled() when a variable is character,
       yet the value labels and the defined missing values are numeric
     o various other improvements to internal functions
-    
+
 Version 0.4
     o improved function convert() for speed
     o sync-ed with the latest version of package admisc
-    
+
 Version 0.3
     o new function convert(), to convert from one statistical package to another
     o new function exportDDI(), for DDI codebook version 2.5
@@ -66,7 +67,7 @@ Version 0.3
       from function setupfile()
     o improved code for the SAS setup files
     o various bug fixes in function setupfile()
-    
+
 Version 0.2
     o better arrangement of missing types in the R commands
     o some improvements in the R code generation
@@ -81,29 +82,29 @@ Version 0.2
 Version 0.1
     o R and SAS versions are now produced, in addition to SPSS and Stata
     o additional argument "saveFile" to function getMetadata()
-    
+
 Version 0.0-7
     o fixed a small bug in setupfile()
     o argument "outfile" not mandatory anymore
-    
+
 Version 0.0-6
     o new function getMetadata() that reads an .xml file and produces the
       relevant .R metadata file
     o setupfile() now automatically detects .xml file(s) and uses the
       getMetadata() function to use the DDI metadata from the XML files.
-    
+
 Version 0.0-5
     o setupfile() now accepts csvfile as a path to the csv data
     o argument "csvfile" renamed to "csv"
     o all created setup files are saved in the current directory, in the
       "Setup files" (created) folder
-    
+
 Version 0.0-4
     o Various bug fixes, thanks to Sebastian Kocar
-    
+
 Version 0.0-3
     o Better detection for ranges of missing values
-    
+
 Version 0.0-2
     o Added batch mode support
     o Reading .csv files now automatically detects three different delimiters:
@@ -115,6 +116,6 @@ Version 0.0-2
     o The "." sign to represent a missing is now detected and a NOTE is printed
       on the screen.
     o For the SPSS setup file, not more than 3 distinct missing values are allowed.
-    
+
 Version 0.0-1
     o First version of the package

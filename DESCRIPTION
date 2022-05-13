@@ -1,6 +1,6 @@
 Package: DDIwR
-Version: 0.10-5
-Date: 2022-04-20
+Version: 0.11
+Date: 2022-05-12
 Title: DDI with R
 Authors@R: person(given = "Adrian", family = "Dusa",
                   role = c("aut", "cre", "cph"),
@@ -8,12 +8,11 @@ Authors@R: person(given = "Adrian", family = "Dusa",
                   comment = c(ORCID = "0000-0002-3525-9253"))
 Depends: R (>= 3.5.0)
 Imports:
-    admisc (> 0.19),
-    declared (> 0.14),
+    admisc (> 0.25),
+    declared (> 0.15),
     tools,
     xml2,
     haven,
-    readr,
     readxl,
     writexl
 Description: Useful functions for various DDI (Data Documentation Initiative) related inputs and outputs.
