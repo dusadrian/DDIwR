@@ -19,7 +19,7 @@
                 labels <- admisc::asNumeric(labels)
             }
             else {
-                x <- as.character(x)
+                x[[i]] <- as.character(x[[i]])
                 nms <- names(labels)
                 labels <- as.character(labels)
                 names(labels) <- nms
