@@ -527,6 +527,7 @@
         }
 
         if (any(grepl("type", names(obj[[i]])))) {
+            varFormat <- obj[[i]]$format.spss
             cat(paste(
                 s3,
                 "<", ns, "varFormat type=\"",
@@ -535,7 +536,11 @@
                     "character",
                     "numeric"
                 ),
-                "\"/>",
+                "\" schema=\"other\" formatname=\"",
+                substr(varFormat, 1, 1),
+                "\">",
+                varFormat,
+                "</", ns, "varFormat>",
                 enter,
                 sep = ""
             ))
