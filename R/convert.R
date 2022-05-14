@@ -140,7 +140,8 @@
                 is.null(to),
                 FALSE,
                 identical(tp_to$fileext, "SAV")
-            )
+            ),
+            declared = declared
         )
 
         if (is.element(
@@ -217,7 +218,7 @@
             arglist$file <- from
             arglist$user_na <- user_na
             arglist$encoding <- encoding
-            data <- do.call(haven::read_sav, arglist)
+            data <- do.call(haven::read_sav, arglist) # haven_labelled variables
         }
         else if (tp_from$fileext == "POR") {
             fargs <- names(formals(read_por))
@@ -312,11 +313,12 @@
         }
         else if (identical(tp_to$fileext, "SAV")) {
             data[] <- lapply(data, function(x) {
-                if (any(names(attributes(x)) == "format.spss")) return(x)
-                attr(x, "format.spss") <- getFormat(x)
+                if (!is.element("format.spss", names(attributes(x)))) {
+                    attr(x, "format.spss") <- getFormat(x)
+                }
                 return(x)
             })
-            
+            # return(data)
             haven::write_sav(declared::as.haven(data), to)
         }
         else if (identical(tp_to$fileext, "DTA")) {
