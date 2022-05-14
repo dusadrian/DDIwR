@@ -492,7 +492,7 @@
 
                 cat(paste(
                     s4,
-                    "<", ns, "catValu>", gsub("[^0-9a-z]", "", replaceChars(lbls[v])), "</", ns, "catValu>",
+                    "<", ns, "catValu>", gsub("[^[:alnum:]]", "", replaceChars(lbls[v])), "</", ns, "catValu>",
                     enter,
                     sep = ""
                 ))
