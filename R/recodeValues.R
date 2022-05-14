@@ -64,6 +64,9 @@
     }
 
     # build a dictionary based on existing metadata
+    if (to == "STATA") {
+        dataset <- declared::as.haven(dataset)
+    }
 
     allMissing <- list()
     
@@ -71,29 +74,6 @@
         x <- dataset[[variable]]
         attrx <- attributes(x)
         attributes(x) <- NULL
-
-        if (is.element("declared", attrx$class) & to == "STATA") {
-            # transform back to a haven_labelled variable
-            na_index <- attrx$na_index
-            
-            if (!is.null(na_index)) {
-                nms <- names(na_index)
-                if (admisc::possibleNumeric(nms) || all(is.na(nms))) {
-                    nms <- admisc::asNumeric(nms)
-                    if (admisc::wholeNumeric(nms)) {
-                        nms <- as.integer(nms)
-                    }
-                }
-                
-                x[na_index] <- nms
-            }
-            
-            attrx$class <- c("haven_labelled_spss", "haven_labelled", "vctrs_vctr", class(x))
-
-            dataset[[variable]] <- x
-            attrx$na_index <- NULL
-            attributes(dataset[[variable]]) <- attrx
-        }
 
         metadata <- dataDscr[[variable]]
         missing <- NULL
@@ -107,6 +87,7 @@
             misvals <- x[x >= na_range[1] & x <= na_range[2]]
             missing <- sort(unique(c(missing, misvals[!is.na(misvals)])))
         }
+
         if (
             is.element("labels", names(metadata)) &&
             any(is.element(missing, metadata[["labels"]]))
@@ -115,12 +96,13 @@
             names(missing)[wel] <- names(metadata[["labels"]])[
                 match(missing[wel], metadata[["labels"]])
             ]
+            missing <- missing[wel]
         }
 
         allMissing[[variable]] <- missing
 
     }
-# return(allMissing)
+
 
     missingSPSS <- missingStata <- NULL
 
@@ -138,7 +120,7 @@
         umis <- umis[order(umis$labels, umis$codes), ]
         umis$rec <- umis$codes
         ulabels <- unique(umis[, 1])
-
+        
         for (i in seq(length(ulabels))) {
             if (ulabels[i] != "") {
                 uel <- is.element(umis$labels, ulabels[i])
