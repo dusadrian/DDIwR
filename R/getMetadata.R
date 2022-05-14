@@ -1,5 +1,5 @@
 `getMetadata` <- 
-function(x, save = FALSE, OS = "Windows", ...) {
+function(x, save = FALSE, declared = TRUE, OS = "Windows", ...) {
     
     # TODO: detect DDI version or ask the version through a dedicated argument
     # http://www.ddialliance.org/Specification/DDI-Codebook/2.5/XMLSchema/field_level_documentation.html
@@ -147,7 +147,9 @@ function(x, save = FALSE, OS = "Windows", ...) {
                 values <- cleanup(xml2::xml_text(xml2::xml_find_all(vars[i], xpath)))
 
                 xpath <- sprintf("%svarFormat", dns)
-                type <- xml2::xml_attr(xml2::xml_find_first(vars[i], xpath), "type")
+                vformat <- xml2::xml_find_first(vars[i], xpath)
+                type <- xml2::xml_attr(vformat, "type")
+                varFormat <- xml2::xml_text(vformat)
                 
                 if (length(values) > 0) {
                     
@@ -193,20 +195,7 @@ function(x, save = FALSE, OS = "Windows", ...) {
                     codeBook$dataDscr[[i]]$na_range <- na_range
                 }
 
-                if (!is.na(measurement)) {
-                    if (is.element(measurement, c("nominal", "ordinal"))) {
-                        codeBook$dataDscr[[i]]$type <- "cat"
-                    }
-                    else if (is.element(measurement, c("interval", "ratio"))) {
-                        codeBook$dataDscr[[i]]$type <- "num"
-                    }
-                    else if (!is.na(type)) {
-                        codeBook$dataDscr[[i]]$type <- type
-                    }
-
-                    codeBook$dataDscr[[i]]$measurement <- measurement
-                }
-                else {
+                if (is.na(measurement)) {
                     if (!is.na(type)) {
                         codeBook$dataDscr[[i]]$type <- "num" # default
 
@@ -219,6 +208,23 @@ function(x, save = FALSE, OS = "Windows", ...) {
                             }
                         }
                     }
+                }
+                else {
+                    if (is.element(measurement, c("nominal", "ordinal"))) {
+                        codeBook$dataDscr[[i]]$type <- "cat"
+                    }
+                    else if (is.element(measurement, c("interval", "ratio"))) {
+                        codeBook$dataDscr[[i]]$type <- "num"
+                    }
+                    else if (!is.na(type)) {
+                        codeBook$dataDscr[[i]]$type <- type
+                    }
+
+                    codeBook$dataDscr[[i]]$measurement <- measurement
+                }
+
+                if (!is.na(vformat)) {
+                    codeBook$dataDscr[[i]]$format.spss <- varFormat
                 }
 
                 if (identical(type, "character")) {
@@ -282,7 +288,13 @@ function(x, save = FALSE, OS = "Windows", ...) {
                 indent <- dots$indent
             }
             
-            writeRlist(codeBook$dataDscr, OS = OS, indent = indent, dirpath = tp$completePath, filename = tp$filenames[ff])
+            writeRlist(
+                codeBook$dataDscr,
+                OS = OS,
+                indent = indent,
+                dirpath = tp$completePath,
+                filename = tp$filenames[ff]
+            )
             
         }
     }
@@ -296,7 +308,7 @@ function(x, save = FALSE, OS = "Windows", ...) {
                 notes <- unlist(strsplit(notes, split = "\\n"))
                 data <- notes[seq(which(grepl("# start data #", notes)) + 1, which(grepl("# end data #", notes)) - 1)]
                 data <- read.csv(text = paste(data, collapse = "\n"), as.is = TRUE)
-                data <- make_labelled(data, codeBook$dataDscr, spss = spss)
+                data <- make_labelled(data, codeBook$dataDscr, declared = declared, spss = spss)
                 embed <- TRUE
             }
         }
