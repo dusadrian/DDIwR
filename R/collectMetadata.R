@@ -80,6 +80,14 @@
             admisc::possibleNumeric(x)
         )
 
+        format <- attr(x, "format.spss", exact = TRUE)
+        if (is.null(format)) {
+            result[["format.spss"]] <- getFormat(x)
+        }
+        else {
+            result[["format.spss"]] <- format
+        }
+
         return(result)
     })
 
