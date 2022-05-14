@@ -1,5 +1,5 @@
 
-`make_labelled` <- function(x, dataDscr, ...) {
+`make_labelled` <- function(x, dataDscr, declared = TRUE, ...) {
 
     pN <- sapply(x, admisc::possibleNumeric)
     
@@ -19,13 +19,18 @@
             v <- admisc::asNumeric(v)
         }
         
-        x[[i]] <- declared::declared(v, labels, na_values, na_range, label)
+        if (declared) {
+            x[[i]] <- declared::declared(v, labels, na_values, na_range, label)
+        }
+        else {
+            x[[i]] <- haven::labelled_spss(v, labels, na_values, na_range, label)
+        }
 
     }
 
-    other.args <- list(...)
-    if (is.element("spss", names(other.args))) {
-        if (other.args$spss) {
+    dots <- list(...)
+    if (is.element("spss", names(dots))) {
+        if (dots$spss) {
             x[] <- lapply(x, function(x) {
                 attr(x, "format.spss") <- getFormat(x)
                 return(x)
