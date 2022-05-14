@@ -16,10 +16,10 @@ convert(from, to = NULL, declared = TRUE, recode = TRUE, ...)
 }
 
 \arguments{
-  \item{from}{A path to a file, or a data frame object}
+  \item{from}{A path to a file, or a data.frame object}
   \item{to}{Character, the name of a software package or a path to a specific
     file}
-  \item{declared}{Logical, return the resulting data frame as a declared object}
+  \item{declared}{Logical, return the resulting dataset as a declared object}
   \item{recode}{Logical, recode missing values}
   \item{...}{Additional parameters passed to exporting functions, see the Details
     section}

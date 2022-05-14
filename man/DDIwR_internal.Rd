@@ -3,18 +3,18 @@
 \alias{checkType}
 \alias{cleanup}
 \alias{collectMetadata}
-\alias{make_labelled}
 \alias{getDecimals}
 \alias{getDelimiter}
 \alias{getEnter}
 \alias{getFiles}
 \alias{getFormat}
 \alias{getXML}
+\alias{make_labelled}
 \alias{replaceTicks}
 \alias{splitrows}
 \alias{test}
-\alias{writeMetadata}
 \alias{treatPath}
+\alias{writeMetadata}
 \alias{writeRlist}
 
 \title{Internal Functions}

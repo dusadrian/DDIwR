@@ -1,3 +1,6 @@
+Version 0.12
+    o fixed varFormat when exporting to DDI
+
 Version 0.11
     o new argument "xmlns" in function exportDDI(), to allow creating XML files
       using a namespace
