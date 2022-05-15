@@ -243,7 +243,7 @@
                 }
             }
 
-            if (!admisc::possibleNumeric(labels)) {
+            if (!is.null(labels) && !admisc::possibleNumeric(labels)) {
                 x <- as.character(x)
                 if (length(na_values_i) > 0) {
                     na_values_i <- as.character(na_values_i)
@@ -306,8 +306,13 @@
             if (spss[i] & !is.null(dictionary)) {
                 attributes(x) <- NULL
 
-                ux <- unique(c(x[!is.na(x)], labels))
+                pN <- TRUE
+                nullabels <- is.null(labels)
+                ux <- unique(c(x[!is.na(x)], unname(labels)))
                 pnux <- admisc::possibleNumeric(ux, each = TRUE)
+
+                pN <- ifelse(all(is.na(ux)), TRUE, all(pnux))
+
                 nums <- c()
                 if (any(pnux)) {
                     nums <- as.numeric(ux[pnux])
@@ -316,7 +321,7 @@
 
                 # transform character values and labels to numeric
                 # Stata does not allow character values
-                if (any(!pnux) & chartonum & !is.null(labels)) {
+                if (any(!pnux) & chartonum & !nullabels) {
                     nms_l <- names(labels)
 
                     cux <- ux[!pnux]
@@ -364,8 +369,9 @@
                         ]
                     }
                     else if (!is.null(na_range_i)) {
+                        num_labels <- as.numeric(labels)
                         na_labels <- names(labels)[
-                            as.numeric(labels) >= na_range_i[1] & as.numeric(labels) <= na_range_i[2]
+                            num_labels >= na_range_i[1] & num_labels <= na_range_i[2]
                         ]
                     }
                     
@@ -377,7 +383,8 @@
                     dic_i <- admisc::asNumeric(dic_i)
                 }
 
-                x <- as.numeric(x)
+                x <- admisc::asNumeric(x)
+
                 for (d in seq(length(dic_i))) {
                     x[is.element(x, dic_i[d])] <- haven::tagged_na(nms_i[d])
                     labels[
@@ -385,7 +392,9 @@
                     ] <- haven::tagged_na(nms_i[d])
                 }
 
-
+                if (i == 100) {
+                    return(list(x, labels, metadata[["label"]]))
+                }
                 dataset[, i] <- haven::labelled(
                     x,
                     labels = labels,
