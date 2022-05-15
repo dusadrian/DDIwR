@@ -40,7 +40,7 @@
 
     return(
         sprintf(
-            "%s%s%s%d", 
+            "%s%s%s%s", 
             ifelse(string, "A", "F"),
             maxvarchar, 
             ifelse(string, "", "."),
