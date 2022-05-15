@@ -308,6 +308,7 @@ function(x, save = FALSE, declared = TRUE, OS = "Windows", ...) {
                 notes <- unlist(strsplit(notes, split = "\\n"))
                 data <- notes[seq(which(grepl("# start data #", notes)) + 1, which(grepl("# end data #", notes)) - 1)]
                 data <- read.csv(text = paste(data, collapse = "\n"), as.is = TRUE)
+                return(list(data, codeBook$dataDscr))
                 data <- make_labelled(data, codeBook$dataDscr, declared = declared, spss = spss)
                 embed <- TRUE
             }
