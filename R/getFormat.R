@@ -1,50 +1,59 @@
-`getFormat` <- function(x) {
+`getFormat` <- function(x, ...) {
 
-    if (all(is.na(x))) {
-        return("A0")
-    }
-    
-    string <- is.character(x)
-    x2 <- as.character(declared::undeclare(x, drop = TRUE))
-
-    while (TRUE) {
-        nofchars <- tryCatch(nchar(x2), error = function(x) return(x))
-
-        if (!is.list(nofchars)) break
-
-        # if here, tryCatch caught an error, most likely a multibyte character
-        error <- unlist(strsplit(nofchars[[1]], split = " "))
-        # remove the offending character
-        x2 <- x2[-as.numeric(error[length(error)])]
-        # and repeat the loop until no more problems appear
+    dots <- list(...)
+    labels <- dots[["labels"]]
+    if (is.null(labels) && (haven::is.labelled(x) | declared::is.declared(x))) {
+        labels <- attr(x, "labels", exact = TRUE)
     }
 
-    if (length(nofchars) == 0) {
-        nofchars <- 1
-    }
-
-    maxvarchar <- max(nofchars, na.rm = TRUE)
-
-    if (haven::is.labelled(x) | declared::is.declared(x)) {
-        labels <- attr(x, "labels")
-        if (is.character(labels)) {
-            string <- TRUE
-            maxvarchar <- max(maxvarchar, nchar(labels))
-        }
+    pN <- TRUE
+    allnax <- all(is.na(x))
+    nullabels <- is.null(labels)
+    if (!(allnax & nullabels)) {
+        pN <- admisc::possibleNumeric(c(x, unname(labels)))
     }
 
     decimals <- 0
-    if (admisc::possibleNumeric(x)) {
+    if (pN & !allnax) {
         decimals <- admisc::numdec(x)
     }
+
+    x <- as.character(declared::undeclare(x, drop = TRUE))
+
+    if (allnax) {
+        maxvarchar <- 0
+    }
+    else {
+        while (TRUE) {
+            nofchars <- tryCatch(nchar(x), error = function(x) return(x))
+
+            if (!is.list(nofchars)) break
+
+            # if here, tryCatch caught an error, most likely a multibyte character
+            error <- unlist(strsplit(nofchars[[1]], split = " "))
+            # remove the offending character
+            x <- x[-as.numeric(error[length(error)])]
+            # and repeat the loop until no more problems appear
+        }
+
+        if (length(nofchars) > 0) {
+            maxvarchar <- max(nofchars, na.rm = TRUE)
+        }
+    }
+
+    if (pN)
+
+    if (!nullabels & !pN) {
+        maxvarchar <- max(maxvarchar, nchar(labels))
+    }    
 
     return(
         sprintf(
             "%s%s%s%s", 
-            ifelse(string, "A", "F"),
+            ifelse(pN, "F", "A"),
             maxvarchar, 
-            ifelse(string, "", "."),
-            ifelse(string, "", decimals)
+            ifelse(pN, ".", ""),
+            ifelse(pN, decimals, "")
         )
     )
 }
