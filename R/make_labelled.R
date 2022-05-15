@@ -1,8 +1,6 @@
 
 `make_labelled` <- function(x, dataDscr, declared = TRUE, ...) {
 
-    pN <- sapply(x, admisc::possibleNumeric)
-    
     for (i in names(x)) {
         #------------------------------------------------------------------
         # attrx$label, if not existing, takes from attrx$labels
@@ -16,43 +14,41 @@
 
         v <- x[[i]]
         attributes(v) <- NULL
-        allnav <- all(is.na(v))
 
-        if (is.null(labels)) {
-            if (allnav) {
-                pN[i] <- TRUE
-            }
+        pN <- TRUE
+        allnav <- all(is.na(v))
+        nullabels <- is.null(labels)
+        if (!(allnav & nullabels)) {
+            pN <- admisc::possibleNumeric(c(v, unname(labels)))
+        }
+
+        if (pN) {
+            v <- admisc::asNumeric(v)
         }
         else {
-            if (admisc::possibleNumeric(labels) && (pN[i] | allnav)) {
+            v <- as.character(v)
+            na_range <- NULL
+        }
+
+        if (!nullabels) {
+            nms <- names(labels)
+            if (pN) {
                 labels <- admisc::asNumeric(labels)
             }
             else {
-                v <- as.character(v)
-                nms <- names(labels)
                 labels <- as.character(labels)
-                names(labels) <- nms
-                pN[i] <- FALSE
-                na_range <- NULL
             }
+            names(labels) <- nms
         }
 
         if (!is.null(na_values)) {
-            if (admisc::possibleNumeric(na_values) & (pN[i] | allnav)) {
+            if (admisc::possibleNumeric(na_values) & pN) {
                 na_values <- admisc::asNumeric(na_values)
             }
             else {
                 na_values <- as.character(na_values)
             }
         }
-
-        if (pN[i] || (allnav & is.numeric(labels))) {
-            v <- admisc::asNumeric(v)
-        }
-        else {
-            v <- as.character(v)
-        }
-        
         
         
         if (declared) {
