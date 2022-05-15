@@ -1,5 +1,5 @@
 `convert` <- function(
-    from, to = NULL, declared = TRUE, recode = TRUE, ...
+    from, to = NULL, declared = TRUE, recode = TRUE, encoding = "UTF-8", ...
 ) {
     if (missing(from)) {
         admisc::stopError("Argument 'from' is missing.")
@@ -27,19 +27,6 @@
         length(dots$embed) == 1 && is.logical(dots$embed)
     ) {
         embed <- dots$embed
-    }
-
-    encoding <- "UTF-8"
-
-    if (
-        is.element("encoding", names(dots)) && is.atomic(dots$encoding)
-    ) {
-        if (is.null(dots$encoding)) {
-            encoding <- NULL
-        }
-        else if (length(dots$encoding) == 1 && is.character(dots$encoding)) {
-            encoding <- dots$encoding
-        }
     }
 
     chartonum <- TRUE
@@ -141,7 +128,8 @@
                 FALSE,
                 identical(tp_to$fileext, "SAV")
             ),
-            declared = declared
+            declared = declared,
+            encoding = encoding
         )
 
         if (is.element(
@@ -339,6 +327,15 @@
                         }
                     }
                 }
+
+                # return(list(
+                #     data = data,
+                #     dictionary = dictionary,
+                #     chartonum = chartonum,
+                #     to_declared = FALSE,
+                #     error_null = FALSE
+                # ))
+
                 arglist <- list(
                     data = recodeValues(
                         data,

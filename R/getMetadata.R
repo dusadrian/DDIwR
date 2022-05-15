@@ -1,5 +1,5 @@
 `getMetadata` <- 
-function(x, save = FALSE, declared = TRUE, OS = "Windows", ...) {
+function(x, save = FALSE, declared = TRUE, OS = "Windows", encoding = "UTF-8", ...) {
     
     # TODO: detect DDI version or ask the version through a dedicated argument
     # http://www.ddialliance.org/Specification/DDI-Codebook/2.5/XMLSchema/field_level_documentation.html
@@ -13,14 +13,6 @@ function(x, save = FALSE, declared = TRUE, OS = "Windows", ...) {
         length(dots$user_na) == 1 && is.logical(dots$user_na)
     ) {
         user_na <- dots$user_na
-    }
-
-    encoding <- "utf8"
-    if (
-        is.element("encoding", names(dots)) && is.atomic(dots$encoding) && 
-        length(dots$encoding) == 1 && is.character(dots$encoding)
-    ) {
-        encoding <- dots$encoding
     }
     
     if (is.data.frame(x)) {

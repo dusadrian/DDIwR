@@ -1,4 +1,5 @@
 Version 0.12
+    o new argument "encoding" in functions convert() and getMetadata()
     o fixed varFormat when exporting to DDI
 
 Version 0.11

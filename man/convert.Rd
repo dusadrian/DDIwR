@@ -12,7 +12,7 @@ an exchange platform and facilitates a consistent conversion of the missing valu
 }
 
 \usage{
-convert(from, to = NULL, declared = TRUE, recode = TRUE, ...)
+convert(from, to = NULL, declared = TRUE, recode = TRUE, encoding = "UTF-8", ...)
 }
 
 \arguments{
@@ -21,6 +21,7 @@ convert(from, to = NULL, declared = TRUE, recode = TRUE, ...)
     file}
   \item{declared}{Logical, return the resulting dataset as a declared object}
   \item{recode}{Logical, recode missing values}
+  \item{encoding}{The character encoding used to read a file}
   \item{...}{Additional parameters passed to exporting functions, see the Details
     section}
 }
@@ -80,6 +81,10 @@ It is possible to employ additional formal arguments from the function
 its argument \bold{\code{embed}} (that is activated by default) can be used to
 deactivate embedding the data in the XML file, in which situation a CSV file will
 be produced in the same directory, using the same file name as the XML file.
+
+The character \bold{\code{encoding}} is usually passed to the corresponding
+functions from package \bold{\pkg{haven}}. It can be set to \code{NULL} to reset
+at the default in that package.
 }
 
 

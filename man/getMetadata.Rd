@@ -10,7 +10,7 @@ information about missing values.
 }
 
 \usage{
-getMetadata(x, save = FALSE, declared = TRUE, OS = "Windows", ...)
+getMetadata(x, save = FALSE, declared = TRUE, OS = "Windows", encoding = "UTF-8", ...)
 }
 
 \arguments{
@@ -19,6 +19,7 @@ getMetadata(x, save = FALSE, declared = TRUE, OS = "Windows", ...)
   \item{declared}{Logical, embed the data as a declared object}
   \item{OS}{The target operating system, for the eol - end of line separator,
             if saving the file}
+  \item{encoding}{The character encoding used to read a file}
   \item{...}{Additional arguments for this function (internal uses only)}
 }
 
