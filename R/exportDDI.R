@@ -293,6 +293,7 @@
 
     cat(paste(s1, "</", ns, "fileDscr>", enter, sep = ""))
     cat(paste(s1, "<", ns, "dataDscr>", enter, sep = ""))
+
     for (i in seq(length(obj))) {
         dcml <- ""
         if (!is.null(data)) {
@@ -390,6 +391,20 @@
         }
 
         lbls <- obj[[i]][["labels"]]
+        if (!is.null(lbls)) {
+            nms <- names(lbls)
+            lbls <- admisc::trimstr(lbls)
+            negvals <- grepl("^[-]", lbls)
+            lbls <- gsub("[^[:alnum:]]", "", lbls)
+            
+            if (admisc::possibleNumeric(lbls)) {
+                lbls <- admisc::asNumeric(lbls)
+            }
+
+            lbls[negvals] <- -1 * lbls[negvals]
+            names(lbls) <- nms
+        }
+
         type <- obj[[i]]$type
         
         if (!is.null(data)) {
@@ -472,9 +487,10 @@
             }
         }
         
-        if (any(grepl("labels", names(obj[[i]])))) {
+        if (!is.null(lbls)) {
 
-            tbl <- table(data[[names(obj)[i]]])
+            tbl <- table(data[[names(obj)[i]]]) # what is the difference from data[[i]] ?
+            
             
             for (v in seq(length(lbls))) {
                 
@@ -492,7 +508,9 @@
 
                 cat(paste(
                     s4,
-                    "<", ns, "catValu>", gsub("[^[:alnum:]]", "", replaceChars(lbls[v])), "</", ns, "catValu>",
+                    "<", ns, "catValu>",
+                    lbls[v],
+                    "</", ns, "catValu>",
                     enter,
                     sep = ""
                 ))
