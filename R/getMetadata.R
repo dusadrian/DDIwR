@@ -15,7 +15,7 @@ function(x, save = FALSE, declared = TRUE, OS = "Windows", ...) {
         user_na <- dots$user_na
     }
 
-    encoding <- "latin1"
+    encoding <- "utf8"
     if (
         is.element("encoding", names(dots)) && is.atomic(dots$encoding) && 
         length(dots$encoding) == 1 && is.character(dots$encoding)
