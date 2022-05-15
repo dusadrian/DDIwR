@@ -391,10 +391,7 @@
                         is.element(labels, dic_i[d])
                     ] <- haven::tagged_na(nms_i[d])
                 }
-
-                if (i == 100) {
-                    return(list(x, labels, metadata[["label"]]))
-                }
+                
                 dataset[, i] <- haven::labelled(
                     x,
                     labels = labels,
