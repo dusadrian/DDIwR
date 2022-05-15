@@ -399,9 +399,9 @@
             
             if (admisc::possibleNumeric(lbls)) {
                 lbls <- admisc::asNumeric(lbls)
+                lbls[negvals] <- -1 * lbls[negvals]
             }
 
-            lbls[negvals] <- -1 * lbls[negvals]
             names(lbls) <- nms
         }
 
