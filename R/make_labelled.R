@@ -14,12 +14,21 @@
         na_values <- dataDscr[[i]][["na_values"]]
         na_range <- dataDscr[[i]][["na_range"]]
 
-        if (!is.null(labels)) {
-            if (admisc::possibleNumeric(labels) && pN[i]) {
+        v <- x[[i]]
+        attributes(v) <- NULL
+        allnav <- all(is.na(v))
+
+        if (is.null(labels)) {
+            if (allnav) {
+                pN[i] <- TRUE
+            }
+        }
+        else {
+            if (admisc::possibleNumeric(labels) && (pN[i] | allnav)) {
                 labels <- admisc::asNumeric(labels)
             }
             else {
-                x[[i]] <- as.character(x[[i]])
+                v <- as.character(v)
                 nms <- names(labels)
                 labels <- as.character(labels)
                 names(labels) <- nms
@@ -29,7 +38,7 @@
         }
 
         if (!is.null(na_values)) {
-            if (admisc::possibleNumeric(na_values) & pN[i]) {
+            if (admisc::possibleNumeric(na_values) & (pN[i] | allnav)) {
                 na_values <- admisc::asNumeric(na_values)
             }
             else {
@@ -37,14 +46,14 @@
             }
         }
 
-        if (pN[i]) {
-            x[[i]] <- admisc::asNumeric(x[[i]])
+        if (pN[i] || (allnav & is.numeric(labels))) {
+            v <- admisc::asNumeric(v)
         }
         else {
-            x[[i]] <- as.character(x[[i]])
+            v <- as.character(v)
         }
         
-        v <- unname(unlist(unclass(x[, i])))
+        
         
         if (declared) {
             x[[i]] <- declared::declared(v, labels, na_values, na_range, label)
