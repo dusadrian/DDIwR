@@ -58,16 +58,22 @@
             x[[i]] <- haven::labelled_spss(v, labels, na_values, na_range, label)
         }
 
+        attr(x[[i]], "format.spss") <- dataDscr[[i]][["format.spss"]]
+
     }
 
     dots <- list(...)
-    if (is.element("spss", names(dots))) {
-        if (dots$spss) {
-            x[] <- lapply(x, function(x) {
+    if (isTRUE(dots$spss)) {
+        x[] <- lapply(x, function(x) {
+            if (is.null(attr(x, "format.spss"))) {
                 attr(x, "format.spss") <- getFormat(x)
-                return(x)
-            })
-        }
+            }
+            return(x)
+        })
+    }
+
+    if (!declared) {
+        class(x) <- c("tbl_df", "tbl", "data.frame")
     }
 
     return(x)
