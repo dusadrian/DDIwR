@@ -123,13 +123,9 @@
     if (tp_from$fileext == "XML") {
         codeBook <- getMetadata(
             from,
-            spss = ifelse(
-                is.null(to),
-                FALSE,
-                identical(tp_to$fileext, "SAV")
-            ),
             declared = declared,
-            encoding = encoding
+            encoding = encoding,
+            spss = identical(tp_to$fileext, "SAV")
         )
 
         if (is.element(
