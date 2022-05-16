@@ -58,6 +58,8 @@
         admisc::stopError("Unsuitable input.")
     }
 
+    tp_to <- to
+
     if (!is.null(to)) {
         
         if (identical(toupper(to), "EXCEL")) {
