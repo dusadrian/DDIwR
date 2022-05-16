@@ -1,6 +1,8 @@
 Version 0.12
     o new argument "encoding" in functions convert() and getMetadata()
     o fixed varFormat when exporting to DDI
+    o convert() now correctly returns a tibble when the input is a DDI codebook,
+      and the argument "declared" is deactivated
 
 Version 0.11
     o new argument "xmlns" in function exportDDI(), to allow creating XML files
