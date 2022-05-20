@@ -95,7 +95,7 @@
         else if (identical(toupper(to), "SAS")) {
             to <- file.path(
                 tp_from$completePath,
-                paste(tp_from$filenames, "sas7bdat", sep = ".")
+                paste(tp_from$filenames, "xpt", sep = ".")
             )
         }
         else if (!grepl("[.]", to)) {
@@ -110,7 +110,7 @@
             tp_to$fileext <- "XLSX"
         }
 
-        known_extensions <- c("RDS", "SAV", "DTA", "XML", "SAS7BDAT", "XLSX") # 
+        known_extensions <- c("RDS", "SAV", "DTA", "XML", "XPT", "XLSX") # 
 
         if (is.na(tp_to$fileext)) {
             admisc::stopError(
@@ -235,12 +235,12 @@
                 declared <- FALSE
             }
         }
-        else if (tp_from$fileext == "SAS7BDAT") {
-            fargs <- names(formals(read_sas))
+        else if (tp_from$fileext == "XPT") {
+            fargs <- names(formals(haven::read_xpt))
             arglist <- dots[is.element(names(dots), fargs)]
             arglist$file <- from
-            arglist$encoding <- encoding
-            data <- do.call(haven::read_sas, arglist)
+            # arglist$encoding <- encoding
+            data <- do.call(haven::read_xpt, arglist)
 
             if (recode) {
                 data <- recodeValues(
@@ -267,7 +267,7 @@
         codeBook$fileDscr$fileName <- tp_from$files
 
         filetypes <- c("SPSS", "SPSS", "Stata", "SAS", "R", "DDI", "Excel", "Excel")
-        fileexts <- c("SAV", "POR", "DTA", "SAS7BDAT", "RDS", "XML", "XLS", "XLSX")
+        fileexts <- c("SAV", "POR", "DTA", "XPT", "RDS", "XML", "XLS", "XLSX")
 
         codeBook$fileDscr$fileType <- filetypes[which(fileexts == tp_from$fileext)]
     }
@@ -386,11 +386,13 @@
                 saveRDS(data, to)
             }
         }
-        else if (identical(tp_to$fileext, "SAS7BDAT")) {
-
-            haven::write_sas(declared::as.haven(data), to)
-
-            #     # perhaps ask https://github.com/rogerjdeangelis
+        else if (identical(tp_to$fileext, "XPT")) {
+            fargs <- names(formals(haven::write_xpt))
+            arglist <- dots[is.element(names(dots), fargs)]
+            arglist$data <- declared::as.haven(data)
+            arglist$path <- to
+            # arglist$encoding <- encoding
+            do.call(haven::write_xpt, arglist)
         }
         else if (identical(tp_to$fileext, "XLSX")) {
             writexl::write_xlsx(data, to)
