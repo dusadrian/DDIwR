@@ -393,14 +393,19 @@
         lbls <- obj[[i]][["labels"]]
         if (!is.null(lbls)) {
             nms <- names(lbls)
-            lbls <- admisc::trimstr(lbls)
-            negvals <- grepl("^[-]", lbls)
-            lbls <- gsub("[^[:alnum:]]", "", lbls)
-            
-            if (admisc::possibleNumeric(lbls)) {
-                lbls <- admisc::asNumeric(lbls)
-                lbls[negvals] <- -1 * lbls[negvals]
+
+            # TODO: XML doesn't seem to cope well with multibyte characters?
+            # TODO: what about multibyte languages (e.g. Asian)
+            multibyte <- grepl("[^!-~ ]", lbls)
+            if (any(multibyte)) {
+                for (m in which(multibyte)) {
+                    strlab <- unlist(strsplit(lbls[m], split = ""))
+                    strlab <- strlab[!grepl("[^!-~ ]", strlab)]
+                    lbls[m] <- paste(strlab, collapse = "")
+                }
             }
+            
+            lbls <- admisc::trimstr(lbls)
 
             names(lbls) <- nms
         }
@@ -563,7 +568,7 @@
                 sep = ""
             ))
         }
-        
+
         if (any(grepl("txt", names(obj[[i]])))) {
             cat(paste(s3, "<", ns, "txt>", enter, sep = ""))
             cat(paste(
