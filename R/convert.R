@@ -281,6 +281,12 @@
                 )
             }
 
+            data[] <- lapply(data, function(x) {
+                if (is.factor(x)) {
+                    x <- as.numeric(x)
+                }
+                return(x)
+            })
             codeBook$fileDscr$datafile <- data
 
             if (!embed) {
