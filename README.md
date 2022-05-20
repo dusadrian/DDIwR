@@ -9,7 +9,7 @@ convert those into some of the most popular statistical packages: Stata, SAS,
 SPSS, and naturally R.
 
 The biggest strength of this package is its ability to convert to and from a
-DDI Codebook. DDI standts for [Data Documentation Initiative](https://ddialliance.org).
+DDI ([Data Documentation Initiative](https://ddialliance.org)) Codebook.
 
 ## Handling missing values
 
