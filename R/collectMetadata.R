@@ -54,6 +54,12 @@
                 result[["labels"]] <- labels
             }
         }
+        else if (is.factor(x)) {
+            xlevels <- levels(x)
+            labels <- seq(length(xlevels))
+            names(labels) <- xlevels
+            result[["labels"]] <- labels
+        }
         
         na_values <- attr(x, "na_values", exact = TRUE)
         if (is.null(na_values)) {
