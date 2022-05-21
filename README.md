@@ -18,16 +18,17 @@ various solutions having been implemented in various places. The base package
 offers a single (empty, undeclared) type of missing value, the `NA`.
 
 In many sciences, however, there are multiple reasons for missing values, and
-those are not covered by the `NA`. A dedicated package was written to solve this,
-called [declared](https://cran.r-project.org/web/packages/declared/index.html),
+those are not covered by the case `NA`. A dedicated package was written to solve
+this, called [declared](https://cran.r-project.org/web/packages/declared/index.html),
 which is used by *DDIwR*.
 
 ## Graphical user interface
 
-This package benefits from a cross-platform GUI called [StatConverter](http://roda.github.io/StatConverter/).
-It is very similar to another popular, but commercial software, but built on top
-of R.
+Package DDIwR benefits from a cross-platform GUI called
+[StatConverter](http://roda.github.io/StatConverter/). It is similar to a popular
+commercial software, but built on top of R.
 
-Windows users can already download the setup installer, or download a .zip file
-containing all application files to start the application without installing it.
-More versions for different other operating systems will soon be added.
+Windows users can already download the setup installer (including R, embedded in
+the application), or download a .zip file containing all application files to
+start the application without installing it. More versions for different other
+operating systems will soon be added.
