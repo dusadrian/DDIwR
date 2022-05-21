@@ -13,7 +13,7 @@ DDI ([Data Documentation Initiative](https://ddialliance.org)) Codebook.
 
 ## Handling missing values
 
-The problem of the missing values <del>is</del> was a recurrent in R, with
+The problem of the missing values <del>is</del> was a recurrent one in R, with
 various solutions having been implemented in various places. The base package
 offers a single (empty, undeclared) type of missing value, the `NA`.
 
@@ -28,6 +28,8 @@ is used by **DDIwR**.
 Package **DDIwR** benefits from a cross-platform GUI called
 [StatConverter](http://roda.github.io/StatConverter/). It is similar to a popular
 commercial software, but built on top of R.
+
+![](https://github.com/RODA/StatConverter/tree/main/docs/images/StatConverter.png)
 
 Windows users can already download the setup installer (including R, embedded in
 the application), or download a .zip file containing all application files to
