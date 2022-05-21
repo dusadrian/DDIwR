@@ -29,7 +29,9 @@ Package **DDIwR** benefits from a cross-platform GUI called
 [StatConverter](http://roda.github.io/StatConverter/). It is similar to a popular
 commercial software, but built on top of R.
 
-<img src="https://github.com/RODA/StatConverter/tree/main/docs/images/StatConverter.png" alt="StatConverter screenshot" style="max-width:600px; display: inline;" />
+<img src="https://github.com/RODA/StatConverter/tree/main/docs/images/StatConverter.png?raw=true" alt="StatConverter screenshot" style="max-width:600px; display: inline;" />
+
+<!-- ![](https://github.com/RODA/StatConverter/tree/main/docs/images/StatConverter.png?raw=true) -->
 
 Windows users can already download the setup installer (including R, embedded in
 the application), or download a .zip file containing all application files to
