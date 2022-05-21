@@ -13,13 +13,13 @@ DDI ([Data Documentation Initiative](https://ddialliance.org)) Codebook.
 
 ## Handling missing values
 
-The problem of the missing values is recurrent in R, with various solutions
-having been implemented so far. The base package offers a single (empty,
-undeclared) type of missing value, the `NA`.
+The problem of the missing values <del>is</del> was a recurrent in R, with
+various solutions having been implemented in various places. The base package
+offers a single (empty, undeclared) type of missing value, the `NA`.
 
-In many sciences, however, there are multiple reasons why a value is missing,
-and those are not covered by the `NA`. For this reason, a dedicated package was
-written called [declared](https://cran.r-project.org/web/packages/declared/index.html),
+In many sciences, however, there are multiple reasons for missing values, and
+those are not covered by the `NA`. A dedicated package was written to solve this,
+called [declared](https://cran.r-project.org/web/packages/declared/index.html),
 which is used by *DDIwR*.
 
 ## Graphical user interface
