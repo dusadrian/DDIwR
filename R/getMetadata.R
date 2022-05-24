@@ -15,6 +15,8 @@ function(x, save = FALSE, declared = TRUE, OS = "Windows", encoding = "UTF-8", .
         user_na <- dots$user_na
     }
     
+    embed <- isTRUE(dots$embed)
+    
     if (is.data.frame(x)) {
         error <- TRUE
         i <- 1
@@ -36,24 +38,20 @@ function(x, save = FALSE, declared = TRUE, OS = "Windows", encoding = "UTF-8", .
         else {
             codeBook <- list()
             codeBook$dataDscr <- collectMetadata(x)
-            
+            if (embed) {
+                codeBook$fileDscr <- list(
+                    datafile = x
+                )
+            }
             return(codeBook)
         }
     }
     
     enter <- getEnter(OS)
     
-    fromsetupfile <- FALSE
-    if (is.element("fromsetupfile", names(dots))) {
-        fromsetupfile <- dots$fromsetupfile
-    }
+    fromsetupfile <- isTRUE(dots$fromsetupfile)
     
-    embed <- FALSE
-    if (is.element("embed", names(dots))) {
-        embed <- dots$embed
-    }
-    
-    tp <- DDIwR::treatPath(x, type = "*")
+    tp <- treatPath(x, type = "*")
     
     singlefile <- length(tp$files) == 1
     notes <- NA
