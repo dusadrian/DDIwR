@@ -31,8 +31,10 @@ labels, plus some other useful information.
 
 It additionally attempts to automatically detect a type for each variable:
 \tabular{rl}{
-  \bold{\code{cat}}: \tab categorical using numeric values\cr
-  \bold{\code{catchar}}: \tab categorical using character values\cr
+  \bold{\code{cat}}: \tab categorical variable using numeric values\cr
+  \bold{\code{catchar}}: \tab categorical variable using character values\cr
+  \bold{\code{catnum}}: \tab categorical variable for which numerical summaries\cr
+  \tab can be calculated (ex. a 0...10 Likert response scale)\cr
   \bold{\code{num}}: \tab numerical\cr
   \bold{\code{numcat}}: \tab numerical variable with very few values (ex. number of children)\cr
   \tab for which a table of frequencies is possible in addition to frequencies

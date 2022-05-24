@@ -28,9 +28,14 @@ convert(from, to = NULL, declared = TRUE, recode = TRUE, encoding = "UTF-8", ...
 
 \details{
 When the argument \bold{\code{to}} specifies a certain statistical package
-(\code{"R"}, \code{"Stata"}, \code{"SPSS"}, \code{"SAS"}) or \code{"Excel"}, the
-name of the destination file will be idential to the one in the argument
-\bold{\code{from}}, with an automatically added software specific extension.
+(\code{"R"}, \code{"Stata"}, \code{"SPSS"}, \code{"SAS"}), \code{"XPT"}) or
+\code{"Excel"}, the name of the destination file will be idential to the one in
+the argument \bold{\code{from}}, with an automatically added software specific
+extension.
+
+SPSS portable file (with the extension \code{".por"}) can only be read from, and
+SAS Transport files (with the extension \code{".xpt"}) can be both read and
+written.
 
 Alternatively, the argument \bold{\code{to}} can be specified as a path to a
 specific file, in which case the software package is determined from its file

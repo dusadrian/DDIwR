@@ -9,7 +9,7 @@ This function creates a setup file, based on a list of variable and value labels
 }
 
 \usage{
-setupfile(codeBook, file = "", type = "all", csv = "", OS = "", ...)
+setupfile(codeBook, file = "", type = "all", csv = "", recode = TRUE, OS = "", ...)
 }
 
 
@@ -21,6 +21,7 @@ setupfile(codeBook, file = "", type = "all", csv = "", OS = "", ...)
         or "all" (default)}
   \item{csv}{The original dataset, used to create the setup file commands, or a path
         to the directory where the .csv files are located, for batch processing}
+  \item{recode}{Logical, recode missing values to extended .a-.z range}
   \item{OS}{The target operating system, for the eol - end of line character(s)}
   \item{...}{Other arguments, see Details below}
 }
@@ -132,8 +133,6 @@ V4 = list(
 # IMPORTANT:
 # make sure to set the working directory to a directory with read/write permissions
 # setwd("/path/to/read/write/directory")
-
-# path.to.csv <- file.path(system.file(package = "DDIwR"), "data", "test.csv.gz")
 
 
 setupfile(codeBook)
