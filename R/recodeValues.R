@@ -63,11 +63,6 @@
         return(dataset)
     }
 
-    # build a dictionary based on existing metadata
-    if (to == "STATA") {
-        dataset <- declared::as.haven(dataset)
-    }
-
     allMissing <- list()
     
     for (variable in names(dataset)) {
@@ -76,6 +71,7 @@
         attributes(x) <- NULL
 
         metadata <- dataDscr[[variable]]
+        labels <- metadata[["labels"]]
         missing <- NULL
 
         if (is.element("na_values", names(metadata))) {
@@ -85,7 +81,19 @@
         if (is.element("na_range", names(metadata))) {
             na_range <- metadata$na_range
             misvals <- x[x >= na_range[1] & x <= na_range[2]]
-            missing <- sort(unique(c(missing, misvals[!is.na(misvals)])))
+            missing <- c(missing, misvals[!is.na(misvals)], na_range)
+
+            if (!is.null(labels)) {
+                if (admisc::possibleNumeric(labels)) {
+                    labels <- admisc::asNumeric(labels)
+                    missing <- c(
+                        missing,
+                        labels[labels >= na_range[1] & labels <= na_range[2]]
+                    )
+                }
+            }
+
+            missing <- sort(unique(missing))
         }
 
         if (
@@ -195,6 +203,35 @@
 
     if (is.null(dictionary)) {
         dictionary <- torecode
+        nms <- names(dictionary)
+        if (any(duplicated(dictionary))) {
+            for (i in which(duplicated(dictionary))) {
+                first <- which(dictionary == dictionary[i])[1]
+                nms[nms == nms[i]] <- nms[first]
+            }
+            names(dictionary) <- nms
+            dfd <- data.frame(nms = nms, vals = dictionary)
+            dfd <- unique(dfd)
+            dfd <- dfd[order(dfd$vals, dfd$nms), ]
+            dictionary <- dfd$vals
+            names(dictionary) <- dfd$nms
+        }
+
+        unms <- unique(nms)
+        if (all(is.element(unms, letters))) {
+            for (i in seq(length(unms))) {
+                nms[nms == unms[i]] <- letters[i]
+            }
+        }
+        else {
+            for (i in seq(length(unms))) {
+                nms[nms == unms[i]] <- -90 - i
+            }
+        }
+        
+        if (isTRUE(dots$return_dictionary)) {
+            return(dictionary)
+        }
     }
     else if (!is.null(torecode)) {
         if (to == "SPSS") {
@@ -219,7 +256,7 @@
     }
 
     for (i in seq(ncol(dataset))) {
-        x <- unclass(dataset[[i]])
+        x <- unclass(declared::undeclare(dataset[[i]]))
         metadata <- dataDscr[[i]]
         labels <- metadata[["labels"]]
         na_values_i <- metadata[["na_values"]]
