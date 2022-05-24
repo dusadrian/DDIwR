@@ -59,6 +59,7 @@
             labels <- seq(length(xlevels))
             names(labels) <- xlevels
             result[["labels"]] <- labels
+            x <- as.numeric(x)
         }
         
         na_values <- attr(x, "na_values", exact = TRUE)
@@ -80,10 +81,10 @@
         }
         
         result$na_range <- attr(x, "na_range", exact = TRUE)
-        result$type <- DDIwR::checkType(
+        result$type <- checkType(
             x,
             labels,
-            admisc::possibleNumeric(x)
+            na_values
         )
 
         format <- attr(x, "format.spss", exact = TRUE)
