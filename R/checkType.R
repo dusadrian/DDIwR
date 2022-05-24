@@ -38,7 +38,7 @@
         # for which not all values are labeled
         
         # thinking of the smallest ordinal scale 1...7 that can be interpreted
-        return(ifelse(length(except_na) < 7), "cat", "catnum")
+        return(ifelse(length(except_na) < 7, "cat", "catnum"))
 
         # TODO: what if a variable has very many numerical values (>15) but only one or two labels?
         # this should be a coding mistake, should it trigger an error or a warning?
