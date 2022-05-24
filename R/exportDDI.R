@@ -2,8 +2,13 @@
     codebook, file = "", embed = TRUE, OS = "", indent = 4,
     monolang = FALSE, xmlang = "en", xmlns = "", ...
 ) {
-    # https://ddialliance.org/Specification/DDI-Codebook/2.5/
     # https://ddialliance.org/Specification/DDI-Codebook/2.5/XMLSchema/field_level_documentation.html
+
+    # validation procedure:
+    # https://ddialliance.org/Specification/DDI-Codebook/2.5/
+    # schema <- read_xml("path/to/ddi_2_5_1/schemas/codebook.xsd")
+    # doc <- read_xml("path/to/filetovalidate.xml")
+    # xml_validate(doc, schema)
     
     `check_arg` <- function(x, vx, type = "c") {
         valid <- is.atomic(vx) && length(vx) == 1
@@ -111,7 +116,8 @@
     data <- codebook[["fileDscr"]][["datafile"]]
     obj  <- codebook[["dataDscr"]]
     
-    uuid <- generateUUID(length(obj) + 1)
+    # uuid for all variables
+    uuid <- generateUUID(length(obj))
     
     prodate <- as.character(Sys.time())
     version <- as.character(packageVersion("DDIwR"))
@@ -134,8 +140,9 @@
     cat(paste(
         s0, "<", ns, ifelse(identical(ns, ""), "", ":"), "codeBook version=\"2.5\"",
         enter,
-        "ID=\"", generateUUID(1), "\"",
-        enter,
+        # Apparently, Nesstar interprets this ID as the Study Description ID
+        # "ID=\"", generateUUID(1), "\"",
+        # enter,
         ifelse(isTRUE(monolang), paste0(xmlang, enter), ""),
         "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"",
         enter, 
@@ -155,11 +162,17 @@
         xmlang <- ""
     }
     
+    # Document description
     cat(paste(s1, "<", ns, "docDscr>", enter, sep = ""))
     cat(paste(s2, "<", ns, "citation>", enter, sep = ""))
     cat(paste(s3, "<", ns, "titlStmt>", enter, sep = ""))
     cat(paste(
         s4, "<", ns, "titl", xmlang, ">", titl, "</", ns, "titl>",
+        enter,
+        sep = ""
+    ))
+    cat(paste(
+        s4, "<", ns, "IDNo agency=\"", agency,"\">", generateUUID(1), "</", ns, "IDNo>",
         enter,
         sep = ""
     ))
@@ -180,6 +193,8 @@
     cat(paste(s2, "</", ns, "citation>", enter, sep = ""))
     cat(paste(s1, "</", ns, "docDscr>", enter, sep = ""))
 
+
+    # Study description
     cat(paste(s1, "<", ns, "stdyDscr>", enter, sep = ""))
     cat(paste(s2, "<", ns, "citation>", enter, sep = ""))
 
@@ -222,7 +237,7 @@
     cat(paste(s1, "</", ns, "stdyDscr>", enter, sep = ""))
     
     cat(paste(
-        s1, "<", ns, "fileDscr ID=\"", uuid[length(uuid)], "\">",
+        s1, "<", ns, "fileDscr ID=\"", generateUUID(1), "\">",
         enter,
         sep = ""
     ))
@@ -261,7 +276,16 @@
             ))
 
             sink()
-            suppressWarnings(write.table(undeclare(data, drop = TRUE), file = file, sep = ",", na = "", row.names = FALSE, append = TRUE))
+            suppressWarnings(
+                write.table(
+                    undeclare(data, drop = TRUE),
+                    file = file,
+                    sep = ",",
+                    na = "",
+                    row.names = FALSE,
+                    append = TRUE
+                )
+            )
             sink(file, append = TRUE)
 
             cat(paste(
