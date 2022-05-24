@@ -95,6 +95,12 @@
         else if (identical(toupper(to), "SAS")) {
             to <- file.path(
                 tp_from$completePath,
+                paste(tp_from$filenames, "sas7bdat", sep = ".")
+            )
+        }
+        else if (identical(toupper(to), "XPT")) {
+            to <- file.path(
+                tp_from$completePath,
                 paste(tp_from$filenames, "xpt", sep = ".")
             )
         }
@@ -110,7 +116,7 @@
             tp_to$fileext <- "XLSX"
         }
 
-        known_extensions <- c("RDS", "SAV", "DTA", "XML", "XPT", "XLSX") # 
+        known_extensions <- c("RDS", "SAV", "DTA", "XML", "SAS7BDAT", "XPT", "XLSX") # 
 
         if (is.na(tp_to$fileext)) {
             admisc::stopError(
@@ -235,6 +241,25 @@
                 declared <- FALSE
             }
         }
+        else if (tp_from$fileext == "SAS7BDAT") {
+            fargs <- names(formals(read_sas))
+            arglist <- dots[is.element(names(dots), fargs)]
+            arglist$file <- from
+            arglist$encoding <- encoding
+            data <- do.call(haven::read_sas, arglist)
+
+            if (recode) {
+                data <- recodeValues(
+                    dataset = data,
+                    to = "SPSS",
+                    dictionary = dictionary,
+                    chartonum = chartonum,
+                    to_declared = FALSE,
+                    error_null = FALSE
+                )
+            }
+
+        }
         else if (tp_from$fileext == "XPT") {
             fargs <- names(formals(haven::read_xpt))
             arglist <- dots[is.element(names(dots), fargs)]
@@ -266,13 +291,22 @@
         
         codeBook$fileDscr$fileName <- tp_from$files
 
-        filetypes <- c("SPSS", "SPSS", "Stata", "SAS", "R", "DDI", "Excel", "Excel")
-        fileexts <- c("SAV", "POR", "DTA", "XPT", "RDS", "XML", "XLS", "XLSX")
+        filetypes <- c("SPSS", "SPSS", "Stata", "SAS", "XPT", "R", "DDI", "Excel", "Excel")
+        fileexts <- c("SAV", "POR", "DTA", "SAS7BDAT", "XPT", "RDS", "XML", "XLS", "XLSX")
 
         codeBook$fileDscr$fileType <- filetypes[which(fileexts == tp_from$fileext)]
     }
     
-    if (!is.null(to)) {
+    if (is.null(to)) {
+        if (declared) {
+            data <- declared::as.declared(data)
+            class(data) <- "data.frame"
+            return(invisible(data))
+        }
+
+        return(invisible(data))
+    }
+    else {
         if (tp_to$fileext == "XML") {
 
             if (is.null(codeBook)) {
@@ -314,7 +348,10 @@
             haven::write_sav(declared::as.haven(data), to)
         }
         else if (identical(tp_to$fileext, "DTA")) {
+            data <- declared::as.haven(data)
             colnms <- colnames(data)
+            arglist <- list(data = data)
+            
             if (!is.null(codeBook)) {
                 for (i in seq(ncol(data))) {
                     values <- codeBook$dataDscr[[colnms[i]]]$values
@@ -339,21 +376,21 @@
                 #     to_declared = FALSE,
                 #     error_null = FALSE
                 # ))
-
-                arglist <- list(
-                    data = recodeValues(
-                        data,
-                        to = "Stata",
-                        dictionary = dictionary,
-                        chartonum = chartonum,
-                        to_declared = FALSE,
-                        error_null = FALSE
+                
+                if (recode) {
+                    arglist <- list(
+                        data = recodeValues(
+                            data,
+                            to = "Stata",
+                            dictionary = dictionary,
+                            chartonum = chartonum,
+                            to_declared = FALSE,
+                            error_null = FALSE
+                        )
                     )
-                )
+                }
             }
-            else {
-                arglist <- list(data = data)
-            }
+            
             # return(data)
 
             if (is.element("version", names(dots))) {
@@ -392,26 +429,40 @@
                 saveRDS(data, to)
             }
         }
-        else if (identical(tp_to$fileext, "XPT")) {
-            fargs <- names(formals(haven::write_xpt))
-            arglist <- dots[is.element(names(dots), fargs)]
-            arglist$data <- declared::as.haven(data)
-            arglist$path <- to
-            # arglist$encoding <- encoding
-            do.call(haven::write_xpt, arglist)
-        }
         else if (identical(tp_to$fileext, "XLSX")) {
             writexl::write_xlsx(data, to)
         }
-    }
-    else {
+        else {
+            if (identical(tp_to$fileext, "SAS7BDAT")) {
+                fargs <- names(formals(haven::write_sas))
+                arglist <- dots[is.element(names(dots), fargs)]
+                arglist$data <- declared::as.haven(data)
+                arglist$path <- to
+                do.call(haven::write_sas, arglist)
+            }
+            else if (identical(tp_to$fileext, "XPT")) {
+                fargs <- names(formals(haven::write_xpt))
+                arglist <- dots[is.element(names(dots), fargs)]
+                arglist$data <- declared::as.haven(data)
+                arglist$path <- to
+                do.call(haven::write_xpt, arglist)
+            }
+            
+            to <- file.path(
+                tp_from$completePath,
+                paste(tp_from$filenames, "sas", sep = ".")
+            )
 
-        if (declared) {
-            data <- declared::as.declared(data)
-            class(data) <- "data.frame"
-            return(invisible(data))
+            setupfile(
+                getMetadata(arglist$data),
+                file = to,
+                type = "SAS",
+                recode = recode,
+                catalog = TRUE,
+                dictionary = recodeValues(
+                    arglist$data, to = "Stata", return_dictionary = TRUE
+                )
+            )
         }
-
-        return(invisible(data))
     }
 }
