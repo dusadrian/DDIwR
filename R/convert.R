@@ -48,9 +48,14 @@
     }
     else if (is.element("data.frame", class(from))) {
         Robject <- TRUE
+        filename <- as.character(substitute(from))
+        if (length(filename) > 1) {
+            # something like ess[, c("idno", "ctzshipd")] was used
+            filename <- "dataset"
+        }
         tp_from <- list(
             completePath = normalizePath("~"),
-            filenames = as.character(substitute(from)),
+            filenames = filename,
             fileext = "RDS"
         )
     }
