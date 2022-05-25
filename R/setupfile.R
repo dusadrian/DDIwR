@@ -2266,7 +2266,7 @@
         if (script) {
             to <- treatPath(dots$to, check = FALSE)
             cat(paste(
-                "LIBNAME datadir \"",
+                "libname datadir \"",
                 to$completePath,
                 "\";",
                 enter, enter,
@@ -2279,7 +2279,7 @@
             if (catalog) {
                 sasimport <- paste("datadir", tp$filenames, sep = ".")
                 cat(paste(
-                    "LIBNAME datadir \"",
+                    "libname datadir \"",
                     tp$completePath,
                     "\";",
                     enter, enter,
@@ -2304,7 +2304,7 @@
                         enter,
                         "* Change CSV_DATA_PATH to your filename, below                                   ;",
                         enter, enter,
-                        "FILENAME csvpath \"CSV_DATA_PATH\";",
+                        "filename csvpath \"CSV_DATA_PATH\";",
                         enter, enter, enter,
                         sep = ""
                     ))
@@ -2322,7 +2322,7 @@
                     enter,
                     "* Change SAS_DATA_FOLDER to your directory name, below                           ;",
                     enter, enter,
-                    "LIBNAME datadir \"SAS_DATA_FOLDER\";",
+                    "libname datadir \"SAS_DATA_FOLDER\";",
                     enter, enter, enter,
                     sep = ""
                 ))
@@ -2334,7 +2334,7 @@
                     enter,
                     "* Change SAS_FILE_NAME to your output file name, below                           ;",
                     enter, enter,
-                    "%LET sasfile = SAS_FILE_NAME;",
+                    "%let sasfile = SAS_FILE_NAME;",
                     enter, enter, enter,
                     "* --- CONFIGURATION SECTION -  END ---                                           ;",
                     enter, enter,
@@ -2351,29 +2351,29 @@
                     cat(paste(
                         "* --- Read the raw data file --- ;",
                         enter, enter,
-                        "DATA ", sasimport, ";",
+                        "data ", sasimport, ";",
                         enter, enter,
-                        "INFILE csvpath",
+                        "infile csvpath",
                         enter,
-                        "     DLM=",
+                        "     dlm=",
                         ifelse(
                             delim == "\t",
                             "'09'X",
                             paste("\"", delim, "\"", sep = "")
                         ),
                         enter,
-                        "     FIRSTOBS=2",
+                        "     firstobs=2",
                         enter,
                         #### "     TERMSTR=&eol", enter, #### line commented out
-                        "     DSD",
+                        "     dsd",
                         enter,
-                        "     TRUNCOVER",
+                        "     truncover",
                         enter,
-                        "     LRECL=512",
+                        "     lrecl=512",
                         enter,
                         "     ;",
                         enter, enter,
-                        "INPUT  ", toupper(csvnames[1]),
+                        "input  ", toupper(csvnames[1]),
                         sasformats[1],
                         enter,
                         sep = ""
@@ -2389,7 +2389,7 @@
                         ))
                     }
                     cat(paste("       ;", enter, sep = ""))
-                    cat(paste("RUN;", enter, enter, sep = ""))
+                    cat(paste("run;", enter, enter, sep = ""))
                         # "* ------------------------------------------------------------------------------ ;", enter, enter, enter, sep = "")
                 }
             }
@@ -2427,19 +2427,19 @@
                     names(newvalues) <- names(oldvalues)
 
                     cat(paste(
-                        "DATA ", sasimport, ";",
+                        "data ", sasimport, ";",
                         enter, enter,
-                        "    SET ", sasimport, ";",
+                        "    set ", sasimport, ";",
                         enter, enter,
-                        "    TEMPVAR = INPUT(", sv, ", ?? best.);",
+                        "    tempvar = input(", sv, ", ?? best.);",
                         enter,
                         sep = ""
                     ))
 
                     for (j in seq(length(newvalues))) {
                         cat(paste(
-                            "    IF (", sv, " = '", oldvalues[j],
-                            "') THEN TEMPVAR = ", newvalues[j], ";",
+                            "    if (", sv, " = '", oldvalues[j],
+                            "') then tempvar = ", newvalues[j], ";",
                             enter,
                             sep = ""
                         ))
@@ -2448,9 +2448,9 @@
                     # cat(enter, "RUN;", enter, enter, "DATA ", sasimport, ";", enter, enter,
                     #     "    SET ", sasimport, ";", enter, enter,
                     cat(paste(
-                        "    DROP ", sv, ";", enter,
-                        "    RENAME TEMPVAR = ", sv, ";", enter, enter,
-                        "RUN;", enter, enter,
+                        "    drop ", sv, ";", enter,
+                        "    rename tempvar = ", sv, ";", enter, enter,
+                        "run;", enter, enter,
                         sep = ""
                     ))
 
@@ -2479,23 +2479,15 @@
 
             for (nws in toupper(names(numerical_with_strings))) {
                 cat(paste(
-                    "DATA ", sasimport, ";",
+                    "data ", sasimport, "; set ", sasimport, ";",
                     enter, enter,
-                    "    SET ", sasimport, ";",
-                    enter, enter,
-                    "    TEMPVAR = INPUT(", nws, ", ?? best.);",
-                    enter, enter,
-                    "RUN;",
-                    enter, enter, 
-                    "DATA ", sasimport, ";",
-                    enter, enter,
-                    "    SET ", sasimport, ";",
-                    enter, enter,
-                    "    DROP ", nws, ";",
+                    "    TEMPVAR = input(", nws, ", ?? best.);",
                     enter,
-                    "    RENAME TEMPVAR = ", nws, ";",
+                    "    drop ", nws, ";",
+                    enter,
+                    "    rename TEMPVAR = ", nws, ";",
                     enter, enter,
-                    "RUN;",
+                    "run;",
                     enter, enter,
                     sep = ""
                 ))
@@ -2514,9 +2506,9 @@
             cat(paste(
                 "* --- Reorder the variables in their original positions --- ;",
                 enter, enter,
-                "DATA ", sasimport, ";",
+                "data ", sasimport, ";",
                 enter, enter,
-                "    RETAIN ",
+                "    retain ",
                 gsub(
                     ",",
                     "",
@@ -2528,9 +2520,9 @@
                     )
                 ), ";",
                 enter, enter,
-                "    SET ", sasimport, ";",
+                "    set ", sasimport, ";",
                 enter, enter,
-                "RUN;",
+                "run;",
                 enter, enter,
                 sep = ""
             ))
@@ -2591,71 +2583,47 @@
                 SIMPLIFY = FALSE
             )
 
-            # cat("* --- Recode missing values --- ;", enter, enter, sep = "")
-            # cat(c(paste("ARRAY miss(", sum(withmiss), ")", sep = ""), names(dataDscr2)[withmiss], ";", enter), fill = 70)
-            # cat("DO i = 1 to ", sum(withmiss), ";", enter, sep = "")
             cat(paste(
-                "* --- Recode missing values ---                                                  ;",
+                "* --- Recode missing values --- ;",
                 enter, enter,
-                "DATA ", sasimport, ";",
-                enter, enter,
-                "    SET ", sasimport, ";",
+                "data ", sasimport, "; set ", sasimport, ";",
                 enter, enter,
                 sep = ""
             ))
 
-            cat(paste(
-                "ARRAY vars(", sum(withmiss), ") ",
-                paste(
-                    names(dataDscr2)[withmiss],
-                    collapse = " "
-                ), ";",
-                enter,
-                "    DO i = 1 to ", sum(withmiss), ";",
-                enter, sep = ""
-            ))
-
-            for (i in seq(length(dictionary))) {
-                cat(paste(
-                    "    IF vars(i) = ",
-                    dictionary[i],
-                    " THEN vars(i) = ",
-                    nms[i], ";",
-                    enter,
-                    sep = ""
-                ))
+            for (wm in names(dataDscr2[withmiss])) {
+                cat(paste("select ", wm, ";", enter, sep = ""))
+                for (j in which(missvaRs[[wm]])) {
+                    cat(paste(
+                        "    when (",
+                        dataDscr2[[wm]][["labels"]][j],
+                        ") ", wm, " = ",
+                        dataDscr3[[wm]][["labels"]][j],
+                        ";", enter,
+                        sep = ""
+                    ))
+                }
+                cat("end;", enter, sep = "")
             }
-            
-            cat(paste(
-                "END;",
-                enter,
-                "DROP i;",
-                enter, enter,
-                "RUN;",
-                enter, enter,
-                sep = ""
-            ))
 
-            # "* ------------------------------------------------------------------------------ ;", enter, enter, enter, sep = "")
-                
+            cat(paste(enter, "run;", enter, enter, sep = ""))
+
             dataDscr2 <- dataDscr3
         }
 
 
-        if (!script) {
+        if (!script & !catalog) {
             cat(paste(
                 "* --- Add variable labels --- ;",
                 enter, enter,
-                "DATA ", sasimport, ";",
-                enter, enter,
-                "    SET ", sasimport, ";",
+                "data ", sasimport, "; set ", sasimport, ";",
                 enter, enter,
                 sep = ""
             ))
 
             for (i in seq(length(varnames))) {
                 cat(paste(
-                    "    LABEL ", varnames[i],
+                    "    label ", varnames[i],
                     paste(
                         rep(" ", maxchars - nchar(varnames[i]) + 1),
                         collapse = ""
@@ -2666,14 +2634,14 @@
                 ))
             }
 
-            cat(paste(enter, "RUN;", enter, enter, sep = ""))
+            cat(paste(enter, "run;", enter, enter, sep = ""))
             #     "* ------------------------------------------------------------------------------ ;", enter, enter, enter, sep = "")
         }
 
         cat(paste(
             "* --- Create value labels groups --- ;",
             enter, enter,
-            "PROC FORMAT LIB = datadir;",
+            "proc format library = datadir;",
             enter, enter,
             sep = ""
         ))
@@ -2686,9 +2654,9 @@
 # print(dataDscr2[[n]])
             cat(paste(
                 paste(
-                    "VALUE ",
+                    "value ",
                     ifelse(char, "$", ""),
-                    "LABELS_", i, "_GROUP",
+                    "labels_", i, "_group",
                     enter,
                     sep = ""
                 ),
@@ -2715,7 +2683,7 @@
         }
 
         cat(paste(
-            "RUN;",
+            "run;",
             enter, enter,
             sep = ""
         ))
@@ -2724,11 +2692,9 @@
         cat(paste(
             "* --- Format variables with value labels --- ;",
             enter, enter,
-            "DATA ", sasimport, ";",
+            "data ", sasimport, "; set ", sasimport, ";",
             enter, enter,
-            "    SET ", sasimport, ";",
-            enter, enter,
-            "    FORMAT",
+            "    format",
             enter,
             sep = ""
         ))
@@ -2743,7 +2709,7 @@
                         rep(" ", maxchars - nchar(j)),
                         collapse = ""
                     ),
-                    " LABELS_", i, "_GROUP", ".",
+                    " labels_", i, "_group", ".",
                     enter,
                     sep = ""
                 ))
@@ -2753,7 +2719,7 @@
         cat(paste(
             "    ;",
             enter, enter,
-            "RUN;",
+            "run;",
             enter, enter,
             sep = ""
         ))
@@ -2763,11 +2729,11 @@
             cat(paste(
                 "* --- Save data to a sas type file --- ;",
                 enter, enter,
-                "DATA datadir.&sasfile;",
+                "data datadir.&sasfile;",
                 enter, enter,
-                "    SET ", sasimport, ";",
+                "    set ", sasimport, ";",
                 enter, enter,
-                "RUN;",
+                "run;",
                 enter,
                 sep = ""
             ))
