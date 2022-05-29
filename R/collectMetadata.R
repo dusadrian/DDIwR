@@ -50,15 +50,16 @@
 
             labels <- labels[!is.na(labels) | tagged]
             if (length(labels) > 0) {
-                names(labels) <- cleanup(names(labels))
-                result[["labels"]] <- labels
+                # names(labels) <- cleanup(names(labels))
+                result[["labels"]] <- setNames(labels, cleanup(names(labels)))
             }
         }
         else if (is.factor(x)) {
             xlevels <- levels(x)
-            labels <- seq(length(xlevels))
-            names(labels) <- xlevels
-            result[["labels"]] <- labels
+            # labels <- seq(length(xlevels))
+            # names(labels) <- xlevels
+            # result[["labels"]] <- labels
+            result[["labels"]] <- setNames(seq(length(xlevels)), xlevels)
             x <- as.numeric(x)
         }
         
@@ -87,14 +88,19 @@
             na_values
         )
 
-        format <- attr(x, "format.spss", exact = TRUE)
-        if (is.null(format)) {
-            result[["format.spss"]] <- getFormat(x)
-        }
-        else {
-            result[["format.spss"]] <- format
+
+        format.spss <- attr(x, "format.spss", exact = TRUE)
+        if (is.null(format.spss)) {
+            format.spss <- getFormat(x, type = "SPSS")
         }
 
+        format.stata <- attr(x, "format.stata", exact = TRUE)
+        if (is.null(format.stata)) {
+            format.stata <- getFormat(x, type = "Stata")
+        }
+
+        result[["varFormat"]] <- c(format.spss, format.stata)
+        
         return(result)
     })
 
