@@ -114,14 +114,14 @@
     enter <- getEnter(OS = OS)
 
     data <- codebook[["fileDscr"]][["datafile"]]
-    obj  <- codebook[["dataDscr"]]
+    dataDscr  <- codebook[["dataDscr"]]
     
     # uuid for all variables
-    uuid <- generateUUID(length(obj))
+    uuid <- generateUUID(length(dataDscr))
     
     prodate <- as.character(Sys.time())
     version <- as.character(packageVersion("DDIwR"))
-    varnames <- names(obj)
+    varnames <- names(dataDscr)
     
     if (!identical(file, "")) {
         sink(file)
@@ -130,7 +130,7 @@
 
     prodDate <- as.character(Sys.time())
     version <- as.character(packageVersion("DDIwR"))
-    varnames <- names(obj)
+    varnames <- names(dataDscr)
     cat(paste(
         s0, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>",
         enter,
@@ -248,7 +248,7 @@
                 "The 'datafile' component should be a data frame."
             )
         }
-        else if (!identical(toupper(names(data)), toupper(names(obj)))) {
+        else if (!identical(toupper(names(data)), toupper(names(dataDscr)))) {
             admisc::stopError(
                 "Variables in the data do not match the variables in the data description."
             )
@@ -296,10 +296,9 @@
             cat(paste(s2, "</", ns, "notes>", enter, sep = ""))
         }
 
-        pN <- unlist(lapply(
-            data[names(obj)],
-            function(x) admisc::possibleNumeric(unclass(x))
-        ))
+        pN <- sapply(data[names(dataDscr)], function(x) {
+            admisc::possibleNumeric(unclass(x))
+        })
 
         aN <- lapply(
             subset(
@@ -318,14 +317,14 @@
     cat(paste(s1, "</", ns, "fileDscr>", enter, sep = ""))
     cat(paste(s1, "<", ns, "dataDscr>", enter, sep = ""))
 
-    for (i in seq(length(obj))) {
+    for (i in seq(length(dataDscr))) {
         dcml <- ""
         if (!is.null(data)) {
             dcml <- paste0(
                 " dcml=\"",
                 ifelse(
-                    pN[[names(obj)[i]]],
-                    getDecimals(na.omit(aN[[names(obj)[i]]])),
+                    pN[[names(dataDscr)[i]]],
+                    getDecimals(na.omit(aN[[names(dataDscr)[i]]])),
                     0
                 ),
                 "\""
@@ -333,8 +332,8 @@
         }
         
         nature <- ""
-        if(any(grepl("measurement", names(obj[[i]])))) {
-            nature <- paste0(" nature=\"", obj[[i]]$measurement, "\"")
+        if(any(grepl("measurement", names(dataDscr[[i]])))) {
+            nature <- paste0(" nature=\"", dataDscr[[i]]$measurement, "\"")
         }
                          
         
@@ -346,12 +345,12 @@
             enter
         ))
         
-        if (!is.null(obj[[i]][["label"]])) {
-            if (!is.na(obj[[i]][["label"]])) {
+        if (!is.null(dataDscr[[i]][["label"]])) {
+            if (!is.na(dataDscr[[i]][["label"]])) {
                 cat(paste(
                     s3, "<", ns, "labl", xmlang, ">",
                     replaceChars(
-                        obj[[i]][["label"]]
+                        dataDscr[[i]][["label"]]
                     ),
                     "</", ns, "labl>",
                     enter,
@@ -362,13 +361,13 @@
         
 
         na_values <- NULL
-        if (is.element("na_values", names(obj[[i]]))) {
-            na_values <- obj[[i]]$na_values
+        if (is.element("na_values", names(dataDscr[[i]]))) {
+            na_values <- dataDscr[[i]]$na_values
         }
 
         na_range <- NULL
-        if (is.element("na_range", names(obj[[i]]))) {
-            na_range <- obj[[i]]$na_range
+        if (is.element("na_range", names(dataDscr[[i]]))) {
+            na_range <- dataDscr[[i]]$na_range
         }
 
         
@@ -414,7 +413,7 @@
             cat(paste(s3, "</", ns, "invalrng>", enter, sep = ""))
         }
 
-        lbls <- obj[[i]][["labels"]]
+        lbls <- dataDscr[[i]][["labels"]]
         if (!is.null(lbls)) {
             nms <- names(lbls)
 
@@ -429,16 +428,15 @@
                 }
             }
             
-            lbls <- admisc::trimstr(lbls)
-
-            names(lbls) <- nms
+            lbls <- setNames(admisc::trimstr(lbls), nms)
+            # names(lbls) <- nms
         }
 
-        type <- obj[[i]]$type
+        type <- dataDscr[[i]]$type
         
         if (!is.null(data)) {
             if (pN[i]) {
-                vals <- aN[[names(obj)[i]]]
+                vals <- aN[[names(dataDscr)[i]]]
 
                 if (!is.null(lbls)) {
                     ismiss <- is.element(lbls, na_values)
@@ -518,7 +516,7 @@
         
         if (!is.null(lbls)) {
 
-            tbl <- table(data[[names(obj)[i]]]) # what is the difference from data[[i]] ?
+            tbl <- table(data[[names(dataDscr)[i]]]) # what is the difference from data[[i]] ?
             
             
             for (v in seq(length(lbls))) {
@@ -573,13 +571,13 @@
             }
         }
 
-        if (any(grepl("type", names(obj[[i]])))) {
-            varFormat <- obj[[i]]$format.spss
+        if (any(grepl("type", names(dataDscr[[i]])))) {
+            varFormat <- dataDscr[[i]]$varFormat[1] # SPSS
             cat(paste(
                 s3,
                 "<", ns, "varFormat type=\"",
                 ifelse(
-                    grepl("char", obj[[i]]$type),
+                    grepl("char", dataDscr[[i]]$type),
                     "character",
                     "numeric"
                 ),
@@ -593,11 +591,11 @@
             ))
         }
 
-        if (any(grepl("txt", names(obj[[i]])))) {
+        if (any(grepl("txt", names(dataDscr[[i]])))) {
             cat(paste(s3, "<", ns, "txt>", enter, sep = ""))
             cat(paste(
                 s0,
-                "<![CDATA[", obj[[i]]$txt, "]]>",
+                "<![CDATA[", dataDscr[[i]]$txt, "]]>",
                 enter,
                 sep = ""
             ))
