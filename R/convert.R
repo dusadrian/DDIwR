@@ -1,5 +1,6 @@
 `convert` <- function(
-    from, to = NULL, declared = TRUE, recode = TRUE, encoding = "UTF-8", ...
+    from, to = NULL, declared = TRUE, chartonum = FALSE, recode = TRUE,
+    encoding = "UTF-8", ...
 ) {
     if (missing(from)) {
         admisc::stopError("Argument 'from' is missing.")
@@ -12,30 +13,10 @@
     dots <- list(...)
 
 
-    user_na <- TRUE # force reading the value labels
-    if (
-        is.element("user_na", names(dots)) && is.atomic(dots$user_na) && 
-        length(dots$user_na) == 1 && is.logical(dots$user_na)
-    ) {
-        user_na <- dots$user_na
-    }
+    user_na <- ifelse(isFALSE(dots$user_na), FALSE, TRUE)
 
-
-    embed <- TRUE # embed the data in the XML file
-    if (
-        is.element("embed", names(dots)) && is.atomic(dots$embed) && 
-        length(dots$embed) == 1 && is.logical(dots$embed)
-    ) {
-        embed <- dots$embed
-    }
-
-    chartonum <- TRUE
-    if (
-        is.element("chartonum", names(dots)) && is.atomic(dots$chartonum) && 
-        length(dots$chartonum) == 1 && is.logical(dots$chartonum)
-    ) {
-        chartonum <- dots$chartonum
-    }
+    # embed the data in the XML file
+    embed <- ifelse(isFALSE(dots$embed), FALSE, TRUE)
 
     dictionary <- NULL
     if (is.element("dictionary" , names(dots))) {
@@ -49,10 +30,12 @@
     else if (is.element("data.frame", class(from))) {
         Robject <- TRUE
         filename <- as.character(substitute(from))
+
         if (length(filename) > 1) {
             # something like ess[, c("idno", "ctzshipd")] was used
             filename <- "dataset"
         }
+
         tp_from <- list(
             completePath = normalizePath("~"),
             filenames = filename,
@@ -138,7 +121,7 @@
             from,
             declared = declared,
             encoding = encoding,
-            spss = identical(tp_to$fileext, "SAV")
+            toext = tp_to$fileext
         )
 
         if (is.element(
@@ -183,11 +166,7 @@
                 # data <- data[, -1, drop = FALSE]
             }
             # return(list(data = data, codeBook = codeBook))
-            data <- make_labelled(
-                data,
-                codeBook$dataDscr,
-                spss = identical(tp_to$fileext, "SAV")
-            )
+            data <- make_labelled(data, codeBook$dataDscr)
         }
     }
     else {
@@ -243,7 +222,9 @@
                 )
             }
             else {
-                declared <- FALSE
+                if (admisc::anyTagged(data)) {
+                    declared <- FALSE
+                }
             }
         }
         else if (tp_from$fileext == "SAS7BDAT") {
@@ -293,13 +274,17 @@
 
         codeBook <- getMetadata(data, error_null = FALSE)
         
-        
         codeBook$fileDscr$fileName <- tp_from$files
 
         filetypes <- c("SPSS", "SPSS", "Stata", "SAS", "XPT", "R", "DDI", "Excel", "Excel")
         fileexts <- c("SAV", "POR", "DTA", "SAS7BDAT", "XPT", "RDS", "XML", "XLS", "XLSX")
 
         codeBook$fileDscr$fileType <- filetypes[which(fileexts == tp_from$fileext)]
+    }
+
+    subset <- dots$subset
+    if (!is.null(subset)) {
+        data <- eval(parse(text = paste("data <- subset(data, ", subset, ")")))
     }
     
     if (is.null(to)) {
@@ -320,12 +305,17 @@
                 )
             }
 
+            if (admisc::anyTagged(data)) {
+                admisc::stopError("DDI does not support extended missing codes")
+            }
+
             data[] <- lapply(data, function(x) {
                 if (is.factor(x)) {
                     x <- as.numeric(x)
                 }
                 return(x)
             })
+
             codeBook$fileDscr$datafile <- data
 
             if (!embed) {
@@ -345,58 +335,89 @@
         else if (identical(tp_to$fileext, "SAV")) {
             data[] <- lapply(data, function(x) {
                 if (!is.element("format.spss", names(attributes(x)))) {
-                    attr(x, "format.spss") <- getFormat(x)
+                    attr(x, "format.spss") <- getFormat(x, type = "SPSS")
                 }
                 return(x)
             })
+
+            if (admisc::anyTagged(data)) {
+                admisc::stopError("SPSS does not support extended missing codes")
+            }
+
             # return(data)
             haven::write_sav(declared::as.haven(data), to)
         }
         else if (identical(tp_to$fileext, "DTA")) {
             data <- declared::as.haven(data)
+
             colnms <- colnames(data)
             arglist <- list(data = data)
+
+            rechars <- c()
             
-            if (!is.null(codeBook)) {
-                for (i in seq(ncol(data))) {
-                    values <- codeBook$dataDscr[[colnms[i]]]$values
-                    if (!is.null(values)) {
-                        if (admisc::possibleNumeric(values)) {
-                            if (!admisc::wholeNumeric(admisc::asNumeric(values))) {
-                                admisc::stopError(
-                                    sprintf(
-                                        "Stata does not allow labels for non-integer variables (e.g. \"%s\").",
-                                        colnms[i]
-                                    )
-                                )
-                            }
-                        }
-                    }
+            for (i in seq(ncol(data))) {
+                x <- data[[colnms[i]]]
+                metadata <- codeBook$dataDscr[[colnms[i]]]
+                labels <- metadata$labels
+                if (is.null(labels)) {
+                    labels <- attr(x, "labels", exact = TRUE)
                 }
 
-                # return(list(
-                #     data = data,
-                #     dictionary = dictionary,
-                #     chartonum = chartonum,
-                #     to_declared = FALSE,
-                #     error_null = FALSE
-                # ))
-                
-                if (recode) {
-                    arglist <- list(
-                        data = recodeValues(
-                            data,
-                            to = "Stata",
-                            dictionary = dictionary,
-                            chartonum = chartonum,
-                            to_declared = FALSE,
-                            error_null = FALSE
-                        )
-                    )
+                if (!is.null(labels)) {
+                    if (admisc::possibleNumeric(x)) {
+                        if (!admisc::wholeNumeric(admisc::asNumeric(x))) {
+                            admisc::stopError(
+                                sprintf(
+                                    "Stata does not allow labels for non-integer variables (e.g. \"%s\").",
+                                    colnms[i]
+                                )
+                            )
+                        }
+                    }
+
+                    if (is.character(x)) {
+                        rechars <- c(rechars, i)
+                        # Stata does not allow labels for character variables
+                        if (chartonum && !is.null(labels)) {
+                            x <- recodeCharcat(x, metadata = metadata)
+                        }
+                        else {
+                            label <- attr(x, "label", exact = TRUE)
+                            x <- as.character(x)
+                            attr(x, "label") <- label
+                        }
+
+                        data[[colnms[i]]] <- x
+                    }
                 }
+            }
+
+
+            if (recode) {
+                data <- recodeValues(
+                    data,
+                    to = "Stata",
+                    dictionary = dictionary,
+                    to_declared = FALSE,
+                    error_null = FALSE
+                )
             }
             
             # return(data)
+            data[] <- lapply(data, function(x) {
+                attr(x, "format.spss") <- NULL
+                if (is.null(attr(x, "format.stata"))) {
+                    attr(x, "format.stata") <- getFormat(x, type = "Stata")
+                }
+                return(x)
+            })
+
+            # for (i in seq(length(rechars))) {
+            #     cat("--------", colnms[rechars[i]], "--------\n")
+            #     print(attributes(data[[rechars[i]]]))
+            # }
+
+            arglist <- list(data = data)
 
             if (is.element("version", names(dots))) {
                 arglist$version <- dots$version
@@ -457,6 +478,8 @@
                 tp_from$completePath,
                 paste(tp_from$filenames, "sas", sep = ".")
             )
+
+            ### TODO: recodeValues() for the dictionary, only if recode = TRUE?
 
             setupfile(
                 getMetadata(arglist$data),
