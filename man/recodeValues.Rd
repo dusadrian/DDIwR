@@ -10,7 +10,7 @@ uniformly (re)using the same codes across all variables.
 }
 
 \usage{
-recodeValues(dataset, to = c("SPSS", "Stata"), dictionary = NULL, chartonum = TRUE, ...)
+recodeValues(dataset, to = c("SPSS", "Stata"), dictionary = NULL, ...)
 }
 
 
@@ -18,7 +18,6 @@ recodeValues(dataset, to = c("SPSS", "Stata"), dictionary = NULL, chartonum = TR
   \item{dataset}{A data frame}
   \item{to}{Software to recode missing values for}
   \item{dictionary}{A named vector, with corresponding SPSS values and Stata codes.}
-  \item{chartonum}{Logical, replace character values with numbers.}
   \item{...}{Other internal arguments.}
 }
 

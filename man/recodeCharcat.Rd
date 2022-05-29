@@ -1,0 +1,45 @@
+\name{recodeCharcat}
+
+\alias{recodeCharcat}
+
+\title{Recode character categorical variables}
+
+\description{
+Recodes a character categorical variables to a numerical categorical variable.
+}
+
+\usage{
+recodeCharcat(x, ...)
+}
+
+\arguments{
+  \item{x}{A character categorical variable}
+  \item{...}{Other internal arguments.}
+}
+
+\details{
+For this function, a categorical variable is something else than a base factor.
+It should be an object of class \code{"declared"}, or an object of class 
+\code{"haven_labelled_spss"}, with a specific attribute called \code{"labels"}
+that stores the value labels.
+
+
+}
+
+\value{
+A numeric categorical variable of the same class as the input.
+}
+
+
+\examples{
+x <- declared(
+    c(letters[1:5], -91),
+    labels = c(Good = "a", Bad = "e", NR = -91),
+    na_values = -91
+)
+
+recodeCharcat(x)
+
+}
+
+\keyword{functions}

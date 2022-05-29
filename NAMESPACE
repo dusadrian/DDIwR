@@ -16,6 +16,7 @@ export(
     getMetadata,
     getXML,
     make_labelled,
+    recodeCharcat,
     recodeValues,
     replaceTicks,
     writeMetadata,

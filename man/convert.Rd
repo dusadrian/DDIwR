@@ -12,7 +12,8 @@ an exchange platform and facilitates a consistent conversion of the missing valu
 }
 
 \usage{
-convert(from, to = NULL, declared = TRUE, recode = TRUE, encoding = "UTF-8", ...)
+convert(from, to = NULL, declared = TRUE, chartonum = FALSE, recode = TRUE,
+        encoding = "UTF-8", ...)
 }
 
 \arguments{
@@ -20,6 +21,8 @@ convert(from, to = NULL, declared = TRUE, recode = TRUE, encoding = "UTF-8", ...
   \item{to}{Character, the name of a software package or a path to a specific
     file}
   \item{declared}{Logical, return the resulting dataset as a declared object}
+  \item{chartonum}{Logical, recode character categorical variables to numerical
+    categorical variables}
   \item{recode}{Logical, recode missing values}
   \item{encoding}{The character encoding used to read a file}
   \item{...}{Additional parameters passed to exporting functions, see the Details
@@ -56,6 +59,10 @@ is used as having the value of \code{TRUE}. Users who really want to deactivate
 it should explicitly specify \code{use_na = FALSE} in function 
 \bold{\code{{convert}()}}.
 
+The argument \bold{\code{chartonum}} signals recoding character categorical
+variables, and emplys the function \bold{\code{\link{recodeCharcat}()}}. This
+only makes sense when recoding to Stata, which does not allow allocating labels
+for anything but integer variables.
 
 If the argument \bold{\code{to}} is left to \code{NULL}, the data is (invisibly)
 returned to the R enviroment. Conversion to R, either in the working space or as
