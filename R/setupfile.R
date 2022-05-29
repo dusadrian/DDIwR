@@ -1962,7 +1962,11 @@
                 # something like "A", "B" and "-9" will be recoded to 1, 2 and -9
                 # and someting like "A", "B" and "2" will be recoded to 1, 3 and 2
                 newvalues <- suppressWarnings(as.numeric(as.character(oldvalues)))
-                newvalues[is.na(newvalues)] <- setdiff(seq(1000), newvalues)[seq(sum(is.na(newvalues)))]
+                newvalues[is.na(newvalues)] <- setdiff(
+                    seq(1000),
+                    newvalues
+                )[seq(sum(is.na(newvalues)))]
+
                 names(newvalues) <- names(oldvalues)
 
                 wel <- which(is.element(dictionary, dataDscr2[[i]][["na_values"]]))
@@ -2047,7 +2051,7 @@
 
 
 
-        if (anymissing) {
+        if (anymissing & recode) {
             missvaRs <- labels_missing(dataDscr2)
             withmiss <- unlist(lapply(missvaRs, any))
 
@@ -2811,7 +2815,9 @@
                 enter, enter,
                 "rdatafile <- read.csv(csvpath)", 
                 enter, enter,
-                "names(rdatafile) <- toupper(names(rdatafile))    # all variable names to upper case",
+                "# all variable names to upper case",
+                enter,
+                "names(rdatafile) <- toupper(names(rdatafile))",
                 enter, enter, enter,
                 sep = ""
             ))
