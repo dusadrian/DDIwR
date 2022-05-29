@@ -214,7 +214,7 @@ function(x, save = FALSE, declared = TRUE, OS = "Windows", encoding = "UTF-8", .
                 }
 
                 if (!is.na(vformat)) {
-                    codeBook$dataDscr[[i]]$format.spss <- varFormat
+                    codeBook$dataDscr[[i]]$varFormat <- varFormat
                 }
 
                 if (identical(type, "character")) {
@@ -294,12 +294,26 @@ function(x, save = FALSE, declared = TRUE, OS = "Windows", encoding = "UTF-8", .
     if (singlefile) {
         if (!is.na(notes)) {
             if (grepl("# start data #", notes)) {
-                spss <- ifelse(is.element("spss", names(dots)), dots$spss, TRUE)
+                # this can only be possible from an XML, DDI Codebook
+                # therefore the varFormat should always be of an SPSS type
                 notes <- unlist(strsplit(notes, split = "\\n"))
-                data <- notes[seq(which(grepl("# start data #", notes)) + 1, which(grepl("# end data #", notes)) - 1)]
+                data <- notes[
+                    seq(
+                        which(grepl("# start data #", notes)) + 1,
+                        which(grepl("# end data #", notes)) - 1
+                    )
+                ]
+
                 data <- read.csv(text = paste(data, collapse = "\n"), as.is = TRUE)
                 # return(list(data, codeBook$dataDscr, declared = declared, spss = spss))
-                data <- make_labelled(data, codeBook$dataDscr, declared = declared, spss = spss)
+
+                # make_labelled is always and only about SPSS type of variables
+                data <- make_labelled(
+                    data,
+                    codeBook$dataDscr,
+                    declared = declared
+                )
+
                 embed <- TRUE
             }
         }
