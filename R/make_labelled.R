@@ -1,5 +1,5 @@
 
-`make_labelled` <- function(x, dataDscr, declared = TRUE, ...) {
+`make_labelled` <- function(x, dataDscr, declared = TRUE) {
 
     for (i in names(x)) {
         #------------------------------------------------------------------
@@ -33,12 +33,12 @@
         if (!nullabels) {
             nms <- names(labels)
             if (pN) {
-                labels <- admisc::asNumeric(labels)
+                labels <- setNames(admisc::asNumeric(labels), nms)
             }
             else {
-                labels <- as.character(labels)
+                labels <- setNames(as.character(labels), nms)
             }
-            names(labels) <- nms
+            # names(labels) <- nms
         }
 
         if (!is.null(na_values)) {
@@ -58,19 +58,19 @@
             x[[i]] <- haven::labelled_spss(v, labels, na_values, na_range, label)
         }
 
-        attr(x[[i]], "format.spss") <- dataDscr[[i]][["format.spss"]]
+        # this is always about format.spss since both "declared" and "labelled_spss"
+        # are not using Stata type extended missing values, and by consequence
+        # not using the Stata format type
+        attr(x[[i]], "format.spss") <- dataDscr[[i]][["varFormat"]][1]
 
     }
 
-    dots <- list(...)
-    if (isTRUE(dots$spss)) {
-        x[] <- lapply(x, function(x) {
-            if (is.null(attr(x, "format.spss"))) {
-                attr(x, "format.spss") <- getFormat(x)
-            }
-            return(x)
-        })
-    }
+    x[] <- lapply(x, function(x) {
+        if (is.null(attr(x, "format.spss"))) {
+            attr(x, "format.spss") <- getFormat(x, type = "SPSS")
+        }
+        return(x)
+    })
 
     if (!declared) {
         class(x) <- c("tbl_df", "tbl", "data.frame")
