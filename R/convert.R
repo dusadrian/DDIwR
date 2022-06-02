@@ -1,6 +1,6 @@
 `convert` <- function(
     from, to = NULL, declared = TRUE, chartonum = FALSE, recode = TRUE,
-    encoding = "UTF-8", ...
+    encoding = "UTF-8", csv = NULL, ...
 ) {
     if (missing(from)) {
         admisc::stopError("Argument 'from' is missing.")
@@ -124,40 +124,70 @@
             toext = tp_to$fileext
         )
 
-        if (is.element(
-            "datafile",
-            names(codeBook[["fileDscr"]])
-        )) {
+        if (is.element("datafile", names(codeBook[["fileDscr"]]))) {
             data <- codeBook[["fileDscr"]][["datafile"]]
         }
         else {
-            files <- getFiles(tp_from$completePath, "*")
+            if (is.null(csv)) {
+                files <- getFiles(tp_from$completePath, "*")
 
-            csvexists <- FALSE
-            csvfiles <- files$fileext == "CSV"
-            if (any(csvfiles)) {
-                csvexists <- is.element(
-                    toupper(tp_from$filenames),
-                    toupper(files$filenames[csvfiles])
-                )
-                csvfile <- files$files[csvfiles][
-                    match(
+                csvexists <- FALSE
+                csvfiles <- files$fileext == "CSV"
+                if (any(csvfiles)) {
+                    csvexists <- is.element(
                         toupper(tp_from$filenames),
                         toupper(files$filenames[csvfiles])
                     )
-                ]
+                    csvfile <- files$files[csvfiles][
+                        match(
+                            toupper(tp_from$filenames),
+                            toupper(files$filenames[csvfiles])
+                        )
+                    ]
+                }
+
+                if (!csvexists) {
+                    admisc::stopError("Datafile not found.")
+                }
+
+                csv <- file.path(tp_from$completePath, csvfile)
+            }
+            else {
+                # test if the csv is a path
+                treatPath(csv)
             }
 
-            if (!csvexists) {
-                admisc::stopError("Datafile not found.")
+            callist <- list(file = csv)
+            for (f in names(formals(utils::read.csv))) {
+                if (is.element(f, names(dots))) {
+                    callist[[f]] <- dots[[f]]
+                }
             }
 
-            data <- read.csv(
-                file.path(tp_from$completePath, csvfile),
-                as.is = TRUE
-            )
+            header <- ifelse(isFALSE(callist$header), FALSE, TRUE)
 
+            data <- do.call("read.csv", callist)
+            
+            if (ncol(data) == length(codeBook$dataDscr)) {
+                if (header) {
+                    if (!identical(names(data), names(codeBook$dataDscr))) {
+                        admisc::stopError("The .csv file does not match the DDI Codebook")
+                    }
+                }
+                else {
+                    names(data) <- nanes(codeBook$dataDscr)
+                }
+            }
             if (ncol(data) == length(codeBook$dataDscr) + 1) {
+                if (header) {
+                    if (!identical(names(data)[-1], names(codeBook$dataDscr))) {
+                        admisc::stopError("The .csv file does not match the DDI Codebook")
+                    }
+                }
+                else {
+                    names(data) <- c("row_names_csv_file", names(codeBook$dataDscr))
+                }
+                
                 rownames(data) <- data[, 1]
                 data <- subset(
                     data,
@@ -165,6 +195,8 @@
                 )
                 # data <- data[, -1, drop = FALSE]
             }
+            
+
             # return(list(data = data, codeBook = codeBook))
             data <- make_labelled(data, codeBook$dataDscr)
         }

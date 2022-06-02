@@ -31,12 +31,12 @@ convert(from, to = NULL, declared = TRUE, chartonum = FALSE, recode = TRUE,
 
 \details{
 When the argument \bold{\code{to}} specifies a certain statistical package
-(\code{"R"}, \code{"Stata"}, \code{"SPSS"}, \code{"SAS"}), \code{"XPT"}) or
+(\code{"R"}, \code{"Stata"}, \code{"SPSS"}, \code{"SAS"}, \code{"XPT"}) or
 \code{"Excel"}, the name of the destination file will be idential to the one in
 the argument \bold{\code{from}}, with an automatically added software specific
 extension.
 
-SPSS portable file (with the extension \code{".por"}) can only be read from, and
+SPSS portable file (with the extension \code{".por"}) can only be read, and
 SAS Transport files (with the extension \code{".xpt"}) can be both read and
 written.
 
@@ -57,10 +57,23 @@ the function \bold{\code{\link[haven]{read_sav}()}}. Although it is defaulted
 to \code{FALSE} in package \bold{\pkg{haven}}, in package \bold{\pkg{DDIwR}} it
 is used as having the value of \code{TRUE}. Users who really want to deactivate
 it should explicitly specify \code{use_na = FALSE} in function 
-\bold{\code{{convert}()}}.
+\bold{\code{convert}()}.
+
+The same three dots argument is used to pass additional parameters to other
+functions in this package, for instance \bold{\code{exportDDI()}} when converting
+to a DDI file. Its argument \bold{\code{embed}} (activated by default) can be
+used to control embedding the data in the XML file. Deactivating it will create
+a CSV file in the same directory, using the same file name as the XML file.
+
+When converting from DDI, if the dataset is not embedded in the XML file, the
+CSV file is expected to be found in the same directory as the DDI Codebook, and
+it should have the same file name as the XML file. Alternatively, the path to
+the CSV file can be provided via the \bold{\code{csv}} argument. Additional
+formal parameters of the function \bold{\code{\link[utile]{read.csv}()}} can be
+passed via the same three dots \bold{\code{...}} argument.
 
 The argument \bold{\code{chartonum}} signals recoding character categorical
-variables, and emplys the function \bold{\code{\link{recodeCharcat}()}}. This
+variables, and employs the function \bold{\code{\link{recodeCharcat}()}}. This
 only makes sense when recoding to Stata, which does not allow allocating labels
 for anything but integer variables.
 
@@ -74,7 +87,7 @@ versions to extend the functionality for DDI Lifecycle versions 3.x and link to
 the future package \bold{DDI4R} for the UML model based version 4. It extends
 the standard DDI Codebook by offering the possibility to embed a CSV version of
 the raw data into the XML file containing the Codebook, into a \code{notes}
-child of the \code{fileDscr} component. This type of Codebook is unique to this
+child of the \code{fileDscr} component. This type of codebook is unique to this
 package and automatically detected when converting to another statistical
 software.
 
@@ -87,12 +100,6 @@ The argument \bold{\code{recode}} controls how missing values are treated. If
 the input file has SPSS like numeric codes, they will be recoded to extended
 (a-z) missing types when converting to Stata or SAS. If the input has Stata like
 extended codes, they will be recoded to SPSS like numeric codes.
-
-It is possible to employ additional formal arguments from the function
-\bold{\code{exportDDI()}}, using the three dots \bold{\code{...}}. For instance,
-its argument \bold{\code{embed}} (that is activated by default) can be used to
-deactivate embedding the data in the XML file, in which situation a CSV file will
-be produced in the same directory, using the same file name as the XML file.
 
 The character \bold{\code{encoding}} is usually passed to the corresponding
 functions from package \bold{\pkg{haven}}. It can be set to \code{NULL} to reset

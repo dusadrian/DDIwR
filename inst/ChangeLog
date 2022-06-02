@@ -1,6 +1,7 @@
 Version 0.12
     o new argument "encoding" in functions convert() and getMetadata()
     o new argument "recode" in function setupfile()
+    o new argument "csv" in function convert()
     o fixed varFormat when exporting to DDI
     o convert() now correctly returns a tibble when the input is a DDI codebook,
       and the argument "declared" is deactivated
@@ -9,7 +10,7 @@ Version 0.12
     o converting to SAS automatically creates a catalog file, next to the datafile
     o new function recodeCharcat() to recode character categorical variables to
       numeric categorical variables
-    o argument "chartonum" moved from function recodeValues() to function convet()
+    o argument "chartonum" moved from function recodeValues() to function convert()
 
 Version 0.11
     o new argument "xmlns" in function exportDDI(), to allow creating XML files
