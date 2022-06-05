@@ -5,6 +5,8 @@
     if (missing(from)) {
         admisc::stopError("Argument 'from' is missing.")
     }
+
+    funargs <- unlist(lapply(match.call(), deparse)[-1])
     
     # if (missing(to)) {
     #     admisc::stopError("sprintf("Argument %s is missing.", dQuote("to").")
@@ -29,12 +31,15 @@
     }
     else if (is.element("data.frame", class(from))) {
         Robject <- TRUE
-        filename <- as.character(substitute(from))
+        # filename <- as.character(substitute(from))
+        # filename <- admisc::getName(funargs["from"], object = TRUE)
+        filename <- all.vars(substitute(from))[1]
 
-        if (length(filename) > 1) {
-            # something like ess[, c("idno", "ctzshipd")] was used
-            filename <- "dataset"
-        }
+        # it can have a length > 1, when something like this might be used:
+        # foo(subset(dd[, c("A", "B")], subset = A == 1)) # "dd" "A"
+        # or
+        # foo(dd[, i]) # "dd" "i"
+        # in any case, the first is (or should be) always the object's name
 
         tp_from <- list(
             completePath = normalizePath("~"),
@@ -187,7 +192,7 @@
                 else {
                     names(data) <- c("row_names_csv_file", names(codeBook$dataDscr))
                 }
-                
+
                 rownames(data) <- data[, 1]
                 data <- subset(
                     data,
