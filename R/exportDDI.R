@@ -115,6 +115,7 @@
 
     data <- codebook[["fileDscr"]][["datafile"]]
     dataDscr  <- codebook[["dataDscr"]]
+    pN <- logical(length(dataDscr))
     
     # uuid for all variables
     uuid <- generateUUID(length(dataDscr))
@@ -434,85 +435,94 @@
 
         type <- dataDscr[[i]]$type
         
-        if (!is.null(data)) {
-            if (pN[i]) {
-                vals <- aN[[names(dataDscr)[i]]]
+        # even if the data is not present, pN is FALSE for all variables
+        if (pN[i]) {
+            vals <- aN[[names(dataDscr)[i]]]
 
-                if (!is.null(lbls)) {
-                    ismiss <- is.element(lbls, na_values)
-                    if (length(na_range) > 0) {
-                        ismiss <- ismiss | (lbls >= na_range[1] & lbls <= na_range[2])
-                    }
-                    vals[is.element(vals, lbls[ismiss])] <- NA
+            if (!is.null(lbls)) {
+                ismiss <- is.element(lbls, na_values)
+                if (length(na_range) > 0) {
+                    ismiss <- ismiss | (lbls >= na_range[1] & lbls <= na_range[2])
                 }
+                vals[is.element(vals, lbls[ismiss])] <- NA
+            }
 
-                printnum <- length(setdiff(vals[!is.na(vals)], lbls)) > 4
-                if (!is.null(type)) printnum <- printnum | grepl("num", type)
+            vals <- na.omit(vals)
+
+            # this is a test if a variable truly is numeric
+            # (not just categorical using numbers)
+            # if it has at least four(?) values different from the labels
+            printnum <- length(setdiff(vals, lbls)) > 4
+            
+            if (!is.null(type)) {
+                # at least two non missing values are needed to calculate sd()
+                printnum <- printnum | (length(vals) > 2 & grepl("num", type))
+            }
+            
+            if (printnum) { # numeric variable
+                cat(paste(
+                    s3,
+                    "<", ns, "sumStat type=\"min\">",
+                    format(
+                        min(vals, na.rm = TRUE),
+                        scientific = FALSE
+                    ),
+                    "</", ns, "sumStat>",
+                    enter,
+                    sep = ""
+                ))
+
+                cat(paste(
+                    s3,
+                    "<", ns, "sumStat type=\"max\">",
+                    format(
+                        max(vals, na.rm = TRUE),
+                        scientific = FALSE
+                    ),
+                    "</", ns, "sumStat>",
+                    enter,
+                    sep = ""
+                ))
                 
-                if (printnum) { # numeric variable
-                    cat(paste(
-                        s3,
-                        "<", ns, "sumStat type=\"min\">",
-                        format(
-                            min(vals, na.rm = TRUE),
-                            scientific = FALSE
-                        ),
-                        "</", ns, "sumStat>",
-                        enter,
-                        sep = ""
-                    ))
-
-                    cat(paste(
-                        s3,
-                        "<", ns, "sumStat type=\"max\">",
-                        format(
-                            max(vals, na.rm = TRUE),
-                            scientific = FALSE
-                        ),
-                        "</", ns, "sumStat>",
-                        enter,
-                        sep = ""
-                    ))
-                    
-                    cat(paste(
-                        s3,
-                        "<", ns, "sumStat type=\"mean\">",
-                        format(
-                            mean(vals, na.rm = TRUE),
-                            scientific = FALSE
-                        ),
-                        "</", ns, "sumStat>",
-                        enter,
-                        sep = ""
-                    ))
-                    
-                    cat(paste(
-                        s3,
-                        "<", ns, "sumStat type=\"medn\">",
-                        format(
-                            median(vals, na.rm = TRUE),
-                            scientific = FALSE
-                        ),
-                        "</", ns, "sumStat>",
-                        enter,
-                        sep = ""
-                    ))
-                    
-                    cat(paste(
-                        s3,
-                        "<", ns, "sumStat type=\"stdev\">",
-                        format(
-                            sd(vals, na.rm = TRUE),
-                            scientific = FALSE
-                        ),
-                        "</", ns, "sumStat>",
-                        enter,
-                        sep = ""
-                    ))
-             
-                }
+                cat(paste(
+                    s3,
+                    "<", ns, "sumStat type=\"mean\">",
+                    format(
+                        mean(vals, na.rm = TRUE),
+                        scientific = FALSE
+                    ),
+                    "</", ns, "sumStat>",
+                    enter,
+                    sep = ""
+                ))
+                
+                cat(paste(
+                    s3,
+                    "<", ns, "sumStat type=\"medn\">",
+                    format(
+                        median(vals, na.rm = TRUE),
+                        scientific = FALSE
+                    ),
+                    "</", ns, "sumStat>",
+                    enter,
+                    sep = ""
+                ))
+                
+                cat(paste(
+                    s3,
+                    "<", ns, "sumStat type=\"stdev\">",
+                    format(
+                        sd(vals, na.rm = TRUE),
+                        scientific = FALSE
+                    ),
+                    "</", ns, "sumStat>",
+                    enter,
+                    sep = ""
+                ))
+            
             }
         }
+        
         
         if (!is.null(lbls)) {
 
