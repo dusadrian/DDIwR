@@ -47,7 +47,8 @@
     dataDscr <- collectMetadata(dataset, error_null = error_null)
 
     spss <- unlist(lapply(dataset, function(x) {
-        !is.character(x) && !is.null(attr(x, "labels")) &&
+        !is.character(x) &&
+        !is.null(attr(x, "labels", exact = TRUE)) &&
         (
             inherits(x, "haven_labelled_spss") || inherits(x, "declared")
         )
