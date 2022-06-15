@@ -216,13 +216,47 @@
                     }
                 }
 
-                data <- do.call(
-                    paste(
-                        "read",
-                        tolower(tp_from$fileext),
-                        sep = "_"
-                    ),
-                callist)
+                data <- do.call("read_excel", callist)
+                variables <- NULL
+                callist$sheet <- "variables"
+                admisc::tryCatchWEM(variables <-  do.call("read_excel", callist))
+                codes <- NULL
+                callist$sheet <- "codes"
+                admisc::tryCatchWEM(codes <- do.call("read_excel", callist))
+
+                if (!is.null(variables) & !is.null(codes)) {
+                    for (v in colnames(data)) {
+                        callist <- list(x = data[[v]])
+                        label <- NULL
+                        admisc::tryCatchWEM(label <- variables$label[variables$name == v])
+                        if (length(label) == 1) {
+                            callist$label <- label
+                        }
+
+                        labels <- NULL
+                        admisc::tryCatchWEM(labels <- codes$code[codes$variable == v])
+                        nms <- NULL
+                        admisc::tryCatchWEM(nms <- codes$label[codes$variable == v])
+                        vmissing <- NULL
+                        admisc::tryCatchWEM(vmissing <- codes$missing[codes$variable == v])
+
+                        if (length(labels) > 0 & length(nms) > 0 & length(vmissing) > 0) {
+                            if (admisc::possibleNumeric(labels)) {
+                                labels <- admisc::asNumeric(labels)
+                            }
+                            
+                            if (!all(is.na(vmissing)) && any(vmissing == "y")) {
+                                callist$na_values <- labels[which(vmissing == "y")]
+                            }
+
+                            names(labels) <- nms
+                            callist$labels <- labels
+                        }
+
+                        data[[v]] <- do.call("declared", callist)
+
+                    }
+                }
             # }
         }
         else if (tp_from$fileext == "SAV") {
@@ -493,7 +527,60 @@
             }
         }
         else if (identical(tp_to$fileext, "XLSX")) {
-            writexl::write_xlsx(data, to)
+            labels <- sapply(data, function(x) attr(x, "label", exact = TRUE))
+
+            varFormat <- lapply(codeBook$dataDscr, function(x) {
+                as.numeric(
+                    unlist(
+                        strsplit(
+                            substring(x$varFormat[1], 2),
+                            split = "\\."
+                        )
+                    )
+                )
+            })
+
+            x <- list(
+                data = data
+                variables = data.frame(
+                    name = names(labels),
+                    label = labels,
+                    type = sapply(data, mode)
+                ),
+                codes = data.frame(
+                    variable = character(0),
+                    code = character(0),
+                    label = character(0),
+                    missing = character(0)
+                )
+            )
+            
+            x$variables$width <- sapply(varFormat, "[[", 1)
+            x$variables$decimals <- sapply(varFormat, function(x) {
+                ifelse(length(x) > 1, x[2], NA)
+            })
+
+            for (v in names(codeBook$dataDscr)) {
+                labels <- codeBook$dataDscr[[v]][["labels"]]
+                if (!is.null(labels)) {
+                    temp <- data.frame(
+                        variable = v,
+                        code = labels,
+                        label = names(labels),
+                        missing = NA
+                    )
+
+                    na_values <- codeBook$dataDscr[[v]][["na_values"]]
+                    
+                    if (!is.null(na_values)) {
+                        temp$missing[is.element(labels, na_values)] <- "y"
+                    }
+
+                    x$codes <- rbind(x$codes, temp)
+                }
+            }
+
+            writexl::write_xlsx(x, path = to)
         }
         else {
             if (identical(tp_to$fileext, "SAS7BDAT")) {
