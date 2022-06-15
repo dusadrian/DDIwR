@@ -2,28 +2,32 @@
     if (!is.character(x)) {
         return(x)
     }
-
+    
     dots <- list(...)
     metadata <- dots$metadata
-
-    attrx <- attributes(x)
-    x <- declared::undeclare(x)
-    attributes(x) <- NULL
-
-    if (is.null(metadata)) {
-        metadata <- attrx
-    }
-    
-    label <- metadata[["label"]]
     labels <- metadata[["labels"]]
-    na_values <- metadata[["na_values"]]
     
+    if (is.null(metadata)) {
+        metadata <- attributes(x)
+    }
+
     # only character _categorical_ variables should be recoded
-    if (is.null(labels)) {
+    if (
+        is.null(labels) ||
+        !(
+            inherits(x, "declared") |
+            inherits(x, "haven_labelled_spss")
+        )
+    ) {
         # nothing to recode, no information about categories
-        attributes(x) <- attrx
         return(x)
     }
+
+
+    x <- declared::undeclare(x, drop = TRUE)
+    
+    label <- metadata[["label"]]
+    na_values <- metadata[["na_values"]]
 
     x[x == ""] <- NA
 
