@@ -237,8 +237,9 @@
 
     cat(paste(s1, "</", ns, "stdyDscr>", enter, sep = ""))
     
+    fileDscrUUID <- generateUUID(1)
     cat(paste(
-        s1, "<", ns, "fileDscr ID=\"", generateUUID(1), "\">",
+        s1, "<", ns, "fileDscr ID=\"", fileDscrUUID, "\">",
         enter,
         sep = ""
     ))
@@ -341,7 +342,7 @@
         cat(paste0(
             s2, "<", ns, "var ID=\"", uuid[i], "\"",
             " name=\"", varnames[i], "\"",
-            " files=\"", uuid[length(uuid)], "\"",
+            " files=\"", fileDscrUUID, "\"",
             dcml, nature, ">",
             enter
         ))
