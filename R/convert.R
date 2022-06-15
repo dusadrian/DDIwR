@@ -541,7 +541,7 @@
             })
 
             x <- list(
-                data = data
+                data = data,
                 variables = data.frame(
                     name = names(labels),
                     label = labels,
