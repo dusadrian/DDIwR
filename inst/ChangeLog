@@ -1,4 +1,6 @@
 Version 0.12
+    o exporting to Excel creates new sheets containing metadata information
+      about the variables and their values
     o new argument "encoding" in functions convert() and getMetadata()
     o new argument "recode" in function setupfile()
     o new argument "csv" in function convert()
