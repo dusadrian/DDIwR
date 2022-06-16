@@ -230,7 +230,9 @@
                         label <- NULL
                         admisc::tryCatchWEM(label <- variables$label[variables$name == v])
                         if (length(label) == 1) {
-                            callist$label <- label
+                            if (!identical(label, "")) {
+                                callist$label <- label
+                            }
                         }
 
                         labels <- NULL
@@ -527,7 +529,13 @@
             }
         }
         else if (identical(tp_to$fileext, "XLSX")) {
-            labels <- sapply(data, function(x) attr(x, "label", exact = TRUE))
+            labels <- sapply(data, function(x) {
+                lbl <- attr(x, "label", exact = TRUE)
+                if (is.null(lbl)) {
+                    lbl <- ""
+                }
+                return(lbl)
+            })
 
             varFormat <- lapply(codeBook$dataDscr, function(x) {
                 as.numeric(
