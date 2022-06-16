@@ -230,7 +230,7 @@
                         label <- NULL
                         admisc::tryCatchWEM(label <- variables$label[variables$name == v])
                         if (length(label) == 1) {
-                            if (!identical(label, "")) {
+                            if (!identical(label, "") & !is.na(label)) {
                                 callist$label <- label
                             }
                         }
