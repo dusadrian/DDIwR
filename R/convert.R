@@ -614,7 +614,7 @@
             ### TODO: recodeValues() for the dictionary, only if recode = TRUE?
 
             setupfile(
-                getMetadata(arglist$data),
+                codeBook = getMetadata(arglist$data),
                 file = to,
                 type = "SAS",
                 recode = recode,
