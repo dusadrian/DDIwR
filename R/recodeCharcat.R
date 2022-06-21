@@ -6,6 +6,7 @@
     dots <- list(...)
     metadata <- dots$metadata
     labels <- metadata[["labels"]]
+    xdeclared <- inherits(x, "declared")
     
     if (is.null(metadata)) {
         metadata <- attributes(x)
@@ -15,8 +16,7 @@
     if (
         is.null(labels) ||
         !(
-            inherits(x, "declared") |
-            inherits(x, "haven_labelled_spss")
+            xdeclared | inherits(x, "haven_labelled_spss")
         )
     ) {
         # nothing to recode, no information about categories
@@ -72,7 +72,7 @@
         na_values <- NULL
     }
 
-    if (is.element("declared", attrx$class)) {
+    if (xdeclared) {
         return(declared::declared(
             x,
             label = label,
