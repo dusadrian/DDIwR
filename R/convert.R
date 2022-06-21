@@ -208,9 +208,9 @@
     }
     else {
         if (tp_from$fileext == "XLS" || tp_from$fileext == "XLSX") {
-            # if (require(readxl, quietly = TRUE)) {
+            if (require(readxl, quietly = TRUE)) {
                 callist <- list(path = from)
-                for (f in names(formals(read_excel))) {
+                for (f in names(formals(readxl::read_excel))) {
                     if (is.element(f, names(dots))) {
                         callist[[f]] <- dots[[f]]
                     }
@@ -219,12 +219,17 @@
                 data <- do.call("read_excel", callist)
                 variables <- NULL
                 callist$sheet <- "variables"
-                admisc::tryCatchWEM(variables <-  do.call("read_excel", callist))
-                codes <- NULL
-                callist$sheet <- "codes"
-                admisc::tryCatchWEM(codes <- do.call("read_excel", callist))
+                admisc::tryCatchWEM(variables <- do.call("read_excel", callist))
+                
+                values <- NULL
+                callist$sheet <- "values"
+                admisc::tryCatchWEM(values <- do.call("read_excel", callist))
+                if (is.null(values)) {
+                    callist$sheet <- "codes"
+                    admisc::tryCatchWEM(values <- do.call("read_excel", callist))
+                }
 
-                if (!is.null(variables) & !is.null(codes)) {
+                if (!is.null(variables) & !is.null(values)) {
                     for (v in colnames(data)) {
                         callist <- list(x = data[[v]])
                         label <- NULL
@@ -236,11 +241,16 @@
                         }
 
                         labels <- NULL
-                        admisc::tryCatchWEM(labels <- codes$code[codes$variable == v])
+                        admisc::tryCatchWEM(labels <- values$value[values$variable == v])
+                        if (is.null(labels)) {
+                            admisc::tryCatchWEM(labels <- values$code[values$variable == v])
+                        }
+                        
                         nms <- NULL
-                        admisc::tryCatchWEM(nms <- codes$label[codes$variable == v])
+                        admisc::tryCatchWEM(nms <- values$label[values$variable == v])
+
                         vmissing <- NULL
-                        admisc::tryCatchWEM(vmissing <- codes$missing[codes$variable == v])
+                        admisc::tryCatchWEM(vmissing <- values$missing[values$variable == v])
 
                         if (length(labels) > 0 & length(nms) > 0 & length(vmissing) > 0) {
                             if (admisc::possibleNumeric(labels)) {
@@ -259,7 +269,7 @@
 
                     }
                 }
-            # }
+            }
         }
         else if (tp_from$fileext == "SAV") {
             fargs <- names(formals(read_sav))
@@ -555,9 +565,9 @@
                     label = labels,
                     type = sapply(data, mode)
                 ),
-                codes = data.frame(
+                values = data.frame(
                     variable = character(0),
-                    code = character(0),
+                    value = character(0),
                     label = character(0),
                     missing = character(0)
                 )
@@ -573,7 +583,7 @@
                 if (!is.null(labels)) {
                     temp <- data.frame(
                         variable = v,
-                        code = labels,
+                        value = labels,
                         label = names(labels),
                         missing = NA
                     )
@@ -584,7 +594,7 @@
                         temp$missing[is.element(labels, na_values)] <- "y"
                     }
 
-                    x$codes <- rbind(x$codes, temp)
+                    x$values <- rbind(x$values, temp)
                 }
             }
 
