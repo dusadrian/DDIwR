@@ -180,7 +180,7 @@
                     }
                 }
                 else {
-                    names(data) <- nanes(codeBook$dataDscr)
+                    names(data) <- names(codeBook$dataDscr)
                 }
             }
             if (ncol(data) == length(codeBook$dataDscr) + 1) {
@@ -614,7 +614,7 @@
             ### TODO: recodeValues() for the dictionary, only if recode = TRUE?
 
             setupfile(
-                getMetadata(arglist$data),
+                codeBook = getMetadata(arglist$data),
                 file = to,
                 type = "SAS",
                 recode = recode,
