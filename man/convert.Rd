@@ -13,7 +13,7 @@ an exchange platform and facilitates a consistent conversion of the missing valu
 
 \usage{
 convert(from, to = NULL, declared = TRUE, chartonum = FALSE, recode = TRUE,
-        encoding = "UTF-8", ...)
+        encoding = "UTF-8", csv = NULL, ...)
 }
 
 \arguments{
@@ -25,6 +25,8 @@ convert(from, to = NULL, declared = TRUE, chartonum = FALSE, recode = TRUE,
     categorical variables}
   \item{recode}{Logical, recode missing values}
   \item{encoding}{The character encoding used to read a file}
+  \item{csv}{Path to the CSV file, if not embedded in XML file containing the
+    DDI Codebook.}
   \item{...}{Additional parameters passed to exporting functions, see the Details
     section}
 }
@@ -69,7 +71,7 @@ When converting from DDI, if the dataset is not embedded in the XML file, the
 CSV file is expected to be found in the same directory as the DDI Codebook, and
 it should have the same file name as the XML file. Alternatively, the path to
 the CSV file can be provided via the \bold{\code{csv}} argument. Additional
-formal parameters of the function \bold{\code{\link[utile]{read.csv}()}} can be
+formal parameters of the function \bold{\code{\link[utils]{read.csv}()}} can be
 passed via the same three dots \bold{\code{...}} argument.
 
 The argument \bold{\code{chartonum}} signals recoding character categorical
