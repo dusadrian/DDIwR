@@ -1,6 +1,6 @@
 Package: DDIwR
-Version: 0.11.7
-Date: 2022-06-15
+Version: 0.12
+Date: 2022-06-21
 Title: DDI with R
 Authors@R: person(given = "Adrian", family = "Dusa",
                   role = c("aut", "cre", "cph"),
@@ -8,7 +8,7 @@ Authors@R: person(given = "Adrian", family = "Dusa",
                   comment = c(ORCID = "0000-0002-3525-9253"))
 Depends: R (>= 3.5.0)
 Imports:
-    admisc (> 0.27),
+    admisc (> 0.28),
     declared (> 0.16),
     tools,
     xml2,

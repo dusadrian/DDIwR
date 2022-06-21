@@ -14,23 +14,24 @@ and write dedicated setup files for R, SPSS, Stata and SAS to read an associated
 .csv file containing the raw data, apply labels for variables and values and
 also deal with the treatment of missing values.
 
-It can also generate a DDI metadata file out of an R information object, which can be
-used to export directly to the standard statistical packages files (such as SPSS, Stata
-and SAS, or even Excel), using the versatile package \bold{\pkg{haven}}. For R, the default
-object to store data and metadata is a \bold{\code{data.frame}}, and labelled data are
-automatically coerced to class \code{declared}.
+It can also generate a DDI metadata file out of an R information object, which
+can be used to export directly to the standard statistical packages files (such
+as SPSS, Stata and SAS, or even Excel), using the versatile package
+\bold{\pkg{haven}}. For R, the default object to store data and metadata is a
+\bold{\code{data.frame}}, and labelled data are automatically coerced to class
+\code{declared}.
 
-The research leading to the initial functions in this package has received funding from
-the European Union's Seventh Framework Programme (FP7/2007-2013) under grant agreement no.
-262608 (DwB - Data without Boundaries)
+The research leading to the initial functions in this package has received
+funding from the European Union's Seventh Framework Programme (FP7/2007-2013)
+under grant agreement no. 262608 (DwB - Data without Boundaries)
 }
 
 \details{
     \tabular{ll}{
     Package: \tab DDIwR\cr
     Type:    \tab Package\cr
-    Version: \tab 0.11.7\cr
-    Date:    \tab 2022-06-15\cr
+    Version: \tab 0.12\cr
+    Date:    \tab 2022-06-21\cr
     License: \tab GPL (>= 2)\cr
     }
 }
