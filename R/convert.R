@@ -205,6 +205,10 @@
             # return(list(data = data, codeBook = codeBook))
             data <- make_labelled(data, codeBook$dataDscr)
         }
+
+        attr(data, "stdyDscr") <- codeBook[["stdyDscr"]]
+
+        return(data)
     }
     else {
         if (tp_from$fileext == "XLS" || tp_from$fileext == "XLSX") {

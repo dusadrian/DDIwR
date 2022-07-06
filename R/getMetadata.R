@@ -6,6 +6,7 @@ function(x, save = FALSE, declared = TRUE, OS = "Windows", encoding = "UTF-8", .
     
     
     dots <- list(...)
+    stdyDscr <- NULL
 
     user_na <- TRUE # force reading the value labels
     if (
@@ -74,6 +75,11 @@ function(x, save = FALSE, declared = TRUE, OS = "Windows", encoding = "UTF-8", .
             codeBook <- list()
             xml <- getXML(file.path(tp$completePath, tp$files[ff]))
             
+            children <- xml2::xml_children(xml)
+            nms <- xml_name(kids)
+            if (is.element("stdyDscr", nms)) {
+                stdyDscr <- xml2::as_list(children[[which(nms == "stdyDscr")]])
+            }
             
             # lapply(xml_find_all(xml, "/d1:codeBook/d1:dataDscr/d1:var"), function(x) {
             #     list(label = admisc::trimstr(xml_text(xml_find_first(x, "d1:labl"))))
@@ -320,6 +326,10 @@ function(x, save = FALSE, declared = TRUE, OS = "Windows", encoding = "UTF-8", .
         
         if (embed & !is.null(data)) {
             codeBook$fileDscr$datafile <- data
+        }
+
+        if (!is.null(stdyDscr)) {
+            codeBook$stdyDscr <- stdyDscr
         }
         
         return(codeBook)
