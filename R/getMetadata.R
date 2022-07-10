@@ -76,7 +76,7 @@ function(x, save = FALSE, declared = TRUE, OS = "Windows", encoding = "UTF-8", .
             xml <- getXML(file.path(tp$completePath, tp$files[ff]))
             
             children <- xml2::xml_children(xml)
-            nms <- xml_name(kids)
+            nms <- xml_name(children)
             if (is.element("stdyDscr", nms)) {
                 stdyDscr <- xml2::as_list(children[[which(nms == "stdyDscr")]])
             }
