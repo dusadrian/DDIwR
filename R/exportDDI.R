@@ -114,7 +114,8 @@
     enter <- getEnter(OS = OS)
 
     data <- codebook[["fileDscr"]][["datafile"]]
-    dataDscr  <- codebook[["dataDscr"]]
+    stdyDscr <- codebook[["stdyDscr"]]
+    dataDscr <- codebook[["dataDscr"]]
     pN <- logical(length(dataDscr))
     
     # uuid for all variables
@@ -196,46 +197,72 @@
 
 
     # Study description
-    cat(paste(s1, "<", ns, "stdyDscr>", enter, sep = ""))
-    cat(paste(s2, "<", ns, "citation>", enter, sep = ""))
+    if (is.null(stdyDscr)) {
+        cat(paste(s1, "<", ns, "stdyDscr>", enter, sep = ""))
+        cat(paste(s2, "<", ns, "citation>", enter, sep = ""))
 
-    cat(paste(s3, "<", ns, "titlStmt>", enter, sep = ""))
-    cat(paste(
-        s4, "<", ns, "titl", xmlang, ">", titl, "</", ns, "titl>",
-        enter,
-        sep = ""
-    ))
-    cat(paste(
-        s4, "<", ns, "IDNo agency=\"", agency,"\">", IDNo, "</", ns, "IDNo>",
-        enter,
-        sep = ""
-    ))
-    cat(paste(s3, "</", ns, "titlStmt>", enter, sep = ""))
-    
-    cat(paste(s3, "<", ns, "distStmt>", enter, sep = ""))
-    cat(paste(
-        s4, "<", ns, "distrbtr", xmlang, ">", distrbtr,
-        "</", ns, "distrbtr>",
-        enter, sep = ""
-    ))
-    cat(paste(s3, "</", ns, "distStmt>", enter, sep = ""))
+        cat(paste(s3, "<", ns, "titlStmt>", enter, sep = ""))
+        cat(paste(
+            s4, "<", ns, "titl", xmlang, ">", titl, "</", ns, "titl>",
+            enter,
+            sep = ""
+        ))
+        cat(paste(
+            s4, "<", ns, "IDNo agency=\"", agency,"\">", IDNo, "</", ns, "IDNo>",
+            enter,
+            sep = ""
+        ))
+        cat(paste(s3, "</", ns, "titlStmt>", enter, sep = ""))
+        
+        cat(paste(s3, "<", ns, "distStmt>", enter, sep = ""))
+        cat(paste(
+            s4, "<", ns, "distrbtr", xmlang, ">", distrbtr,
+            "</", ns, "distrbtr>",
+            enter, sep = ""
+        ))
+        cat(paste(s3, "</", ns, "distStmt>", enter, sep = ""))
 
-    cat(paste(
-        s3, "<", ns, "holdings URI=\"", URI,
-        "\">Description of the study holdings</", ns, "holdings>",
-        enter, sep = ""
-    ))
+        cat(paste(
+            s3, "<", ns, "holdings URI=\"", URI,
+            "\">Description of the study holdings</", ns, "holdings>",
+            enter, sep = ""
+        ))
 
-    cat(paste(s2, "</", ns, "citation>", enter, sep = ""))
-    cat(paste(s2, "<", ns, "stdyInfo>", enter, sep = ""))
-    cat(paste(
-        s3, "<", ns, "abstract", xmlang, ">", abstract, "</", ns, "abstract>",
-        enter, sep = ""
-    ))
+        cat(paste(s2, "</", ns, "citation>", enter, sep = ""))
+        cat(paste(s2, "<", ns, "stdyInfo>", enter, sep = ""))
+        cat(paste(
+            s3, "<", ns, "abstract", xmlang, ">", abstract, "</", ns, "abstract>",
+            enter, sep = ""
+        ))
 
-    cat(paste(s2, "</", ns, "stdyInfo>", enter, sep = ""))
+        cat(paste(s2, "</", ns, "stdyInfo>", enter, sep = ""))
 
-    cat(paste(s1, "</", ns, "stdyDscr>", enter, sep = ""))
+        cat(paste(s1, "</", ns, "stdyDscr>", enter, sep = ""))
+    }
+    else {
+
+        cat(paste(makeXML(stdyDscr, 1, indent, ns, enter), collapse = ""))
+        
+        ## when no xml namespace is needed, this works:
+        # stdyDscr <- as_xml_document(list(stdyDscr = stdyDscr))
+
+        # addns <- function(x) {
+        #     if (!is.null(names(x))) {
+        #         names(x) <- paste0(ns, names(x))
+        #         if (is.list(x)) {
+        #             x <- lapply(x, function(x) {
+        #                 addns(x)
+        #             })
+        #         }
+        #     }
+        #     return(x)
+        # }
+        
+        # stdyDscr <- lapply(list(stdyDscr), addns)
+        # names(stdyDscr) <- paste0(ns, "stdyDscr")
+        # stdyDscr <- as_xml_document(stdyDscr) # error can not find namespace
+        # cat(as.character(stdyDscr))
+    }
     
     fileDscrUUID <- generateUUID(1)
     cat(paste(

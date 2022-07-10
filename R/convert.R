@@ -212,7 +212,7 @@
     }
     else {
         if (tp_from$fileext == "XLS" || tp_from$fileext == "XLSX") {
-            if (require(readxl, quietly = TRUE)) {
+            if (requireNamespace("readxl", quietly = TRUE)) {
                 callist <- list(path = from)
                 for (f in names(formals(readxl::read_excel))) {
                     if (is.element(f, names(dots))) {
@@ -416,7 +416,14 @@
                     na = ""
                 )
             }
+            
             # return(list(codeBook = codeBook, file = to))
+            
+            attrdata <- attributes(data)
+            if (is.element("stdyDscr", names(attrdata))) {
+                codeBook$stdyDscr <- attrdata$stdyDscr
+            }
+            
             exportDDI(codeBook, to, ... = ...)
         }
         else if (identical(tp_to$fileext, "SAV")) {

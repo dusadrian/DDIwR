@@ -27,8 +27,8 @@ convert(from, to = NULL, declared = TRUE, chartonum = FALSE, recode = TRUE,
   \item{encoding}{The character encoding used to read a file}
   \item{csv}{Path to the CSV file, if not embedded in XML file containing the
     DDI Codebook.}
-  \item{...}{Additional parameters passed to exporting functions, see the Details
-    section}
+  \item{...}{Additional parameters passed to exporting functions, see the
+    Details section}
 }
 
 \details{
@@ -62,10 +62,11 @@ it should explicitly specify \code{use_na = FALSE} in function
 \bold{\code{convert}()}.
 
 The same three dots argument is used to pass additional parameters to other
-functions in this package, for instance \bold{\code{exportDDI()}} when converting
-to a DDI file. Its argument \bold{\code{embed}} (activated by default) can be
-used to control embedding the data in the XML file. Deactivating it will create
-a CSV file in the same directory, using the same file name as the XML file.
+functions in this package, for instance \bold{\code{exportDDI()}} when
+converting to a DDI file. One of its argument \bold{\code{embed}} (activated by
+default) can be used to control embedding the data in the XML file. Deactivating
+it will create a CSV file in the same directory, using the same file name as the
+XML file.
 
 When converting from DDI, if the dataset is not embedded in the XML file, the
 CSV file is expected to be found in the same directory as the DDI Codebook, and
