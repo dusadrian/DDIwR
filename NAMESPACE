@@ -15,6 +15,7 @@ export(
     getFormat,
     getMetadata,
     getXML,
+    makeXML,
     make_labelled,
     recodeCharcat,
     recodeValues,

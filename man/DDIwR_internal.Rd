@@ -9,6 +9,7 @@
 \alias{getFiles}
 \alias{getFormat}
 \alias{getXML}
+\alias{makeXML}
 \alias{make_labelled}
 \alias{replaceTicks}
 \alias{splitrows}
