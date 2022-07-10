@@ -1,6 +1,6 @@
 Package: DDIwR
-Version: 0.12.1
-Date: 2022-06-21
+Version: 0.12.2
+Date: 2022-07-10
 Title: DDI with R
 Authors@R: person(given = "Adrian", family = "Dusa",
                   role = c("aut", "cre", "cph"),
