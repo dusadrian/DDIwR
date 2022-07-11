@@ -406,14 +406,15 @@
             codeBook$fileDscr$datafile <- data
 
             if (!embed) {
-                write.csv(
-                    x = data,
+                 write.table(
+                    undeclare(data, drop = TRUE),
                     file = file.path(
                         tp_to$completePath,
                         paste(tp_to$filenames[1], "csv", sep = ".")
                     ),
-                    row.names = FALSE,
-                    na = ""
+                    sep = ",",
+                    na = "",
+                    row.names = FALSE
                 )
             }
             
