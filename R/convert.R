@@ -317,7 +317,7 @@
         else if (tp_from$fileext == "SAS7BDAT") {
             fargs <- names(formals(read_sas))
             arglist <- dots[is.element(names(dots), fargs)]
-            arglist$file <- from
+            arglist$data_file <- from
             arglist$encoding <- encoding
             data <- do.call(haven::read_sas, arglist)
 
@@ -423,7 +423,7 @@
             if (is.element("stdyDscr", names(attrdata))) {
                 codeBook$stdyDscr <- attrdata$stdyDscr
             }
-            
+
             exportDDI(codeBook, to, ... = ...)
         }
         else if (identical(tp_to$fileext, "SAV")) {
