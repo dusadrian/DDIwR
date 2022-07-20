@@ -9,7 +9,8 @@ This function creates a setup file, based on a list of variable and value labels
 }
 
 \usage{
-setupfile(codeBook, file = "", type = "all", csv = "", recode = TRUE, OS = "", ...)
+setupfile(codeBook, file = "", type = "all", csv = "", recode = TRUE, OS = "",
+          stringnum = TRUE, ...)
 }
 
 
@@ -23,6 +24,7 @@ setupfile(codeBook, file = "", type = "all", csv = "", recode = TRUE, OS = "", .
         to the directory where the .csv files are located, for batch processing}
   \item{recode}{Logical, recode missing values to extended .a-.z range}
   \item{OS}{The target operating system, for the eol - end of line character(s)}
+  \item{stringnum}{Logical, recode string variables to numeric}
   \item{...}{Other arguments, see Details below}
 }
 

@@ -1,5 +1,6 @@
 `setupfile` <- function(
-    codeBook, file = "", type = "all", csv = "", recode = TRUE, OS = "", ...
+    codeBook, file = "", type = "all", csv = "", recode = TRUE, OS = "",
+    stringnum = TRUE, ...
 ) {
 
     # TO DO: when codeBook is a path to a file or directory,
@@ -15,15 +16,14 @@
 
     tp <- NULL
     
-    recall <- FALSE
-    if (is.element("recall", names(dots))) {
-        recall <- dots$recall
-    }
-
+    recall <- isTRUE(dots$recall)
+    saveFile <- isTRUE(dots$saveFile)
+    script <- isTRUE(dots$script) ## what did I want to do with this...?
 
     outdir <- identical(file, "") # internal, logical argument
+    
     if (is.element("outdir", names(dots))) {
-        outdir <- dots$outdir
+        outdir <- isTRUE(dots$outdir)
     }
 
     if (!identical(file, "")) {
@@ -66,17 +66,9 @@
         }
     }
 
-
-    saveFile <- isTRUE(dots$saveFile)
-
     indent <- 4
     if (is.element("indent", names(dots))) {
         indent <- dots$indent
-    }
-
-    script <- FALSE ## what did I want to do with this...?
-    if (is.element("script", names(dots))) {
-        script <- dots$script
     }
 
     forcenum  <- c("") # variable names that are to be forced as numeric
@@ -96,7 +88,8 @@
         OS <- Sys.info()[['sysname']]
     }
 
-
+    csvlist <- NULL
+    
     if (missing(codeBook)) {
         admisc::stopError(
             "The argument <codeBook> is missing, with no default."
@@ -123,7 +116,7 @@
             pathtofiles <- TRUE
         }
 
-        outdir <- outdir | length(labelist$fileext) > 1
+        outdir <- outdir & length(labelist$fileext) > 1
 
         csvdatadir <- FALSE # by default
 
@@ -145,14 +138,16 @@
                     )
                 }
 
-                csvlist <- treatPath(csv, type = "csv")
-                if (length(csvlist) > 1) {
-                    datadir <- csvlist$completePath
-                    csvdatadir <- TRUE
+                tc <- admisc::tryCatchWEM(csvlist <- treatPath(csv, type = "csv"))
+                if (is.null(tc)) {
+                    if (length(csvlist$files) > 1) {
+                        datadir <- csvlist$completePath
+                        csvdatadir <- TRUE
+                    }
                 }
                 else {
-                    cat("\nNOTE:", csvlist)
-                    # since "csvlist" is now an error message from treatPath()
+                    cat("\nNOTE:", tc$error)
+                    # since "err" is now an error message from treatPath()
                 }
             }
             else {
@@ -169,6 +164,9 @@
                     labelist$completePath,
                     "Data"
                 )
+
+                # TODO: 
+                # return(list(datathere, datadir))
 
                 csvdatadir <- file.exists(datadir)
 
@@ -225,7 +223,6 @@
         }
 
         for (i in seq(length(labelist$files))) {
-
             if (pathtofiles) {
                 obj <- getMetadata(
                     file.path(
@@ -237,7 +234,9 @@
                     save = saveFile
                 )
 
-                csv <- obj[["fileDscr"]][["datafile"]]
+                if (!is.null(obj[["fileDscr"]][["datafile"]])) {
+                    csv <- obj[["fileDscr"]][["datafile"]]
+                }
             }
             else {
                 aa <- ls()
@@ -275,7 +274,7 @@
             if (csvdatadir) {
 
                 if (is.element(labelist$filenames[i], csvnames)) {
-                    
+
                     if (outdir) {
                         cat(paste(labelist$filenames[i], "\n"))
                     }
@@ -346,8 +345,9 @@
                                     csv = csvreadfile,
                                     delim = delim,
                                     OS = OS,
-                                    file = labelist$filenames[i],
+                                    file = ifelse(identical(file, ""), labelist$filenames[i], file),
                                     outdir = outdir,
+                                    stringnum = stringnum,
                                     recall = TRUE,
                                     ... = ...
                                 ),
@@ -362,7 +362,7 @@
                                     setwd(currentdir)
                                     cat(paste(
                                         "     There is an error associated with the file \"",
-                                        labelist$filenames[i],
+                                        labelist$files[i],
                                         "\", see below:\n     ",
                                         sep = ""
                                     ))
@@ -390,8 +390,9 @@
                             type = type,
                             delim = delim,
                             OS = OS,
-                            file = labelist$filenames[i],
+                            file = ifelse(identical(file, ""), labelist$filenames[i], file),
                             outdir = outdir,
+                            stringnum = stringnum,
                             recall = TRUE,
                             ... = ...
                         ),
@@ -406,7 +407,7 @@
                             setwd(currentdir)
                             cat(paste(
                                 "     There is an error associated with the file \"",
-                                labelist$filenames[i],
+                                labelist$files[i],
                                 "\", see below:\n     ",
                                 sep = ""
                             ))
@@ -421,7 +422,7 @@
                     cat(labelist$filenames[i], "\n")
                 }
 
-                if (is.data.frame(csv)) {
+                if (is.data.frame(csv) | length(csvlist) > 1) {
                     if (length(labelist$filenames) == 1) {
                         if (!pathtofiles) {
                             obj <- get(setdiff(bb, aa))
@@ -437,7 +438,7 @@
                         #             csv = csv,
                         #             delim = delim,
                         #             OS = OS,
-                        #             file = labelist$filenames,
+                        #             file = ifelse(identical(file, ""), labelist$filenames, file),
                         #             outdir = outdir,
                         #             ... = ...))
 
@@ -448,8 +449,9 @@
                                 csv = csv,
                                 delim = delim,
                                 OS = OS,
-                                file = labelist$filenames,
+                                file = ifelse(identical(file, ""), labelist$filenames, file),
                                 outdir = outdir,
+                                stringnum = stringnum,
                                 recall = TRUE,
                                 ... = ...
                             ),
@@ -464,7 +466,7 @@
 
                                 cat(paste(
                                     "     There is an error associated with the file \"",
-                                    labelist$filenames[i],
+                                    labelist$files[i],
                                     "\", see below:\n     ",
                                     sep = ""
                                 ))
@@ -486,8 +488,9 @@
                             type = type,
                             delim = delim,
                             OS = OS,
-                            file = labelist$filenames[i],
+                            file = ifelse(identical(file, ""), labelist$filenames[i], file),
                             outdir = outdir,
+                            stringnum = stringnum,
                             recall = TRUE,
                             ... = ...
                         ),
@@ -503,7 +506,7 @@
                             
                             cat(paste(
                                 "     There is an error associated with the file \"",
-                                labelist$filenames[i],
+                                labelist$files[i],
                                 "\", see below:\n     ",
                                 sep = ""
                             ))
@@ -517,6 +520,7 @@
             if (!pathtofiles) {
                 rm(list = c(eval(setdiff(bb, aa)), "bb", "aa"))
             }
+            
         }
 
         if (outdir) {
@@ -539,6 +543,7 @@
         }
         dataDscr <- codeBook[["dataDscr"]]
         dataDscr_objname <- deparse(substitute(codeBook))
+        outdir <- FALSE
     }
     else {
         admisc::stopError("Unknown input for the argument <codeBook>.")
@@ -564,6 +569,7 @@
             }
 
             csvlist <- treatPath(csv, type = "CSV")
+            
             if (length(csvlist) > 1) {
                 # no error
                 if (length(csvlist$files) > 1) {
@@ -590,8 +596,9 @@
         if (type == "STATA") {
             type <- "Stata"
         }
+
         dictionary <- recodeValues(
-            csv,
+            make_labelled(csv, codeBook$dataDscr),
             to = ifelse(type == "SAS", "Stata", type),
             return_dictionary = TRUE
         )
@@ -631,7 +638,7 @@
     }
 
     # for recoding into SPSS
-    `values_missing` <- function(dataDscr, range = FALSE) {
+    `values_missing` <- function(dataDscr, range = FALSE, numvars = TRUE) {
         lapply(dataDscr, function(x) {
             na_values <- NULL
             if (is.element("na_values", names(x))) {
@@ -1265,14 +1272,19 @@
                 ))
             }
 
+            numvars <- !unlist(stringvars)
 
-            if (any(unlist(stringvars))) {
+            if (stringnum & any(unlist(stringvars))) {
+
+                numvars <- rep(TRUE, length(dataDscr))
+
                 cat(paste(
                     "* --- Recode string variables with labels, to numeric variables ---",
                     enter, enter, enter
                 ))
 
                 stringvars <- stringvars[unlist(stringvars)]
+
                 for (sv in names(stringvars)) {
 
                     oldvalues <- dataDscr2[[sv]][["labels"]]
@@ -1295,7 +1307,7 @@
                     }
 
 
-                    if (csv_is_df | csv_is_path) {
+                    # if (csv_is_df | csv_is_path) {
                         if (emptyvars[[sv]]) {
                             cat(paste(
                                 "* Variable ",
@@ -1311,8 +1323,9 @@
                                 sep = ""
                             ))
                         }
-                    }
-                    else {
+                    # }
+                    # else {
+                    #     cat("--++--\nbla\n")
                         precommand <- paste(
                             "RECODE ",
                             toupper(sv),
@@ -1405,7 +1418,7 @@
                             enter, enter,
                             sep = ""
                         ))
-                    }
+                    # }
 
                     names(newvalues) <- names(oldvalues)
                     dataDscr2[[sv]][["labels"]] <- newvalues
@@ -1562,12 +1575,236 @@
         }
 
 
+# return(numvars)
+
         if (anymissing) {
 
-            missvaRs <- labels_missing(dataDscr2)
+            makeMissingValues <- function(uniqueMissList, missvaLs, nms, finalize = TRUE) {
+                for (i in seq(length(uniqueMissList))) {
+                    if (i > 1) {
+                        cat("/")
+                    }
+
+                    if (any(grepl("THRU", missvaLs[[i]]))) {
+                        cat(
+                            splitrows(
+                                toupper(uniqueMissList[[i]]),
+                                enter,
+                                80
+                            )
+                        )
+
+                        if (length(missvaLs[[i]]) <= 2) {
+                            # at most one discrete missing value and a missing range
+                            cat(paste(
+                                " (",
+                                paste(
+                                    if (finalize) {
+                                        missvaLs[[i]]
+                                    } else {
+                                        paste("\"", paste(missvaLs[[i]], collapse = "\", \""), "\"", sep = "")
+                                    },
+                                    collapse = ", "
+                                ),
+                                ")",
+                                sep = ""
+                            ))
+                        }
+                        else {
+                            cat(paste(
+                                " (",
+                                paste(
+                                    missvaLs[[i]][c(1, which(grepl("THRU", missvaLs[[i]])))],
+                                    collapse = ", "
+                                ),
+                                ")",
+                                sep = ""
+                            ))
+
+                            # cat(paste(
+                            #     "  * more than one distinct missing value",
+                            #     "found, next to a missing range"
+                            # ))
+                        }
+                    }
+                    else {
+
+                        if (length(missvaLs[[i]]) < 4) {
+                            cat(
+                                splitrows(
+                                    toupper(uniqueMissList[[i]]),
+                                    enter,
+                                    80
+                                )
+                            )
+
+                            cat(paste(
+                                " (",
+                                paste(
+                                    if (finalize) {
+                                        missvaLs[[i]]
+                                    } else {
+                                        paste("\"", paste(missvaLs[[i]], collapse = "\", \""), "\"", sep = "")
+                                    },
+                                    collapse = ", "
+                                ),
+                                ")",
+                                sep = ""
+                            ))
+                        }
+                        else {
+                            absrange <- abs(range(missvaLs[[i]]))
+
+                            if (all(missvaLs[[i]] < 0)) {
+                                cat(
+                                    splitrows(
+                                        toupper(uniqueMissList[[i]]),
+                                        enter,
+                                        80
+                                    )
+                                )
+                                cat(paste(
+                                    " (LOWEST THRU ",
+                                    max(missvaLs[[i]]),
+                                    ")",
+                                    sep = ""
+                                ))
+                            }
+                            else {
+                                # check if the missing values range doesn't contain
+                                # any other (non-missing) values
+                                checklist <- list()
+                                for (mv in uniqueMissList[[i]]) {
+                                    allvalues <- dataDscr2[[mv]][["labels"]]
+                                    nonmiss <- setdiff(allvalues, missvaLs[[i]])
+                                    checklist[[mv]] <- any(
+                                        is.element(
+                                            nonmiss, 
+                                            seq(
+                                                min(missvaLs[[i]]),
+                                                max(missvaLs[[i]])
+                                            )
+                                        )
+                                    )
+                                }
+
+                                checklist <- unlist(checklist)
+
+                                # print(checklist)
+
+                                if (any(checklist)) {
+                                    # at least one variable has a non-missing value within the range of the missing values
+                                    printMISSING <- TRUE
+
+                                    # now trying to see if at least some of the variables can be "rescued"
+                                    if (any(!checklist)) {
+                                        ###
+                                        # is this working...? TO TEST
+                                        cat(
+                                            splitrows(
+                                                names(checklist)[!checklist],
+                                                enter,
+                                                80
+                                            )
+                                        )
+
+                                        # cat(paste(names(checklist)[!checklist], collapse=", "))
+                                        ###
+                                        cat(paste(
+                                            " (",
+                                            min(missvaLs[[i]]),
+                                            " TO ",
+                                            max(missvaLs[[i]]),
+                                            ")",
+                                            enter,
+                                            sep = ""
+                                        ))
+                                        checklist <- checklist[checklist]
+                                    }
+
+                                    ###
+                                    # is this working...? TO TEST
+                                    cat(
+                                        splitrows(
+                                            names(checklist),
+                                            enter,
+                                            80
+                                        )
+                                    )
+                                    # cat(paste(names(checklist), collapse=", "))
+                                    ###
+                                    cat(paste(
+                                        " (",
+                                        paste(
+                                            missvaLs[[i]][1:3],
+                                            collapse = ", "
+                                        ),
+                                        ")",
+                                        sep = ""
+                                    ))
+
+                                    cat(ifelse(i == length(uniqueMissList), " .", ""))
+                                    # cat("  * more than three distinct missing values found")
+                                }
+                                else {
+                                    cat(
+                                        splitrows(
+                                            toupper(uniqueMissList[[i]]),
+                                            enter,
+                                            80
+                                        )
+                                    )
+                                    cat(paste(
+                                        " (",
+                                        min(missvaLs[[i]]),
+                                        " TO ",
+                                        max(missvaLs[[i]]),
+                                        ")",
+                                        sep = ""
+                                    ))
+                                }
+                            }
+                        }
+                    }
+
+                    if (finalize) {
+                        cat(ifelse(i == length(uniqueMissList), " .", ""))
+                    }
+                    cat(enter)
+                }
+            }
+
+            
+            cat(paste(
+                "* --- Add missing values --- ",
+                enter, enter,
+                "MISSING VALUES",
+                enter,
+                sep = ""
+            ))
+
+
+            if (sum(numvars) != length(dataDscr)) {
+                missvaRs <- labels_missing(dataDscr2[!numvars])
+                withmiss <- unlist(lapply(missvaRs, any))
+
+                missvaLs <- values_missing(dataDscr2[!numvars][withmiss]) # range is FALSE by default, so no THRU
+                nms <- names(missvaLs)
+                uniqueMissList <- lapply(unique(missvaLs), function(x) {
+                    nms[unlist(lapply(missvaLs, function(y) {
+                        identical(x, y)
+                    }))]
+                })
+
+                missvaLs <- unique(missvaLs)
+
+                makeMissingValues(uniqueMissList, missvaLs, nms, FALSE)
+            }
+
+            missvaRs <- labels_missing(dataDscr2[numvars])
             withmiss <- unlist(lapply(missvaRs, any))
 
-            missvaLs <- values_missing(dataDscr2[withmiss], range = TRUE)
+            missvaLs <- values_missing(dataDscr2[numvars][withmiss], range = TRUE)
             nms <- names(missvaLs)
             uniqueMissList <- lapply(unique(missvaLs), function(x) {
                 nms[unlist(lapply(missvaLs, function(y) {
@@ -1577,197 +1814,12 @@
 
             missvaLs <- unique(missvaLs)
 
+            makeMissingValues(uniqueMissList, missvaLs, nms)
+
             # sink()
             # setwd(currentdir)
             # return(list(dataDscr2=dataDscr2, haslabels=haslabels, missvaRs=missvaRs, withmiss=withmiss, missing = missing))
             # return(list(missvaLs=missvaLs, uniqueMissList=uniqueMissList))
-
-            cat(paste(
-                "* --- Add missing values --- ",
-                enter, enter,
-                "MISSING VALUES",
-                enter,
-                sep = ""
-            ))
-
-            for (i in seq(length(uniqueMissList))) {
-                if (any(grepl("THRU", missvaLs[[i]]))) {
-                    cat(
-                        splitrows(
-                            toupper(uniqueMissList[[i]]),
-                            enter,
-                            80
-                        )
-                    )
-
-                    if (length(missvaLs[[i]]) <= 2) {
-                        # at most one discrete missing value and a missing range
-                        cat(paste(
-                            " (",
-                            paste(
-                                missvaLs[[i]],
-                                collapse = ", "
-                            ),
-                            ")",
-                            sep = ""
-                        ))
-                    }
-                    else {
-                        cat(paste(
-                            " (",
-                            paste(
-                                missvaLs[[i]][c(1, which(grepl("THRU", missvaLs[[i]])))],
-                                collapse = ", "
-                            ),
-                            ")",
-                            sep = ""
-                        ))
-
-                        cat(paste(
-                            "  * more than one distinct missing value",
-                            "found, next to a missing range"
-                        ))
-                    }
-                }
-                else {
-
-                    if (length(missvaLs[[i]]) < 4) {
-                        cat(
-                            splitrows(
-                                toupper(uniqueMissList[[i]]),
-                                enter,
-                                80
-                            )
-                        )
-
-                        cat(paste(
-                            " (",
-                            paste(
-                                missvaLs[[i]],
-                                collapse = ", "
-                            ),
-                            ")",
-                            sep = ""
-                        ))
-                    }
-                    else {
-                        absrange <- abs(range(missvaLs[[i]]))
-
-                        if (all(missvaLs[[i]] < 0)) {
-                            cat(
-                                splitrows(
-                                    toupper(uniqueMissList[[i]]),
-                                    enter,
-                                    80
-                                )
-                            )
-                            cat(paste(
-                                " (LOWEST THRU ",
-                                max(missvaLs[[i]]),
-                                ")",
-                                sep = ""
-                            ))
-                        }
-                        else {
-                            # check if the missing values range doesn't contain
-                            # any other (non-missing) values
-                            checklist <- list()
-                            for (mv in uniqueMissList[[i]]) {
-                                allvalues <- dataDscr2[[mv]][["labels"]]
-                                nonmiss <- setdiff(allvalues, missvaLs[[i]])
-                                checklist[[mv]] <- any(
-                                    is.element(
-                                        nonmiss, 
-                                        seq(
-                                            min(missvaLs[[i]]),
-                                            max(missvaLs[[i]])
-                                        )
-                                    )
-                                )
-                            }
-
-                            checklist <- unlist(checklist)
-
-                            # print(checklist)
-
-                            if (any(checklist)) {
-                                # at least one variable has a non-missing value within the range of the missing values
-                                printMISSING <- TRUE
-
-                                # now trying to see if at least some of the variables can be "rescued"
-                                if (any(!checklist)) {
-                                    ###
-                                    # is this working...? TO TEST
-                                    cat(
-                                        splitrows(
-                                            names(checklist)[!checklist],
-                                            enter,
-                                            80
-                                        )
-                                    )
-
-                                    # cat(paste(names(checklist)[!checklist], collapse=", "))
-                                    ###
-                                    cat(paste(
-                                        " (",
-                                        min(missvaLs[[i]]),
-                                        " TO ",
-                                        max(missvaLs[[i]]),
-                                        ")",
-                                        enter,
-                                        sep = ""
-                                    ))
-                                    checklist <- checklist[checklist]
-                                }
-
-                                ###
-                                # is this working...? TO TEST
-                                cat(
-                                    splitrows(
-                                        names(checklist),
-                                        enter,
-                                        80
-                                    )
-                                )
-                                # cat(paste(names(checklist), collapse=", "))
-                                ###
-                                cat(paste(
-                                    " (",
-                                    paste(
-                                        missvaLs[[i]][1:3],
-                                        collapse = ", "
-                                    ),
-                                    ")",
-                                    sep = ""
-                                ))
-
-                                cat(ifelse(i == length(uniqueMissList), " .", ""))
-                                cat("  * more than three distinct missing values found")
-                            }
-                            else {
-                                cat(
-                                    splitrows(
-                                        toupper(uniqueMissList[[i]]),
-                                        enter,
-                                        80
-                                    )
-                                )
-                                cat(paste(
-                                    " (",
-                                    min(missvaLs[[i]]),
-                                    " TO ",
-                                    max(missvaLs[[i]]),
-                                    ")",
-                                    sep = ""
-                                ))
-                            }
-                        }
-                    }
-                }
-
-                cat(ifelse(i == length(uniqueMissList), " .", ""))
-                cat(enter)
-            }
 
             cat(enter, enter, sep = "")
         }

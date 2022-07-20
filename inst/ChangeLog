@@ -2,7 +2,7 @@ Version 0.12
     o exporting to Excel creates new sheets containing metadata information
       about the variables and their values
     o new argument "encoding" in functions convert() and getMetadata()
-    o new argument "recode" in function setupfile()
+    o new arguments "recode" and "stringnum" in function setupfile()
     o new argument "csv" in function convert()
     o fixed varFormat when exporting to DDI
     o convert() now correctly returns a tibble when the input is a DDI codebook,
