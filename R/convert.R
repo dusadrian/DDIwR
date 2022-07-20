@@ -7,7 +7,7 @@
     }
 
     funargs <- unlist(lapply(match.call(), deparse)[-1])
-    
+
     # if (missing(to)) {
     #     admisc::stopError("sprintf("Argument %s is missing.", dQuote("to").")
     # }
@@ -54,7 +54,7 @@
     tp_to <- to
 
     if (!is.null(to)) {
-        
+
         if (identical(toupper(to), "EXCEL")) {
             to <- file.path(
                 tp_from$completePath,
@@ -417,9 +417,9 @@
                     row.names = FALSE
                 )
             }
-            
+
             # return(list(codeBook = codeBook, file = to))
-            
+
             attrdata <- attributes(data)
             if (is.element("stdyDscr", names(attrdata))) {
                 codeBook$stdyDscr <- attrdata$stdyDscr
@@ -497,7 +497,7 @@
                     error_null = FALSE
                 )
             }
-            
+
             # return(data)
             data[] <- lapply(data, function(x) {
                 attr(x, "format.spss") <- NULL
@@ -584,7 +584,7 @@
                     missing = character(0)
                 )
             )
-            
+
             x$variables$width <- sapply(varFormat, "[[", 1)
             x$variables$decimals <- sapply(varFormat, function(x) {
                 ifelse(length(x) > 1, x[2], NA)
@@ -627,7 +627,7 @@
                 arglist$path <- to
                 do.call(haven::write_xpt, arglist)
             }
-            
+
             to <- file.path(
                 tp_from$completePath,
                 paste(tp_from$filenames, "sas", sep = ".")
