@@ -99,7 +99,7 @@ treatPath <- function(path, type = "*", single = FALSE, check = TRUE) {
         }
         else {
 
-            if (type != "*" && type != toupper(tools::file_ext(file.path(pathname, lastpart)))) {
+            if (type != "*" && toupper(type) != toupper(tools::file_ext(file.path(pathname, lastpart)))) {
                 return(paste0("Wrong file type, it should be ", type, "."))
             }
             
