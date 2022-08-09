@@ -52,7 +52,14 @@ treatPath <- function(path, type = "*", single = FALSE, check = TRUE) {
         # where lastpart is *.R
         filesplit <- unlist(strsplit(lastpart, split = "\\."))
 
-        if (length(filesplit) >= 2) {
+        if (length(filesplit) > 2) {
+            # multiple dots inside the file name
+            filesplit <- c(
+                paste(filesplit[-length(filesplit)], collapse = "."),
+                filesplit[length(filesplit)]
+            )
+        }
+        else if (length(filesplit) == 2) {
             if (filesplit[1] == "*") {
                 allfiles <- TRUE
                 type <- filesplit[2]

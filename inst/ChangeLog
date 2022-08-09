@@ -3,6 +3,7 @@ Version 0.13
     o the R data frame gains a new attribute "stdyDscr" when importing from DDI
     o bug fix importing from DDI with external .csv file
     o function convert() now recognizes ".zsav" as SPSS input file
+    o fixed situation with input files containing multiple dots
 
 Version 0.12
     o exporting to Excel creates new sheets containing metadata information
