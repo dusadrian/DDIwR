@@ -1,5 +1,8 @@
 Version 0.13
     o new argument "stringnum" in function setupfile()
+    o the R data frame gains a new attribute "stdyDscr" when importing from DDI
+    o bug fix importing from DDI with external .csv file
+    o function convert() now recognizes ".zsav" as SPSS input file
 
 Version 0.12
     o exporting to Excel creates new sheets containing metadata information

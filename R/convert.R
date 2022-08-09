@@ -275,7 +275,7 @@
                 }
             }
         }
-        else if (tp_from$fileext == "SAV") {
+        else if (tp_from$fileext == "SAV" || tp_from$fileext == "ZSAV") {
             fargs <- names(formals(read_sav))
             arglist <- dots[is.element(names(dots), fargs)]
             arglist$file <- from
@@ -363,8 +363,8 @@
         
         codeBook$fileDscr$fileName <- tp_from$files
 
-        filetypes <- c("SPSS", "SPSS", "Stata", "SAS", "XPT", "R", "DDI", "Excel", "Excel")
-        fileexts <- c("SAV", "POR", "DTA", "SAS7BDAT", "XPT", "RDS", "XML", "XLS", "XLSX")
+        filetypes <- c("SPSS", "SPSS", "SPSS", "Stata", "SAS", "XPT", "R", "DDI", "Excel", "Excel")
+        fileexts <- c("SAV", "ZSAV", "POR", "DTA", "SAS7BDAT", "XPT", "RDS", "XML", "XLS", "XLSX")
 
         codeBook$fileDscr$fileType <- filetypes[which(fileexts == tp_from$fileext)]
     }
