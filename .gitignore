@@ -3,9 +3,13 @@
 *.history
 *.o
 *.so
+*.Rproj
 *.Rproj.user
 *.Rhistory
 *.RData
 *.Ruserdata
 *.DS_Store
 *.vscode
+docs
+inst/doc
+.Rproj.user

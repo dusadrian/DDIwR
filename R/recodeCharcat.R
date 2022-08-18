@@ -1,13 +1,45 @@
+#' @name recodeCharcat
+#'
+#' @title Recode character categorical variables
+#'
+#' @description
+#' Recodes a character categorical variables to a numerical categorical variable.
+#'
+#' @details
+#' For this function, a categorical variable is something else than a base factor.
+#' It should be an object of class \code{"declared"}, or an object of class
+#' \code{"haven_labelled_spss"}, with a specific attribute called \code{"labels"}
+#' that stores the value labels.
+#'
+#' @return
+#' A numeric categorical variable of the same class as the input.
+#'
+#' @examples
+#' x <- declared(
+#'     c(letters[1:5], -91),
+#'     labels = c(Good = "a", Bad = "e", NR = -91),
+#'     na_values = -91
+#' )
+#'
+#' recodeCharcat(x)
+#'
+#' @author Adrian Dusa
+#'
+#' @param x A character categorical variable
+#' @param ... Other internal arguments
+#'
+#' @export
+
 `recodeCharcat` <- function(x, ...) {
     if (!is.character(x)) {
         return(x)
     }
-    
+
     dots <- list(...)
     metadata <- dots$metadata
     labels <- metadata[["labels"]]
     xdeclared <- inherits(x, "declared")
-    
+
     if (is.null(metadata)) {
         metadata <- attributes(x)
     }
@@ -25,7 +57,7 @@
 
 
     x <- declared::undeclare(x, drop = TRUE)
-    
+
     label <- metadata[["label"]]
     na_values <- metadata[["na_values"]]
 
@@ -48,7 +80,7 @@
         cux <- ux[!pnux]
         lux <- length(cux)
         n <- l <- 1
-        
+
         while (l <= lux) {
             if (!is.element(n, nums)) {
                 x[x == cux[l]] <- n
@@ -80,7 +112,7 @@
             na_values = na_values
         ))
     }
-    
+
     return(haven::labelled_spss(
         x,
         label = label,

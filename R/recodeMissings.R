@@ -1,10 +1,79 @@
-`recodeValues` <- function(
+#' @name recodeMissings
+#'
+#' @title Extract metadata information
+#'
+#' @description
+#' A function to recode all missing values to either SPSS or Stata types,
+#' uniformly (re)using the same codes across all variables.
+#'
+#' @details
+#' When a dictionary is not provided, it is automatically constructed from the
+#' available data and metadata, using negative numbers starting from -91 and up to
+#' 27 letters starting with "a".
+#'
+#' If the dataset contains mixed variables with SPSS and Stata style missing
+#' values, unless otherwise specified in a dictionary it uses other codes than the
+#' existing ones.
+#'
+#' For the SPSS type of missing values, the resulting variables are coerced to a
+#' declared labelled format.
+#'
+#' Unlike SPSS, Stata does not allow labels for character values. Both cannot be
+#' transported from SPSS to Stata, it is either one or another. If labels are
+#' more important to preserve than original values (especially the information
+#' about the missing values), the argument \code{chartonum} replaces all character
+#' values with suitable, non-overlapping numbers and adjusts the labels accordingly.
+#'
+#' If no labels are found in the metadata, the original values are preserved.
+#'
+#' @examples
+#' x <- data.frame(
+#'     A = declared(
+#'         c(1:5, -92),
+#'         labels = c(Good = 1, Bad = 5, NR = -92),
+#'         na_values = -92
+#'     ),
+#'     B = labelled(
+#'         c(1:5, haven::tagged_na('a')),
+#'         labels = c(DK = haven::tagged_na('a'))
+#'     ),
+#'     C = declared(
+#'         c(1, -91, 3:5, -92),
+#'         labels = c(DK = -91, NR = -92),
+#'         na_values = c(-91, -92)
+#'     )
+#' )
+#'
+#' xrec <- recodeMissings(x, to = "Stata")
+#'
+#' attr(xrec, "dictionary")
+#'
+#' recodeMissings(x, to = "Stata", dictionary = c("a" = -91, "b" = -92))
+#'
+#' recodeMissings(x, to = "SPSS")
+#'
+#' recodeMissings(x, to = "SPSS", dictionary = c("a" = -91))
+#'
+#' @return A data frame with all missing values recoded consistently.
+#'
+#' @author Adrian Dusa
+#'
+#' @param dataset A data frame
+#' @param to Software to recode missing values for
+#' @param dictionary
+#' A named vector, with corresponding Stata missing codes to SPSS missing values
+#' @param ... Other internal arguments
+#'
+#' @export
+
+
+`recodeMissings` <- function(
     dataset, to = c("SPSS", "Stata"), dictionary = NULL, ...
 ) {
 
     to <- toupper(match.arg(to))
     too_many <- FALSE
-    
+
     dots <- list(...)
 
     error_null <- ifelse(isFALSE(dots$error_null), FALSE, TRUE)
@@ -66,7 +135,7 @@
     }
 
     allMissing <- list()
-    
+
     for (variable in names(dataset)) {
         x <- dataset[[variable]]
         attrx <- attributes(x)
@@ -122,7 +191,7 @@
     if (sum(spss) > 0) {
         umis <- unlist(unname(allMissing[names(spss)[spss]]))
         umis <- unique(data.frame(labels = names(umis), codes = umis))
-        
+
         if (nrow(umis) == 0) {
             # There is no information about missing values
             return(dataset)
@@ -131,7 +200,7 @@
         umis <- umis[order(umis$labels, umis$codes), ]
         umis$rec <- umis$codes
         ulabels <- unique(umis[, 1])
-        
+
         for (i in seq(length(ulabels))) {
             if (ulabels[i] != "") {
                 uel <- is.element(umis$labels, ulabels[i])
@@ -149,7 +218,7 @@
         # print(umis)
         missingSPSS <- setNames(umis$codes, umis$rec)
         # names(missingSPSS) <- umis$rec
-        
+
         # missingSPSS <- sort(unique(unname(unlist(allMissing[spss]))))
     }
 
@@ -172,7 +241,7 @@
         # }))
         attributes(temp) <- NULL
         all_neg <- unique(temp)
-        
+
         if (!identical(all_neg, NA) && length(all_neg) > 0) {
             all_neg <- all_neg[!is.na(all_neg)]
         }
@@ -190,7 +259,7 @@
         torecode <- missingSPSS
 
         if (!is.null(torecode)) {
-            
+
             if (sum(spss) == ncol(dataset)) {
 
                 if (length(unique(names(torecode))) > length(letters)) {
@@ -242,7 +311,7 @@
                 nms[nms == unms[i]] <- -90 - i
             }
         }
-        
+
         if (isTRUE(dots$return_dictionary)) {
             return(dictionary)
         }
@@ -349,13 +418,13 @@
                 else {
                     dataset[[i]] <- do.call(haven::labelled_spss, callist)
                 }
-                
+
             }
             else if (to == "STATA") {
-                
+
                 if (spss[i] & !is.null(dictionary)) {
                     attributes(x) <- NULL
-                    
+
                     selection <- rep(TRUE, length(dictionary))
 
                     if (!is.null(na_values_i)) {
@@ -366,7 +435,7 @@
                     }
 
                     dic_i <- dictionary[selection]
-                    
+
 
                     if (any(duplicated(dic_i))) {
                         # multiple missing labels with the same code
@@ -386,10 +455,10 @@
                                 num_labels >= na_range_i[1] & num_labels <= na_range_i[2]
                             ]
                         }
-                        
+
                         dic_i <- dic_i[is.element(selabels, na_labels)]
                     }
-                    
+
                     nms_i <- names(dic_i)
                     if (admisc::possibleNumeric(dic_i)) {
                         dic_i <- admisc::asNumeric(dic_i)
@@ -403,7 +472,7 @@
                             is.element(labels, dic_i[d])
                         ] <- haven::tagged_na(nms_i[d])
                     }
-                    
+
                     dataset[, i] <- haven::labelled(
                         x,
                         labels = labels,

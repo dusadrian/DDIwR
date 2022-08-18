@@ -1,11 +1,20 @@
 Package: DDIwR
-Version: 0.12.3
-Date: 2022-07-20
 Title: DDI with R
-Authors@R: person(given = "Adrian", family = "Dusa",
-                  role = c("aut", "cre", "cph"),
-                  email = "dusa.adrian@unibuc.ro",
-                  comment = c(ORCID = "0000-0002-3525-9253"))
+Version: 0.12.4
+Authors@R: person(
+    "Adrian", "Dusa",
+    email = "dusa.adrian@unibuc.ro",
+    role = c("aut", "cre", "cph"),
+    comment = c(ORCID = "0000-0002-3525-9253"))
+URL: https://github.com/dusadrian/DDIwR
+BugReports: https://github.com/dusadrian/DDIwR/issues
+Description: Useful functions for various DDI (Data Documentation Initiative)
+    related inputs and outputs. Converts data files to and from DDI, SPSS, Stata,
+    SAS, R and Excel, including user declared missing values.
+License: GPL (>= 3)
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.2.1
 Depends: R (>= 3.5.0)
 Imports:
     admisc (> 0.28),
@@ -15,8 +24,11 @@ Imports:
     haven,
     readxl,
     writexl
-Description: Useful functions for various DDI (Data Documentation Initiative) related inputs and outputs.
-    Converts data files to and from SPSS, Stata, SAS, R and Excel, including user declared missing values.
-License: GPL (>= 3)
-URL: https://github.com/dusadrian/DDIwR
-BugReports: https://github.com/dusadrian/DDIwR/issues
+Suggests: 
+    knitr,
+    labelled,
+    rmarkdown,
+    spelling,
+    tibble
+VignetteBuilder: knitr
+Language: en-US

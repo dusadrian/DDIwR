@@ -4,6 +4,7 @@ Version 0.13
     o bug fix importing from DDI with external .csv file
     o function convert() now recognizes ".zsav" as SPSS input file
     o fixed situation with input files containing multiple dots
+    o function recodeValues() renamed to recodeMissings()
 
 Version 0.12
     o exporting to Excel creates new sheets containing metadata information

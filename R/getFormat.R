@@ -46,8 +46,6 @@
         }
     }
 
-    if (pN)
-
     if (!nullabels & !pN) {
         maxvarchar <- max(maxvarchar, nchar(labels))
     }    

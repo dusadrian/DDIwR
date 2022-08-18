@@ -1,12 +1,13 @@
 `getXML` <- function(path) {
-    xml <- tryCatch(xml2::read_xml(path), error = identity, warning = identity)
+    tc <- admisc::tryCatchWEM(xml <- xml2::read_xml(path))
 
-    if (any(class(xml) == "error")) {
+    if (is.null(tc$error)) {
+        return(xml)
+    }
+    else {
         # xml <- readLines(path)
         # nms <- grepl("xmlns", xml[which(grepl("codeBook", xml))[1]])
 
         admisc::stopError("Unable to read the XML file.")
     }
-
-    return(xml)
 }

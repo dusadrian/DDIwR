@@ -10,7 +10,7 @@ treatPath <- function(path, type = "*", single = FALSE, check = TRUE) {
             )
         }
     }
-    
+
     if (!is.character(path)) {
         admisc::stopError("A path should be specified in a string.")
     }
@@ -68,7 +68,7 @@ treatPath <- function(path, type = "*", single = FALSE, check = TRUE) {
         }
 
         if (!allfiles & check) {
-            
+
             admisc::stopError(
                 paste(
                     "There is no \"",
@@ -109,7 +109,7 @@ treatPath <- function(path, type = "*", single = FALSE, check = TRUE) {
             if (type != "*" && toupper(type) != toupper(tools::file_ext(file.path(pathname, lastpart)))) {
                 return(paste0("Wrong file type, it should be ", type, "."))
             }
-            
+
             fileobj <- getFiles(path = file.path(pathname, lastpart), type = type)
         }
 
