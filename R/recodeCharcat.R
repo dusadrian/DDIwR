@@ -37,16 +37,17 @@
 
     dots <- list(...)
     metadata <- dots$metadata
-    labels <- metadata[["labels"]]
-    xdeclared <- inherits(x, "declared")
-
     if (is.null(metadata)) {
         metadata <- attributes(x)
     }
 
+    labels <- metadata[["labels"]]
+    xdeclared <- inherits(x, "declared")
+
+
     # only character _categorical_ variables should be recoded
     if (
-        is.null(labels) ||
+        is.null(labels) &
         !(
             xdeclared | inherits(x, "haven_labelled_spss")
         )
