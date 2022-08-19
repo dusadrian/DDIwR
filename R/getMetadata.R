@@ -122,6 +122,11 @@
             return(codeBook)
         }
     }
+    else {
+        if (!is.atomic(x) || !is.character(x) || length(x) != 1) {
+            admisc::stopError("A path should be a string of length 1")
+        }
+    }
 
     enter <- getEnter(OS)
 
