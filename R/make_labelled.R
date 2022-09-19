@@ -1,4 +1,7 @@
 
+#' @description Coerce variables to labelled objects
+#' @return A modified data frame.
+#' @noRd
 `make_labelled` <- function(x, dataDscr, declared = TRUE) {
 
     for (i in names(x)) {

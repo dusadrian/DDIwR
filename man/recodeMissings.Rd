@@ -2,7 +2,7 @@
 % Please edit documentation in R/recodeMissings.R
 \name{recodeMissings}
 \alias{recodeMissings}
-\title{Extract metadata information}
+\title{Consistent recoding of (extended) missing values}
 \usage{
 recodeMissings(dataset, to = c("SPSS", "Stata"), dictionary = NULL, ...)
 }

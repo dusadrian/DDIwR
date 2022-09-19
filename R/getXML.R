@@ -1,3 +1,6 @@
+#' @description Read the DDI XML file
+#' @return An XML document
+#' @noRd
 `getXML` <- function(path) {
     tc <- admisc::tryCatchWEM(xml <- xml2::read_xml(path))
 

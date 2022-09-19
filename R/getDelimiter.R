@@ -1,4 +1,7 @@
-getDelimiter <- function(x) {
+#' @description Guess the column delimiter from a text file
+#' @return Character scalar
+#' @noRd
+`getDelimiter` <- function(x) {
     
     delimiter <- ","
         

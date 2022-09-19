@@ -29,7 +29,7 @@
 #'   Package: \tab DDIwR\cr
 #'   Type: \tab Package\cr
 #'   Version: \tab 0.12.4\cr
-#'   Date: \tab 2022-08-18\cr
+#'   Date: \tab 2022-09-20\cr
 #'   License: \tab GPL-v3\cr
 #' }
 #'
@@ -40,5 +40,6 @@
 #' @importFrom xml2 as_list read_xml xml_attr xml_children xml_find_all xml_find_first xml_name xml_ns xml_text
 #' @importFrom readxl read_excel
 #' @importFrom writexl write_xlsx
+#' @importFrom utils file_test packageVersion read.csv write.table
 #'
 NULL

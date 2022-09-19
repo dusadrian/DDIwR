@@ -1,6 +1,6 @@
 #' @name recodeMissings
 #'
-#' @title Extract metadata information
+#' @title Consistent recoding of (extended) missing values
 #'
 #' @description
 #' A function to recode all missing values to either SPSS or Stata types,

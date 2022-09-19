@@ -1,4 +1,7 @@
-treatPath <- function(path, type = "*", single = FALSE, check = TRUE) {
+#' @description Determine which specific type of files are present in a certain directory.
+#' @return A list with four components: the complete path, the files, the file names and the file extensions
+#' @noRd
+`treatPath` <- function(path, type = "*", single = FALSE, check = TRUE) {
     if (length(path) > 1) {
         cat("\n")
         # if (type == "R") {

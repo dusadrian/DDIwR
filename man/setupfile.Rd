@@ -41,17 +41,17 @@ A setup file to complement the imported raw dataset.
 Creates a setup file, based on a list of variable and value labels.
 }
 \details{
-When the a path to a metadata directory is specified for the argument \bold{\code{codebook}},
-then next argument \bold{\code{file}} is silently ignored and all created setup files are
+When the a path to a metadata directory is specified for the argument \strong{\code{codebook}},
+then next argument \strong{\code{file}} is silently ignored and all created setup files are
 saved in a directory called "Setup Files" that (if not already found) is created in the
 working directory.
 
-The argument \bold{\code{file}} expects the name of the final setup file being
+The argument \strong{\code{file}} expects the name of the final setup file being
 saved on the disk. If not specified, the name of the object provided for the
-\bold{\code{codebook}} argument will be used as a filename.
+\strong{\code{codebook}} argument will be used as a filename.
 
-If \bold{\code{file}} is specified, the argument \bold{\code{type}} is automatically
-determined from the file's extension, otherwise when \bold{\code{type = "all"}}, the
+If \strong{\code{file}} is specified, the argument \strong{\code{type}} is automatically
+determined from the file's extension, otherwise when \strong{\code{type = "all"}}, the
 function produces one setup file for each supported type.
 
 If batch processing multiple files, the function will inspect all files in the
@@ -65,16 +65,16 @@ If the metadata directory contains a subdirectory called \code{"data"} or
 \code{.csv} file (their names have to be \emph{exactly} the same, regardless of
 their extension).
 
-The \bold{\code{csv}} argument can provide a data frame object produced by reading the
+The \strong{\code{csv}} argument can provide a data frame object produced by reading the
 \code{.csv} file, or a path to the directory where the \code{.csv} files are located.
 If the user doesn't provide something for this argument, the function will check
 the existence of a subdirectory called \code{data} in the directory where the metadata
 files are located.
 
-In batch mode, the code starts with the argument \bold{\code{delim = ","}}, but if the
+In batch mode, the code starts with the argument \strong{\code{delim = ","}}, but if the
 \code{.csv} file is delimited differently it will also try hard to find other delimiters
 that will match the variable names in the metadata file. At the initial version 0.1-0,
-the automatically detected delimiters include \code{";"} and \code{"\t"}.
+the automatically detected delimiters include \code{";"} and \code{"\\t"}.
 
 The argument \code{OS} (case insensitive) can be either:\cr
 \code{"Windows"} (default), or \code{"Win"},\cr

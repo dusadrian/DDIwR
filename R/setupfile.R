@@ -6,45 +6,45 @@
 #' Creates a setup file, based on a list of variable and value labels.
 #'
 #' @details
-#' When the a path to a metadata directory is specified for the argument \bold{\code{codebook}},
-#' then next argument \bold{\code{file}} is silently ignored and all created setup files are
+#' When the a path to a metadata directory is specified for the argument **`codebook`**,
+#' then next argument **`file`** is silently ignored and all created setup files are
 #' saved in a directory called "Setup Files" that (if not already found) is created in the
 #' working directory.
 #'
-#' The argument \bold{\code{file}} expects the name of the final setup file being
+#' The argument **`file`** expects the name of the final setup file being
 #' saved on the disk. If not specified, the name of the object provided for the
-#' \bold{\code{codebook}} argument will be used as a filename.
+#' **`codebook`** argument will be used as a filename.
 #'
-#' If \bold{\code{file}} is specified, the argument \bold{\code{type}} is automatically
-#' determined from the file's extension, otherwise when \bold{\code{type = "all"}}, the
+#' If **`file`** is specified, the argument **`type`** is automatically
+#' determined from the file's extension, otherwise when **`type = "all"`**, the
 #' function produces one setup file for each supported type.
 #'
 #' If batch processing multiple files, the function will inspect all files in the
-#' provided directory, and retain only those with the extension  \code{.R} or \code{.r}
-#' or DDI versions with the extension \code{.xml} or \code{.XML} (it will
+#' provided directory, and retain only those with the extension  `.R` or `.r`
+#' or DDI versions with the extension `.xml` or `.XML` (it will
 #' subsequently generate an error if the .R files do not contain an object list,
-#' or if the \code{.xml} files do not contain a DDI structured metadata file).
+#' or if the `.xml` files do not contain a DDI structured metadata file).
 #'
-#' If the metadata directory contains a subdirectory called \code{"data"} or
-#' \code{"Data"}, it will match the name of the metadata file with the name of the
-#' \code{.csv} file (their names have to be *exactly* the same, regardless of
+#' If the metadata directory contains a subdirectory called `"data"` or
+#' `"Data"`, it will match the name of the metadata file with the name of the
+#' `.csv` file (their names have to be *exactly* the same, regardless of
 #' their extension).
 #'
-#' The \bold{\code{csv}} argument can provide a data frame object produced by reading the
-#' \code{.csv} file, or a path to the directory where the \code{.csv} files are located.
+#' The **`csv`** argument can provide a data frame object produced by reading the
+#' `.csv` file, or a path to the directory where the `.csv` files are located.
 #' If the user doesn't provide something for this argument, the function will check
-#' the existence of a subdirectory called \code{data} in the directory where the metadata
+#' the existence of a subdirectory called `data` in the directory where the metadata
 #' files are located.
 #'
-#' In batch mode, the code starts with the argument \bold{\code{delim = ","}}, but if the
-#' \code{.csv} file is delimited differently it will also try hard to find other delimiters
+#' In batch mode, the code starts with the argument **`delim = ","`**, but if the
+#' `.csv` file is delimited differently it will also try hard to find other delimiters
 #' that will match the variable names in the metadata file. At the initial version 0.1-0,
-#' the automatically detected delimiters include \code{";"} and \code{"\t"}.
+#' the automatically detected delimiters include `";"` and `"\t"`.
 #'
-#' The argument \code{OS} (case insensitive) can be either:\cr
-#' \code{"Windows"} (default), or \code{"Win"},\cr
-#' \code{"MacOS"}, \code{"Darwin"}, \code{"Apple"}, \code{"Mac"},\cr
-#' \code{"Linux"}.\cr
+#' The argument `OS` (case insensitive) can be either:\cr
+#' `"Windows"` (default), or `"Win"`,\cr
+#' `"MacOS"`, `"Darwin"`, `"Apple"`, `"Mac"`,\cr
+#' `"Linux"`.\cr
 #'
 #' The end of line character(s) changes only when the target OS is different from the
 #' running OS.

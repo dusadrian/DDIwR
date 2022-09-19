@@ -1,3 +1,6 @@
+#' @description Determine the SPSS / Stata variable format
+#' @return Character scalar
+#' @noRd
 `getFormat` <- function(x, type = c("SPSS", "Stata"), ...) {
 
     dots <- list(...)

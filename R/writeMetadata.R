@@ -1,3 +1,6 @@
+#' @description Utility function to write the metadata part in the setup file.
+#' @return Nothing.
+#' @noRd
 `writeMetadata` <- function(dataDscr, OS = "", indent = 4) {
     if (OS == "") {
         OS <- Sys.info()[['sysname']]

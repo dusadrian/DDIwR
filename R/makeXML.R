@@ -1,4 +1,7 @@
-makeXML <- function(x, space = 1, indent = 4, ns = "", enter = "\n") {
+#' @description Write the study description part of the DDI XML file.
+#' @return A character vector.
+#' @noRd
+`makeXML` <- function(x, space = 1, indent = 4, ns = "", enter = "\n") {
     sx <- paste(rep(" ", space*indent), collapse = "")
     result <- character(0)
     nmsx <- names(x)

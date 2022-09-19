@@ -1,3 +1,6 @@
+#' @description Determine the variable type: categorical, numerical or mixed
+#' @return A character scalar
+#' @noRd
 `checkType` <- function(x, labels, na_values) {
 
     xnumeric <- admisc::possibleNumeric(x)

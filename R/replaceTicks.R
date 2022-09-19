@@ -1,3 +1,6 @@
+#' @description Recode all tick characters with a single quote.
+#' @return A recoded string.
+#' @noRd
 `replaceTicks` <- function(x) {
     # weird A character sometimes from encoding a single tick quote
     achar <- rawToChar(as.raw(c(195, 130)))

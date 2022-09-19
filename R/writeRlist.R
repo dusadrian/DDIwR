@@ -1,3 +1,6 @@
+#' @description Write an .R file containing a metadata specific list.
+#' @return Nothing.
+#' @noRd
 `writeRlist` <- function(dataDscr, OS = "windows", indent = 4, dirpath = "", filename = "") {
     
     on.exit(suppressWarnings(sink()))

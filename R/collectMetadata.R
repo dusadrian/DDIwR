@@ -1,3 +1,6 @@
+#' @description Collect metadata from a file or a dataframe object
+#' @return A list containing metadata
+#' @noRd
 `collectMetadata` <- function(dataset, ...) {
     dots <- list(...)
 

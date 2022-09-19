@@ -1,3 +1,6 @@
+#' @description Corrects a text read from a metadata object
+#' @return A character vector
+#' @noRd
 `cleanup` <- function(x, cdata = TRUE) {
 
     x <- gsub("&amp;", "&", x)
@@ -14,6 +17,6 @@
     }
 
     x <- replaceTicks(x)
-    
+
     return(x)
 }

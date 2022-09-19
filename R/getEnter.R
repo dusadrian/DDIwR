@@ -1,4 +1,7 @@
-getEnter <- function(OS) {
+#' @description Get the carriage return code from the current Operating System
+#' @return Character scalar
+#' @noRd
+`getEnter` <- function(OS) {
 
     current_os <- Sys.info()[["sysname"]]
     target_os <- toupper(OS)

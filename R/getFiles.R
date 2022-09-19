@@ -1,4 +1,7 @@
-getFiles <- function(path = ".", type = "*", currdir) {
+#' @description Get information about the files in a given directory
+#' @return A list with four components: the complete path, the files, the file names and the file extensions
+#' @noRd
+`getFiles` <- function(path = ".", type = "*", currdir) {
     
     lastpart <- basename(path)
     pathname <- suppressWarnings(normalizePath(dirname(path), winslash = "/"))
