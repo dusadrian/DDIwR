@@ -89,8 +89,8 @@
 #' # produce a test.xml file in the same directory
 #' convert("test.sav", to = "DDI")
 #'
-#' # It is possible to include the data in the XML file, using:
-#' convert("test.sav", to = "DDI", embed = TRUE)
+#' # The data may be saved separately from the DDI file, using:
+#' convert("test.sav", to = "DDI", embed = FALSE)
 #'
 #' # To produce a Stata file:
 #' convert("test.sav", to = "Stata")
@@ -140,12 +140,6 @@
     # }
 
     dots <- list(...)
-
-
-    user_na <- ifelse(isFALSE(dots$user_na), FALSE, TRUE)
-
-    # embed the data in the XML file
-    embed <- ifelse(isFALSE(dots$embed), FALSE, TRUE)
 
     dictionary <- NULL
     if (is.element("dictionary" , names(dots))) {
@@ -406,7 +400,7 @@
             fargs <- names(formals(read_sav))
             arglist <- dots[is.element(names(dots), fargs)]
             arglist$file <- from
-            arglist$user_na <- user_na
+            arglist$user_na <- !isFALSE(dots$user_na)
             arglist$encoding <- encoding
             data <- do.call(haven::read_sav, arglist) # haven_labelled variables
         }
@@ -414,7 +408,7 @@
             fargs <- names(formals(read_por))
             arglist <- dots[is.element(names(dots), fargs)]
             arglist$file <- from
-            arglist$user_na <- user_na
+            arglist$user_na <- !isFALSE(dots$user_na)
             data <- do.call(haven::read_por, arglist)
         }
         else if (tp_from$fileext == "DTA") {
@@ -532,7 +526,7 @@
 
             codeBook$fileDscr$datafile <- data
 
-            if (!embed) {
+            if (isFALSE(dots$embed)) {
                  write.table(
                     undeclare(data, drop = TRUE),
                     file = file.path(
@@ -552,7 +546,7 @@
                 codeBook$stdyDscr <- attrdata$stdyDscr
             }
 
-            exportDDI(codeBook, to, ... = ...)
+            exportDDI(codeBook, to, ... = ...) # embed = FALSE would go in three dots
         }
         else if (identical(tp_to$fileext, "SAV")) {
             data[] <- lapply(data, function(x) {

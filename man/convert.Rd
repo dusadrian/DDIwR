@@ -118,8 +118,8 @@ at the default in that package.
 # produce a test.xml file in the same directory
 convert("test.sav", to = "DDI")
 
-# It is possible to include the data in the XML file, using:
-convert("test.sav", to = "DDI", embed = TRUE)
+# The data may be saved separately from the DDI file, using:
+convert("test.sav", to = "DDI", embed = FALSE)
 
 # To produce a Stata file:
 convert("test.sav", to = "Stata")
