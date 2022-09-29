@@ -1,13 +1,8 @@
 #' @description Collect metadata from a file or a dataframe object
-#' @return A list containing metadata
+#' @return A list containing variable level metadata information
 #' @noRd
 `collectMetadata` <- function(dataset, ...) {
     dots <- list(...)
-
-    error_null <- TRUE
-    if (is.element("error_null", names(dots))) {
-        error_null <- dots$error_null
-    }
 
     if (is.data.frame(dataset)) {
         error <- TRUE
@@ -23,7 +18,7 @@
             i <- i + 1
         }
 
-        if (error && error_null) {
+        if (error && !isFALSE(dots$error_null)) {
             admisc::stopError(
                 "The input does not seem to contain any metadata."
             )
@@ -37,7 +32,7 @@
 
     output <- lapply(dataset, function(x) {
         result <- list()
-        
+
         label <- attr(x, "label", exact = TRUE)
         if (!is.null(label)) {
             result[["label"]] <- cleanup(label)
@@ -65,7 +60,7 @@
             result[["labels"]] <- setNames(seq(length(xlevels)), xlevels)
             x <- as.numeric(x)
         }
-        
+
         na_values <- attr(x, "na_values", exact = TRUE)
         if (is.null(na_values)) {
             if (is.double(x)) {
@@ -83,7 +78,7 @@
                 result$na_values <- na_values
             }
         }
-        
+
         result$na_range <- attr(x, "na_range", exact = TRUE)
         result$type <- checkType(
             x,
@@ -103,7 +98,7 @@
         }
 
         result[["varFormat"]] <- c(format.spss, format.stata)
-        
+
         return(result)
     })
 
