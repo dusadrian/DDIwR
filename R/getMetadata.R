@@ -200,6 +200,10 @@
             names(codeBook$dataDscr) <- admisc::trimstr(xml2::xml_text(xml2::xml_find_all(xml, xpath)))
 
             for (i in seq(length(codeBook$dataDscr))) {
+                if (is.na(codeBook$dataDscr[[i]][["label"]])) {
+                    codeBook$dataDscr[[i]][["label"]] <- NULL
+                }
+
                 # nms <- xml_name(xml_contents(xml_find_all(xml, sprintf("/d1:codeBook/d1:dataDscr/d1:var[%s]", i))))
 
                 # xpath <- sprintf("/%scodeBook/%sdataDscr/%svar[%s]", dns, dns, dns, i)
