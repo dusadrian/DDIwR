@@ -52,14 +52,19 @@
                 na_values <- as.character(na_values)
             }
         }
+
+        if (all(sapply(list(labels, na_values, na_range, label), is.null))) {
+            x[[i]] <- v
+        } else {
+            if (declared) {
+                x[[i]] <- declared::declared(v, labels, na_values, na_range, label)
+            }
+            else {
+                x[[i]] <- haven::labelled_spss(v, labels, na_values, na_range, label)
+            }
+        }
         
         
-        if (declared) {
-            x[[i]] <- declared::declared(v, labels, na_values, na_range, label)
-        }
-        else {
-            x[[i]] <- haven::labelled_spss(v, labels, na_values, na_range, label)
-        }
 
         # this is always about format.spss since both "declared" and "labelled_spss"
         # are not using Stata type extended missing values, and by consequence
