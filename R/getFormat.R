@@ -28,21 +28,9 @@
 
     x <- as.character(x)
 
-    if (allnax) {
-        maxvarchar <- 0
-    }
-    else {
-        while (TRUE) {
-            nofchars <- tryCatch(nchar(x), error = function(x) return(x))
-
-            if (!is.list(nofchars)) break
-
-            # if here, tryCatch caught an error, most likely a multibyte character
-            error <- unlist(strsplit(nofchars[[1]], split = " "))
-            # remove the offending character
-            x <- x[-as.numeric(error[length(error)])]
-            # and repeat the loop until no more problems appear
-        }
+    maxvarchar <- 0
+    if (!allnax) {
+        nofchars <- nchar(x[!grepl("[^!-~ ]", x)])
 
         if (length(nofchars) > 0) {
             maxvarchar <- max(nofchars, na.rm = TRUE)
@@ -50,7 +38,7 @@
     }
 
     if (!nullabels & !pN) {
-        maxvarchar <- max(maxvarchar, nchar(labels))
+        maxvarchar <- max(maxvarchar, nchar(labels[!grepl("[^!-~ ]", labels)]))
     }    
 
     if (type == "SPSS") {
