@@ -290,10 +290,10 @@
                     }
                 }
                 else {
-                    if (is.element(measurement, c("nominal", "ordinal"))) {
+                    if (grepl("nominal|ordinal", measurement)) {
                         codeBook$dataDscr[[i]]$type <- "cat"
                     }
-                    else if (is.element(measurement, c("interval", "ratio"))) {
+                    else if (grepl("interval|ratio", measurement)) {
                         codeBook$dataDscr[[i]]$type <- "num"
                     }
                     else if (!is.na(type)) {

@@ -14,6 +14,7 @@
 
         na_values <- dataDscr[[i]][["na_values"]]
         na_range <- dataDscr[[i]][["na_range"]]
+        measurement <- dataDscr[[i]][["measurement"]]
 
         v <- x[[i]]
         attributes(v) <- NULL
@@ -57,7 +58,7 @@
             x[[i]] <- v
         } else {
             if (declared) {
-                x[[i]] <- declared::declared(v, labels, na_values, na_range, label)
+                x[[i]] <- declared::declared(v, labels, na_values, na_range, label, measurement)
             }
             else {
                 x[[i]] <- haven::labelled_spss(v, labels, na_values, na_range, label)

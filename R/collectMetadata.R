@@ -38,6 +38,10 @@
             result[["label"]] <- cleanup(label)
         }
 
+        measurement <- attr(x, "measurement", exact = TRUE)
+        if (!is.null(measurement)) {
+            result[["measurement"]] <- cleanup(measurement)
+        }
 
         labels <- attr(x, "labels", exact = TRUE)
         if (!is.null(labels)) {
