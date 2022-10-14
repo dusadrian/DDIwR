@@ -246,8 +246,7 @@
         codeBook <- getMetadata(
             from,
             declared = declared,
-            encoding = encoding,
-            toext = tp_to$fileext
+            encoding = encoding
         )
 
         if (is.element("datafile", names(codeBook[["fileDscr"]]))) {

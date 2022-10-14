@@ -279,17 +279,17 @@
     s4 <- repeatSpace(4)
     s5 <- repeatSpace(5)
 
-    `catText` <- function(x, ...) {
-        cat(paste(
-            repeatSpace(x),
-            paste(
-                unlist(list(...)),
-                collapse = ""
-            ),
-            enter,
-            sep = ""
-        ))
-    }
+    # `catText` <- function(x, ...) {
+    #     cat(paste(
+    #         repeatSpace(x),
+    #         paste(
+    #             unlist(list(...)),
+    #             collapse = ""
+    #         ),
+    #         enter,
+    #         sep = ""
+    #     ))
+    # }
 
     if (OS == "") {
         OS <- Sys.info()[["sysname"]]
@@ -537,13 +537,13 @@
                 " dcml=\"",
                 ifelse(
                     pN[[names(dataDscr)[i]]],
-                    getDecimals(na.omit(aN[[names(dataDscr)[i]]])),
+                    admisc::numdec(na.omit(aN[[names(dataDscr)[i]]])),
                     0
                 ),
                 "\""
             )
         }
-
+    
         nature <- ""
         if(any(grepl("measurement", names(dataDscr[[i]])))) {
             nature <- paste0(" nature=\"", dataDscr[[i]]$measurement, "\"")
