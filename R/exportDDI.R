@@ -22,7 +22,7 @@
 #' not be covered by DDI:
 #'
 #' - \bold{\code{measurement}} is the equivalent of the specific DDI attribute
-#' \bold{\code{nature}} of the \bold{\code{var}} element, and it accepts these
+#' \bold{\code{nature}} of the \bold{\code{var}} element, which accepts these
 #' values: \code{"nominal"}, \code{"ordinal"}, \code{"interval"}, \code{"ratio"},
 #' \code{"percent"}, and \code{"other"}.
 #'
@@ -244,9 +244,19 @@
 
     `replaceChars` <- function(x) {
         x <- replaceTicks(x)
-        x <- gsub("&", "&amp;", x)
-        x <- gsub("<", "&lt;", x)
-        x <- gsub(">", "&gt;", x)
+        x <- gsub(
+            rawToChar(as.raw(c(194, 160))), " ",
+            gsub(
+                "<", "&lt;",
+                gsub(
+                    ">", "&gt;",
+                    gsub(
+                        "&", "&amp;",
+                        x
+                    )
+                )
+            )
+        )
         return(x)
     }
 
@@ -545,8 +555,15 @@
         }
     
         nature <- ""
-        if(any(grepl("measurement", names(dataDscr[[i]])))) {
-            nature <- paste0(" nature=\"", dataDscr[[i]]$measurement, "\"")
+        if (is.element("measurement", names(dataDscr[[i]]))) {
+            nature <- paste0(
+                " nature=\"",
+                gsub(
+                    "categorical|quantitative|, ", "",
+                    dataDscr[[i]]$measurement,
+                ),
+                "\""
+            )
         }
 
 
@@ -627,23 +644,15 @@
         }
 
         lbls <- dataDscr[[i]][["labels"]]
-        if (!is.null(lbls)) {
-            nms <- names(lbls)
-
-            # TODO: XML doesn't seem to cope well with multibyte characters?
-            # TODO: what about multibyte languages (e.g. Asian)
-            multibyte <- grepl("[^!-~ ]", lbls)
-            if (any(multibyte)) {
-                for (m in which(multibyte)) {
-                    strlab <- unlist(strsplit(lbls[m], split = ""))
-                    strlab <- strlab[!grepl("[^!-~ ]", strlab)]
-                    lbls[m] <- paste(strlab, collapse = "")
-                }
-            }
-
-            lbls <- setNames(admisc::trimstr(lbls), nms)
-            # names(lbls) <- nms
-        }
+        # if (!is.null(lbls)) {
+        #     # non-ASCII also means non multibyte characters
+        #     lbls <- setNames(
+        #         admisc::trimstr(
+        #             iconv(lbls, "UTF-8", "ASCII", sub = "")
+        #         ),
+        #         names(lbls)
+        #     )
+        # }
 
         type <- dataDscr[[i]]$type
 
@@ -738,19 +747,22 @@
 
         if (!is.null(lbls)) {
 
-            tbl <- table(data[[names(dataDscr)[i]]]) # what is the difference from data[[i]] ?
-
+            # what is the difference from data[[i]] ?
+            tbl <- table(data[[names(dataDscr)[i]]])
 
             for (v in seq(length(lbls))) {
 
                 ismiss <- is.element(lbls[v], na_values)
-                if (length(na_range) > 0) {
-                    ismiss <- ismiss | (lbls[v] >= na_range[1] & lbls[v] <= na_range[2])
+                if (length(na_range) > 0 & pN[i]) {
+                    ismiss <- ismiss | (
+                        lbls[v] >= na_range[1] & lbls[v] <= na_range[2]
+                    )
                 }
 
                 cat(paste(
                     s3,
-                    "<", ns, "catgry", ifelse(ismiss, " missing=\"Y\"", ""), ">",
+                    "<", ns, "catgry",
+                    ifelse(ismiss, " missing=\"Y\"", ""), ">",
                     enter,
                     sep = ""
                 ))
@@ -758,7 +770,7 @@
                 cat(paste(
                     s4,
                     "<", ns, "catValu>",
-                    lbls[v],
+                    replaceChars(lbls[v]),
                     "</", ns, "catValu>",
                     enter,
                     sep = ""

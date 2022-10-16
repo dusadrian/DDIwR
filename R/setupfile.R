@@ -6,22 +6,22 @@
 #' Creates a setup file, based on a list of variable and value labels.
 #'
 #' @details
-#' When the a path to a metadata directory is specified for the argument **`codebook`**,
-#' then next argument **`file`** is silently ignored and all created setup files are
-#' saved in a directory called "Setup Files" that (if not already found) is created in the
-#' working directory.
+#' When a path to a metadata directory is specified for the argument **`obj`**,
+#' then next argument **`file`** is silently ignored and all created setup files
+#' are saved in a directory called "Setup Files" that (if not already found) is
+#' created in the working directory.
 #'
 #' The argument **`file`** expects the name of the final setup file being
 #' saved on the disk. If not specified, the name of the object provided for the
-#' **`codebook`** argument will be used as a filename.
+#' **`obj`** argument will be used as a filename.
 #'
 #' If **`file`** is specified, the argument **`type`** is automatically
 #' determined from the file's extension, otherwise when **`type = "all"`**, the
 #' function produces one setup file for each supported type.
 #'
-#' If batch processing multiple files, the function will inspect all files in the
-#' provided directory, and retain only those with the extension  `.R` or `.r`
-#' or DDI versions with the extension `.xml` or `.XML` (it will
+#' If batch processing multiple files, the function will inspect all files in
+#' the provided directory, and retain only those with the extension  `.R` or
+#' `.r` or DDI versions with the extension `.xml` or `.XML` (it will
 #' subsequently generate an error if the .R files do not contain an object list,
 #' or if the `.xml` files do not contain a DDI structured metadata file).
 #'
@@ -30,24 +30,25 @@
 #' `.csv` file (their names have to be *exactly* the same, regardless of
 #' their extension).
 #'
-#' The **`csv`** argument can provide a data frame object produced by reading the
-#' `.csv` file, or a path to the directory where the `.csv` files are located.
-#' If the user doesn't provide something for this argument, the function will check
-#' the existence of a subdirectory called `data` in the directory where the metadata
-#' files are located.
+#' The **`csv`** argument can provide a data frame object produced by reading
+#' the `.csv` file, or a path to the directory where the `.csv` files are
+#' located. If the user doesn't provide something for this argument, the
+#' function will check the existence of a subdirectory called `data` in the
+#' directory where the metadata files are located.
 #'
-#' In batch mode, the code starts with the argument **`delim = ","`**, but if the
-#' `.csv` file is delimited differently it will also try hard to find other delimiters
-#' that will match the variable names in the metadata file. At the initial version 0.1-0,
-#' the automatically detected delimiters include `";"` and `"\t"`.
+#' In batch mode, the code starts with the argument **`delim = ","`**, but if
+#' the `.csv` file is delimited differently it will also try hard to find other
+#' delimiters that will match the variable names in the metadata file. At the
+#' initial version 0.1-0, the automatically detected delimiters include `";"`
+#' and `"\t"`.
 #'
 #' The argument `OS` (case insensitive) can be either:\cr
 #' `"Windows"` (default), or `"Win"`,\cr
 #' `"MacOS"`, `"Darwin"`, `"Apple"`, `"Mac"`,\cr
 #' `"Linux"`.\cr
 #'
-#' The end of line character(s) changes only when the target OS is different from the
-#' running OS.
+#' The end of line character(s) changes only when the target OS is different
+#' from the running OS.
 #'
 #' @return
 #' A setup file to complement the imported raw dataset.
@@ -106,7 +107,8 @@
 #'
 #' \dontrun{
 #' # IMPORTANT:
-#' # make sure to set the working directory to a directory with read/write permissions
+#' # make sure to set the working directory to a directory with
+#' # read/write permissions
 #' # setwd("/path/to/read/write/directory")
 #'
 #'
@@ -118,7 +120,7 @@
 #'
 #'
 #' # generating a specific type of setup file
-#' setupfile(codebook, file = "codebook.do") # type = "Stata" is unnecessary
+#' setupfile(codebook, file = "codebook.do") # type = "Stata" also works
 #'
 #'
 #' # other types of possible utilizations, using paths to specific files
@@ -133,14 +135,15 @@
 #'
 #' @author Adrian Dusa
 #'
-#' @param codebook
-#' A list object containing the metadata, or a path to a directory where
-#' these objects are located, for batch processing
+#' @param obj
+#' A data frame, or a list object containing the metadata, or a path to a data
+#' file or to a directory where such objects are located, for batch processing
 #'
 #' @param file Character, the (path to the) setup file to be created
 #'
 #' @param type
-#' The type of setup file, can be: "SPSS", "Stata", "SAS", "R", or "all" (default)
+#' The type of setup file, can be: "SPSS", "Stata", "SAS", "R", or "all"
+#' (default)
 #'
 #' @param csv
 #' The original dataset, used to create the setup file commands, or a path
@@ -158,13 +161,21 @@
 #' @export
 
 `setupfile` <- function(
-    codebook, file = "", type = "all", csv = "", recode = TRUE, OS = "",
+    obj, file = "", type = "all", csv = "", recode = TRUE, OS = "",
     stringnum = TRUE, ...
 ) {
 
-    # TO DO: when codebook is a path to a file or directory,
+    # TO DO: when obj is a path to a file or directory,
     # it should be (only) XML and not R anymore
     on.exit(suppressWarnings(sink()))
+    
+    dataDscr_objname <- deparse(substitute(obj))
+
+    if (is.data.frame(obj)) {
+        cobj <- obj
+        obj <- getMetadata(obj)
+        obj$fileDscr <- list(datafile = cobj)
+    }
 
     dots <- list(...)
     type <- toupper(type)
@@ -179,11 +190,7 @@
     saveFile <- isTRUE(dots$saveFile)
     script <- isTRUE(dots$script) ## what did I want to do with this...?
 
-    outdir <- identical(file, "") # internal, logical argument
-
-    if (is.element("outdir", names(dots))) {
-        outdir <- isTRUE(dots$outdir)
-    }
+    outdir <- identical(file, "") | isTRUE(dots$outdir)
 
     if (!identical(file, "")) {
         tp <- treatPath(file, check = FALSE)
@@ -249,25 +256,32 @@
 
     csvlist <- NULL
 
-    if (missing(codebook)) {
+    completePath <- treatPath("test", check = FALSE)$completePath
+    singlefile <- isTRUE(dots$singlefile)
+
+    if (singlefile) {
+        completePath <- dots$completePath
+    }
+
+    if (missing(obj)) {
         admisc::stopError(
-            "The argument <codebook> is missing, with no default."
+            "The argument <obj> is missing, with no default."
         )
     }
-    else if (all(is.character(codebook))) {
+    else if (all(is.character(obj))) {
             # all() just in case someone provides a vector by mistake
-        if (length(codebook) > 1) {
+        if (length(obj) > 1) {
             admisc::stopError(
                 paste(
-                    "The argument <codebook> should contain",
-                    "a single path to the list object."
+                    "The argument <obj> should contain",
+                    "a single path to the object."
                 )
             )
         }
 
         pathtofiles <- FALSE
 
-        labelist <- treatPath(codebook, check = FALSE)
+        labelist <- treatPath(obj, check = FALSE)
         if (length(labelist) == 1) {
             admisc::stopError(labelist)
         }
@@ -275,7 +289,13 @@
             pathtofiles <- TRUE
         }
 
-        outdir <- outdir & length(labelist$fileext) > 1
+        singlefile <- length(labelist$fileext) == 1
+
+        outdir <- outdir & !singlefile
+
+        if (singlefile) {
+            completePath <- labelist$completePath
+        }
 
         csvdatadir <- FALSE # by default
 
@@ -506,6 +526,8 @@
                                     file = ifelse(identical(file, ""), labelist$filenames[i], file),
                                     outdir = outdir,
                                     stringnum = stringnum,
+                                    singlefile = singlefile,
+                                    completePath = completePath,
                                     recall = TRUE,
                                     ... = ...
                                 ),
@@ -551,6 +573,8 @@
                             file = ifelse(identical(file, ""), labelist$filenames[i], file),
                             outdir = outdir,
                             stringnum = stringnum,
+                            singlefile = singlefile,
+                            completePath = completePath,
                             recall = TRUE,
                             ... = ...
                         ),
@@ -591,7 +615,7 @@
                             labelist$filenames <- tp$filenames
                         }
 
-                        # return(list(codebook = obj,
+                        # return(list(obj = obj,
                         #             type = type,
                         #             csv = csv,
                         #             delim = delim,
@@ -610,6 +634,8 @@
                                 file = ifelse(identical(file, ""), labelist$filenames, file),
                                 outdir = outdir,
                                 stringnum = stringnum,
+                                singlefile = singlefile,
+                                completePath = completePath,
                                 recall = TRUE,
                                 ... = ...
                             ),
@@ -649,6 +675,8 @@
                             file = ifelse(identical(file, ""), labelist$filenames[i], file),
                             outdir = outdir,
                             stringnum = stringnum,
+                            singlefile = singlefile,
+                            completePath = completePath,
                             recall = TRUE,
                             ... = ...
                         ),
@@ -695,16 +723,16 @@
 
         return(invisible())
     }
-    else if (is.list(codebook)) {
-        if (!is.null(codebook[["fileDscr"]][["datafile"]])) {
-            csv <- codebook[["fileDscr"]][["datafile"]]
+    else if (is.list(obj)) {
+        if (!is.null(obj[["fileDscr"]][["datafile"]])) {
+            csv <- obj[["fileDscr"]][["datafile"]]
         }
-        dataDscr <- codebook[["dataDscr"]]
-        dataDscr_objname <- deparse(substitute(codebook))
+        dataDscr <- obj[["dataDscr"]]
+    
         outdir <- FALSE
     }
     else {
-        admisc::stopError("Unknown input for the argument <codebook>.")
+        admisc::stopError("Unknown input for the argument <obj>.")
     }
 
     anymissing <- any(unlist(lapply(dataDscr, function(x) {
@@ -756,7 +784,7 @@
         }
 
         dictionary <- recodeMissings(
-            make_labelled(csv, codebook$dataDscr),
+            make_labelled(csv, obj$dataDscr),
             to = ifelse(type == "SAS", "Stata", type),
             return_dictionary = TRUE
         )
@@ -831,7 +859,7 @@
 
     if (is.null(names(dataDscr)) | !checkvarlab(dataDscr)) {
         admisc::stopError(
-            "The argument <codebook> does not contain variables and / or labels."
+            "The object does not contain variables and / or labels."
         )
     }
 
@@ -1012,117 +1040,16 @@
                     }
                 }
 
-
-                ####
-                # the following code is needed just in case there are multibyte characters somewhere
-                # that prevents nchar() from running properly (if so, it generates an error)
-                nofchars <- tryCatch(
-                    nchar(as.character(tempvar)),
-                    error = function(x) return(x)
-                )
-
-                if (is.list(nofchars)) {
-                    # if an error is generated, nchar()'s output is a list
-                    # a multibyte error should be the only one that nchar() throws
-                    # don't know what other error would be possible with nchar()
-
-                    tempvar2 <- as.character(tempvar)
-                    error <- unlist(strsplit(nofchars[[1]], split = " "))
-                    tempvar2 <- tempvar2[-as.numeric(error[length(error)])]
-
-                    cat(paste(
-                        "    There are multibyte characters in this data (ex. ",
-                        csvnames[i],
-                        ", position ",
-                        error[length(error)],
-                        ")\n",
-                        sep = ""
-                    ))
-
-                    while (TRUE) {
-
-                        nofchars <- tryCatch(
-                            nchar(tempvar2),
-                            error = function(x) return(x)
-                        )
-
-                        if (!is.list(nofchars)) break
-
-                        error <- unlist(
-                            strsplit(
-                                nofchars[[1]],
-                                split = " "
-                            )
-                        )
-
-                        tempvar2 <- tempvar2[-as.numeric(error[length(error)])]
-                    }
-
-                    if (length(nofchars) == 0) {
-                        nofchars <- 1
-                    }
-                    else {
-                        nofchars[is.na(tempvar2)] <- 0
-                    }
-                }
-                else {
-                    nofchars[is.na(tempvar)] <- 0
-                }
-                ####
-
-                maxvarchar <- max(nofchars)
-
-                haslabels <- is.element(
-                    "labels",
-                    names(dataDscr[[csvnames[i]]])
-                )
-
-                if (haslabels) {
+                if (is.element("labels", names(dataDscr[[csvnames[i]]]))) {
                     if (is.character(dataDscr[[csvnames[i]]][["labels"]])) {
                         vartypes[i] <- "string"
-                        # gofurther <- FALSE
-                        maxvarchar <- max(
-                            maxvarchar,
-                            nchar(dataDscr[[csvnames[i]]][["labels"]])
-                        )
                     }
                 }
 
-                if (vartypes[i] == "numeric") {
-
-                    tempvar2 <- tempvar[!is.na(tempvar)]
-
-                    if (any(tempvar2 - floor(tempvar2) > 0)) { # has decimals
-                        decimals <- TRUE
-                    }
-                    else {
-                        if (haslabels) {
-                            if (
-                                is.numeric(
-                                    dataDscr[[csvnames[i]]][["labels"]]
-                                )
-                            ) {
-                                maxvarchar <- max(
-                                    maxvarchar,
-                                    nchar(dataDscr[[csvnames[i]]][["labels"]])
-                                )
-                            }
-                        }
-                    }
-
-                    spssformats[i] <- sprintf(
-                        "F%d.%d",
-                        maxvarchar,
-                        ifelse(decimals, 2, 0)
-                    )
-
-                }
-                else if (vartypes[i] == "string") {
+                spssformats[i] <- getFormat(tempvar, type = "SPSS")
+                
+                if (vartypes[i] == "string") {
                     sasformats[i] <- " $"
-                    spssformats[i] <- paste("A", maxvarchar, sep = "")
-                }
-                else { # all the values are missing, and no value labels exist
-                    spssformats[i] <- paste("F1.0", sep = "")
                 }
 
                 varcheck[i] <- 1
@@ -1165,6 +1092,10 @@
         }
         else {
             tp <- treatPath(file, check = FALSE)
+
+            if (singlefile) {
+                tp$completePath <- completePath
+            }
 
             if (is.na(tp$fileext)) {
                 if (toupper(type) == "ALL") {
@@ -1283,17 +1214,12 @@
 
             setwd(file.path("Setup files", "SPSS"))
         }
-
-
+        
         sink(
             ifelse(
                 grepl("\\.sps", file),
                 file,
-                paste(
-                    file,
-                    ".sps",
-                    sep = ""
-                )
+                paste(file, ".sps", sep = "")
             )
         )
 
@@ -1306,10 +1232,7 @@
 
             cat(paste(
                 "GET FILE = \"",
-                file.path(
-                    to$completePath,
-                    to$files[1]
-                ),
+                file.path(to$completePath, to$files[1]),
                 "\" .",
                 enter,
                 enter,
@@ -1446,7 +1369,9 @@
                 for (sv in names(stringvars)) {
 
                     oldvalues <- dataDscr2[[sv]][["labels"]]
-                    newvalues <- seq(length(oldvalues))
+                    pN <- admisc::possibleNumeric(oldvalues, each = TRUE)
+                    newvalues <- oldvalues
+                    newvalues[!pN] <- seq(length(oldvalues))[!pN]
                     nummiss <- logical(length(newvalues))
 
                     if (is.element("na_values", names(dataDscr2[[sv]]))) {
@@ -1495,6 +1420,7 @@
 
                         for (j in seq(length(newvalues[!nummiss]))) {
                             jlabels <- dataDscr2[[sv]][["labels"]]
+                            
                             postcommand <- paste(
                                 postcommand,
                                 jlabels[j],
@@ -1733,7 +1659,7 @@
         }
 
 
-# return(numvars)
+        # return(numvars)
 
         if (anymissing) {
 
@@ -2474,7 +2400,13 @@
             setwd(file.path("Setup files", "SAS"))
         }
 
-        sink(ifelse(grepl("\\.sas", file), file, paste(file, ".sas", sep = "")))
+        sink(
+            ifelse(
+                grepl("\\.sas", file),
+                file,
+                paste(file, ".sas", sep = "")
+            )
+        )
 
         if (script) {
             to <- treatPath(dots$to, check = FALSE)
@@ -2980,7 +2912,6 @@
 
             setwd(file.path("Setup files", "R"))
         }
-
 
         sink(
             ifelse(

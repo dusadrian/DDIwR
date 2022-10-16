@@ -23,14 +23,12 @@
 
     decimals <- 0
     if (pN & !allnax) {
-        decimals <- admisc::numdec(x)
+        decimals <- min(3, admisc::numdec(x))
     }
-
-    x <- as.character(x)
 
     maxvarchar <- 0
     if (!allnax) {
-        nofchars <- nchar(x[!grepl("[^!-~ ]", x)])
+        nofchars <- na.omit(nchar(x, allowNA = TRUE))
 
         if (length(nofchars) > 0) {
             maxvarchar <- max(nofchars, na.rm = TRUE)
@@ -38,7 +36,7 @@
     }
 
     if (!nullabels & !pN) {
-        maxvarchar <- max(maxvarchar, nchar(labels[!grepl("[^!-~ ]", labels)]))
+        maxvarchar <- max(maxvarchar, na.omit(nchar(labels, allowNA = TRUE)))
     }    
 
     if (type == "SPSS") {
@@ -46,7 +44,7 @@
             sprintf(
                 "%s%s%s%s", 
                 ifelse(pN, "F", "A"),
-                maxvarchar, 
+                max(1, maxvarchar),
                 ifelse(pN, ".", ""),
                 ifelse(pN, decimals, "")
             )
@@ -57,7 +55,7 @@
             paste0("%",
                 sprintf(
                     "%s%s%s%s", 
-                    maxvarchar, 
+                    max(1, maxvarchar), 
                     ifelse(pN, ".", ""),
                     ifelse(pN, decimals, ""),
                     ifelse(pN, "g", "s")
