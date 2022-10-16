@@ -6,78 +6,76 @@
 #' Create a DDI Codebook version 2.5, XML file structure.
 #'
 #' @details
-#' #' The information object is essentially a list having two main list components:
+#' #' The information object can either be a data file (includign an R data
+#' frame) or a list having two main list components:
 #'
-#' - \bold{\code{fileDscr}}, if the data is provided in a subcomponent named
-#' \bold{\code{datafile}}
+#' - **`fileDscr`**, if the data is provided in a subcomponent named
+#' **`datafile`**
 #'
-#' - \bold{\code{dataDscr}}, having as many components as the number of variables
-#' in the (meta)data. For each variable, there should a mandatory subcomponent
-#' called \bold{\code{label}} (that contains the variable's label) and, if the
-#' variable is of a categorical type, another subcomponent called
-#' \bold{\code{values}}.
+#' - **`dataDscr`**, having as many components as the number of variables in the
+#' (meta)data. For each variable, there should a mandatory subcomponent called
+#' **`label`** (that contains the variable's label) and, if the variable is of a
+#' categorical type, another subcomponent called **`labels`**.
 #'
 #' Additional informations about the variables can be specified as further
-#' subcomponents, combining DDI specific data but also other information that might
-#' not be covered by DDI:
+#' subcomponents, combining DDI specific data but also other information that
+#' might not be covered by DDI:
 #'
-#' - \bold{\code{measurement}} is the equivalent of the specific DDI attribute
-#' \bold{\code{nature}} of the \bold{\code{var}} element, which accepts these
-#' values: \code{"nominal"}, \code{"ordinal"}, \code{"interval"}, \code{"ratio"},
-#' \code{"percent"}, and \code{"other"}.
+#' - **`measurement`** is the equivalent of the specific DDI attribute
+#' **`nature`** of the **`var`** element, which accepts these values:
+#' `"nominal"`, `"ordinal"`, `"interval"`, `"ratio"`, `"percent"`, and
+#' `"other"`.
 #'
-#' - \bold{\code{type}} is useful for multiple reasons. A first one, if the
-#' variable is numerical, is to differentiate between \code{discrete} and
-#' \code{contin} values of the attribute \bold{\code{intrvl}} from the same DDI
-#' element \bold{\code{var}}. Another reason is to help identifying pure string
-#' variables (containing text), when the subcomponent \bold{\code{type}} is equal
-#' to \code{"char"}. It is also used for the subelement \bold{\code{varFormat}} of
-#' the element \bold{\code{var}}. Finally, another reason is to differentiate
-#' between pure categorical (\code{"cat"}) and pure numerical (\code{"num"})
-#' variables, as well as mixed ones, among which \code{"numcat"} referring to a
-#' numerical variable with very few values (such as the number of children), for
-#' which it is possible to also produce a table of frequencies along the numerical
-#' summaries. There are also categorical variables that can be interpreted as
-#' numeric (\code{"catnum"}), such as a Likert type response scale with 7 values,
-#' where numerical summaries are also routinely performed along with the usual
-#' table of frequencies.
+#' - **`type`** is useful for multiple reasons. A first one, if the variable is
+#' numerical, is to differentiate between `discrete` and `continuous` values of
+#' the attribute **`intrvl`** from the same DDI element **`var`**. Another
+#' reason is to help identifying pure string variables (containing text), when
+#' the subcomponent **`type`** is equal to `"char"`. It is also used for the
+#' subelement **`varFormat`** of the element **`var`**. Finally, another reason
+#' is to differentiate between pure categorical (`"cat"`) and pure numerical
+#' (`"num"`) variables, as well as mixed ones, among which `"numcat"` referring
+#' to a numerical variable with very few values (such as the number of
+#' children), for which it is possible to also produce a table of frequencies
+#' along the numerical summaries. There are also categorical variables that can
+#' be interpreted as numeric (`"catnum"`), such as a Likert type response scale
+#' with 7 values, where numerical summaries are also routinely performed along
+#' with the usual table of frequencies.
 #'
-#' - \bold{\code{missing}} is an important subcomponent, indicating which of the
-#' values in the variable are going to be treated as missing values, and it is
-#' going to be exported as the attribute \code{missing} of the DDI subelement
-#' \bold{\code{catgry}}.
+#' - **`missing`** is an important subcomponent, indicating which of the values
+#' in the variable are going to be treated as missing values, and it is going to
+#' be exported as the attribute `missing` of the DDI subelement **`catgry`**.
 #'
 #' There are many more possible attributes and DDI elements to be added in the
 #' information object, future versions of this function will likely expand.
 #'
-#' For the moment, only DDI codebook version 2.5 is exported, and DDI Lifecycle is
-#' planned for future releases.
+#' For the moment, only DDI codebook version 2.5 is exported, and DDI Lifecycle
+#' is planned for future releases.
 #'
-#' Argument \bold{\code{xmlang}} expects a two letter ISO country coding, for
-#' instance \code{"en"} to indicate English, or \code{"ro"} to indicate Romanian etc.
+#' Argument **`xmlang`** expects a two letter ISO country coding, for instance
+#' `"en"` to indicate English, or `"ro"` to indicate Romanian etc.
 #'
 #' If the document is monolang, this argument is placed a single time for the
-#' entire document, in the attributes of the \code{codeBook} element. For
+#' entire document, in the attributes of the `codeBook` element. For
 #' multilingual documents, it is placed in the attributes of various other
-#' (sub)elements, for instance \code{abstract} as an obvious one, or the study
+#' (sub)elements, for instance `abstract` as an obvious one, or the study
 #' title, name of the distributing institution, variable labels etc.
 #'
-#' The argument \bold{\code{OS}} can be either:\cr
-#' \code{"windows"} (default), or \code{"Windows"}, \code{"Win"}, \code{"win"},\cr
-#' \code{"MacOS"}, \code{"Darwin"}, \code{"Apple"}, \code{"Mac"}, \code{"mac"},\cr
-#' \code{"Linux"}, \code{"linux"}.
+#' The argument **`OS`** can be either:\cr
+#' `"windows"` (default), or `"Windows"`, `"Win"`, `"win"`,\cr
+#' `"MacOS"`, `"Darwin"`, `"Apple"`, `"Mac"`, `"mac"`,\cr
+#' `"Linux"`, `"linux"`.
 #'
-#' The end of line separator changes only when the target OS is different from the
-#' running OS.
+#' The end of line separator changes only when the target OS is different from
+#' the running OS.
 #'
-#' The argument \bold{\code{indent}} controls how many spaces will be used in the
-#' XML file, to indent the different subelements.
+#' The argument **`indent`** controls how many spaces will be used in the XML
+#' file, to indent the different subelements.
 #'
 #' A small number of required DDI specific elements and attributes have generic
-#' default values but they may be specified using the three dots \bold{\code{...}}
-#' argument. For the current version, these are: \code{IDNo}, \code{titl},
-#' \code{agency}, \code{URI} (for the \code{holdings} element), \code{distrbtr},
-#' \code{abstract} and \code{level} (for the \code{otherMat} element).
+#' default values but they may be specified using the three dots **`...`**
+#' argument. For the current version, these are: `IDNo`, `titl`, `agency`, `URI`
+#' (for the `holdings` element), `distrbtr`, `abstract` and `level` (for the
+#' `otherMat` element).
 #'
 #' @return
 #' An XML file containing a DDI version 2.5 metadata.
@@ -138,11 +136,11 @@
 #' V5 = list(
 #'     label = "Political party reference",
 #'     type = "char",
-#'     txt = "When the respondent indicated his political party reference, his/her
-#'         open response was recoded on a scale of 1-99 with parties with a
-#'         left-wing orientation coded on the low end of the scale and parties with
-#'         a right-wing orientation coded on the high end of the scale. Categories
-#'         90-99 were reserved miscellaneous responses."
+#'     txt = "When the respondent indicated his political party reference,
+#'         his/her open response was recoded on a scale of 1-99 with parties
+#'         with a left-wing orientation coded on the low end of the scale and
+#'         parties with a right-wing orientation coded on the high end of the
+#'         scale. Categories 90-99 were reserved miscellaneous responses."
 #' )))
 #'
 #' \dontrun{

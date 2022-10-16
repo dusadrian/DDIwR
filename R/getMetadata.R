@@ -13,27 +13,29 @@
 #'
 #' It additionally attempts to automatically detect a type for each variable:
 #' \tabular{rl}{
-#'   \bold{\code{cat}}: \tab categorical variable using numeric values\cr
-#'   \bold{\code{catchar}}: \tab categorical variable using character values\cr
-#'   \bold{\code{catnum}}: \tab categorical variable for which numerical summaries\cr
+#'   **`cat`**: \tab categorical variable using numeric values\cr
+#'   **`catchar`**: \tab categorical variable using character values\cr
+#'   **`catnum`**: \tab categorical variable for which numerical summaries\cr
 #'   \tab can be calculated (ex. a 0...10 Likert response scale)\cr
-#'   \bold{\code{num}}: \tab numerical\cr
-#'   \bold{\code{numcat}}: \tab numerical variable with few enough values (ex. number of children)\cr
-#'   \tab for which a table of frequencies is possible in addition to frequencies
+#'   **`num`**: \tab numerical\cr
+#'   **`numcat`**: \tab numerical variable with few enough values (ex. number of
+#' children)\cr
+#'   \tab for which a table of frequencies is possible in addition to
+#' frequencies
 #' }
 #'
-#' By default, this function extracts the metadata into an R list object, but when
-#' the argument \code{save} is activated, the argument \code{OS} (case insensitive)
+#' By default, this function extracts the metadata into an R list object, but
+#' when the argument `save` is activated, the argument `OS` (case insensitive)
 #' can be either:\cr
-#' \code{"Windows"} (default), or \code{"Win"},\cr
-#' \code{"MacOS"}, \code{"Darwin"}, \code{"Apple"}, \code{"Mac"},\cr
-#' \code{"Linux"}.\cr
+#' `"Windows"` (default), or `"Win"`,\cr
+#' `"MacOS"`, `"Darwin"`, `"Apple"`, `"Mac"`,\cr
+#' `"Linux"`.\cr
 #'
-#' The end of line separator changes only when the target OS is different from the
-#' running OS.
+#' The end of line separator changes only when the target OS is different from
+#' the running OS.
 #'
-#' For the moment, only DDI version 2.5 (Codebook) is supported, but DDI Lifecycle
-#' is planned to be implemented.
+#' For the moment, only DDI version 2.5 (Codebook) is supported, but DDI
+#' Lifecycle is planned to be implemented.
 #'
 #' @examples
 #' x <- data.frame(

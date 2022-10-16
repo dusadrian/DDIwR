@@ -1,7 +1,9 @@
 #' @description Write an .R file containing a metadata specific list.
 #' @return Nothing.
 #' @noRd
-`writeRlist` <- function(dataDscr, OS = "windows", indent = 4, dirpath = "", filename = "") {
+`writeRlist` <- function(
+    dataDscr, OS = "windows", indent = 4, dirpath = "", filename = ""
+) {
     
     on.exit(suppressWarnings(sink()))
     
@@ -42,7 +44,13 @@
                 cat(rs(2), "\"", labl[lbl], "\" = ", sep = "")
                 quote <- ifelse(notNum, "\"", "")
                 cat(quote, values[lbl], quote, sep = "")
-                cat(ifelse(lbl < length(labl), paste(",", enter, sep = ""), paste(enter, rs(2), ")", sep = "")))
+                cat(
+                    ifelse(
+                        lbl < length(labl),
+                        paste(",", enter, sep = ""),
+                        paste(enter, rs(2), ")", sep = "")
+                    )
+                )
             }
         }
         
@@ -50,15 +58,44 @@
             na_values <- dataDscr[[i]]$na_values
             notNum <- any(is.na(suppressWarnings(as.numeric(na_values))))
             cat(",", enter, sep = "")
-            cat(rs(1), "na_values = ", ifelse(length(na_values) > 1,
-                paste("c(", paste(na_values, collapse = ifelse(notNum, "\", \"", ", ")), ")", sep = ""),
-                ifelse(notNum, paste("\"", na_values, "\"", sep = ""), na_values)), sep = "")
+            cat(
+                rs(1),
+                "na_values = ",
+                ifelse(
+                    length(na_values) > 1,
+                    paste(
+                        "c(",
+                        paste(
+                            na_values,
+                            collapse = ifelse(
+                                notNum,
+                                "\", \"",
+                                ", "
+                            )
+                        ),
+                        ")",
+                        sep = ""
+                    ),
+                    ifelse(
+                        notNum,
+                        paste("\"", na_values, "\"", sep = ""),
+                        na_values
+                    )
+                ),
+                sep = ""
+            )
         }
         
         if (is.element("na_range", names(dataDscr[[i]]))) {
             na_range <- dataDscr[[i]]$na_range
             cat(",", enter, sep = "")
-            cat(rs(1), "na_range = c(", paste(na_range, collapse = ", "), ")", sep = "")
+            cat(
+                rs(1),
+                "na_range = c(",
+                paste(na_range, collapse = ", "),
+                ")",
+                sep = ""
+            )
         }
         
         if (is.element("type", names(dataDscr[[i]]))) {
@@ -68,14 +105,30 @@
         
         if (is.element("measurement", names(dataDscr[[i]]))) {
             cat(",", enter, sep = "")
-            cat(rs(1), "measurement = \"", dataDscr[[i]]$measurement, "\"", sep = "")
+            cat(
+                rs(1),
+                "measurement = \"",
+                dataDscr[[i]]$measurement,
+                "\"",
+                sep = ""
+            )
         }
             
         # if (attr) {
-        #     cat(enter, ")", enter, enter, sep = "") # close the variable specific list
+        #     # close the variable specific list
+        #     cat(enter, ")", enter, enter, sep = "")
         # }
         # else {
-            cat(enter, ifelse(i == length(dataDscr), ")", "),"), enter, sep = "")
+            cat(
+                enter,
+                ifelse(
+                    i == length(dataDscr),
+                    ")",
+                    "),"
+                ),
+                enter,
+                sep = ""
+            )
         # }
     }
 

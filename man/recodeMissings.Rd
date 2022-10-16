@@ -24,12 +24,12 @@ uniformly (re)using the same codes across all variables.
 }
 \details{
 When a dictionary is not provided, it is automatically constructed from the
-available data and metadata, using negative numbers starting from -91 and up to
-27 letters starting with "a".
+available data and metadata, using negative numbers starting from -91 and up
+to 27 letters starting with "a".
 
 If the dataset contains mixed variables with SPSS and Stata style missing
-values, unless otherwise specified in a dictionary it uses other codes than the
-existing ones.
+values, unless otherwise specified in a dictionary it uses other codes than
+the existing ones.
 
 For the SPSS type of missing values, the resulting variables are coerced to a
 declared labelled format.
@@ -38,7 +38,8 @@ Unlike SPSS, Stata does not allow labels for character values. Both cannot be
 transported from SPSS to Stata, it is either one or another. If labels are
 more important to preserve than original values (especially the information
 about the missing values), the argument \code{chartonum} replaces all character
-values with suitable, non-overlapping numbers and adjusts the labels accordingly.
+values with suitable, non-overlapping numbers and adjusts the labels
+accordingly.
 
 If no labels are found in the metadata, the original values are preserved.
 }

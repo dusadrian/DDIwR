@@ -15,13 +15,14 @@ recodeCharcat(x, ...)
 A numeric categorical variable of the same class as the input.
 }
 \description{
-Recodes a character categorical variables to a numerical categorical variable.
+Recodes a character categorical variables to a numerical categorical
+variable.
 }
 \details{
-For this function, a categorical variable is something else than a base factor.
-It should be an object of class \code{"declared"}, or an object of class
-\code{"haven_labelled_spss"}, with a specific attribute called \code{"labels"}
-that stores the value labels.
+For this function, a categorical variable is something else than a base
+factor. It should be an object of class \code{"declared"}, or an object of class
+\code{"haven_labelled_spss"}, with a specific attribute called \code{"labels"} that
+stores the value labels.
 }
 \examples{
 x <- declared(

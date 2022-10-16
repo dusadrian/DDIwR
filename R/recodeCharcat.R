@@ -3,13 +3,14 @@
 #' @title Recode character categorical variables
 #'
 #' @description
-#' Recodes a character categorical variables to a numerical categorical variable.
+#' Recodes a character categorical variables to a numerical categorical
+#' variable.
 #'
 #' @details
-#' For this function, a categorical variable is something else than a base factor.
-#' It should be an object of class \code{"declared"}, or an object of class
-#' \code{"haven_labelled_spss"}, with a specific attribute called \code{"labels"}
-#' that stores the value labels.
+#' For this function, a categorical variable is something else than a base
+#' factor. It should be an object of class `"declared"`, or an object of class
+#' `"haven_labelled_spss"`, with a specific attribute called `"labels"` that
+#' stores the value labels.
 #'
 #' @return
 #' A numeric categorical variable of the same class as the input.
@@ -64,7 +65,8 @@
 
     x[x == ""] <- NA
 
-    ### TODO: make sure the values of missing codes are way outside the range of the normal values
+    # TODO: make sure the values of missing codes are way outside the
+    # range of the normal values
 
     labels <- sort(labels)
     ux <- unique(c(unname(labels), na_values, x[!is.na(x)]))

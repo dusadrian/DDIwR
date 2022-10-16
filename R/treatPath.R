@@ -1,5 +1,7 @@
-#' @description Determine which specific type of files are present in a certain directory.
-#' @return A list with four components: the complete path, the files, the file names and the file extensions
+#' @description Determine which specific type of files are present in a certain
+#' directory.
+#' @return A list with four components: the complete path, the files, the file
+#' names and the file extensions
 #' @noRd
 `treatPath` <- function(path, type = "*", single = FALSE, check = TRUE) {
     if (length(path) > 1) {
@@ -21,7 +23,8 @@
 
 
     lastpart <- basename(path)
-    # normalizePath() deals with the symbolic links, relative paths and absolute paths
+    # normalizePath() deals with the symbolic links, relative paths and
+    # absolute paths
     pathname <- suppressWarnings(normalizePath(dirname(path), winslash = "/"))
 
     # check if a path exists, before the lastpart
@@ -36,7 +39,8 @@
                         "Cannot find the path up to \"",
                         pathname,
                         "\".\n",
-                        "Please check that path, or try changing the working directory.",
+                        "Please check that path, or try changing the",
+                        "working directory.",
                         sep = ""
                     )
                 )
@@ -105,15 +109,26 @@
                 )
             }
 
-            fileobj <- getFiles(path = file.path(pathname, lastpart), type = type)
+            fileobj <- getFiles(
+                path = file.path(pathname, lastpart),
+                type = type
+            )
         }
         else {
 
-            if (type != "*" && toupper(type) != toupper(tools::file_ext(file.path(pathname, lastpart)))) {
+            if (
+                type != "*" &&
+                toupper(type) != toupper(
+                    tools::file_ext(file.path(pathname, lastpart))
+                )
+            ) {
                 return(paste0("Wrong file type, it should be ", type, "."))
             }
 
-            fileobj <- getFiles(path = file.path(pathname, lastpart), type = type)
+            fileobj <- getFiles(
+                path = file.path(pathname, lastpart),
+                type = type
+            )
         }
 
     }

@@ -1241,7 +1241,7 @@
         }
         else {
             cat(paste(
-                "* ------------------------------------------------------------------------------",
+                paste(c("* ", rep("-", 78)), collapse = ""),
                 enter, enter,
                 "* --- CONFIGURATION SECTION - START ---",
                 enter, enter, enter,
@@ -1250,15 +1250,15 @@
 
             if (formats) {
                 cat(paste(
-                    "* The following command should contain the complete path and",
-                    enter,
-                    "* name of the .csv file to be read (e.g. \"C:/file.csv\")",
-                    enter,
-                    "* Change CSV_DATA_PATH to your filename, below:",
-                    enter, enter,
-                    "FILE HANDLE csvpath /NAME=\"CSV_DATA_PATH\" .",
-                    enter, enter, enter,
-                    sep = ""
+                "* The following command should contain the complete path and",
+                enter,
+                "* name of the .csv file to be read (e.g. \"C:/file.csv\")",
+                enter,
+                "* Change CSV_DATA_PATH to your filename, below:",
+                enter, enter,
+                "FILE HANDLE csvpath /NAME=\"CSV_DATA_PATH\" .",
+                enter, enter, enter,
+                sep = ""
                 ))
             }
 
@@ -1273,11 +1273,11 @@
                 enter, enter, enter,
                 "* --- CONFIGURATION SECTION -  END  ---",
                 enter, enter,
-                "* ------------------------------------------------------------------------------",
+                paste(c("* ", rep("-", 78)), collapse = ""),
                 enter, enter, enter, enter,
                 "* There should be nothing to change below this line",
                 enter,
-                "* ------------------------------------------------------------------------------",
+                paste(c("* ", rep("-", 78)), collapse = ""),
                 enter, enter, enter, enter,
                 sep = ""
             ))
@@ -1340,7 +1340,7 @@
                     enter,
                     "EXECUTE .",
                     enter, enter,
-                    "* ------------------------------------------------------------------------------",
+                    paste(c("* ", rep("-", 78)), collapse = ""),
                     enter, enter, enter,
                     sep = ""
                 ))
@@ -1360,7 +1360,8 @@
                 numvars <- rep(TRUE, length(dataDscr))
 
                 cat(paste(
-                    "* --- Recode string variables with labels, to numeric variables ---",
+                    "* --- Recode string variables with labels,",
+                    "to numeric variables ---",
                     enter, enter, enter
                 ))
 
@@ -1663,7 +1664,9 @@
 
         if (anymissing) {
 
-            makeMissingValues <- function(uniqueMissList, missvaLs, nms, finalize = TRUE) {
+            makeMissingValues <- function(
+                uniqueMissList, missvaLs, nms, finalize = TRUE
+            ) {
                 for (i in seq(length(uniqueMissList))) {
                     if (i > 1) {
                         cat("/")
@@ -1686,7 +1689,15 @@
                                     if (finalize) {
                                         missvaLs[[i]]
                                     } else {
-                                        paste("\"", paste(missvaLs[[i]], collapse = "\", \""), "\"", sep = "")
+                                        paste(
+                                            "\"",
+                                            paste(
+                                                missvaLs[[i]],
+                                                collapse = "\", \""
+                                            ),
+                                            "\"",
+                                            sep = ""
+                                        )
                                     },
                                     collapse = ", "
                                 ),
@@ -1698,7 +1709,12 @@
                             cat(paste(
                                 " (",
                                 paste(
-                                    missvaLs[[i]][c(1, which(grepl("THRU", missvaLs[[i]])))],
+                                    missvaLs[[i]][
+                                        c(
+                                            1,
+                                            which(grepl("THRU", missvaLs[[i]]))
+                                        )
+                                    ],
                                     collapse = ", "
                                 ),
                                 ")",
@@ -1728,7 +1744,15 @@
                                     if (finalize) {
                                         missvaLs[[i]]
                                     } else {
-                                        paste("\"", paste(missvaLs[[i]], collapse = "\", \""), "\"", sep = "")
+                                        paste(
+                                            "\"", 
+                                            paste(
+                                                missvaLs[[i]],
+                                                collapse = "\", \""
+                                            ),
+                                            "\"",
+                                            sep = ""
+                                        )
                                     },
                                     collapse = ", "
                                 ),
@@ -1755,8 +1779,8 @@
                                 ))
                             }
                             else {
-                                # check if the missing values range doesn't contain
-                                # any other (non-missing) values
+                                # check if the missing values range doesn't
+                                # contain any other (non-missing) values
                                 checklist <- list()
                                 for (mv in uniqueMissList[[i]]) {
                                     allvalues <- dataDscr2[[mv]][["labels"]]
@@ -1777,13 +1801,15 @@
                                 # print(checklist)
 
                                 if (any(checklist)) {
-                                    # at least one variable has a non-missing value within the range of the missing values
+                                    # at least one variable has a non-missing
+                                    # value within the range of the missing values
                                     printMISSING <- TRUE
 
-                                    # now trying to see if at least some of the variables can be "rescued"
+                                    # now trying to see if at least some of the
+                                    # variables can be "rescued"
                                     if (any(!checklist)) {
                                         ###
-                                        # is this working...? TO TEST
+                                        # TODO: is this working...? TO TEST
                                         cat(
                                             splitrows(
                                                 names(checklist)[!checklist],
@@ -1792,7 +1818,6 @@
                                             )
                                         )
 
-                                        # cat(paste(names(checklist)[!checklist], collapse=", "))
                                         ###
                                         cat(paste(
                                             " (",
@@ -1807,7 +1832,7 @@
                                     }
 
                                     ###
-                                    # is this working...? TO TEST
+                                    # TODO: is this working...? TO TEST
                                     cat(
                                         splitrows(
                                             names(checklist),
@@ -1815,8 +1840,8 @@
                                             80
                                         )
                                     )
-                                    # cat(paste(names(checklist), collapse=", "))
                                     ###
+                                    
                                     cat(paste(
                                         " (",
                                         paste(
@@ -1827,8 +1852,13 @@
                                         sep = ""
                                     ))
 
-                                    cat(ifelse(i == length(uniqueMissList), " .", ""))
-                                    # cat("  * more than three distinct missing values found")
+                                    cat(
+                                        ifelse(
+                                            i == length(uniqueMissList),
+                                            " .",
+                                            ""
+                                        )
+                                    )
                                 }
                                 else {
                                     cat(
@@ -1872,7 +1902,9 @@
                 missvaRs <- labels_missing(dataDscr2[!numvars])
                 withmiss <- unlist(lapply(missvaRs, any))
 
-                missvaLs <- values_missing(dataDscr2[!numvars][withmiss]) # range is FALSE by default, so no THRU
+                # range is FALSE by default, so no THRU
+                missvaLs <- values_missing(dataDscr2[!numvars][withmiss])
+
                 nms <- names(missvaLs)
                 uniqueMissList <- lapply(unique(missvaLs), function(x) {
                     nms[unlist(lapply(missvaLs, function(y) {
@@ -1888,7 +1920,10 @@
             missvaRs <- labels_missing(dataDscr2[numvars])
             withmiss <- unlist(lapply(missvaRs, any))
 
-            missvaLs <- values_missing(dataDscr2[numvars][withmiss], range = TRUE)
+            missvaLs <- values_missing(
+                dataDscr2[numvars][withmiss],
+                range = TRUE
+            )
             nms <- names(missvaLs)
             uniqueMissList <- lapply(unique(missvaLs), function(x) {
                 nms[unlist(lapply(missvaLs, function(y) {
@@ -2013,7 +2048,7 @@
                 "set varabbrev off", enter,
                 "set memory 1G // not necessary in Stata 12",
                 enter, enter, enter,
-                "* ----------------------------------------------------------------------------",
+                paste(c("* ", rep("-", 78)), collapse = ""),
                 enter, enter,
                 "* --- CONFIGURATION SECTION - START ---",
                 enter, enter,
@@ -2043,11 +2078,11 @@
                 enter, enter, enter,
                 "* --- CONFIGURATION SECTION - END ---",
                 enter, enter,
-                "* ----------------------------------------------------------------------------",
+                paste(c("* ", rep("-", 78)), collapse = ""),
                 enter, enter, enter, enter,
                 "* There should be nothing to change below this line",
                 enter,
-                "* ----------------------------------------------------------------------------",
+                paste(c("* ", rep("-", 78)), collapse = ""),
                 enter, enter, enter, enter,
                 "log using \"`log_file'\", replace text", enter, enter,
                 sep = ""
@@ -2057,9 +2092,11 @@
                 cat(paste(
                     "insheet using \"`csvpath'\", comma names case",
                     enter, enter,
-                    "* Note that some variables in the csv raw data file might be in lowercase",
+                    "* Note that some variables in the csv raw data file might",
+                    "be in lowercase",
                     enter,
-                    "* To ensure that the dataset contains only variable names in uppercase",
+                    "* To ensure that the dataset contains only variable names",
+                    "in uppercase",
                     enter, enter,
                     "foreach var of varlist _all {",
                     enter,
@@ -2094,10 +2131,13 @@
             for (i in names(stringvars)) {
                 oldvalues <- dataDscr2[[i]][["labels"]]
 
-                # recode every letter to a number, but keep the potentially numbers
-                # something like "A", "B" and "-9" will be recoded to 1, 2 and -9
-                # and someting like "A", "B" and "2" will be recoded to 1, 3 and 2
-                newvalues <- suppressWarnings(as.numeric(as.character(oldvalues)))
+                # recode every letter to a number, but keep the potentially
+                # numbers something like "A", "B" and "-9" will be recoded to
+                # 1, 2 and -9 and someting like "A", "B" and "2" will be recoded
+                # to 1, 3 and 2
+                newvalues <- suppressWarnings(
+                    as.numeric(as.character(oldvalues))
+                )
                 newvalues[is.na(newvalues)] <- setdiff(
                     seq(1000),
                     newvalues
@@ -2105,18 +2145,24 @@
 
                 names(newvalues) <- names(oldvalues)
 
-                wel <- which(is.element(dictionary, dataDscr2[[i]][["na_values"]]))
+                wel <- which(is.element(
+                    dictionary,
+                    dataDscr2[[i]][["na_values"]]
+                ))
 
                 if (length(wel) > 0) {
                     nmsv <- names(dictionary)[wel]
                     for (w in seq(length(wel))) {
-                        dictionary[wel[w]] <- newvalues[oldvalues == dictionary[wel[w]]]
+                        dictionary[wel[w]] <- newvalues[
+                            oldvalues == dictionary[wel[w]]
+                        ]
                     }
                     names(dictionary)[wel] <- nmsv
                 }
 
 
-                # the recode command cannot be used because it only allows numeric variables
+                # the recode command cannot be used because it only allows
+                # numeric variables
                 cat(paste("generate TEMPVAR = .", enter, sep = ""))
 
                 for (j in seq(length(newvalues))) {
@@ -2167,9 +2213,16 @@
 
                 tempvar <- csv[, nws]
 
-                for (tnws in sort(unique(tempvar[numerical_with_strings[[nws]]]))) {
+                for (
+                    tnws in sort(unique(tempvar[numerical_with_strings[[nws]]]))
+                ) {
                     cat(paste(
-                        "replace ", toupper(nws), " = \"\" if ", toupper(nws), " == \"", tnws,
+                        "replace ",
+                        toupper(nws),
+                        " = \"\" if ",
+                        toupper(nws),
+                        " == \"",
+                        tnws,
                         enter,
                         sep = ""
                     ))
@@ -2229,7 +2282,8 @@
             # sink()
             # return(list(dataDscr2=dataDscr2, withmiss=withmiss, missvaRs=missvaRs))
 
-            # we need a third dataDscr because dataDscr2 might have been altered when recoding the strings to numerical
+            # we need a third dataDscr because dataDscr2 might have been altered
+            # when recoding the strings to numerical
             dataDscr3 <- dataDscr2
 
             dataDscr3[withmiss] <- mapply(
@@ -2434,9 +2488,11 @@
             else {
                 sasimport <- "datadir.&sasfile"
                 cat(paste(
-                    "* ------------------------------------------------------------------------------ ;",
+                    paste(c("* ", rep("-", 76), " ;"), collapse = ""),
                     enter, enter,
-                    "* --- CONFIGURATION SECTION - START ---                                          ;",
+                    "* --- CONFIGURATION SECTION - START ---",
+                    paste(rep(" ", 42), collapse = ""),
+                    ";",
                     enter, enter, enter,
                     sep = ""
                 ))
@@ -2483,11 +2539,11 @@
                     enter, enter, enter,
                     "* --- CONFIGURATION SECTION -  END ---                                           ;",
                     enter, enter,
-                    "* ------------------------------------------------------------------------------ ;",
+                    paste(c("* ", rep("-", 76), " ;"), collapse = ""),
                     enter, enter, enter, enter,
                     "* There should be nothing to change below this line;",
                     enter,
-                    "* ------------------------------------------------------------------------------ ;",
+                    paste(c("* ", rep("-", 76), " ;"), collapse = ""),
                     enter, enter, enter, enter,
                     sep = ""
                 ))
@@ -2535,7 +2591,7 @@
                     }
                     cat(paste("       ;", enter, sep = ""))
                     cat(paste("run;", enter, enter, sep = ""))
-                        # "* ------------------------------------------------------------------------------ ;", enter, enter, enter, sep = "")
+                        # paste(c("* ", rep("-", 76), " ;"), collapse = ""), enter, enter, enter, sep = "")
                 }
             }
 
@@ -2643,7 +2699,7 @@
             #         "RENAME TEMPVAR = ", i, ";", enter, enter, sep = "")
             # }
 
-            # cat("* ------------------------------------------------------------------------------ ;", enter, enter, enter, sep = "")
+            # cat(paste(c("* ", rep("-", 76), " ;"), collapse = ""), enter, enter, enter, sep = "")
         }
 
 
@@ -2673,7 +2729,7 @@
             ))
 
             #     "RETAIN ", gsub(",", "", splitrows(toupper(names(dataDscr2)), enter, 70, "           ")), ";", enter, enter, sep = "")
-                # "* ------------------------------------------------------------------------------ ;", enter, enter, enter, sep = "")
+                # paste(c("* ", rep("-", 76), " ;"), collapse = ""), enter, enter, enter, sep = "")
         }
 
 
@@ -2725,8 +2781,14 @@
 
                 dataDscr3[withmiss] <- mapply(
                     function(x, y) {
-                        x[["labels"]][y] <- nms[match(x[["labels"]][y], dictionary)]
-                        x[["na_values"]] <- nms[match(x[["na_values"]], dictionary)]
+                        x[["labels"]][y] <- nms[
+                            match(x[["labels"]][y], dictionary)
+                        ]
+
+                        x[["na_values"]] <- nms[
+                            match(x[["na_values"]], dictionary)
+                        ]
+                        
                         return(x)
                     },
                     dataDscr2[withmiss],
@@ -2787,7 +2849,7 @@
             }
 
             cat(paste(enter, "run;", enter, enter, sep = ""))
-            #     "* ------------------------------------------------------------------------------ ;", enter, enter, enter, sep = "")
+            #     paste(c("* ", rep("-", 76), " ;"), collapse = ""), enter, enter, enter, sep = "")
         }
 
         cat(paste(
@@ -2839,7 +2901,7 @@
             enter, enter,
             sep = ""
         ))
-        # "* ------------------------------------------------------------------------------ ;", enter, enter, enter, sep = "")
+        # paste(c("* ", rep("-", 76), " ;"), collapse = ""), enter, enter, enter, sep = "")
 
         cat(paste(
             "* --- Format variables with value labels --- ;",
@@ -2875,7 +2937,7 @@
             enter, enter,
             sep = ""
         ))
-        # "* ------------------------------------------------------------------------------ ;", enter, enter, enter, sep = "")
+        # paste(c("* ", rep("-", 76), " ;"), collapse = ""), enter, enter, enter, sep = "")
 
         if (!script & !catalog) {
             cat(paste(
@@ -2922,7 +2984,7 @@
         )
 
         cat(paste(
-            "# ------------------------------------------------------------------------------",
+            paste(c("# ", rep("-", 78)), collapse = ""),
             enter, enter,
             "# --- CONFIGURATION SECTION - START ---",
             enter, enter, enter,
@@ -2978,7 +3040,7 @@
             enter, enter,
             "# There should be nothing to change below this line",
             enter,
-            "# ------------------------------------------------------------------------------",
+            paste(c("# ", rep("-", 78)), collapse = ""),
             enter, enter, enter, enter,
             sep = ""
         ))
@@ -3001,7 +3063,9 @@
                         rep(" ", maxnchars - nchar(i)),
                         collapse = ""
                     ),
-                    " <- suppressWarnings(as.numeric(rdatafile[ , \"", i, "\"]", "))",
+                    " <- suppressWarnings(as.numeric(rdatafile[ , \"",
+                    i,
+                    "\"]", "))",
                     enter,
                     sep = ""
                 ))
@@ -3033,7 +3097,7 @@
             enter, enter,
             "saveRDS(rdatafile, file = rdspath)",
             enter, enter, enter, enter,
-            "# ------------------------------------------------------------------------------",
+            paste(c("# ", rep("-", 78)), collapse = ""),
             enter, enter,
             "# --- Clean up the working space --- ",
             enter, enter,

@@ -4,10 +4,11 @@
 #' Converts a dataset from one statistical software to another
 #'
 #' @description
-#' This function converts (or transfers) between R, Stata, SPSS, SAS, Excel and DDI
-#' XML files. Unlike the regular import / export functions from packages
-#' \bold{\pkg{haven}} or \bold{\pkg{rio}}, this function uses the DDI standard as
-#' an exchange platform and facilitates a consistent conversion of the missing values.
+#' This function converts (or transfers) between R, Stata, SPSS, SAS, Excel and
+#' DDI XML files. Unlike the regular import / export functions from packages
+#' \bold{\pkg{haven}} or \bold{\pkg{rio}}, this function uses the DDI standard
+#' as an exchange platform and facilitates a consistent conversion of the
+#' missing values.
 #'
 #' @details
 #' When the argument **`to`** specifies a certain statistical package
@@ -19,9 +20,10 @@
 #' Transport files (with the extension `".xpt"`) can be both read and written.
 #'
 #' Alternatively, the argument **`to`** can be specified as a path to a specific
-#' file, in which case the software package is determined from its file extension.
-#' The following extentions are currently recognized: `.xml` for DDI, `.rds` for R,
-#' `.dta` for Stata, `.sav` for SPSS, `.sas7bdat` for SAS, and `.xlsx` for Excel.
+#' file, in which case the software package is determined from its file
+#' extension. The following extentions are currently recognized: `.xml` for DDI,
+#' `.rds` for R, `.dta` for Stata, `.sav` for SPSS, `.sas7bdat` for SAS, and
+#' `.xlsx` for Excel.
 #'
 #' Additional parameters can be specified via the three dots argument
 #' **`...`**, that are passed to the respective functions from packages
@@ -36,23 +38,23 @@
 #' it should explicitly specify `use_na = FALSE` in function **`convert()`**.
 #'
 #' The same three dots argument is used to pass additional parameters to other
-#' functions in this package, for instance **`exportDDI()`** when
-#' converting to a DDI file. One of its argument **`embed`** (activated by
-#' default) can be used to control embedding the data in the XML file. Deactivating
-#' it will create a CSV file in the same directory, using the same file name as the
+#' functions in this package, for instance **`exportDDI()`** when converting to
+#' a DDI file. One of its argument **`embed`** (activated by default) can be
+#' used to control embedding the data in the XML file. Deactivating it will
+#' create a CSV file in the same directory, using the same file name as the
 #' XML file.
 #'
 #' When converting from DDI, if the dataset is not embedded in the XML file, the
-#' CSV file is expected to be found in the same directory as the DDI Codebook, and
-#' it should have the same file name as the XML file. Alternatively, the path to
-#' the CSV file can be provided via the **`csv`** argument. Additional formal
-#' parameters of the function \bold{\code{\link[utils]{read.csv}()}} can be
-#' passed via the same three dots **`...`** argument.
+#' CSV file is expected to be found in the same directory as the DDI Codebook,
+#' and it should have the same file name as the XML file. Alternatively, the
+#' path to the CSV file can be provided via the **`csv`** argument. Additional
+#' formal parameters of the function \bold{\code{\link[utils]{read.csv}()}} can
+#' be passed via the same three dots **`...`** argument.
 #'
 #' The argument **`chartonum`** signals recoding character categorical
-#' variables, and employs the function \bold{\code{\link{recodeCharcat}()}}. This
-#' only makes sense when recoding to Stata, which does not allow allocating labels
-#' for anything but integer variables.
+#' variables, and employs the function \bold{\code{\link{recodeCharcat}()}}.
+#' This only makes sense when recoding to Stata, which does not allow allocating
+#' labels for anything but integer variables.
 #'
 #' If the argument **`to`** is left to `NULL`, the data is (invisibly) returned
 #' to the R enviroment. Conversion to R, either in the working space or as
@@ -60,27 +62,27 @@
 #' labelled variables, as defined in package \bold{\pkg{declared}}.
 #'
 #' The current version reads and creates DDI Codebook version 2.5, with future
-#' versions to extend the functionality for DDI Lifecycle versions 3.x and link to
-#' the future package \bold{DDI4R} for the UML model based version 4. It extends
-#' the standard DDI Codebook by offering the possibility to embed a CSV version of
-#' the raw data into the XML file containing the Codebook, into a `notes`
-#' child of the `fileDscr` component. This type of codebook is unique to this
-#' package and automatically detected when converting to another statistical
-#' software.
+#' versions to extend the functionality for DDI Lifecycle versions 3.x and link
+#' to the future package \bold{DDI4R} for the UML model based version 4. It
+#' extends the standard DDI Codebook by offering the possibility to embed a CSV
+#' version of the raw data into the XML file containing the Codebook, into a
+#' `notes` child of the `fileDscr` component. This type of codebook is unique to
+#' this package and automatically detected when converting to another
+#' statistical software.
 #'
 #' Converting the missing values to SAS is not tested, but it relies on the same
-#' package \bold{\pkg{haven}} using the ReadStat C library. Should it not work, it
-#' is also possible to use a setup file produced by function
+#' package \bold{\pkg{haven}} using the ReadStat C library. Should it not work,
+#' it is also possible to use a setup file produced by function
 #' \bold{\code{\link{setupfile}()}} and run the commands manually.
 #'
-#' The argument **`recode`** controls how missing values are treated. If
-#' the input file has SPSS like numeric codes, they will be recoded to extended
-#' (a-z) missing types when converting to Stata or SAS. If the input has Stata like
-#' extended codes, they will be recoded to SPSS like numeric codes.
+#' The argument **`recode`** controls how missing values are treated. If the
+#' input file has SPSS like numeric codes, they will be recoded to extended
+#' (a-z) missing types when converting to Stata or SAS. If the input has Stata
+#' like extended codes, they will be recoded to SPSS like numeric codes.
 #'
-#' The character **`encoding`** is usually passed to the corresponding
-#' functions from package \bold{\pkg{haven}}. It can be set to \code{NULL} to reset
-#' at the default in that package.
+#' The character **`encoding`** is usually passed to the corresponding functions
+#' from package \bold{\pkg{haven}}. It can be set to \code{NULL} to reset at the
+#' default in that package.
 #'
 #' @examples
 #' \dontrun{
@@ -115,13 +117,17 @@
 #' @author Adrian Dusa
 #'
 #' @param from A path to a file, or a data.frame object
-#' @param to Character, the name of a software package or a path to a specific file
+#' @param to Character, the name of a software package or a path to a specific
+#' file
 #' @param declared Logical, return the resulting dataset as a declared object
-#' @param chartonum Logical, recode character categorical variables to numerical categorical variables
+#' @param chartonum Logical, recode character categorical variables to numerical
+#' categorical variables
 #' @param recode Logical, recode missing values
 #' @param encoding The character encoding used to read a file
-#' @param csv Path to the CSV file, if not embedded in XML file containing the DDI Codebook
-#' @param ... Additional parameters passed to exporting functions, see the Details section
+#' @param csv Path to the CSV file, if not embedded in XML file containing the
+#' DDI Codebook
+#' @param ... Additional parameters passed to exporting functions, see the
+#' Details section
 #'
 #' @export
 
