@@ -5,7 +5,7 @@
 \title{Create setup files for SPSS, Stata, SAS and R}
 \usage{
 setupfile(
-  codebook,
+  obj,
   file = "",
   type = "all",
   csv = "",
@@ -16,12 +16,13 @@ setupfile(
 )
 }
 \arguments{
-\item{codebook}{A list object containing the metadata, or a path to a directory where
-these objects are located, for batch processing}
+\item{obj}{A data frame, or a list object containing the metadata, or a path to a data
+file or to a directory where such objects are located, for batch processing}
 
 \item{file}{Character, the (path to the) setup file to be created}
 
-\item{type}{The type of setup file, can be: "SPSS", "Stata", "SAS", "R", or "all" (default)}
+\item{type}{The type of setup file, can be: "SPSS", "Stata", "SAS", "R", or "all"
+(default)}
 
 \item{csv}{The original dataset, used to create the setup file commands, or a path
 to the directory where the .csv files are located, for batch processing}
@@ -41,22 +42,22 @@ A setup file to complement the imported raw dataset.
 Creates a setup file, based on a list of variable and value labels.
 }
 \details{
-When the a path to a metadata directory is specified for the argument \strong{\code{codebook}},
-then next argument \strong{\code{file}} is silently ignored and all created setup files are
-saved in a directory called "Setup Files" that (if not already found) is created in the
-working directory.
+When a path to a metadata directory is specified for the argument \strong{\code{obj}},
+then next argument \strong{\code{file}} is silently ignored and all created setup files
+are saved in a directory called "Setup Files" that (if not already found) is
+created in the working directory.
 
 The argument \strong{\code{file}} expects the name of the final setup file being
 saved on the disk. If not specified, the name of the object provided for the
-\strong{\code{codebook}} argument will be used as a filename.
+\strong{\code{obj}} argument will be used as a filename.
 
 If \strong{\code{file}} is specified, the argument \strong{\code{type}} is automatically
 determined from the file's extension, otherwise when \strong{\code{type = "all"}}, the
 function produces one setup file for each supported type.
 
-If batch processing multiple files, the function will inspect all files in the
-provided directory, and retain only those with the extension  \code{.R} or \code{.r}
-or DDI versions with the extension \code{.xml} or \code{.XML} (it will
+If batch processing multiple files, the function will inspect all files in
+the provided directory, and retain only those with the extension  \code{.R} or
+\code{.r} or DDI versions with the extension \code{.xml} or \code{.XML} (it will
 subsequently generate an error if the .R files do not contain an object list,
 or if the \code{.xml} files do not contain a DDI structured metadata file).
 
@@ -65,24 +66,25 @@ If the metadata directory contains a subdirectory called \code{"data"} or
 \code{.csv} file (their names have to be \emph{exactly} the same, regardless of
 their extension).
 
-The \strong{\code{csv}} argument can provide a data frame object produced by reading the
-\code{.csv} file, or a path to the directory where the \code{.csv} files are located.
-If the user doesn't provide something for this argument, the function will check
-the existence of a subdirectory called \code{data} in the directory where the metadata
-files are located.
+The \strong{\code{csv}} argument can provide a data frame object produced by reading
+the \code{.csv} file, or a path to the directory where the \code{.csv} files are
+located. If the user doesn't provide something for this argument, the
+function will check the existence of a subdirectory called \code{data} in the
+directory where the metadata files are located.
 
-In batch mode, the code starts with the argument \strong{\code{delim = ","}}, but if the
-\code{.csv} file is delimited differently it will also try hard to find other delimiters
-that will match the variable names in the metadata file. At the initial version 0.1-0,
-the automatically detected delimiters include \code{";"} and \code{"\\t"}.
+In batch mode, the code starts with the argument \strong{\code{delim = ","}}, but if
+the \code{.csv} file is delimited differently it will also try hard to find other
+delimiters that will match the variable names in the metadata file. At the
+initial version 0.1-0, the automatically detected delimiters include \code{";"}
+and \code{"\\t"}.
 
 The argument \code{OS} (case insensitive) can be either:\cr
 \code{"Windows"} (default), or \code{"Win"},\cr
 \code{"MacOS"}, \code{"Darwin"}, \code{"Apple"}, \code{"Mac"},\cr
 \code{"Linux"}.\cr
 
-The end of line character(s) changes only when the target OS is different from the
-running OS.
+The end of line character(s) changes only when the target OS is different
+from the running OS.
 }
 \examples{
 codebook <- list(dataDscr = list(
@@ -138,7 +140,8 @@ V4 = list(
 
 \dontrun{
 # IMPORTANT:
-# make sure to set the working directory to a directory with read/write permissions
+# make sure to set the working directory to a directory with
+# read/write permissions
 # setwd("/path/to/read/write/directory")
 
 
@@ -150,7 +153,7 @@ setupfile(codebook, csv="/path/to/csv/file.csv")
 
 
 # generating a specific type of setup file
-setupfile(codebook, file = "codebook.do") # type = "Stata" is unnecessary
+setupfile(codebook, file = "codebook.do") # type = "Stata" also works
 
 
 # other types of possible utilizations, using paths to specific files

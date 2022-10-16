@@ -1,3 +1,8 @@
+Version 0.14
+    o argument "codebook" renamed to "obj" in function setupfile()
+    o when a path to a single file is provided, setupfile() outputs in the same
+      directory, otherwise in the current working directory
+
 Version 0.13
     o new argument "stringnum" in function setupfile()
     o the R data frame gains a new attribute "stdyDscr" when importing from DDI

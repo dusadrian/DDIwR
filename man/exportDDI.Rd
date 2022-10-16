@@ -61,7 +61,7 @@ subcomponents, combining DDI specific data but also other information that might
 not be covered by DDI:
 \itemize{
 \item \bold{\code{measurement}} is the equivalent of the specific DDI attribute
-\bold{\code{nature}} of the \bold{\code{var}} element, and it accepts these
+\bold{\code{nature}} of the \bold{\code{var}} element, which accepts these
 values: \code{"nominal"}, \code{"ordinal"}, \code{"interval"}, \code{"ratio"},
 \code{"percent"}, and \code{"other"}.
 \item \bold{\code{type}} is useful for multiple reasons. A first one, if the
