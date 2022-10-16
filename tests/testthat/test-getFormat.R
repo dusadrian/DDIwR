@@ -2,7 +2,6 @@
 # introduce a multibyte space character to test the code
 dfm$charvar[2] <- paste0(dfm$charvar[2], rawToChar(as.raw(c(194, 160))))
 
-
 test_that("getFormat() works for SPSS", {
   expect_equal(
     sapply(dfm, getFormat),
@@ -16,7 +15,7 @@ test_that("getFormat() works for SPSS", {
       minusinf = "F1.0",
       plusinf = "F1.0",
       charvar = "A3",
-      fweight = "F17.15"
+      fweight = "F17.3"
     )
   )
 })
@@ -34,7 +33,7 @@ test_that("getFormat() works for Stata", {
       minusinf = "%1.0g",
       plusinf = "%1.0g",
       charvar = "%3s",
-      fweight = "%17.15g"
+      fweight = "%17.3g"
     )
   )
 })

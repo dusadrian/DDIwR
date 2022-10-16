@@ -28,8 +28,7 @@
 #   narange = declared(
 #       sample(c(1:5, -1), nrow(dfm), replace = TRUE),
 #       labels = c(Good = 1, Bad = 5, DK = -1),
-#       na_range = c(-5, -1),
-#       measurement = "ordinal"
+#       na_range = c(-5, -1)
 #   ),
 #   minusinf = declared(
 #     sample(c(1:5, -1), nrow(dfm), replace = TRUE),
@@ -43,7 +42,8 @@
 #   ),
 #   charvar = declared(
 #     sample(c(letters[1:5], -91), nrow(dfm), replace = TRUE),
-#     labels = c(Good = "a", Bad = "e", DK = -91)
+#     labels = c(Good = "a", Bad = "e", DK = -91),
+#     na_values = -91
 #   )
 # )
 

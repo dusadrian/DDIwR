@@ -1,11 +1,6 @@
 
 tmp <- tempdir()
 
-# introduce a multibyte space character to test the code
-clabels <- labels(dfm$charvar)
-clabels[3] <- paste0(clabels[3], rawToChar(as.raw(c(194, 160))))
-labels(dfm$charvar) <- clabels
-
 codebook <- getMetadata(dfm)
 
 codebook$fileDscr$datafile <- dfm
