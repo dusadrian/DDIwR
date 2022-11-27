@@ -137,7 +137,7 @@
     tp <- treatPath(x, type = "*")
 
     singlefile <- length(tp$files) == 1
-    notes <- NA
+    notes <- NULL
 
     if (!fromsetupfile & !singlefile) {
         cat("Processing:\n")
@@ -155,7 +155,15 @@
         if (tp$fileext[ff] == "XML") {
 
             codeBook <- list()
-            xml <- getXML(file.path(tp$completePath, tp$files[ff]))
+
+            # xml <- getXML(file.path(tp$completePath, tp$files[ff]))
+            tc <- admisc::tryCatchWEM(
+                xml <- xml2::read_xml(file.path(tp$completePath, tp$files[ff]))
+            )
+
+            if (!is.null(tc$error)) {
+                admisc::stopError("Unable to read the XML file.")
+            }
 
             children <- xml2::xml_children(xml)
             nms <- xml2::xml_name(children)
@@ -194,7 +202,7 @@
             varlab <- cleanup(xml2::xml_text(xml2::xml_find_first(vars, sprintf("%slabl", dns))))
 
             xpath <- sprintf("/%scodeBook/%sfileDscr/%snotes", dns, dns, dns)
-            notes <- xml2::xml_text(xml2::xml_find_first(xml, xpath))
+            notes <- xml2::xml_text(xml2::xml_find_all(xml, xpath))
 
             codeBook$dataDscr <- lapply(varlab, function(x) list(label = x))
 
@@ -219,8 +227,7 @@
                 na_range[2] <- admisc::asNumeric(xml2::xml_attr(xml2::xml_find_first(vars[i], xpath), "max"))
                 if (all(is.na(na_range))) {
                     na_range <- NULL
-                }
-                else {
+                } else {
                     if (is.na(na_range[1])) na_range[1] <- -Inf
                     if (is.na(na_range[2])) na_range[2] <- Inf
                 }
@@ -384,19 +391,29 @@
     names(result) <- tp$filenames
 
     if (singlefile) {
-        if (!is.na(notes)) {
-            if (grepl("# start data #", notes)) {
+        if (length(notes) > 0) {
+            wdata <- which(grepl("# start data #", notes))
+            if (length(wdata) > 0) {
+                notes <- notes[wdata]
                 # this can only be possible from an XML, DDI Codebook
                 # therefore the varFormat should always be of an SPSS type
                 notes <- unlist(strsplit(notes, split = "\\n"))
-                data <- notes[
+                data <- admisc::trimstr(notes[
                     seq(
                         which(grepl("# start data #", notes)) + 1,
                         which(grepl("# end data #", notes)) - 1
                     )
-                ]
+                ], side = "left")
 
-                data <- read.csv(text = paste(data, collapse = "\n"), as.is = TRUE)
+                tc <- admisc::tryCatchWEM(
+                    data <- read.csv(text = paste(data, collapse = "\n"), as.is = TRUE)
+                )
+
+                if (!is.null(tc$error)) {
+                    admisc::stopError("The <notes> tag does not contain a valid CSV dataset.")
+                }
+
+                
                 # return(list(data, codeBook$dataDscr, declared = declared, spss = spss))
 
                 # make_labelled is always and only about SPSS type of variables
