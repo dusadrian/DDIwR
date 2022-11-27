@@ -423,7 +423,8 @@
         cat(paste(s2, "</", ns, "citation>", enter, sep = ""))
         cat(paste(s2, "<", ns, "stdyInfo>", enter, sep = ""))
         cat(paste(
-            s3, "<", ns, "abstract", xmlang, ">", abstract, "</", ns, "abstract>",
+            s3,
+            "<", ns, "abstract", xmlang, ">", abstract, "</", ns, "abstract>",
             enter, sep = ""
         ))
 
@@ -471,46 +472,76 @@
         }
         else if (!identical(toupper(names(data)), toupper(names(dataDscr)))) {
             admisc::stopError(
-                "Variables in the data do not match the variables in the data description."
+                paste(
+                    "Variables in the data do not match",
+                    "the variables in the data description."
+                )
             )
         }
 
         cat(paste(s2, "<", ns, "fileTxt>", enter, sep = ""))
         if (!is.null(fileName <- codebook[["fileDscr"]][["fileName"]])) {
-            cat(paste(s3, "<", ns, "fileName>", fileName, "</", ns, "fileName>", enter, sep = ""))
+            cat(paste(
+                s3,
+                "<", ns, "fileName>", fileName, "</", ns, "fileName>",
+                enter,
+                sep = ""
+            ))
         }
         cat(paste(s3, "<", ns, "dimensns>", enter, sep = ""))
-        cat(paste(s4, "<", ns, "caseQnty>", nrow(data), "</", ns, "caseQnty>", enter, sep = ""))
-        cat(paste(s4, "<", ns, "varQnty>", ncol(data), "</", ns, "varQnty>", enter, sep = ""))
+        cat(paste(
+            s4,
+            "<", ns, "caseQnty>", nrow(data), "</", ns, "caseQnty>",
+            enter,
+            sep = ""
+        ))
+        cat(paste(
+            s4,
+            "<", ns, "varQnty>", ncol(data), "</", ns, "varQnty>",
+            enter,
+            sep = ""
+        ))
         cat(paste(s3, "</", ns, "dimensns>", enter, sep = ""))
         if (!is.null(fileType <- codebook[["fileDscr"]][["fileType"]])) {
-            cat(paste(s3, "<", ns, "fileType>", fileType, "</", ns, "fileType>", enter, sep = ""))
+            cat(paste(
+                s3,
+                "<", ns, "fileType>", fileType, "</", ns, "fileType>",
+                enter,
+                sep = ""
+            ))
         }
         cat(paste(s2, "</", ns, "fileTxt>", enter, sep = ""))
 
         if (embed) {
-            cat(paste(s2, "<", ns, "notes>", enter, sep = ""))
+            cat(paste(s2, "<", ns, "notes level=\"file\" subject=\"CSV dataset\">", enter, sep = ""))
             cat(paste(
-                s0, "<![CDATA[# start data #",
+                s3, "<![CDATA[# start data #",
                 enter,
                 sep = ""
             ))
 
-            sink()
+            tt <- tempfile()
+            # sink()
             suppressWarnings(
                 write.table(
                     undeclare(data, drop = TRUE),
-                    file = file,
+                    file = tt,
                     sep = ",",
                     na = "",
-                    row.names = FALSE,
-                    append = TRUE
+                    # append = TRUE,
+                    row.names = FALSE
                 )
             )
-            sink(file, append = TRUE)
+            # sink(file, append = TRUE)
 
-            cat(paste(
-                "# end data #", enter, "]]>",
+            cat(
+                paste(s3, readLines(tt), collapse = enter, sep = ""),
+                enter,
+                sep = ""
+            )
+
+            cat(paste(s3,
+                "# end data #]]>",
                 enter,
                 sep = ""
             ))
@@ -563,7 +594,6 @@
                 "\""
             )
         }
-
 
         cat(paste0(
             s2, "<", ns, "var ID=\"", uuid[i], "\"",
@@ -838,7 +868,12 @@
     }
 
     cat(paste(s1, "</", ns, "dataDscr>", enter, sep = ""))
-    cat(paste(s1, "<", ns, "otherMat level=\"", level, "\"></", ns, "otherMat>", enter, sep = ""))
+    cat(paste(
+        s1,
+        "<", ns, "otherMat level=\"", level, "\"></", ns, "otherMat>",
+        enter,
+        sep = ""
+    ))
     cat(paste(s0, "</", ns, "codeBook>", enter, sep = ""))
 
 }
