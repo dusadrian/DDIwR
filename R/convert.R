@@ -600,7 +600,7 @@
                         rechars <- c(rechars, i)
                         # Stata does not allow labels for character variables
                         if (chartonum && !is.null(labels)) {
-                            x <- recodeCharcat(x, metadata = metadata)
+                            x <- recodeCharcat(declared::as.declared(x), metadata = metadata)
                         }
                         else {
                             label <- attr(x, "label", exact = TRUE)
