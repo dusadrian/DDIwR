@@ -83,11 +83,16 @@
 #' The character **`encoding`** is usually passed to the corresponding functions
 #' from package \bold{\pkg{haven}}. It can be set to \code{NULL} to reset at the
 #' default in that package.
+#' 
+#' @return An invisible R data frame, when the argument **`to`** is NULL.
 #'
 #' @examples
 #' \dontrun{
 #' # Assuming an SPSS file called test.sav is located in the working directory
-#' # the following command will extract the metadata in a DDI Codebook and
+#' # The following command imports the file into the R environment:
+#' test <- convert("test.sav")
+#' 
+#' # The following command will extract the metadata in a DDI Codebook and
 #' # produce a test.xml file in the same directory
 #' convert("test.sav", to = "DDI")
 #'
