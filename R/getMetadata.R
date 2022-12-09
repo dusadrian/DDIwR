@@ -162,7 +162,13 @@
             )
 
             if (!is.null(tc$error)) {
-                admisc::stopError("Unable to read the XML file.")
+                admisc::stopError(
+                    paste(
+                        "Unable to read the XML file",
+                        tc$error,
+                        sep = ", "
+                    )
+                )
             }
 
             children <- xml2::xml_children(xml)
@@ -199,7 +205,11 @@
 
             xpath <- sprintf("/%scodeBook/%sdataDscr/%svar", dns, dns, dns)
             vars <- xml2::xml_find_all(xml, xpath)
-            varlab <- cleanup(xml2::xml_text(xml2::xml_find_first(vars, sprintf("%slabl", dns))))
+            varlab <- cleanup(
+                xml2::xml_text(
+                    xml2::xml_find_first(vars, sprintf("%slabl", dns))
+                )
+            )
 
             xpath <- sprintf("/%scodeBook/%sfileDscr/%snotes", dns, dns, dns)
             notes <- xml2::xml_text(xml2::xml_find_all(xml, xpath))
@@ -261,6 +271,19 @@
 
                     codeBook$dataDscr[[i]][["labels"]] <- values
                     names(codeBook$dataDscr[[i]][["labels"]]) <- labl
+
+                    frequencies <- unlist(lapply(catgry, function(x) {
+                        xml2::xml_text(xml2::xml_find_first(x, sprintf("%scatStat", dns)))
+                    }))
+
+                    if (!all(is.na(frequencies))) {
+                        if (admisc::possibleNumeric(frequencies)) {
+                            frequencies <- admisc::asNumeric(frequencies)
+                        }
+                        
+                        names(frequencies) <- labl
+                        codeBook$dataDscr[[i]][["frequencies"]] <- frequencies
+                    }
                 }
 
                 if (length(na_values) > 0) {
