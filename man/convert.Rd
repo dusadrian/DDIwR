@@ -36,6 +36,9 @@ DDI Codebook}
 \item{...}{Additional parameters passed to exporting functions, see the
 Details section}
 }
+\value{
+An invisible R data frame, when the argument \strong{\code{to}} is NULL.
+}
 \description{
 This function converts (or transfers) between R, Stata, SPSS, SAS, Excel and
 DDI XML files. Unlike the regular import / export functions from packages
@@ -120,7 +123,10 @@ default in that package.
 \examples{
 \dontrun{
 # Assuming an SPSS file called test.sav is located in the working directory
-# the following command will extract the metadata in a DDI Codebook and
+# The following command imports the file into the R environment:
+test <- convert("test.sav")
+
+# The following command will extract the metadata in a DDI Codebook and
 # produce a test.xml file in the same directory
 convert("test.sav", to = "DDI")
 
