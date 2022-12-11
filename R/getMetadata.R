@@ -205,6 +205,11 @@
 
             xpath <- sprintf("/%scodeBook/%sdataDscr/%svar", dns, dns, dns)
             vars <- xml2::xml_find_all(xml, xpath)
+
+            if (length(vars) == 0) {
+                admisc::stopError("This DDI Codebook file does not contain any variable level metadata.")
+            }
+
             varlab <- cleanup(
                 xml2::xml_text(
                     xml2::xml_find_first(vars, sprintf("%slabl", dns))
