@@ -22,7 +22,7 @@
 #' Alternatively, the argument **`to`** can be specified as a path to a specific
 #' file, in which case the software package is determined from its file
 #' extension. The following extentions are currently recognized: `.xml` for DDI,
-#' `.rds` for R, `.dta` for Stata, `.sav` for SPSS, `.sas7bdat` for SAS, and
+#' `.rds` for R, `.dta` for Stata, `.sav` for SPSS, `.xpt` for SAS, and
 #' `.xlsx` for Excel.
 #'
 #' Additional parameters can be specified via the three dots argument
@@ -220,12 +220,12 @@
         else if (identical(toupper(to), "SAS")) {
             to <- file.path(
                 tp_from$completePath,
-                paste(tp_from$filenames, "sas7bdat", sep = ".")
-            )
-        }
-        else if (identical(toupper(to), "XPT")) {
-            to <- file.path(
-                tp_from$completePath,
+        #         paste(tp_from$filenames, "sas7bdat", sep = ".")
+        #     )
+        # }
+        # else if (identical(toupper(to), "XPT")) {
+        #     to <- file.path(
+        #         tp_from$completePath,
                 paste(tp_from$filenames, "xpt", sep = ".")
             )
         }
@@ -241,14 +241,22 @@
             tp_to$fileext <- "XLSX"
         }
 
-        known_extensions <- c("RDS", "SAV", "DTA", "XML", "SAS7BDAT", "XPT", "XLSX") #
-
         if (is.na(tp_to$fileext)) {
             admisc::stopError(
                 "Cannot determine the destination software without a file extension."
             )
         }
-        else if (!is.element(tp_to$fileext, known_extensions)) {
+        else if (tp_to$fileext == "SAS7BDAT") {
+            admisc::stopError(
+                "The extension .sas7bdat is deprecated, please use .xpt instead."
+            )
+        }
+        else if (
+            !is.element(
+                tp_to$fileext,
+                c("RDS", "SAV", "DTA", "XML", "XPT", "XLSX")
+            )
+        ) {
             admisc::stopError("Unknown destination software.")
         }
     }
@@ -767,7 +775,7 @@
             ### TODO: recodeMissings() for the dictionary, only if recode = TRUE?
 
             setupfile(
-                codeBook = getMetadata(arglist$data),
+                obj = getMetadata(arglist$data),
                 file = to,
                 type = "SAS",
                 recode = recode,
