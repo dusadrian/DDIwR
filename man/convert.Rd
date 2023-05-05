@@ -58,7 +58,7 @@ Transport files (with the extension \code{".xpt"}) can be both read and written.
 Alternatively, the argument \strong{\code{to}} can be specified as a path to a specific
 file, in which case the software package is determined from its file
 extension. The following extentions are currently recognized: \code{.xml} for DDI,
-\code{.rds} for R, \code{.dta} for Stata, \code{.sav} for SPSS, \code{.sas7bdat} for SAS, and
+\code{.rds} for R, \code{.dta} for Stata, \code{.sav} for SPSS, \code{.xpt} for SAS, and
 \code{.xlsx} for Excel.
 
 Additional parameters can be specified via the three dots argument
