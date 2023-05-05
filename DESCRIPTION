@@ -1,6 +1,6 @@
 Package: DDIwR
 Title: DDI with R
-Version: 0.13.2
+Version: 0.13.3
 Authors@R: person(
     "Adrian", "Dusa",
     email = "dusa.adrian@unibuc.ro",
@@ -14,8 +14,8 @@ Description: Useful functions for various DDI (Data Documentation Initiative)
 License: GPL (>= 3)
 Depends: R (>= 3.5.0)
 Imports:
-    admisc (> 0.28),
-    declared (> 0.16),
+    admisc (> 0.31),
+    declared (> 0.20),
     tools,
     xml2,
     haven,
@@ -31,6 +31,6 @@ Suggests:
 Language: en-US
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.2.1
+RoxygenNote: 7.2.3
 VignetteBuilder: knitr
 Config/testthat/edition: 3
