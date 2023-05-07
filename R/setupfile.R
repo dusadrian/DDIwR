@@ -193,7 +193,7 @@
     outdir <- identical(file, "") | isTRUE(dots$outdir)
 
     if (!identical(file, "")) {
-        tp <- treatPath(file, check = FALSE)
+        tp <- admisc::treatPath(file, check = FALSE)
 
         if (is.na(tp$fileext)) {
             if (identical(toupper(type), "ALL") & !recall) {
@@ -256,7 +256,7 @@
 
     csvlist <- NULL
 
-    completePath <- treatPath("test", check = FALSE)$completePath
+    completePath <- admisc::treatPath("test", check = FALSE)$completePath
     singlefile <- isTRUE(dots$singlefile)
 
     if (singlefile) {
@@ -281,7 +281,7 @@
 
         pathtofiles <- FALSE
 
-        labelist <- treatPath(obj, check = FALSE)
+        labelist <- admisc::treatPath(obj, check = FALSE)
         if (length(labelist) == 1) {
             admisc::stopError(labelist)
         }
@@ -316,7 +316,7 @@
                     )
                 }
 
-                tc <- admisc::tryCatchWEM(csvlist <- treatPath(csv, type = "csv"))
+                tc <- admisc::tryCatchWEM(csvlist <- admisc::treatPath(csv, type = "csv"))
                 if (is.null(tc)) {
                     if (length(csvlist$files) > 1) {
                         datadir <- csvlist$completePath
@@ -325,7 +325,7 @@
                 }
                 else {
                     cat("\nNOTE:", tc$error)
-                    # since "err" is now an error message from treatPath()
+                    # since "err" is now an error message from admisc::treatPath()
                 }
             }
             else {
@@ -349,7 +349,7 @@
                 csvdatadir <- file.exists(datadir)
 
                 if (csvdatadir) {
-                    csvlist <- treatPath(datadir, type = "csv")
+                    csvlist <- admisc::treatPath(datadir, type = "csv")
                     if (length(csvlist) == 1) {
                         csvdatadir <- FALSE
                         cat(paste(
@@ -754,7 +754,7 @@
                 )
             }
 
-            csvlist <- treatPath(csv, type = "CSV")
+            csvlist <- admisc::treatPath(csv, type = "CSV")
 
             if (length(csvlist) > 1) {
                 # no error
@@ -768,7 +768,7 @@
                 }
             }
             else {
-                # There is a single string returned by treatPath(), with an error message
+                # There is a single string returned by admisc::treatPath(), with an error message
                 cat("\nNOTE:", csvlist)
                 csv <- "" # back to the default value
             }
@@ -1091,7 +1091,7 @@
             }
         }
         else {
-            tp <- treatPath(file, check = FALSE)
+            tp <- admisc::treatPath(file, check = FALSE)
 
             if (singlefile) {
                 tp$completePath <- completePath
@@ -1225,7 +1225,7 @@
 
 
         if (script) {
-            to <- treatPath(
+            to <- admisc::treatPath(
                 dots$to,
                 check = FALSE
             )
@@ -2025,7 +2025,7 @@
         )
 
         if (script) {
-            to <- treatPath(dots$to, check = FALSE)
+            to <- admisc::treatPath(dots$to, check = FALSE)
             cat(paste(
                 "use \"",
                 file.path(
@@ -2463,7 +2463,7 @@
         )
 
         if (script) {
-            to <- treatPath(dots$to, check = FALSE)
+            to <- admisc::treatPath(dots$to, check = FALSE)
             cat(paste(
                 "libname datadir \"",
                 to$completePath,
@@ -2598,77 +2598,6 @@
         }
 
         # cat("DATA ", sasimport, ";", enter, enter, enter, sep = "")
-
-        if (any(unlist(stringvars)) & !catalog) {
-            cat(paste(
-                "* --- Recode string variables with labels, to numeric variables --- ;",
-                enter, enter,
-                sep = ""
-            ))
-
-            for (sv in names(stringvars)) {
-                if (stringvars[[sv]]) {
-
-                    oldvalues <- dataDscr2[[sv]][["labels"]]
-
-                    # recode every letter to a number, but keep the potentially numbers
-                    # something like "A", "B" and "-9" will be recoded to 1, 2 and -9
-                    # and someting like "A", "B" and "2" will be recoded to 1, 3 and 2
-                    newvalues <- suppressWarnings(
-                        as.numeric(as.character(oldvalues))
-                    )
-
-                    newvalues[is.na(newvalues)] <- setdiff(
-                        seq(1000),
-                        newvalues
-                    )[
-                        seq(sum(is.na(newvalues)))
-                    ]
-
-                    names(newvalues) <- names(oldvalues)
-
-                    cat(paste(
-                        "data ", sasimport, ";",
-                        enter, enter,
-                        "    set ", sasimport, ";",
-                        enter, enter,
-                        "    tempvar = input(", sv, ", ?? best.);",
-                        enter,
-                        sep = ""
-                    ))
-
-                    for (j in seq(length(newvalues))) {
-                        cat(paste(
-                            "    if (", sv, " = '", oldvalues[j],
-                            "') then tempvar = ", newvalues[j], ";",
-                            enter,
-                            sep = ""
-                        ))
-                    }
-
-                    # cat(enter, "RUN;", enter, enter, "DATA ", sasimport, ";", enter, enter,
-                    #     "    SET ", sasimport, ";", enter, enter,
-                    cat(paste(
-                        "    drop ", sv, ";", enter,
-                        "    rename tempvar = ", sv, ";", enter, enter,
-                        "run;", enter, enter,
-                        sep = ""
-                    ))
-
-                    # just in case the old missing values were not numbers
-                    dataDscr2[[sv]][["labels"]] <- newvalues
-                    if (is.element("na_values", names(dataDscr2[[sv]]))) {
-                        dataDscr2[[sv]][["na_values"]] <- newvalues[
-                            match(
-                                dataDscr2[[sv]][["na_values"]],
-                                oldvalues
-                            )
-                        ]
-                    }
-                }
-            }
-        }
-
 
         if (length(numerical_with_strings) > 0) {
 
