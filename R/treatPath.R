@@ -5,7 +5,6 @@
 #' @noRd
 `treatPath` <- function(path, type = "*", single = FALSE, check = TRUE) {
     if (length(path) > 1) {
-        cat("\n")
         # if (type == "R") {
         #     admisc::stopError("The <codeBook> argument should contain a single path to the list object.")
         # }
