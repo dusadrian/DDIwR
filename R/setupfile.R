@@ -172,9 +172,9 @@
     dataDscr_objname <- deparse(substitute(obj))
 
     if (is.data.frame(obj)) {
-        cobj <- obj
+        csv <- obj
         obj <- getMetadata(obj)
-        obj$fileDscr <- list(datafile = cobj)
+        obj$fileDscr <- list(datafile = csv)
     }
 
     dots <- list(...)
@@ -183,6 +183,7 @@
     types <- c("SPSS", "STATA", "SAS", "R")
     catalog <- isTRUE(dots$catalog)
     dictionary <- dots$dictionary
+    sastrings <- NULL
 
     tp <- NULL
 
@@ -193,7 +194,7 @@
     outdir <- identical(file, "") | isTRUE(dots$outdir)
 
     if (!identical(file, "")) {
-        tp <- admisc::treatPath(file, check = FALSE)
+        tp <- treatPath(file, check = FALSE)
 
         if (is.na(tp$fileext)) {
             if (identical(toupper(type), "ALL") & !recall) {
@@ -256,7 +257,7 @@
 
     csvlist <- NULL
 
-    completePath <- admisc::treatPath("test", check = FALSE)$completePath
+    completePath <- treatPath("test", check = FALSE)$completePath
     singlefile <- isTRUE(dots$singlefile)
 
     if (singlefile) {
@@ -281,7 +282,7 @@
 
         pathtofiles <- FALSE
 
-        labelist <- admisc::treatPath(obj, check = FALSE)
+        labelist <- treatPath(obj, check = FALSE)
         if (length(labelist) == 1) {
             admisc::stopError(labelist)
         }
@@ -316,7 +317,7 @@
                     )
                 }
 
-                tc <- admisc::tryCatchWEM(csvlist <- admisc::treatPath(csv, type = "csv"))
+                tc <- admisc::tryCatchWEM(csvlist <- treatPath(csv, type = "csv"))
                 if (is.null(tc)) {
                     if (length(csvlist$files) > 1) {
                         datadir <- csvlist$completePath
@@ -325,7 +326,7 @@
                 }
                 else {
                     cat("\nNOTE:", tc$error)
-                    # since "err" is now an error message from admisc::treatPath()
+                    # since "err" is now an error message from treatPath()
                 }
             }
             else {
@@ -349,7 +350,7 @@
                 csvdatadir <- file.exists(datadir)
 
                 if (csvdatadir) {
-                    csvlist <- admisc::treatPath(datadir, type = "csv")
+                    csvlist <- treatPath(datadir, type = "csv")
                     if (length(csvlist) == 1) {
                         csvdatadir <- FALSE
                         cat(paste(
@@ -754,7 +755,7 @@
                 )
             }
 
-            csvlist <- admisc::treatPath(csv, type = "CSV")
+            csvlist <- treatPath(csv, type = "CSV")
 
             if (length(csvlist) > 1) {
                 # no error
@@ -768,7 +769,7 @@
                 }
             }
             else {
-                # There is a single string returned by admisc::treatPath(), with an error message
+                # There is a single string returned by treatPath(), with an error message
                 cat("\nNOTE:", csvlist)
                 csv <- "" # back to the default value
             }
@@ -940,7 +941,7 @@
 
         colnames(csv) <- toupper(colnames(csv))
         csvnames <- colnames(csv)
-        spssformats <- sasformats <- rep("", length(csvnames))
+        spssformats <- sastrings <- rep("", length(csvnames))
         if (!is.data.frame(csv)) {
             admisc::stopError("The csv file should be a data frame.")
         }
@@ -1049,7 +1050,7 @@
                 spssformats[i] <- getFormat(tempvar, type = "SPSS")
                 
                 if (vartypes[i] == "string") {
-                    sasformats[i] <- " $"
+                    sastrings[i] <- " $"
                 }
 
                 varcheck[i] <- 1
@@ -1091,7 +1092,7 @@
             }
         }
         else {
-            tp <- admisc::treatPath(file, check = FALSE)
+            tp <- treatPath(file, check = FALSE)
 
             if (singlefile) {
                 tp$completePath <- completePath
@@ -1225,7 +1226,7 @@
 
 
         if (script) {
-            to <- admisc::treatPath(
+            to <- treatPath(
                 dots$to,
                 check = FALSE
             )
@@ -2025,7 +2026,7 @@
         )
 
         if (script) {
-            to <- admisc::treatPath(dots$to, check = FALSE)
+            to <- treatPath(dots$to, check = FALSE)
             cat(paste(
                 "use \"",
                 file.path(
@@ -2264,19 +2265,19 @@
             }
             else {
                 dictionary <- dictionary[is.element(dictionary, uniquemiss)]
+                nms <- character(0) # just to initialize
 
-                nms <- names(dictionary)
-                if (is.character(nms)) {
+                if (length(dictionary) > 0) {
+                    dictionary <- dictionary[order(names(dictionary))]
+                    nms <- names(dictionary)
                     unms <- unique(nms)
                     for (i in seq(length(unms))) {
                         nms[nms == unms[i]] <- letters[i]
                     }
+                    
+                    names(dictionary) <- nms
+                    nms <- paste(".", nms, sep = "")
                 }
-                # print(dots$dictionary)
-                # print(missvaRs[withmiss])
-
-                nms <- paste(".", nms, sep = "")
-                names(dictionary) <- nms
             }
 
             # sink()
@@ -2442,6 +2443,11 @@
         dataDscr2 <- dataDscr
         currentdir <- getwd()
 
+
+        if (is.null(sastrings)) {
+            sastrings <- rep("", length(dataDscr))
+        }
+
         if (isTRUE(outdir)) {
             if (!file.exists("Setup files")) {
                 dir.create("Setup files")
@@ -2463,7 +2469,7 @@
         )
 
         if (script) {
-            to <- admisc::treatPath(dots$to, check = FALSE)
+            to <- treatPath(dots$to, check = FALSE)
             cat(paste(
                 "libname datadir \"",
                 to$completePath,
@@ -2548,6 +2554,64 @@
                     sep = ""
                 ))
 
+                cat(paste("options fmtsearch=(datadir);", enter, enter, sep = ""))
+
+                cat(paste(
+                    "* --- Create value labels groups --- ;",
+                    enter, enter,
+                    "proc format library = datadir;",
+                    enter, enter,
+                    sep = ""
+                ))
+
+                for (i in seq(length(unique_list))) {
+
+                    n <- unique_list[[i]][1]
+                    labels <- dataDscr2[[n]]$labels
+                    char <- charvars[n]
+
+                    cat(paste(
+                        paste(
+                            "    value ",
+                            ifelse(char, "$", ""),
+                            "labels_", i, "_group",
+                            enter,
+                            sep = ""
+                        ),
+                        paste(
+                            paste(
+                                paste(
+                                    "        ",
+                                    # VERY important to use single quotes
+                                    # a value label such as "CD&V" would trigger a
+                                    # warning that a symbolic reference was not found
+                                    # because of "&" whereas 'CD&V' is perfectly alright
+                                    ifelse(char, "'", ""),
+                                    labels,
+                                    ifelse(char, "'", ""),
+                                    " = \"",
+                                    names(labels),
+                                    "\"",
+                                    sep = ""
+                                ),
+                                collapse = enter
+                            ),
+                            ";",
+                            enter, enter,
+                            sep = ""
+                        ),
+                        sep = ""
+                    ))
+                }
+
+                cat(paste(
+                    "run;",
+                    enter, enter,
+                    sep = ""
+                ))
+                # paste(c("* ", rep("-", 76), " ;"), collapse = ""), enter, enter, enter, sep = "")
+
+
                 if (formats & !catalog) {
                     cat(paste(
                         "* --- Read the raw data file --- ;",
@@ -2575,7 +2639,7 @@
                         "     ;",
                         enter, enter,
                         "input  ", toupper(csvnames[1]),
-                        sasformats[1],
+                        sastrings[1],
                         enter,
                         sep = ""
                     ))
@@ -2584,13 +2648,12 @@
                         cat(paste(
                             "       ",
                             csvnames[i],
-                            sasformats[i],
+                            sastrings[i],
                             enter,
                             sep = ""
                         ))
                     }
-                    cat(paste("       ;", enter, sep = ""))
-                    cat(paste("run;", enter, enter, sep = ""))
+                    cat(paste("       ;", enter, enter, sep = ""))
                         # paste(c("* ", rep("-", 76), " ;"), collapse = ""), enter, enter, enter, sep = "")
                 }
             }
@@ -2609,7 +2672,9 @@
 
             for (nws in toupper(names(numerical_with_strings))) {
                 cat(paste(
-                    "data ", sasimport, "; set ", sasimport, ";",
+                    "proc datasets library = datadir;",
+                    enter,
+                    "    modify &sasfile;",
                     enter, enter,
                     "    TEMPVAR = input(", nws, ", ?? best.);",
                     enter,
@@ -2629,14 +2694,13 @@
             # }
 
             # cat(paste(c("* ", rep("-", 76), " ;"), collapse = ""), enter, enter, enter, sep = "")
-        }
-
-
-        if ((any(unlist(stringvars)) & !catalog) | length(numerical_with_strings) > 0) {
+        
             cat(paste(
                 "* --- Reorder the variables in their original positions --- ;",
                 enter, enter,
-                "data ", sasimport, ";",
+                "proc datasets library = datadir;",
+                enter,
+                "    modify &sasfile;",
                 enter, enter,
                 "    retain ",
                 gsub(
@@ -2649,8 +2713,6 @@
                         "           "
                     )
                 ), ";",
-                enter, enter,
-                "    set ", sasimport, ";",
                 enter, enter,
                 "run;",
                 enter, enter,
@@ -2690,16 +2752,14 @@
                 nms <- character(0) # just to initialize
 
                 if (length(dictionary) > 0) {
+                    dictionary <- dictionary[order(names(dictionary))]
                     nms <- names(dictionary)
-                    if (nms[1] != "a") {
-                        unms <- unique(nms)
-                        for (i in seq(length(unms))) {
-                            nms[nms == unms[i]] <- letters[i]
-                        }
+                    unms <- unique(nms)
+                    for (i in seq(length(unms))) {
+                        nms[nms == unms[i]] <- letters[i]
                     }
-                    # print(dots$dictionary)
-                    # print(missvaRs[withmiss])
-
+                    
+                    names(dictionary) <- nms
                     nms <- paste(".", nms, sep = "")
                 }
             }
@@ -2728,27 +2788,29 @@
                 cat(paste(
                     "* --- Recode missing values --- ;",
                     enter, enter,
-                    "data ", sasimport, "; set ", sasimport, ";",
-                    enter, enter,
                     sep = ""
                 ))
 
-                for (wm in names(dataDscr2[withmiss])) {
-                    cat(paste("select ", wm, ";", enter, sep = ""))
-                    for (j in which(missvaRs[[wm]])) {
+                nms <- names(dataDscr2)
+                for (wm in which(withmiss)) {
+                    jwm <- which(missvaRs[[wm]])
+                    for (j in seq(length(jwm))) {
                         cat(paste(
-                            "    when (",
-                            dataDscr2[[wm]][["labels"]][j],
-                            ") ", wm, " = ",
-                            dataDscr3[[wm]][["labels"]][j],
+                            ifelse(j == 1, "    if ", "    else if "),
+                            nms[wm], " = ",
+                            ifelse(sastrings[wm] == "", "", "'"),
+                            dataDscr2[[wm]][["labels"]][jwm[j]],
+                            ifelse(sastrings[wm] == "", "", "'"),
+                            " then ",
+                            nms[wm], " = ", dataDscr3[[wm]][["labels"]][jwm[j]],
                             ";", enter,
                             sep = ""
                         ))
                     }
-                    cat("end;", enter, sep = "")
+                    cat(enter)
                 }
 
-                cat(paste(enter, "run;", enter, enter, sep = ""))
+                cat(enter)
 
                 dataDscr2 <- dataDscr3
             }
@@ -2759,84 +2821,35 @@
             cat(paste(
                 "* --- Add variable labels --- ;",
                 enter, enter,
-                "data ", sasimport, "; set ", sasimport, ";",
-                enter, enter,
-                sep = ""
+                "    label", enter, sep = ""
             ))
 
             for (i in seq(length(varnames))) {
-                cat(paste(
-                    "    label ", varnames[i],
-                    paste(
-                        rep(" ", maxchars - nchar(varnames[i]) + 1),
-                        collapse = ""
-                    ),
-                    " = ", "\"", dataDscr2[[i]][["label"]][1], "\";",
-                    enter,
-                    sep = ""
-                ))
+                label <- dataDscr2[[i]][["label"]][1]
+                if (!is.null(label) && label != "") {
+                    cat(paste(
+                        "        ", varnames[i],
+                        paste(
+                            rep(" ", maxchars - nchar(varnames[i]) + 1),
+                            collapse = ""
+                        ),
+                        "= ", "'", label, "'",
+                        enter,
+                        sep = ""
+                    ))
+                }
             }
 
-            cat(paste(enter, "run;", enter, enter, sep = ""))
+            cat(paste("    ;", enter, enter, sep = ""))
             #     paste(c("* ", rep("-", 76), " ;"), collapse = ""), enter, enter, enter, sep = "")
         }
 
-        cat(paste(
-            "* --- Create value labels groups --- ;",
-            enter, enter,
-            "proc format library = datadir;",
-            enter, enter,
-            sep = ""
-        ))
-
-        for (i in seq(length(unique_list))) {
-
-            n <- unique_list[[i]][1]
-            labels <- dataDscr2[[n]]$labels
-            char <- charvars[n]
-
-            cat(paste(
-                paste(
-                    "value ",
-                    ifelse(char, "$", ""),
-                    "labels_", i, "_group",
-                    enter,
-                    sep = ""
-                ),
-                paste(
-                    paste(
-                        paste(
-                            "    ",
-                            ifelse(char, "\"", ""),
-                            labels,
-                            ifelse(char, "\"", ""),
-                            " = \"",
-                            names(labels),
-                            "\"",
-                            sep = ""
-                        ),
-                        collapse = enter
-                    ),
-                    ";",
-                    enter, enter,
-                    sep = ""
-                ),
-                sep = ""
-            ))
-        }
-
-        cat(paste(
-            "run;",
-            enter, enter,
-            sep = ""
-        ))
-        # paste(c("* ", rep("-", 76), " ;"), collapse = ""), enter, enter, enter, sep = "")
 
         cat(paste(
             "* --- Format variables with value labels --- ;",
             enter, enter,
-            "data ", sasimport, "; set ", sasimport, ";",
-            enter, enter,
+            # "proc datasets library = datadir;", enter, # if using proc datasets
+            # "    modify &sasfile;", enter, enter,
             "    format",
             enter,
             sep = ""
@@ -2845,14 +2858,17 @@
         for (i in seq(length(unique_list))) {
             n <- unique_list[[i]][1]
             for (j in unique_list[[i]]) {
+                char <- charvars[n]
+
                 cat(paste(
-                    "    ",
+                    "        ",
                     toupper(j),
                     paste(
                         rep(" ", maxchars - nchar(j)),
                         collapse = ""
                     ),
-                    " labels_", i, "_group", ".",
+                    ifelse(char, " $", " "),
+                    "labels_", i, "_group", ".",
                     enter,
                     sep = ""
                 ))
@@ -2862,25 +2878,25 @@
         cat(paste(
             "    ;",
             enter, enter,
-            "run;",
+            "run; quit;",
             enter, enter,
             sep = ""
         ))
         # paste(c("* ", rep("-", 76), " ;"), collapse = ""), enter, enter, enter, sep = "")
 
-        if (!script & !catalog) {
-            cat(paste(
-                "* --- Save data to a sas type file --- ;",
-                enter, enter,
-                "data datadir.&sasfile;",
-                enter, enter,
-                "    set ", sasimport, ";",
-                enter, enter,
-                "run;",
-                enter,
-                sep = ""
-            ))
-        }
+        # if (!script & !catalog) {
+        #     cat(paste(
+        #         "* --- Save data to a sas type file --- ;",
+        #         enter, enter,
+        #         "data datadir.&sasfile;",
+        #         enter, enter,
+        #         "    set ", sasimport, ";",
+        #         enter, enter,
+        #         "run; quit;",
+        #         enter,
+        #         sep = ""
+        #     ))
+        # }
 
 
         sink()
