@@ -458,8 +458,18 @@
             arglist <- dots[is.element(names(dots), fargs)]
             arglist$data_file <- from
             arglist$encoding <- encoding
-            data <- do.call(haven::read_sas, arglist)
 
+            if (is.null(arglist$catalog_file)) {
+                cats <- treatPath(tp_from$completePath, type = "sas7bcat")
+                if (any(is.element(cats$filenames, tp_from$filenames))) {
+                    arglist$catalog_file <- file.path(
+                        tp_from$completePath,
+                        paste(tp_from$filenames, "sas7bcat", sep = ".")
+                    )
+                }
+            }
+
+            data <- do.call(haven::read_sas, arglist)
             if (recode) {
                 data <- recodeMissings(
                     dataset = data,
@@ -778,6 +788,7 @@
                 obj = getMetadata(arglist$data),
                 file = to,
                 type = "SAS",
+                csv = arglist$data,
                 recode = recode,
                 catalog = TRUE,
                 dictionary = recodeMissings(
