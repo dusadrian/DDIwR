@@ -3,7 +3,7 @@ Version 0.14
     o argument "codebook" renamed to "obj" in function setupfile()
     o when a path to a single file is provided, setupfile() outputs in the same
       directory, otherwise in the current working directory
-    o corrected and finally tested setup file for SAS
+    o improved, corrected and finally tested setup file for SAS
     o the "<notes>" element in the DDI XML file is now augmented with two
       attributes "level" and "subject" to differentiate it from other possible
       "<notes>" elements and make it obvious this one contains the CSV dataset
