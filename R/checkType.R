@@ -4,7 +4,7 @@
 `checkType` <- function(x, labels, na_values) {
 
     xnumeric <- admisc::possibleNumeric(x)
-    uniquevals <- unique(x)
+    uniquevals <- unique(undeclare(x, drop = TRUE))
 
     if (length(labels) > 0) {
 
