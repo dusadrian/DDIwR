@@ -725,9 +725,19 @@
         return(invisible())
     }
     else if (is.list(obj)) {
+        if (is.data.frame(obj)) {
+            obj <- getMetadata(
+                obj,
+                fromsetupfile = TRUE,
+                embed = TRUE,
+                save = saveFile
+            )
+        }
+
         if (!is.null(obj[["fileDscr"]][["datafile"]])) {
             csv <- obj[["fileDscr"]][["datafile"]]
         }
+
         dataDscr <- obj[["dataDscr"]]
     
         outdir <- FALSE
@@ -785,8 +795,8 @@
         }
 
         dictionary <- recodeMissings(
-            make_labelled(csv, obj$dataDscr),
-            to = ifelse(type == "SAS", "Stata", type),
+            dataset = make_labelled(csv, obj$dataDscr),
+            to = type,
             return_dictionary = TRUE
         )
     }
@@ -1133,10 +1143,9 @@
     }
 
 
-    haslabels <- sapply(
-        dataDscr,
-        function(x) is.element("labels", names(x))
-    )
+    haslabels <- sapply(dataDscr, function(x) {
+        is.element("labels", names(x))
+    })
 
     uniquevals <- unique(
         lapply(
@@ -2516,10 +2525,10 @@
                         sep = ""
                     ))
 
-                # cat("* It is assumed the data file was created under Windows (end of line is CRLF);", enter,
-                #     "* If the csv file was created under Unix,  change eol=LF;", enter,
-                #     "* If the csv file was created under MacOS, change eol=CR below;", enter, enter,
-                #     "%LET eol=CRLF;", enter, enter, enter, sep = "")
+                    # cat("* It is assumed the data file was created under Windows (end of line is CRLF);", enter,
+                    #     "* If the csv file was created under Unix,  change eol=LF;", enter,
+                    #     "* If the csv file was created under MacOS, change eol=CR below;", enter, enter,
+                    #     "%LET eol=CRLF;", enter, enter, enter, sep = "")
                 }
 
                 cat(paste(
@@ -2564,11 +2573,76 @@
                     sep = ""
                 ))
 
+                if (anymissing & recode) {
+                    missvaRs <- labels_missing(dataDscr2)
+                    
+                    withmiss <- unlist(lapply(missvaRs, any))
+
+                    uniquemiss <- sort(unique(unlist(
+                        mapply(
+                            function(x, y) {
+                                x[["labels"]][y]
+                            },
+                            dataDscr2[withmiss],
+                            missvaRs[withmiss],
+                            SIMPLIFY = FALSE
+                        )
+                    )))
+
+                    if (is.null(dictionary)) {
+                        nms <- paste(
+                            ".",
+                            letters[seq(length(uniquemiss))],
+                            sep = ""
+                        )
+                    }
+                    else {
+                        dictionary <- dictionary[is.element(dictionary, uniquemiss)]
+                        nms <- character(0) # just to initialize
+
+                        if (length(dictionary) > 0) {
+                            dictionary <- dictionary[order(names(dictionary))]
+                            nms <- names(dictionary)
+                            unms <- unique(nms)
+                            for (i in seq(length(unms))) {
+                                nms[nms == unms[i]] <- letters[i]
+                            }
+                            
+                            names(dictionary) <- nms
+                            nms <- paste(".", nms, sep = "")
+                        }
+                    }
+
+                    dataDscr3 <- dataDscr2
+
+                    if (any(withmiss)) {
+                        dataDscr3[withmiss] <- mapply(
+                            function(x, y) {
+                                x[["labels"]][y] <- nms[
+                                    match(x[["labels"]][y], dictionary)
+                                ]
+
+                                x[["na_values"]] <- nms[
+                                    match(x[["na_values"]], dictionary)
+                                ]
+                                
+                                return(x)
+                            },
+                            dataDscr2[withmiss],
+                            missvaRs[withmiss],
+                            SIMPLIFY = FALSE
+                        )
+                    }
+                }
+
                 for (i in seq(length(unique_list))) {
 
                     n <- unique_list[[i]][1]
-                    labels <- dataDscr2[[n]]$labels
+                    na_values <- dataDscr3[[n]]$na_values
+                    labels <- dataDscr3[[n]]$labels
                     char <- charvars[n]
+                    prefix <- rep(ifelse(char, "'", ""), length(labels))
+                    prefix[is.element(labels, na_values)] <- ""
 
                     cat(paste(
                         paste(
@@ -2586,12 +2660,12 @@
                                     # a value label such as "CD&V" would trigger a
                                     # warning that a symbolic reference was not found
                                     # because of "&" whereas 'CD&V' is perfectly alright
-                                    ifelse(char, "'", ""),
-                                    labels,
-                                    ifelse(char, "'", ""),
-                                    " = \"",
-                                    names(labels),
-                                    "\"",
+                                    prefix,
+                                    gsub("'", "''", labels),
+                                    prefix,
+                                    " = '",
+                                    gsub("'", "''", names(labels)),
+                                    "'",
                                     sep = ""
                                 ),
                                 collapse = enter
@@ -2724,96 +2798,38 @@
         }
 
 
+        
+
         if (anymissing & recode) {
-            missvaRs <- labels_missing(dataDscr2)
-            # SAS does not accept character variables, so !charvars
-            withmiss <- unlist(lapply(missvaRs, any)) & !charvars
 
-            uniquemiss <- sort(unique(unlist(
-                mapply(
-                    function(x, y) {
-                        x[["labels"]][y]
-                    },
-                    dataDscr2[withmiss],
-                    missvaRs[withmiss],
-                    SIMPLIFY = FALSE
-                )
-            )))
 
-            if (is.null(dictionary)) {
-                nms <- paste(
-                    ".",
-                    letters[seq(length(uniquemiss))],
-                    sep = ""
-                )
-            }
-            else {
-                dictionary <- dictionary[is.element(dictionary, uniquemiss)]
-                nms <- character(0) # just to initialize
+        
+            cat(paste(
+                "* --- Recode missing values --- ;",
+                enter, enter,
+                sep = ""
+            ))
 
-                if (length(dictionary) > 0) {
-                    dictionary <- dictionary[order(names(dictionary))]
-                    nms <- names(dictionary)
-                    unms <- unique(nms)
-                    for (i in seq(length(unms))) {
-                        nms[nms == unms[i]] <- letters[i]
-                    }
-                    
-                    names(dictionary) <- nms
-                    nms <- paste(".", nms, sep = "")
+            nms <- names(dataDscr2)
+            for (wm in which(withmiss)) {
+                jwm <- which(missvaRs[[wm]])
+                for (j in seq(length(jwm))) {
+                    cat(paste(
+                        ifelse(j == 1, "    if ", "    else if "),
+                        nms[wm], " = ",
+                        ifelse(sastrings[wm] == "", "", "'"),
+                        dataDscr2[[wm]][["labels"]][jwm[j]],
+                        ifelse(sastrings[wm] == "", "", "'"),
+                        " then ",
+                        nms[wm], " = ", dataDscr3[[wm]][["labels"]][jwm[j]],
+                        ";", enter,
+                        sep = ""
+                    ))
                 }
-            }
-
-
-            if (any(withmiss)) {
-                dataDscr3 <- dataDscr2
-
-                dataDscr3[withmiss] <- mapply(
-                    function(x, y) {
-                        x[["labels"]][y] <- nms[
-                            match(x[["labels"]][y], dictionary)
-                        ]
-
-                        x[["na_values"]] <- nms[
-                            match(x[["na_values"]], dictionary)
-                        ]
-                        
-                        return(x)
-                    },
-                    dataDscr2[withmiss],
-                    missvaRs[withmiss],
-                    SIMPLIFY = FALSE
-                )
-
-                cat(paste(
-                    "* --- Recode missing values --- ;",
-                    enter, enter,
-                    sep = ""
-                ))
-
-                nms <- names(dataDscr2)
-                for (wm in which(withmiss)) {
-                    jwm <- which(missvaRs[[wm]])
-                    for (j in seq(length(jwm))) {
-                        cat(paste(
-                            ifelse(j == 1, "    if ", "    else if "),
-                            nms[wm], " = ",
-                            ifelse(sastrings[wm] == "", "", "'"),
-                            dataDscr2[[wm]][["labels"]][jwm[j]],
-                            ifelse(sastrings[wm] == "", "", "'"),
-                            " then ",
-                            nms[wm], " = ", dataDscr3[[wm]][["labels"]][jwm[j]],
-                            ";", enter,
-                            sep = ""
-                        ))
-                    }
-                    cat(enter)
-                }
-
                 cat(enter)
-
-                dataDscr2 <- dataDscr3
             }
+
+            cat(enter)
         }
 
 
@@ -2821,19 +2837,19 @@
             cat(paste(
                 "* --- Add variable labels --- ;",
                 enter, enter,
-                "    label", enter, sep = ""
+                "label", enter, sep = ""
             ))
 
             for (i in seq(length(varnames))) {
                 label <- dataDscr2[[i]][["label"]][1]
                 if (!is.null(label) && label != "") {
                     cat(paste(
-                        "        ", varnames[i],
+                        "    ", varnames[i],
                         paste(
                             rep(" ", maxchars - nchar(varnames[i]) + 1),
                             collapse = ""
                         ),
-                        "= ", "'", label, "'",
+                        "= ", "'", gsub("'", "''", label), "'",
                         enter,
                         sep = ""
                     ))
@@ -2850,7 +2866,7 @@
             enter, enter,
             # "proc datasets library = datadir;", enter, # if using proc datasets
             # "    modify &sasfile;", enter, enter,
-            "    format",
+            "format",
             enter,
             sep = ""
         ))
@@ -2861,7 +2877,7 @@
                 char <- charvars[n]
 
                 cat(paste(
-                    "        ",
+                    "    ",
                     toupper(j),
                     paste(
                         rep(" ", maxchars - nchar(j)),
@@ -2876,7 +2892,7 @@
         }
 
         cat(paste(
-            "    ;",
+            ";",
             enter, enter,
             "run; quit;",
             enter, enter,
