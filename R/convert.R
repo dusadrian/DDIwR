@@ -639,7 +639,7 @@
 
             if (recode) {
                 data <- recodeMissings(
-                    data,
+                    dataset = data,
                     to = "Stata",
                     dictionary = dictionary,
                     to_declared = FALSE,
@@ -792,7 +792,9 @@
                 recode = recode,
                 catalog = TRUE,
                 dictionary = recodeMissings(
-                    arglist$data, to = "Stata", return_dictionary = TRUE
+                    dataset = arglist$data,
+                    to = "SAS",
+                    return_dictionary = TRUE
                 )
             )
         }
