@@ -69,7 +69,7 @@
 
 
 `recodeMissings` <- function(
-    dataset, to = c("SPSS", "Stata"), dictionary = NULL, ...
+    dataset, to = c("SPSS", "Stata", "SAS"), dictionary = NULL, ...
 ) {
 
     to <- toupper(match.arg(to))
@@ -115,21 +115,25 @@
     }
 
     dataDscr <- collectMetadata(dataset, error_null = error_null)
+    spss <- !logical(ncol(dataset))
+    names(spss) <- names(dataset)
 
-    spss <- unlist(lapply(dataset, function(x) {
-        # it makes sense to check for character variables, since neither
-        # Stata nor SAS do not accept missing values for chars technically,
-        # a char var with missing value would be "valid" in SPSS but it doesn't
-        # matter if recoding to Stata, it's like it would not exist
-        !is.character(x) &&
-        !is.null(attr(x, "labels", exact = TRUE)) &&
-        (
-            inherits(x, "haven_labelled_spss") || inherits(x, "declared")
-        )
-    }))
+    if (to == "STATA") {
+        spss <- unlist(lapply(dataset, function(x) {
+            # it makes sense to check for character variables, since
+            # Stata does not accept missing values for chars technically,
+            # a char var with missing value would be "valid" in SPSS but it doesn't
+            # matter if recoding to Stata, it's like it would not exist
+            !is.character(x) &&
+            !is.null(attr(x, "labels", exact = TRUE)) &&
+            (
+                inherits(x, "haven_labelled_spss") || inherits(x, "declared")
+            )
+        }))
+    }
 
     if (
-        (sum(spss) == 0 & to == "STATA") |
+        (sum(spss) == 0 & (to == "STATA" | to == "SAS")) |
         (sum(spss) == ncol(dataset) & to == "SPSS")
     ) {
         if (isTRUE(dots$return_dictionary)) {
@@ -187,14 +191,15 @@
     }
 
 
-    missingSPSS <- missingStata <- NULL
+    missingSPSS <- missingSAS <- missingStata <- NULL
 
     # just to initiate
     umis <- data.frame(labels = c(), codes = c(), rec = c())
 
     if (sum(spss) > 0) {
         umis <- unlist(unname(allMissing[names(spss)[spss]]))
-        umis <- unique(data.frame(labels = names(umis), codes = umis))
+        umis <- umis[!duplicated(umis)]
+        umis <- data.frame(labels = names(umis), codes = umis)
 
         if (nrow(umis) == 0) {
             # There is no information about missing values
@@ -262,7 +267,7 @@
             # names(torecode) <- missingStata
         }
     }
-    else if (to == "STATA") {
+    else if (to == "STATA" | to == "SAS") {
 
         torecode <- missingSPSS
 
