@@ -4,7 +4,7 @@
 \alias{recodeMissings}
 \title{Consistent recoding of (extended) missing values}
 \usage{
-recodeMissings(dataset, to = c("SPSS", "Stata"), dictionary = NULL, ...)
+recodeMissings(dataset, to = c("SPSS", "Stata", "SAS"), dictionary = NULL, ...)
 }
 \arguments{
 \item{dataset}{A data frame}
