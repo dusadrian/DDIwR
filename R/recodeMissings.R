@@ -118,19 +118,17 @@
     spss <- !logical(ncol(dataset))
     names(spss) <- names(dataset)
 
-    if (to == "STATA") {
-        spss <- unlist(lapply(dataset, function(x) {
-            # it makes sense to check for character variables, since
-            # Stata does not accept missing values for chars technically,
-            # a char var with missing value would be "valid" in SPSS but it doesn't
-            # matter if recoding to Stata, it's like it would not exist
-            !is.character(x) &&
-            !is.null(attr(x, "labels", exact = TRUE)) &&
-            (
-                inherits(x, "haven_labelled_spss") || inherits(x, "declared")
-            )
-        }))
-    }
+    spss <- unlist(lapply(dataset, function(x) {
+        # it makes sense to check for character variables, since neither
+        # Stata nor SAS do not accept missing values for chars technically,
+        # a char var with missing value would be "valid" in SPSS but it doesn't
+        # matter if recoding to Stata or SAS, it's like it would not exist
+        !is.character(x) &&
+        !is.null(attr(x, "labels", exact = TRUE)) &&
+        (
+            inherits(x, "haven_labelled_spss") || inherits(x, "declared")
+        )
+    }))
 
     if (
         (sum(spss) == 0 & (to == "STATA" | to == "SAS")) |
