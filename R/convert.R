@@ -574,7 +574,11 @@
                 codeBook$stdyDscr <- attrdata$stdyDscr
             }
 
-            exportDDI(codeBook, to, ... = ...) # embed = FALSE would go in three dots
+            exportDDI(
+                codebook = codeBook,
+                file = to,
+                ... = ...  # embed = FALSE would go in three dots
+            )
         }
         else if (identical(tp_to$fileext, "SAV")) {
             data[] <- lapply(data, function(x) {
