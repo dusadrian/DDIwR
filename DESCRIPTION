@@ -1,6 +1,6 @@
 Package: DDIwR
 Title: DDI with R
-Version: 0.13.5
+Version: 0.13.6
 Authors@R: person(
     "Adrian", "Dusa",
     email = "dusa.adrian@unibuc.ro",
