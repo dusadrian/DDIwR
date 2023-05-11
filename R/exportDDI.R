@@ -313,7 +313,7 @@
     # uuid for all variables
     uuid <- generateUUID(length(dataDscr))
 
-    prodate <- as.character(Sys.time())
+    prodDate <- as.character(Sys.time())
     version <- as.character(packageVersion("DDIwR"))
     varnames <- names(dataDscr)
 
@@ -322,9 +322,6 @@
         on.exit(sink())
     }
 
-    prodDate <- as.character(Sys.time())
-    version <- as.character(packageVersion("DDIwR"))
-    varnames <- names(dataDscr)
     cat(paste(
         s0, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>",
         enter,
@@ -571,14 +568,10 @@
 
     for (i in seq(length(dataDscr))) {
         dcml <- ""
-        if (!is.null(data)) {
+        if (!is.null(data) && pN[i]) {
             dcml <- paste0(
                 " dcml=\"",
-                ifelse(
-                    pN[[names(dataDscr)[i]]],
-                    admisc::numdec(na.omit(aN[[names(dataDscr)[i]]])),
-                    0
-                ),
+                admisc::numdec(na.omit(aN[[varnames[i]]])),
                 "\""
             )
         }
