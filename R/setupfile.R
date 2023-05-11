@@ -2565,127 +2565,6 @@
 
                 cat(paste("options fmtsearch=(datadir);", enter, enter, sep = ""))
 
-                cat(paste(
-                    "* --- Create value labels groups --- ;",
-                    enter, enter,
-                    "proc format library = datadir;",
-                    enter, enter,
-                    sep = ""
-                ))
-
-                if (anymissing & recode) {
-                    missvaRs <- labels_missing(dataDscr2)
-                    
-                    withmiss <- unlist(lapply(missvaRs, any))
-
-                    uniquemiss <- sort(unique(unlist(
-                        mapply(
-                            function(x, y) {
-                                x[["labels"]][y]
-                            },
-                            dataDscr2[withmiss],
-                            missvaRs[withmiss],
-                            SIMPLIFY = FALSE
-                        )
-                    )))
-
-                    if (is.null(dictionary)) {
-                        nms <- paste(
-                            ".",
-                            letters[seq(length(uniquemiss))],
-                            sep = ""
-                        )
-                    }
-                    else {
-                        dictionary <- dictionary[is.element(dictionary, uniquemiss)]
-                        nms <- character(0) # just to initialize
-
-                        if (length(dictionary) > 0) {
-                            dictionary <- dictionary[order(names(dictionary))]
-                            nms <- names(dictionary)
-                            unms <- unique(nms)
-                            for (i in seq(length(unms))) {
-                                nms[nms == unms[i]] <- letters[i]
-                            }
-                            
-                            names(dictionary) <- nms
-                            nms <- paste(".", nms, sep = "")
-                        }
-                    }
-
-                    dataDscr3 <- dataDscr2
-
-                    if (any(withmiss)) {
-                        dataDscr3[withmiss] <- mapply(
-                            function(x, y) {
-                                x[["labels"]][y] <- nms[
-                                    match(x[["labels"]][y], dictionary)
-                                ]
-
-                                x[["na_values"]] <- nms[
-                                    match(x[["na_values"]], dictionary)
-                                ]
-                                
-                                return(x)
-                            },
-                            dataDscr2[withmiss],
-                            missvaRs[withmiss],
-                            SIMPLIFY = FALSE
-                        )
-                    }
-                }
-
-                for (i in seq(length(unique_list))) {
-
-                    n <- unique_list[[i]][1]
-                    na_values <- dataDscr3[[n]]$na_values
-                    labels <- dataDscr3[[n]]$labels
-                    char <- charvars[n]
-                    prefix <- rep(ifelse(char, "'", ""), length(labels))
-                    prefix[is.element(labels, na_values)] <- ""
-
-                    cat(paste(
-                        paste(
-                            "    value ",
-                            ifelse(char, "$", ""),
-                            "labels_", i, "_group",
-                            enter,
-                            sep = ""
-                        ),
-                        paste(
-                            paste(
-                                paste(
-                                    "        ",
-                                    # VERY important to use single quotes
-                                    # a value label such as "CD&V" would trigger a
-                                    # warning that a symbolic reference was not found
-                                    # because of "&" whereas 'CD&V' is perfectly alright
-                                    prefix,
-                                    gsub("'", "''", labels),
-                                    prefix,
-                                    " = '",
-                                    gsub("'", "''", names(labels)),
-                                    "'",
-                                    sep = ""
-                                ),
-                                collapse = enter
-                            ),
-                            ";",
-                            enter, enter,
-                            sep = ""
-                        ),
-                        sep = ""
-                    ))
-                }
-
-                cat(paste(
-                    "run;",
-                    enter, enter,
-                    sep = ""
-                ))
-                # paste(c("* ", rep("-", 76), " ;"), collapse = ""), enter, enter, enter, sep = "")
-
-
                 if (formats & !catalog) {
                     cat(paste(
                         "* --- Read the raw data file --- ;",
@@ -2727,7 +2606,8 @@
                             sep = ""
                         ))
                     }
-                    cat(paste("       ;", enter, enter, sep = ""))
+                    cat(paste("       ;", enter, sep = ""))
+                    cat(paste("run;", enter, enter, sep = ""))
                         # paste(c("* ", rep("-", 76), " ;"), collapse = ""), enter, enter, enter, sep = "")
                 }
             }
@@ -2746,9 +2626,7 @@
 
             for (nws in toupper(names(numerical_with_strings))) {
                 cat(paste(
-                    "proc datasets library = datadir;",
-                    enter,
-                    "    modify &sasfile;",
+                    "data ", sasimport, ";", enter, "    set ", sasimport, ";",
                     enter, enter,
                     "    TEMPVAR = input(", nws, ", ?? best.);",
                     enter,
@@ -2768,68 +2646,86 @@
             # }
 
             # cat(paste(c("* ", rep("-", 76), " ;"), collapse = ""), enter, enter, enter, sep = "")
-        
-            cat(paste(
-                "* --- Reorder the variables in their original positions --- ;",
-                enter, enter,
-                "proc datasets library = datadir;",
-                enter,
-                "    modify &sasfile;",
-                enter, enter,
-                "    retain ",
-                gsub(
-                    ",",
-                    "",
-                    splitrows(
-                        toupper(names(dataDscr2)),
-                        enter,
-                        70,
-                        "           "
-                    )
-                ), ";",
-                enter, enter,
-                "run;",
-                enter, enter,
-                sep = ""
-            ))
-
-            #     "RETAIN ", gsub(",", "", splitrows(toupper(names(dataDscr2)), enter, 70, "           ")), ";", enter, enter, sep = "")
-                # paste(c("* ", rep("-", 76), " ;"), collapse = ""), enter, enter, enter, sep = "")
         }
 
 
-        
-
         if (anymissing & recode) {
+            missvaRs <- labels_missing(dataDscr2)
+            # SAS does not accept character variables, so !charvars
+            withmiss <- unlist(lapply(missvaRs, any)) & !charvars
 
+            uniquemiss <- sort(unique(unlist(
+                mapply(
+                    function(x, y) {
+                        x[["labels"]][y]
+                    },
+                    dataDscr2[withmiss],
+                    missvaRs[withmiss],
+                    SIMPLIFY = FALSE
+                )
+            )))
 
-        
-            cat(paste(
-                "* --- Recode missing values --- ;",
-                enter, enter,
-                sep = ""
-            ))
-
-            nms <- names(dataDscr2)
-            for (wm in which(withmiss)) {
-                jwm <- which(missvaRs[[wm]])
-                for (j in seq(length(jwm))) {
-                    cat(paste(
-                        ifelse(j == 1, "    if ", "    else if "),
-                        nms[wm], " = ",
-                        ifelse(sastrings[wm] == "", "", "'"),
-                        dataDscr2[[wm]][["labels"]][jwm[j]],
-                        ifelse(sastrings[wm] == "", "", "'"),
-                        " then ",
-                        nms[wm], " = ", dataDscr3[[wm]][["labels"]][jwm[j]],
-                        ";", enter,
-                        sep = ""
-                    ))
-                }
-                cat(enter)
+            if (is.null(dictionary)) {
+                nms <- paste(
+                    ".",
+                    letters[seq(length(uniquemiss))],
+                    sep = ""
+                )
+            }
+            else {
+                nms <- paste(".", names(dictionary), sep = "")
             }
 
-            cat(enter)
+
+            if (any(withmiss)) {
+                dataDscr3 <- dataDscr2
+
+                dataDscr3[withmiss] <- mapply(
+                    function(x, y) {
+                        x[["labels"]][y] <- nms[
+                            match(x[["labels"]][y], dictionary)
+                        ]
+
+                        x[["na_values"]] <- nms[
+                            match(x[["na_values"]], dictionary)
+                        ]
+                        
+                        return(x)
+                    },
+                    dataDscr2[withmiss],
+                    missvaRs[withmiss],
+                    SIMPLIFY = FALSE
+                )
+
+                cat(paste(
+                    "* --- Recode missing values --- ;",
+                    enter, enter,
+                    "data ", sasimport, ";", enter, "    set ", sasimport, ";",
+                    enter, enter,
+                    sep = ""
+                ))
+
+                nms <- names(dataDscr2)
+                for (wm in which(withmiss & !(charvars | unlist(stringvars)))) {
+                    jwm <- which(missvaRs[[wm]])
+                    for (j in seq(length(jwm))) {
+                        cat(paste(
+                            ifelse(j == 1, "    if ", "    else if "),
+                            nms[wm], " = ",
+                            dataDscr2[[wm]][["labels"]][jwm[j]],
+                            " then ",
+                            nms[wm], " = ", dataDscr3[[wm]][["labels"]][jwm[j]],
+                            ";", enter,
+                            sep = ""
+                        ))
+                    }
+                    cat(enter)
+                }
+
+                cat(paste("run;", enter, enter, sep = ""))
+
+                dataDscr2 <- dataDscr3
+            }
         }
 
 
@@ -2837,14 +2733,16 @@
             cat(paste(
                 "* --- Add variable labels --- ;",
                 enter, enter,
-                "label", enter, sep = ""
+                "data ", sasimport, ";", enter, "    set ", sasimport, ";",
+                enter, enter, "    label", enter,
+                sep = ""
             ))
 
             for (i in seq(length(varnames))) {
                 label <- dataDscr2[[i]][["label"]][1]
                 if (!is.null(label) && label != "") {
                     cat(paste(
-                        "    ", varnames[i],
+                        "        ", varnames[i],
                         paste(
                             rep(" ", maxchars - nchar(varnames[i]) + 1),
                             collapse = ""
@@ -2856,17 +2754,76 @@
                 }
             }
 
-            cat(paste("    ;", enter, enter, sep = ""))
+            cat(paste(enter, "run;", enter, enter, sep = ""))
             #     paste(c("* ", rep("-", 76), " ;"), collapse = ""), enter, enter, enter, sep = "")
         }
 
+        cat(paste(
+            "* --- Create value labels groups --- ;",
+            enter, enter,
+            "proc format library = datadir;",
+            enter, enter,
+            sep = ""
+        ))
+
+        
+
+        for (i in seq(length(unique_list))) {
+
+            n <- unique_list[[i]][1]
+            na_values <- dataDscr2[[n]]$na_values
+            labels <- dataDscr2[[n]]$labels
+            char <- charvars[n]
+            prefix <- rep(ifelse(char, "'", ""), length(labels))
+            # prefix[is.element(labels, na_values)] <- ""
+
+            cat(paste(
+                paste(
+                    "    value ",
+                    ifelse(char, "$", ""),
+                    "labels_", i, "_group",
+                    enter,
+                    sep = ""
+                ),
+                paste(
+                    paste(
+                        paste(
+                            "        ",
+                            # VERY important to use single quotes
+                            # a value label such as "CD&V" would trigger a
+                            # warning that a symbolic reference was not found
+                            # because of "&" whereas 'CD&V' is perfectly alright
+                            prefix,
+                            gsub("'", "''", labels),
+                            prefix,
+                            " = '",
+                            gsub("'", "''", names(labels)),
+                            "'",
+                            sep = ""
+                        ),
+                        collapse = enter
+                    ),
+                    ";",
+                    enter, enter,
+                    sep = ""
+                ),
+                sep = ""
+            ))
+        }
+
+        cat(paste(
+            "run;",
+            enter, enter,
+            sep = ""
+        ))
+        # paste(c("* ", rep("-", 76), " ;"), collapse = ""), enter, enter, enter, sep = "")
 
         cat(paste(
             "* --- Format variables with value labels --- ;",
             enter, enter,
-            # "proc datasets library = datadir;", enter, # if using proc datasets
-            # "    modify &sasfile;", enter, enter,
-            "format",
+            "data ", sasimport, ";", enter, "    set ", sasimport, ";",
+            enter, enter,
+            "    format",
             enter,
             sep = ""
         ))
@@ -2874,17 +2831,14 @@
         for (i in seq(length(unique_list))) {
             n <- unique_list[[i]][1]
             for (j in unique_list[[i]]) {
-                char <- charvars[n]
-
                 cat(paste(
-                    "    ",
+                    "        ",
                     toupper(j),
                     paste(
                         rep(" ", maxchars - nchar(j)),
                         collapse = ""
                     ),
-                    ifelse(char, " $", " "),
-                    "labels_", i, "_group", ".",
+                    " labels_", i, "_group", ".",
                     enter,
                     sep = ""
                 ))
@@ -2892,27 +2846,13 @@
         }
 
         cat(paste(
-            ";",
+            "    ;",
             enter, enter,
-            "run; quit;",
+            "run;",
             enter, enter,
             sep = ""
         ))
         # paste(c("* ", rep("-", 76), " ;"), collapse = ""), enter, enter, enter, sep = "")
-
-        # if (!script & !catalog) {
-        #     cat(paste(
-        #         "* --- Save data to a sas type file --- ;",
-        #         enter, enter,
-        #         "data datadir.&sasfile;",
-        #         enter, enter,
-        #         "    set ", sasimport, ";",
-        #         enter, enter,
-        #         "run; quit;",
-        #         enter,
-        #         sep = ""
-        #     ))
-        # }
 
 
         sink()
