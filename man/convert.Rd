@@ -33,7 +33,7 @@ categorical variables}
 \item{csv}{Path to the CSV file, if not embedded in XML file containing the
 DDI Codebook}
 
-\item{...}{Additional parameters passed to exporting functions, see the
+\item{...}{Additional parameters passed to other functions, see the
 Details section}
 }
 \value{
@@ -52,12 +52,12 @@ When the argument \strong{\code{to}} specifies a certain statistical package
 destination file will be identical to the one in the argument \strong{\code{from}},
 with an automatically added software specific extension.
 
-SPSS portable file (with the extension \code{".por"}) can only be read, and SAS
-Transport files (with the extension \code{".xpt"}) can be both read and written.
+SPSS portable file (with the extension \code{".por"}) can only be read, but not
+written.
 
-Alternatively, the argument \strong{\code{to}} can be specified as a path to a specific
-file, in which case the software package is determined from its file
-extension. The following extentions are currently recognized: \code{.xml} for DDI,
+The argument \strong{\code{to}} can also be specified as a path to a specific file,
+in which case the software package is determined from its file extension.
+The following extentions are currently recognized: \code{.xml} for DDI,
 \code{.rds} for R, \code{.dta} for Stata, \code{.sav} for SPSS, \code{.xpt} for SAS, and
 \code{.xlsx} for Excel.
 
@@ -68,10 +68,10 @@ Additional parameters can be specified via the three dots argument
 \strong{\code{version}} when writing a Stata file.
 
 The most important argument to consider is called \strong{\code{user_na}}, part of
-the function \bold{\code{\link[haven]{read_sav}()}}. Although it is defaulted
-to \code{FALSE} in package \bold{\pkg{haven}}, in package \bold{\pkg{DDIwR}} it
-is used as having the value of \code{TRUE}. Users who really want to deactivate
-it should explicitly specify \code{use_na = FALSE} in function \strong{\code{convert()}}.
+the function \bold{\code{\link[haven]{read_sav}()}}. Defaulted to \code{FALSE} in
+package \bold{\pkg{haven}}, in package \bold{\pkg{DDIwR}} it is used as
+having the value of \code{TRUE}, and it can be deactivated by explicitly
+specifying \code{user_na = FALSE} in function \strong{\code{convert()}}.
 
 The same three dots argument is used to pass additional parameters to other
 functions in this package, for instance \strong{\code{exportDDI()}} when converting to
@@ -106,10 +106,18 @@ version of the raw data into the XML file containing the Codebook, into a
 this package and automatically detected when converting to another
 statistical software.
 
-Converting the missing values to SAS is not tested, but it relies on the same
-package \bold{\pkg{haven}} using the ReadStat C library. Should it not work,
-it is also possible to use a setup file produced by function
+Converting to SAS is experimental, and it relies on the same package
+\bold{\pkg{haven}} that uses the ReadStat C library. The safest way to
+convert, which at the same time consistently converts the missing values, is
+to export the data to a CSV file and create a setup file produced by function
 \bold{\code{\link{setupfile}()}} and run the commands manually.
+
+Converting data from SAS is possible, however reading the metadata is also
+experimental (the current version of \bold{haven} only partially imports the
+metadata). Either specify the path to the catalog file using the argument
+\strong{\code{catalog_file}} from the function \bold{\code{\link[haven]{read_sas}()}},
+or have the catalog file in the same directory as the data set, with the same
+file name and the extension \code{.sas7bcat}
 
 The argument \strong{\code{recode}} controls how missing values are treated. If the
 input file has SPSS like numeric codes, they will be recoded to extended

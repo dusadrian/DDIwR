@@ -16,12 +16,12 @@
 #' destination file will be identical to the one in the argument **`from`**,
 #' with an automatically added software specific extension.
 #'
-#' SPSS portable file (with the extension `".por"`) can only be read, and SAS
-#' Transport files (with the extension `".xpt"`) can be both read and written.
+#' SPSS portable file (with the extension `".por"`) can only be read, but not
+#' written.
 #'
-#' Alternatively, the argument **`to`** can be specified as a path to a specific
-#' file, in which case the software package is determined from its file
-#' extension. The following extentions are currently recognized: `.xml` for DDI,
+#' The argument **`to`** can also be specified as a path to a specific file,
+#' in which case the software package is determined from its file extension.
+#' The following extentions are currently recognized: `.xml` for DDI,
 #' `.rds` for R, `.dta` for Stata, `.sav` for SPSS, `.xpt` for SAS, and
 #' `.xlsx` for Excel.
 #'
@@ -32,10 +32,10 @@
 #' **`version`** when writing a Stata file.
 #'
 #' The most important argument to consider is called **`user_na`**, part of
-#' the function \bold{\code{\link[haven]{read_sav}()}}. Although it is defaulted
-#' to `FALSE` in package \bold{\pkg{haven}}, in package \bold{\pkg{DDIwR}} it
-#' is used as having the value of `TRUE`. Users who really want to deactivate
-#' it should explicitly specify `use_na = FALSE` in function **`convert()`**.
+#' the function \bold{\code{\link[haven]{read_sav}()}}. Defaulted to `FALSE` in
+#' package \bold{\pkg{haven}}, in package \bold{\pkg{DDIwR}} it is used as
+#' having the value of `TRUE`, and it can be deactivated by explicitly
+#' specifying `user_na = FALSE` in function **`convert()`**.
 #'
 #' The same three dots argument is used to pass additional parameters to other
 #' functions in this package, for instance **`exportDDI()`** when converting to
@@ -70,10 +70,18 @@
 #' this package and automatically detected when converting to another
 #' statistical software.
 #'
-#' Converting the missing values to SAS is not tested, but it relies on the same
-#' package \bold{\pkg{haven}} using the ReadStat C library. Should it not work,
-#' it is also possible to use a setup file produced by function
+#' Converting to SAS is experimental, and it relies on the same package
+#' \bold{\pkg{haven}} that uses the ReadStat C library. The safest way to
+#' convert, which at the same time consistently converts the missing values, is
+#' to export the data to a CSV file and create a setup file produced by function
 #' \bold{\code{\link{setupfile}()}} and run the commands manually.
+#'
+#' Converting data from SAS is possible, however reading the metadata is also
+#' experimental (the current version of \bold{haven} only partially imports the
+#' metadata). Either specify the path to the catalog file using the argument
+#' **`catalog_file`** from the function \bold{\code{\link[haven]{read_sas}()}},
+#' or have the catalog file in the same directory as the data set, with the same
+#' file name and the extension `.sas7bcat`
 #'
 #' The argument **`recode`** controls how missing values are treated. If the
 #' input file has SPSS like numeric codes, they will be recoded to extended
@@ -83,7 +91,7 @@
 #' The character **`encoding`** is usually passed to the corresponding functions
 #' from package \bold{\pkg{haven}}. It can be set to \code{NULL} to reset at the
 #' default in that package.
-#' 
+#'
 #' @return An invisible R data frame, when the argument **`to`** is NULL.
 #'
 #' @examples
@@ -91,7 +99,7 @@
 #' # Assuming an SPSS file called test.sav is located in the working directory
 #' # The following command imports the file into the R environment:
 #' test <- convert("test.sav")
-#' 
+#'
 #' # The following command will extract the metadata in a DDI Codebook and
 #' # produce a test.xml file in the same directory
 #' convert("test.sav", to = "DDI")
@@ -131,7 +139,7 @@
 #' @param encoding The character encoding used to read a file
 #' @param csv Path to the CSV file, if not embedded in XML file containing the
 #' DDI Codebook
-#' @param ... Additional parameters passed to exporting functions, see the
+#' @param ... Additional parameters passed to other functions, see the
 #' Details section
 #'
 #' @export
@@ -152,10 +160,7 @@
 
     dots <- list(...)
 
-    dictionary <- NULL
-    if (is.element("dictionary" , names(dots))) {
-        dictionary <- dots$dictionary
-    }
+    dictionary <- dots$dictionary
 
     Robject <- FALSE
     if (is.character(from)) {
@@ -766,27 +771,33 @@
             writexl::write_xlsx(x, path = to)
         }
         else {
-            if (identical(tp_to$fileext, "SAS7BDAT")) {
-                fargs <- names(formals(haven::write_sas))
-                arglist <- dots[is.element(names(dots), fargs)]
-                arglist$data <- declared::as.haven(data)
-                arglist$path <- to
-                do.call(haven::write_sas, arglist)
-            }
-            else if (identical(tp_to$fileext, "XPT")) {
+            # if (identical(tp_to$fileext, "SAS7BDAT")) {
+            #     fargs <- names(formals(haven::write_sas))
+            #     arglist <- dots[is.element(names(dots), fargs)]
+            #     arglist$data <- declared::as.haven(data)
+            #     arglist$path <- to
+            #     do.call(haven::write_sas, arglist)
+            # }
+            # else if (identical(tp_to$fileext, "XPT")) {
                 fargs <- names(formals(haven::write_xpt))
                 arglist <- dots[is.element(names(dots), fargs)]
                 arglist$data <- declared::as.haven(data)
                 arglist$path <- to
                 do.call(haven::write_xpt, arglist)
-            }
+            # }
 
             to <- file.path(
                 tp_from$completePath,
                 paste(tp_from$filenames, "sas", sep = ".")
             )
 
-            ### TODO: recodeMissings() for the dictionary, only if recode = TRUE?
+            if (is.null(dictionary) & recode) {
+                dictionary <- recodeMissings(
+                    dataset = arglist$data,
+                    to = "SAS",
+                    return_dictionary = TRUE
+                )
+            }
 
             setupfile(
                 obj = getMetadata(arglist$data),
@@ -795,11 +806,7 @@
                 csv = arglist$data,
                 recode = recode,
                 catalog = TRUE,
-                dictionary = recodeMissings(
-                    dataset = arglist$data,
-                    to = "SAS",
-                    return_dictionary = TRUE
-                )
+                dictionary = dictionary
             )
         }
     }
