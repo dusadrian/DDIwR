@@ -1,6 +1,6 @@
 Package: DDIwR
 Title: DDI with R
-Version: 0.13.6
+Version: 0.14
 Authors@R: person(
     "Adrian", "Dusa",
     email = "dusa.adrian@unibuc.ro",
@@ -9,13 +9,13 @@ Authors@R: person(
 URL: https://github.com/dusadrian/DDIwR
 BugReports: https://github.com/dusadrian/DDIwR/issues
 Description: Useful functions for various DDI (Data Documentation Initiative)
-    related inputs and outputs. Converts data files to and from DDI, SPSS, Stata,
-    SAS, R and Excel, including (recoded) user declared missing values.
+    related inputs and outputs. Converts data files to and from DDI, SPSS,
+    Stata, SAS, R and Excel, including user declared missing values.
 License: GPL (>= 3)
 Depends: R (>= 3.5.0)
 Imports:
-    admisc (> 0.31),
-    declared (> 0.20),
+    admisc (>= 0.32),
+    declared (>= 0.21),
     tools,
     xml2,
     haven,
@@ -32,5 +32,4 @@ Language: en-US
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.3
-VignetteBuilder: knitr
 Config/testthat/edition: 3
