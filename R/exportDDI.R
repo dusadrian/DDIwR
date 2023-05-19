@@ -244,7 +244,7 @@
         x <- replaceTicks(x)
         x <- gsub(
             # weird space character gsub(rawToChar(as.raw(c(194, 160))), " ", x)
-            "\ua0", " ",
+            "\Ua0", " ",
             gsub(
                 "<", "&lt;",
                 gsub(

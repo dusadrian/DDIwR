@@ -12,8 +12,8 @@
     # use case: StatConverter in Electron, the terminal that opens R
     # probably doesn't have a suitable locale and it outputs and error
     # this does the same thing (using hexadecimal code) and is better
-    achar <- "\uc2"
-    tick <- c("\ub4", "\u60")
+    achar <- "\Uc2"
+    tick <- c("\Ub4", "\U60")
     
     tick <- c(paste0(achar, "'"), paste0(achar, tick), tick)
     x <- gsub(paste(tick, collapse = "|"), "'", x)
