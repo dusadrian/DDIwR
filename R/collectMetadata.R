@@ -52,8 +52,12 @@
 
             labels <- labels[!is.na(labels) | tagged]
             if (length(labels) > 0) {
-                # names(labels) <- cleanup(names(labels))
-                result[["labels"]] <- setNames(labels, cleanup(names(labels)))
+                nms <- names(labels)
+                if (is.character(labels)) {
+                    labels <- cleanup(labels)
+                }
+                names(labels) <- cleanup(nms)
+                result[["labels"]] <- labels
             }
         }
         else if (is.factor(x)) {
