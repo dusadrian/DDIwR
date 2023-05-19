@@ -4,6 +4,9 @@
 `cleanup` <- function(x, cdata = TRUE) {
 
     tc <- admisc::tryCatchWEM({
+        # use case: StatConverter in Electron, the terminal that opens R
+        # probably doesn't have a suitable locale and it outputs and error
+
         x <- gsub("&amp;", "&", x)
         x <- gsub("&lt;", "<", x)
         x <- gsub("&gt;", ">", x)
