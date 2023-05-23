@@ -783,7 +783,10 @@
                 arglist <- dots[is.element(names(dots), fargs)]
                 arglist$data <- declared::as.haven(data)
                 arglist$path <- to
-                arglist$version <- 5 # hardcode XPT version 5, since 8 doesn't work
+                if (is.null(arglist$version)) {
+                    # hardcode XPT version 5, since 8 doesn't work
+                    arglist$version <- 5
+                }
                 do.call(haven::write_xpt, arglist)
             # }
 
