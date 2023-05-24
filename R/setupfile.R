@@ -2722,7 +2722,7 @@
                     cat(enter)
                 }
 
-                cat(paste(enter, enter, sep = ""))
+                cat(paste("run;", enter, enter, sep = ""))
 
                 dataDscr2 <- dataDscr3
             }
@@ -2754,7 +2754,7 @@
                 }
             }
 
-            cat(paste("    ;", enter, enter, sep = ""))
+            cat(paste("    ;", enter, "run;", enter, enter, sep = ""))
             #     paste(c("* ", rep("-", 76), " ;"), collapse = ""), enter, enter, enter, sep = "")
         }
 
@@ -2845,11 +2845,7 @@
             }
         }
 
-        cat(paste(
-            "    ;",
-            enter, enter,
-            sep = ""
-        ))
+        cat(paste("    ;", enter, "run;", enter, enter, sep = "" ))
         # paste(c("* ", rep("-", 76), " ;"), collapse = ""), enter, enter, enter, sep = "")
 
 
