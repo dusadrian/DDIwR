@@ -448,14 +448,9 @@
                     to = "SPSS",
                     dictionary = dictionary,
                     chartonum = chartonum,
-                    to_declared = FALSE,
+                    to_declared = declared,
                     error_null = FALSE
                 )
-            }
-            else {
-                if (admisc::anyTagged(data)) {
-                    declared <- FALSE
-                }
             }
         }
         else if (tp_from$fileext == "SAS7BDAT") {
@@ -481,7 +476,7 @@
                     to = "SPSS",
                     dictionary = dictionary,
                     chartonum = chartonum,
-                    to_declared = FALSE,
+                    to_declared = declared,
                     error_null = FALSE
                 )
             }
