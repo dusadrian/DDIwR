@@ -774,6 +774,10 @@
             #     do.call(haven::write_sas, arglist)
             # }
             # else if (identical(tp_to$fileext, "XPT")) {
+                lnms <- nchar(colnames(data))
+                if (any(lnms > 8)) {
+                    admisc::stopError("SAS .xpt files do not allow more than 8 characters for column names.")
+                }
                 fargs <- names(formals(haven::write_xpt))
                 arglist <- dots[is.element(names(dots), fargs)]
                 arglist$data <- declared::as.haven(data)
