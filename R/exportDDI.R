@@ -255,7 +255,7 @@
         
         tc <- admisc::tryCatchWEM({
             # use case: StatConverter in Electron, the terminal that opens R
-            # probably doesn't have a suitable locale and it outputs and error
+            # probably doesn't have a suitable locale and it outputs an error
             # this does the same thing (using hexadecimal code) and is better
             
             # weird space character: gsub(rawToChar(as.raw(c(194, 160))), " ", x)

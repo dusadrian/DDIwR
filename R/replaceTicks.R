@@ -4,14 +4,13 @@
 `replaceTicks` <- function(x) {
 
     # # weird A character sometimes from encoding a single tick quote
-    # achar <- rawToChar(as.raw(c(195, 130)))
+    # "\u00c2"
     # # forward and back ticks
-    # irv <- c(194, 180, 96)
-    # tick <- unlist(strsplit(rawToChar(as.raw(irv)), split = ""))
+    # c("\u00b4", "\u0060")
 
     tc <- admisc::tryCatchWEM({
         # use case: StatConverter in Electron, the terminal that opens R
-        # probably doesn't have a suitable locale and it outputs and error
+        # probably doesn't have a suitable locale and it outputs an error
         # this does the same thing (using hexadecimal code) and is better
         achar <- "\u00c2"
         tick <- c("\u00b4", "\u0060")
