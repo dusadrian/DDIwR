@@ -49,11 +49,23 @@
 #'
 #' attr(xrec, "dictionary")
 #'
-#' recodeMissings(x, to = "Stata", dictionary = c("a" = -91, "b" = -92))
+#' dictionary <- data.frame(
+#'     spss = c(TRUE, TRUE, FALSE),
+#'     label = c("DK", "NR", "DK"),
+#'     old = c(-91, -92, "a"),
+#'     new = c("c", "d", "c")
+#' )
+#' recodeMissings(x, to = "Stata", dictionary = dictionary)
 #'
 #' recodeMissings(x, to = "SPSS")
 #'
-#' recodeMissings(x, to = "SPSS", dictionary = c("a" = -91))
+#' dictionary$new <- c(-97, -98, -97)
+#'
+#' recodeMissings(x, to = "SPSS", dictionary = dictionary)
+#'
+#' recodeMissings(x, to = "SPSS", start = 991)
+#'
+#' recodeMissings(x, to = "SPSS", start = -8)
 #'
 #' @return A data frame with all missing values recoded consistently.
 #'
