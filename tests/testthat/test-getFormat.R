@@ -1,6 +1,6 @@
 
 # introduce a multibyte space character to test the code
-dfm$charvar[2] <- paste0(dfm$charvar[2], rawToChar(as.raw(c(194, 160))))
+dfm$charvar[2] <- paste0(dfm$charvar[2], "\u00a0")
 
 test_that("getFormat() works for SPSS", {
   expect_equal(
