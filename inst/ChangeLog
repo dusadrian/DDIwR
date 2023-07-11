@@ -3,6 +3,8 @@ Version 0.15
       default version 8 does not seem to work
     o tagged NAs no longer automatically deactivate the argument "declared" in
       function convert()
+    o refactored and improved function recodeMissings()
+    o reached half of the functions with full coverage
 
 Version 0.14
     o package documentation system converted to roxygen2
