@@ -63,19 +63,20 @@
 #' @param to Software to recode missing values for
 #' @param dictionary
 #' A named vector, with corresponding Stata missing codes to SPSS missing values
+#' @param start
+#' A named vector, with corresponding Stata missing codes to SPSS missing values
 #' @param ... Other internal arguments
 #'
 #' @export
 
 
 `recodeMissings` <- function(
-    dataset, to = c("SPSS", "Stata", "SAS"), dictionary = NULL, ...
+    dataset, to = c("SPSS", "Stata", "SAS"), dictionary = NULL, start = -91, ...
 ) {
 
-    to <- toupper(match.arg(to))
-    too_many <- FALSE
-
     dots <- list(...)
+    to <- toupper(match.arg(to))
+    tospss <- to == "SPSS"
 
     error_null <- ifelse(isFALSE(dots$error_null), FALSE, TRUE)
     to_declared <- ifelse(isFALSE(dots$to_declared), FALSE, TRUE)
@@ -115,397 +116,398 @@
     }
 
     dataDscr <- collectMetadata(dataset, error_null = error_null)
-    spss <- !logical(ncol(dataset))
-    names(spss) <- names(dataset)
-
-    spss <- unlist(lapply(dataset, function(x) {
-        # it makes sense to check for character variables, since neither
-        # Stata nor SAS do not accept missing values for chars technically,
-        # a char var with missing value would be "valid" in SPSS but it doesn't
-        # matter if recoding to Stata or SAS, it's like it would not exist
-        !is.character(x) &&
+    charvar <- unname(sapply(dataset, is.character))
+    
+    spss <- unname(sapply(dataset, function(x) {
         !is.null(attr(x, "labels", exact = TRUE)) &&
         (
             inherits(x, "haven_labelled_spss") || inherits(x, "declared")
         )
     }))
 
-    if (
-        (sum(spss) == 0 & (to == "STATA" | to == "SAS")) |
-        (sum(spss) == ncol(dataset) & to == "SPSS")
-    ) {
-        if (isTRUE(dots$return_dictionary)) {
-            return(NULL)
-        }
-        return(dataset)
-    }
+    stata <- unname(sapply(dataset, function(x) {
+        is.double(x) &&
+        !is.null(attr(x, "labels", exact = TRUE)) &&
+        (
+            inherits(x, "haven_labelled") & !inherits(x, "haven_labelled_spss")
+        )
+    }))
 
     allMissing <- list()
 
-    for (variable in names(dataset)) {
-        x <- dataset[[variable]]
-        attrx <- attributes(x)
+    for (variable in names(dataset[, spss | stata, drop = FALSE])) {
+        x <- declared::undeclare(dataset[[variable]], drop = TRUE)
         attributes(x) <- NULL
-
         metadata <- dataDscr[[variable]]
         labels <- metadata[["labels"]]
-        missing <- NULL
+        na_range <- metadata[["na_range"]]
+        missing <- metadata[["na_values"]]
 
-        if (is.element("na_values", names(metadata))) {
-            missing <- metadata[["na_values"]]
-        }
-
-        if (is.element("na_range", names(metadata))) {
-            na_range <- metadata$na_range
+        if (!is.null(na_range)) {
             misvals <- x[x >= na_range[1] & x <= na_range[2]]
-            missing <- c(missing, misvals[!is.na(misvals)], na_range)
+            missing <- c(missing, misvals[!is.na(misvals)])
 
             if (!is.null(labels)) {
                 if (admisc::possibleNumeric(labels)) {
-                    labels <- admisc::asNumeric(labels)
+                    lbls <- admisc::asNumeric(labels)
                     missing <- c(
                         missing,
-                        labels[labels >= na_range[1] & labels <= na_range[2]]
+                        lbls[lbls >= na_range[1] & lbls <= na_range[2]]
                     )
                 }
             }
+        }
 
-            missing <- sort(unique(missing))
+        missing <- sort(unique(missing))
+
+        tagged <- haven::is_tagged_na(labels)
+        if (any(tagged)) {
+            labels[tagged] <- haven::na_tag(labels[tagged])
+        }
+
+        if (!is.null(missing)) {
+            names(missing) <- ""
         }
 
         if (
             is.element("labels", names(metadata)) &&
-            any(is.element(missing, metadata[["labels"]]))
+            any(is.element(missing, labels))
         ) {
-            wel <- which(is.element(missing, metadata[["labels"]]))
-            names(missing)[wel] <- names(metadata[["labels"]])[
-                match(missing[wel], metadata[["labels"]])
+            wel <- which(is.element(missing, labels))
+            names(missing)[wel] <- names(labels)[
+                match(missing[wel], labels)
             ]
-            missing <- missing[wel]
+            
         }
 
         allMissing[[variable]] <- missing
-
     }
 
+    umispss <- unlist(unname(allMissing[spss[spss | stata]]))
+    umistata <- unlist(unname(allMissing[stata[spss | stata]]))
 
-    missingSPSS <- missingSAS <- missingStata <- NULL
-
-    # just to initiate
-    umis <- data.frame(labels = c(), codes = c(), rec = c())
-
-    if (sum(spss) > 0) {
-        umis <- unlist(unname(allMissing[names(spss)[spss]]))
-        umis <- umis[!duplicated(umis)]
-        umis <- data.frame(labels = names(umis), codes = umis)
-
-        if (nrow(umis) == 0) {
-            # There is no information about missing values
-            return(dataset)
-        }
-
-        umis <- umis[order(umis$labels, umis$codes), ]
-        umis$rec <- umis$codes
-        ulabels <- unique(umis[, 1])
-
-        for (i in seq(length(ulabels))) {
-            if (ulabels[i] != "") {
-                uel <- is.element(umis$labels, ulabels[i])
-                umis$rec[uel] <- umis$codes[uel][length(umis$codes[uel])]
-            }
-        }
-
-        umis <- umis[order(umis$rec), ]
-        neg <- umis$rec < 0
-        wneg <- c()
-        if (any(neg)) {
-            wneg <- which(neg)[order(umis$rec[neg], decreasing = TRUE)]
-        }
-        umis <- umis[c(wneg, which(!neg)), ]
-        # print(umis)
-        missingSPSS <- setNames(umis$codes, umis$rec)
-        # names(missingSPSS) <- umis$rec
-
-        # missingSPSS <- sort(unique(unname(unlist(allMissing[spss]))))
+    if (!is.null(umispss)) {
+        umispss[order(names(umispss), decreasing = TRUE)]
+        umispss <- umispss[!duplicated(umispss)]
     }
 
-    if (sum(!spss) > 0) {
-        missingStata <- sort(unique(unlist(allMissing[!spss])))
+    if (!is.null(umistata)) {
+        umistata[order(names(umistata), decreasing = TRUE)]
+        umistata <- umistata[!duplicated(umistata)]
     }
 
-    if (to == "SPSS") {
-        torecode <- missingStata
-        # return(dataset)
-        temp <- unlist(lapply(undeclare(dataset), function(x) {
-            attributes(x) <- NULL
-            if (is.character(x)) return(NA)
-            return(x[x < 0])
-        }))
-        # temp <- unlist(lapply(dataset, function(x) {
-        #     attributes(x) <- NULL
-        #     if (is.character(x)) return(NA)
-        #     return(x[x < 0])
-        # }))
-        attributes(temp) <- NULL
-        all_neg <- unique(temp)
+    torecode <- data.frame(
+        spss = c(rep(TRUE, length(umispss)), rep(FALSE, length(umistata))),
+        label = c(names(umispss), names(umistata)),
+        old = c(unname(umispss), unname(umistata))
+    )
 
-        if (!identical(all_neg, NA) && length(all_neg) > 0) {
-            all_neg <- all_neg[!is.na(all_neg)]
-        }
-
-        if (!is.null(torecode)) {
-            toreplace <- 90 + seq(length(missingStata) +
-                        length(all_neg) + length(missingSPSS))
-            toreplace <- -1 * setdiff(toreplace, missingSPSS)
-            toreplace <- setdiff(toreplace, all_neg)
-            torecode <- setNames(
-                toreplace[seq(length(missingStata))],
-                missingStata
-            )
-            # names(torecode) <- missingStata
-        }
+    if (nrow(torecode) == 0) {
+        # There is no information about missing values
+        return(dataset)
     }
-    else if (to == "STATA" | to == "SAS") {
 
-        torecode <- missingSPSS
-
-        if (!is.null(torecode)) {
-
-            if (sum(spss) == ncol(dataset)) {
-
-                if (length(unique(names(torecode))) > length(letters)) {
-                    too_many <- TRUE
-                }
-                else {
-                    unms <- unique(names(torecode))
-                    names(torecode) <- letters[match(names(torecode), unms)]
-                }
-            }
-            else { # mix of SPSS and non SPSS (perhaps even Stata) variables
-                available <- setdiff(letters, missingStata)
-                if (length(unique(names(torecode))) > length(available)) {
-                    too_many <- TRUE
-                }
-                else {
-                    # names(torecode) <- available[seq(length(torecode))]
-                    unms <- unique(names(torecode))
-                    names(torecode) <- available[match(names(torecode), unms)]
+    torecode <- torecode[order(torecode$label, decreasing = TRUE), ]
+    torecode <- torecode[order(torecode$spss, decreasing = tospss), ]
+    torecode$new <- torecode$old
+    wi <- which(torecode$spss != tospss)
+    
+    if (length(wi) > 0) {
+        for (i in wi) {
+            if (nzchar(torecode$label[i])) {
+                wl <- which(torecode$label == torecode$label[i])
+                if (length(wl) > 1) {
+                    torecode$new[i] <- torecode$old[wl[1]]
                 }
             }
         }
     }
+
+    torecode <- torecode[order(torecode$old), ]
+    torecode <- torecode[order(torecode$spss, decreasing = tospss), ]
+
+
+    nchars <- nchar(torecode$new)
+    torecode$new <- sapply(
+        strsplit(as.character(torecode$new), split = ""),
+        function(x) {
+            if (x[1] != "-") {
+                x <- unique(x)
+            }
+            paste(x, collapse = "")
+        }
+    )
+
+    torecode <- torecode[order(torecode$new, nchars), ]
+    torecode <- torecode[order(torecode$spss, decreasing = tospss), ]
+
+
+    torecode$new <- match(torecode$new, unique(torecode$new))
+    if (tospss) {
+        mcodes <- seq(max(5000, nrow(torecode) + 1)) + abs(start) - 1
+        if (start < 0) {
+            mcodes <- -1 * mcodes
+
+            # temp <- list()
+            # for (variable in names(dataset[, spss, drop = FALSE])) {
+            #     x <- declared::undeclare(dataset[[variable]], drop = TRUE)
+            #     attributes(x) <- NULL
+            #     metadata <- dataDscr[[variable]]
+            #     labels <- metadata[["labels"]]
+            #     na_values <- metadata[["na_values"]]
+            #     na_range <- range(as.numeric(metadata[["na_range"]]))
+
+            #     if (!is.null(na_range)) {
+            #         temp[[variable]] <- x[x >= na_range[1] & x <= na_range[2]]
+            #     }
+            #     else {
+            #         temp[[variable]] <- x[x < 0 & !is.element(x, na_values)]
+            #     }
+                
+            # }
+
+            ###-----------------------------------------------------------------
+            # if (length(umispss) > 0) {
+            #     temp <- lapply(dataset[spss], function(x) {
+            #         na_values <- attr(x, "na_values")
+            #         na_range <- attr(x, "na_range")
+
+            #         if (is.character(x) | is.null(na_values)) {
+            #             return(NA)
+            #         }
+                    
+            #         x <- declared::undeclare(x, drop = TRUE)
+
+            #         if (is.null(na_values)) {
+            #             return(x[x >= min(na_range) & x <= max(na_range)])
+            #         }
+            #         else {
+            #             return(x[x < 0 & !is.element(x, na_values)])
+            #         }
+            #     })
+
+            #     attributes(temp) <- NULL
+            #     # make sure the attributed missing values do not overlap existing negative numbers
+            #     mcodes <- setdiff(mcodes, unique(temp))
+            # }
+        }
+        
+        torecode$new <- mcodes[torecode$new]
+    }
+    else {
+        toomany <- max(torecode$new) > length(letters)
+        if (toomany) {
+            # TODO: recode variable by variable...?
+            admisc::stopError("Too many overall missing values.")
+        }
+        torecode$new <- letters[torecode$new]
+    }
+    
+    torecode$label[is.na(torecode$label)] <- ""
 
     if (is.null(dictionary)) {
-        dictionary <- torecode
-        nms <- names(dictionary)
-        if (any(duplicated(dictionary))) {
-            for (i in which(duplicated(dictionary))) {
-                first <- which(dictionary == dictionary[i])[1]
-                nms[nms == nms[i]] <- nms[first]
-            }
-            names(dictionary) <- nms
-            dfd <- data.frame(nms = nms, vals = dictionary)
-            dfd <- unique(dfd)
-            dfd <- dfd[order(dfd$vals, dfd$nms), ]
-            dictionary <- setNames(dfd$vals, dfd$nms)
-            # names(dictionary) <- dfd$nms
-        }
-
-        unms <- unique(nms)
-        if (all(is.element(unms, letters))) {
-            for (i in seq(length(unms))) {
-                nms[nms == unms[i]] <- letters[i]
-            }
-        }
-        else {
-            for (i in seq(length(unms))) {
-                nms[nms == unms[i]] <- -90 - i
-            }
-        }
-
         if (isTRUE(dots$return_dictionary)) {
-            return(dictionary)
+            return(torecode)
         }
+        dictionary <- torecode
     }
-    else if (!is.null(torecode)) {
-        if (to == "SPSS") {
-            diffs <- setdiff(names(torecode), names(dictionary))
-        }
-        else if (to == "STATA") {
-            diffs <- setdiff(unname(torecode), unname(dictionary))
-        }
-
-        if (length(diffs) > 0) {
+    else {
+        if (length(setdiff(torecode$old, dictionary$old)) > 0) {
             admisc::stopError(
                 "Missing values in the data not present in the dictionary."
             )
         }
     }
 
-    na_values <- NULL
     # now recode the respective variables according to the dictionary
-    if (!is.null(dictionary)) {
-        nms <- names(dictionary)
-        na_values <- unname(dictionary)
-    }
+    old <- dictionary$old
+    new <- dictionary$new
+    nold <- admisc::possibleNumeric(old, each = TRUE)
 
-    for (i in seq(ncol(dataset))) {
-        # print(i)
-        x <- unclass(declared::undeclare(dataset[[i]]))
-        metadata <- dataDscr[[i]]
-        labels <- metadata[["labels"]]
-        na_values_i <- metadata[["na_values"]]
-        na_range_i <- metadata[["na_range"]]
+    for (variable in names(dataset[, spss | stata, drop = FALSE])) {
+        x <- declared::undeclare(dataset[[variable]], drop = TRUE)
+        attributes(x) <- NULL # for haven_labelled with tagged NAs
 
-        if (!is.null(na_values_i) | !is.null(na_range_i)) {
-            if (to == "SPSS") {
-                if (!spss[i] && !is.null(dictionary)) {
-                    isel <- is.element(nms, metadata[["na_values"]])
-                    na_values_i <- na_values[isel]
-                    nms_i <- nms[isel]
+        metadata <- dataDscr[[variable]]
+        labels_x <- metadata[["labels"]]
+        na_values_x <- metadata[["na_values"]]
+        na_range_x <- metadata[["na_range"]]
 
-                    # if (i == 10) print(na_values_i)
-                    if (length(na_values_i) > 0) {
-                        for (d in seq(length(na_values_i))) {
-                            if (nchar(nms[d]) == 1) {
-                                x[
-                                    haven::is_tagged_na(x, nms_i[d])
-                                ] <- na_values_i[d]
+        if (!is.null(na_values_x) | !is.null(na_range_x)) {
+            if (tospss) {
+                selection <- logical(length(old))
 
-                                labels[
-                                    haven::is_tagged_na(labels, nms_i[d])
-                                ] <- na_values_i[d]
-                            }
+                if (!is.null(na_values_x)) {
+                    selection <- is.element(old, na_values_x)
+                }
+                else if (!is.null(na_range_x)) {
+                    na_range_x <- range(as.numeric(na_range_x))
+                    
+                    if (any(nold)) {
+                        selection[nold] <-
+                            as.numeric(old[nold]) >= min(na_range_x) &
+                            as.numeric(old[nold]) <= max(na_range_x)
+                    }
+                }
+
+                if (any(selection)) {
+                    old_x <- old[selection]
+                    new_x <- new[selection]
+                    spss_x <- dictionary$spss[selection]
+
+                    for (d in seq(length(old_x))) {
+                        
+                        if (!is.null(na_values_x)) {
+                            na_values_x[na_values_x == old_x[d]] <- new_x[d]
+                        }
+
+                        if (spss_x[d]) {
+                            x[x == old_x[d]] <- new_x[d]
+
+                            labels_x[labels_x == old_x[d]] <- new_x[d]
+                        }
+                        else {
+                            x[
+                                haven::is_tagged_na(x, old_x[d])
+                            ] <- new_x[d]
+
+                            labels_x[
+                                haven::is_tagged_na(labels_x, old_x[d])
+                            ] <- new_x[d]
                         }
                     }
                 }
 
-                if (!is.null(labels) && !admisc::possibleNumeric(labels)) {
+                if (admisc::possibleNumeric(na_values_x)) {
+                    na_values_x <- as.numeric(na_values_x)
+                }
+                if (!is.null(labels_x) && !admisc::possibleNumeric(labels_x)) {
                     x <- as.character(x)
-                    if (length(na_values_i) > 0) {
-                        na_values_i <- as.character(na_values_i)
+                    if (length(na_values_x) > 0) {
+                        na_values_x <- as.character(na_values_x)
                     }
                 }
-
-                # cat(
-                #     paste(
-                #         i,
-                #         "--",
-                #         paste(
-                #             na_values,
-                #             collapse = ","
-                #         ),
-                #         "--",
-                #         paste(
-                #             na_values_i,
-                #             collapse = ","
-                #         ),
-                #         "--",
-                #         paste(
-                #             metadata[["na_values"]],
-                #             collapse = ","
-                #         ),
-                #         "\n"
-                #     )
-                # )
 
                 callist <- list(
                     x = x,
-                    labels = labels,
+                    labels = labels_x,
                     label = metadata[["label"]]
                 )
 
-                if (length(na_values_i) > 0) {
-                    if (is.character(na_values_i) && length(na_values_i) > 3) {
-                        na_values_i <- na_values_i[1:3]
+                if (length(na_values_x) > 0) {
+                    callist$na_values <- na_values_x
+                }
+
+                if (length(na_range_x) > 0) {
+                    
+                    # update na_range, this is from SPSS to an SPSS type variable
+                    updated <- logical(2)
+                    copy_range <- na_range_x
+
+                    if (na_range_x[1] == -Inf) {
+                        updated[1] <- TRUE
+                        if (start > 0) {
+                            na_range_x[1] <- Inf
+                            copy_range <- rev(copy_range)
+                            updated <- rev(updated)
+                        }
                     }
 
-                    if (length(na_values_i) > 3) {
-                        callist$na_range <- sort(range(na_values_i))
+                    if (na_range_x[2] == Inf) {
+                        updated[2] <- TRUE
+                        if (start < 0) {
+                            na_range_x[2] <- -Inf
+                            copy_range <- rev(copy_range)
+                            updated <- rev(updated)
+                        }
                     }
-                    else {
-                        callist$na_values <- na_values_i
+
+                    na_range_x <- sort(na_range_x)
+
+                    for (d in which(nold)) {
+                        if (identical(na_range_x[1], as.numeric(old[d]))) {
+                            na_range_x[1] <- new[d]
+                            updated[1] <- TRUE
+                        }
+
+                        if (identical(na_range_x[2], as.numeric(old[d]))) {
+                            na_range_x[2] <- new[d]
+                            updated[2] <- TRUE
+                        }
                     }
+
+                    if (!all(updated)) {
+                        difference <- diff(copy_range)
+                        # two scenarios, something like:
+                        # 1. range c(-99, -95) and only one of them is in the dictionary
+
+                        if (updated[1]) {
+                            na_range_x[2] <- na_range_x[1] + difference
+                        }
+                        else if (updated[2]) {
+                            na_range_x[1] <- na_range_x[2] - difference
+                        }
+                        else {
+                            # 2. range is c(-99, -95), with say a value of -97 missing
+                            # and none of them are in the dictionary
+                            na_range_x <- range(new)
+                        }
+                    }
+
+                    callist$na_range <- na_range_x
                 }
 
                 if (to_declared) {
-                    dataset[[i]] <- do.call(declared::declared, callist)
+                    dataset[[variable]] <- do.call(declared::declared, callist)
                 }
                 else {
-                    dataset[[i]] <- do.call(haven::labelled_spss, callist)
+                    dataset[[variable]] <- do.call(haven::labelled_spss, callist)
                 }
 
             }
-            else if (to == "STATA") {
+            else if (is.numeric(x)) {
+                # it makes sense to check for character variables, since neither
+                # Stata nor SAS do not accept missing values for chars technically,
+                # a char var with missing value would be "valid" in SPSS but it doesn't
+                # matter if recoding to Stata or SAS, it's like it would not exist
+                
+                attributes(x) <- NULL
 
-                if (spss[i] & !is.null(dictionary)) {
-                    attributes(x) <- NULL
+                selection <- logical(length(old))
 
-                    selection <- rep(TRUE, length(dictionary))
-
-                    if (!is.null(na_values_i)) {
-                        selection <- is.element(dictionary, na_values_i)
+                if (!is.null(na_values_x)) {
+                    selection <- is.element(old, na_values_x)
+                }
+                else if (!is.null(na_range_x)) {
+                    nold <- admisc::possibleNumeric(old, each = TRUE)
+                    
+                    if (any(nold)) {
+                        selection[nold] <-
+                            as.numeric(old[nold]) >= min(na_range_x) &
+                            as.numeric(old[nold]) <= max(na_range_x)
                     }
-                    else if (!is.null(na_range_i)) {
-                        selection <- as.numeric(dictionary) >= na_range_i[1] &
-                                     as.numeric(dictionary) <= na_range_i[2]
-                    }
+                }
 
-                    dic_i <- dictionary[selection]
+                if (any(selection)) {
+                    old_x <- old[selection]
+                    new_x <- new[selection]
 
-
-                    if (any(duplicated(dic_i))) {
-                        # multiple missing labels with the same code
-                        selabels <- umis$labels[selection]
-
-                        if (!is.null(na_values[i])) {
-                            na_labels <- names(labels)[
-                                is.element(
-                                    labels,
-                                    if (is.numeric(labels)) {
-                                        as.numeric(na_values_i)
-                                    } else {
-                                        na_values_i
-                                    }
-                                )
-                            ]
-                        }
-                        else if (!is.null(na_range_i)) {
-                            num_labels <- as.numeric(labels)
-                            na_labels <- names(labels)[
-                                num_labels >= na_range_i[1] &
-                                num_labels <= na_range_i[2]
-                            ]
-                        }
-
-                        dic_i <- dic_i[is.element(selabels, na_labels)]
+                    if (admisc::possibleNumeric(old_x)) {
+                        old_x <- admisc::asNumeric(old_x)
                     }
 
-                    nms_i <- names(dic_i)
-                    if (admisc::possibleNumeric(dic_i)) {
-                        dic_i <- admisc::asNumeric(dic_i)
+                    for (d in seq(length(old_x))) {
+                        x[is.element(x, old_x[d])] <- haven::tagged_na(new_x[d])
+                        labels_x[
+                            is.element(labels_x, old_x[d])
+                        ] <- haven::tagged_na(new_x[d])
                     }
 
-                    x <- admisc::asNumeric(x)
-
-                    for (d in seq(length(dic_i))) {
-                        x[is.element(x, dic_i[d])] <- haven::tagged_na(nms_i[d])
-                        labels[
-                            is.element(labels, dic_i[d])
-                        ] <- haven::tagged_na(nms_i[d])
-                    }
-
-                    dataset[, i] <- haven::labelled(
+                    dataset[[variable]] <- haven::labelled(
                         x,
-                        labels = labels,
+                        labels = labels_x,
                         label = metadata[["label"]]
                     )
-                }
-                else {
-                    if (inherits(dataset[[i]], "declared") & !to_declared) {
-                        dataset[[i]] <- x
-                    }
-                    # otherwise leave it intact
                 }
             }
         }

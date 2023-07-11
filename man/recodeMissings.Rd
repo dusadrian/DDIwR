@@ -4,7 +4,13 @@
 \alias{recodeMissings}
 \title{Consistent recoding of (extended) missing values}
 \usage{
-recodeMissings(dataset, to = c("SPSS", "Stata", "SAS"), dictionary = NULL, ...)
+recodeMissings(
+  dataset,
+  to = c("SPSS", "Stata", "SAS"),
+  dictionary = NULL,
+  start = -91,
+  ...
+)
 }
 \arguments{
 \item{dataset}{A data frame}
@@ -12,6 +18,8 @@ recodeMissings(dataset, to = c("SPSS", "Stata", "SAS"), dictionary = NULL, ...)
 \item{to}{Software to recode missing values for}
 
 \item{dictionary}{A named vector, with corresponding Stata missing codes to SPSS missing values}
+
+\item{start}{A named vector, with corresponding Stata missing codes to SPSS missing values}
 
 \item{...}{Other internal arguments}
 }
