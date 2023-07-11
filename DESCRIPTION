@@ -1,6 +1,6 @@
 Package: DDIwR
 Title: DDI with R
-Version: 0.14.3
+Version: 0.15
 Authors@R: person(
     "Adrian", "Dusa",
     email = "dusa.adrian@unibuc.ro",
@@ -15,7 +15,7 @@ License: GPL (>= 3)
 Depends: R (>= 3.5.0)
 Imports:
     admisc (>= 0.32),
-    declared (>= 0.21),
+    declared (>= 0.22),
     tools,
     xml2,
     haven,
