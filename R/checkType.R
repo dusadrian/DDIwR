@@ -1,19 +1,26 @@
 #' @description Determine the variable type: categorical, numerical or mixed
 #' @return A character scalar
 #' @noRd
-`checkType` <- function(x, labels, na_values) {
+`checkType` <- function(x, labels = NULL, na_values = NULL, na_range = NULL) {
 
     xnumeric <- admisc::possibleNumeric(x)
-    uniquevals <- unique(undeclare(x, drop = TRUE))
+    x <- declared::undeclare(x, drop = TRUE)
+    uniquevals <- unique(x)
+    all_nas <- declared:::all_missing_values(
+        x = unclass(x),
+        labels = labels,
+        na_values = na_values,
+        na_range = na_range
+    )
 
     if (length(labels) > 0) {
 
         # possibly a categorical variable
         # but even numeric variables can have labels (for missing values)
-        # unique values excepting the missing values
-        except_na <- setdiff(uniquevals, na_values)
+        # check the unique values without the missing ones
+        except_na <- setdiff(uniquevals, all_nas)
 
-        if (all(is.element(labels, na_values))) {
+        if (all(is.element(labels, all_nas))) {
             if (xnumeric) {
                 if (length(except_na) < 15) {
                     return("numcat")
@@ -41,9 +48,11 @@
         # for which not all values are labeled
 
         # thinking of the smallest ordinal scale 1...7 that can be interpreted
+        # as numeric
         return(ifelse(length(except_na) < 7, "cat", "catnum"))
 
-        # TODO: what if a variable has very many numerical values (>15) but only one or two labels?
+        # TODO: what if a variable has very many numerical values (>15) but only
+        # one or two labels?
         # this should be a coding mistake, should it trigger an error or a warning?
     }
 
