@@ -585,6 +585,25 @@
                 if (!is.element("format.spss", names(attributes(x)))) {
                     attr(x, "format.spss") <- getFormat(x, type = "SPSS")
                 }
+                
+                na_values <- attr(x, "na_values")
+                na_range <- attr(x, "na_range")
+                
+                if (is.character(x)) {
+                    if (length(na_values) > 3) {
+                        attr(x, "na_values") <- na_values[1:3]
+                    }
+                }
+                else {
+                    if (
+                        length(na_values) > 3 &
+                        length(na_range) == 0
+                    ) {
+                        na_range <- range(na_values)
+                        attr(x, "na_values") <- NULL
+                        attr(x, "na_range") <- na_range
+                    }
+                }
                 return(x)
             })
 
