@@ -43,22 +43,20 @@
             result[["measurement"]] <- cleanup(measurement)
         }
 
-        labels <- attr(x, "labels", exact = TRUE)
+        tagged <- FALSE
+        labels <- lbls <- attr(x, "labels", exact = TRUE)
         if (!is.null(labels)) {
-            tagged <- logical(length(labels))
-            if (is.double(labels)) {
-                tagged <- haven::is_tagged_na(labels)
-            }
+            tagged <- haven::is_tagged_na(labels)
+            # if (any(tagged)) {
+            #     labels[tagged] <- haven::na_tag(labels[tagged])
+            # }
 
-            labels <- labels[!is.na(labels) | tagged]
-            if (length(labels) > 0) {
-                nms <- names(labels)
-                if (is.character(labels)) {
-                    labels <- cleanup(labels)
-                }
-                names(labels) <- cleanup(nms)
-                result[["labels"]] <- labels
+            nms <- names(labels)
+            if (is.character(labels)) {
+                labels <- cleanup(labels)
             }
+            names(labels) <- cleanup(nms)
+            result[["labels"]] <- labels
         }
         else if (is.factor(x)) {
             xlevels <- levels(x)
@@ -71,8 +69,9 @@
 
         na_values <- attr(x, "na_values", exact = TRUE)
         if (is.null(na_values)) {
-            if (is.double(x)) {
-                natags <- unique(haven::na_tag(c(unclass(x), unclass(labels))))
+            xtagged <- haven::is_tagged_na(x)
+            if (any(tagged) | any(xtagged)) {
+                natags <- unique(haven::na_tag(c(unclass(x), unclass(lbls))))
                 natags <- natags[!is.na(natags)]
                 if (length(natags) > 0) {
                     result$na_values <- sort(natags)
@@ -91,7 +90,8 @@
         result$type <- checkType(
             x,
             labels,
-            na_values
+            na_values,
+            result$na_range
         )
 
 
