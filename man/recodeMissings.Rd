@@ -74,8 +74,6 @@ xrec <- recodeMissings(x, to = "Stata")
 attr(xrec, "dictionary")
 
 dictionary <- data.frame(
-    spss = c(TRUE, TRUE, FALSE),
-    label = c("DK", "NR", "DK"),
     old = c(-91, -92, "a"),
     new = c("c", "d", "c")
 )

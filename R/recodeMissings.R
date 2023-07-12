@@ -50,8 +50,6 @@
 #' attr(xrec, "dictionary")
 #'
 #' dictionary <- data.frame(
-#'     spss = c(TRUE, TRUE, FALSE),
-#'     label = c("DK", "NR", "DK"),
 #'     old = c(-91, -92, "a"),
 #'     new = c("c", "d", "c")
 #' )
@@ -259,49 +257,6 @@
         mcodes <- seq(max(5000, nrow(torecode) + 1)) + abs(start) - 1
         if (start < 0) {
             mcodes <- -1 * mcodes
-
-            # temp <- list()
-            # for (variable in names(dataset[, spss, drop = FALSE])) {
-            #     x <- declared::undeclare(dataset[[variable]], drop = TRUE)
-            #     attributes(x) <- NULL
-            #     metadata <- dataDscr[[variable]]
-            #     labels <- metadata[["labels"]]
-            #     na_values <- metadata[["na_values"]]
-            #     na_range <- range(as.numeric(metadata[["na_range"]]))
-
-            #     if (!is.null(na_range)) {
-            #         temp[[variable]] <- x[x >= na_range[1] & x <= na_range[2]]
-            #     }
-            #     else {
-            #         temp[[variable]] <- x[x < 0 & !is.element(x, na_values)]
-            #     }
-                
-            # }
-
-            ###-----------------------------------------------------------------
-            # if (length(umispss) > 0) {
-            #     temp <- lapply(dataset[spss], function(x) {
-            #         na_values <- attr(x, "na_values")
-            #         na_range <- attr(x, "na_range")
-
-            #         if (is.character(x) | is.null(na_values)) {
-            #             return(NA)
-            #         }
-                    
-            #         x <- declared::undeclare(x, drop = TRUE)
-
-            #         if (is.null(na_values)) {
-            #             return(x[x >= min(na_range) & x <= max(na_range)])
-            #         }
-            #         else {
-            #             return(x[x < 0 & !is.element(x, na_values)])
-            #         }
-            #     })
-
-            #     attributes(temp) <- NULL
-            #     # make sure the attributed missing values do not overlap existing negative numbers
-            #     mcodes <- setdiff(mcodes, unique(temp))
-            # }
         }
         
         torecode$new <- mcodes[torecode$new]
@@ -319,7 +274,7 @@
 
     if (is.null(dictionary)) {
         if (isTRUE(dots$return_dictionary)) {
-            return(torecode)
+            return(torecode[, -1])
         }
         dictionary <- torecode
     }
@@ -331,10 +286,16 @@
         }
     }
 
+
     # now recode the respective variables according to the dictionary
     old <- dictionary$old
     new <- dictionary$new
-    nold <- admisc::possibleNumeric(old, each = TRUE)
+    pnold <- admisc::possibleNumeric(old, each = TRUE)
+    
+    old <- tolower(old)
+    if (is.character(new)) {
+        new <- tolower(new)
+    }
 
     for (variable in names(dataset[, spss | stata, drop = FALSE])) {
         x <- declared::undeclare(dataset[[variable]], drop = TRUE)
@@ -355,30 +316,31 @@
                 else if (!is.null(na_range_x)) {
                     na_range_x <- range(as.numeric(na_range_x))
                     
-                    if (any(nold)) {
-                        selection[nold] <-
-                            as.numeric(old[nold]) >= min(na_range_x) &
-                            as.numeric(old[nold]) <= max(na_range_x)
+                    if (any(pnold)) {
+                        selection[pnold] <-
+                            as.numeric(old[pnold]) >= min(na_range_x) &
+                            as.numeric(old[pnold]) <= max(na_range_x)
                     }
                 }
 
                 if (any(selection)) {
                     old_x <- old[selection]
                     new_x <- new[selection]
-                    spss_x <- dictionary$spss[selection]
+                    # spss_x <- dictionary$spss[selection]
 
                     for (d in seq(length(old_x))) {
                         
                         if (!is.null(na_values_x)) {
-                            na_values_x[na_values_x == old_x[d]] <- new_x[d]
+                            na_values_x[is.element(na_values_x, old_x[d])] <- new_x[d]
                         }
 
-                        if (spss_x[d]) {
-                            x[x == old_x[d]] <- new_x[d]
+                        # if (spss_x[d]) {
+                            x[is.element(x, old_x[d])] <- new_x[d]
 
-                            labels_x[labels_x == old_x[d]] <- new_x[d]
-                        }
-                        else {
+                            labels_x[is.element(labels_x, old_x[d])] <- new_x[d]
+                        # }
+                        # else {
+                        if (is.element(old_x[d], letters)) {
                             x[
                                 haven::is_tagged_na(x, old_x[d])
                             ] <- new_x[d]
@@ -436,7 +398,7 @@
 
                     na_range_x <- sort(na_range_x)
 
-                    for (d in which(nold)) {
+                    for (d in which(pnold)) {
                         if (identical(na_range_x[1], as.numeric(old[d]))) {
                             na_range_x[1] <- new[d]
                             updated[1] <- TRUE
@@ -475,7 +437,6 @@
                 else {
                     dataset[[variable]] <- do.call(haven::labelled_spss, callist)
                 }
-
             }
             else if (is.numeric(x)) {
                 # it makes sense to check for character variables, since neither
@@ -491,12 +452,12 @@
                     selection <- is.element(old, na_values_x)
                 }
                 else if (!is.null(na_range_x)) {
-                    nold <- admisc::possibleNumeric(old, each = TRUE)
+                    pnold <- admisc::possibleNumeric(old, each = TRUE)
                     
-                    if (any(nold)) {
-                        selection[nold] <-
-                            as.numeric(old[nold]) >= min(na_range_x) &
-                            as.numeric(old[nold]) <= max(na_range_x)
+                    if (any(pnold)) {
+                        selection[pnold] <-
+                            as.numeric(old[pnold]) >= min(na_range_x) &
+                            as.numeric(old[pnold]) <= max(na_range_x)
                     }
                 }
 
@@ -510,9 +471,20 @@
 
                     for (d in seq(length(old_x))) {
                         x[is.element(x, old_x[d])] <- haven::tagged_na(new_x[d])
+                        
                         labels_x[
                             is.element(labels_x, old_x[d])
                         ] <- haven::tagged_na(new_x[d])
+
+                        if (is.element(tolower(old_x[d]), letters)) {
+                            x[
+                                haven::is_tagged_na(x, old_x[d])
+                            ] <- haven::tagged_na(new_x[d])
+
+                            labels_x[
+                                haven::is_tagged_na(labels_x, old_x[d])
+                            ] <- haven::tagged_na(new_x[d])
+                        }
                     }
 
                     dataset[[variable]] <- haven::labelled(
@@ -525,7 +497,7 @@
         }
     }
 
-    attr(dataset, "dictionary") <- dictionary
+    attr(dataset, "dictionary") <- dictionary[, -1]
 
     return(dataset)
 }
