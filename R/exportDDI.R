@@ -193,7 +193,8 @@
     # xml_validate(doc, schema)
 
     `check_arg` <- function(x, vx, type = "c") {
-        valid <- is.atomic(vx) && length(vx) == 1
+        valid <- !is.null(vx) && is.atomic(vx) && length(vx) == 1
+
         if (valid & type == "c") { # character
             valid <- is.character(vx) & !admisc::possibleNumeric(vx)
         }
@@ -252,16 +253,16 @@
                 )
             )
         )
-        
+
         tc <- admisc::tryCatchWEM({
             # use case: StatConverter in Electron, the terminal that opens R
             # probably doesn't have a suitable locale and it outputs an error
             # this does the same thing (using hexadecimal code) and is better
-            
+
             # weird space character: gsub(rawToChar(as.raw(c(194, 160))), " ", x)
             x <- gsub("\u00a0", " ", x)
         })
-        
+
         return(x)
     }
 
@@ -582,7 +583,7 @@
                 "\""
             )
         }
-    
+
         nature <- ""
         if (is.element("measurement", names(dataDscr[[i]]))) {
             nature <- paste0(

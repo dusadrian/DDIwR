@@ -88,40 +88,45 @@
     user_na <- !isFALSE(dots$user_na) # force reading the value labels
     embed <- isTRUE(dots$embed)
 
-    if (is.data.frame(x)) {
-        error <- TRUE
-        i <- 1
-        while (i <= ncol(x) & error) {
-            attrx <- attributes(x[[i]])
-            if (any(is.element(c("label", "labels", "na_value", "na_range"), names(attrx)))) {
-                error <- FALSE
-            }
-            i <- i + 1
-        }
-
-        if (error) {
-            if (is.element("error_null", names(dots))) {
-                return(NULL)
+    if (is.null(x)) {
+        admisc::stopError("`x` should be a path or a data frame.")
+    } else {
+        if (is.data.frame(x)) {
+            error <- TRUE
+            i <- 1
+            while (i <= ncol(x) & error) {
+                attrx <- attributes(x[[i]])
+                if (any(is.element(c("label", "labels", "na_value", "na_range"), names(attrx)))) {
+                    error <- FALSE
+                }
+                i <- i + 1
             }
 
-            admisc::stopError("The input does not seem to contain any metadata.")
+            if (error) {
+                if (is.element("error_null", names(dots))) {
+                    return(NULL)
+                }
+
+                admisc::stopError("The input does not seem to contain any metadata.")
+            }
+            else {
+                codeBook <- list()
+                codeBook$dataDscr <- collectMetadata(x)
+                if (embed) {
+                    codeBook$fileDscr <- list(
+                        datafile = x
+                    )
+                }
+                return(codeBook)
+            }
         }
         else {
-            codeBook <- list()
-            codeBook$dataDscr <- collectMetadata(x)
-            if (embed) {
-                codeBook$fileDscr <- list(
-                    datafile = x
-                )
+            if (!is.atomic(x) || !is.character(x) || length(x) != 1) {
+                admisc::stopError("A path should be a string of length 1")
             }
-            return(codeBook)
         }
     }
-    else {
-        if (!is.atomic(x) || !is.character(x) || length(x) != 1) {
-            admisc::stopError("A path should be a string of length 1")
-        }
-    }
+
 
     enter <- getEnter(OS)
 
@@ -185,13 +190,13 @@
 
             # <d>efault <n>ame <s>pace
             dns <- names(xmlns)[wns[1]]
-            
+
             # to pass covr tests
             codeBook$xmlns <- if (dns == "d1") NULL else dns
             # if (dns != "d1") {
             #     codeBook$xmlns <- dns
             # }
-            
+
             dns <- paste0(dns, ":")
 
             ### Unfortunately this does not work because some variables don't always have labels
@@ -283,7 +288,7 @@
                         if (admisc::possibleNumeric(frequencies)) {
                             frequencies <- admisc::asNumeric(frequencies)
                         }
-                        
+
                         names(frequencies) <- labl
                         codeBook$dataDscr[[i]][["frequencies"]] <- frequencies
                     }
@@ -434,7 +439,7 @@
                 ], side = "left")
 
                 ###-------------------------------------------------------------
-                # it seems that read.csv almost never gives an error... 
+                # it seems that read.csv almost never gives an error...
                 data <- read.csv(text = paste(data, collapse = "\n"), as.is = TRUE)
                 # tc <- admisc::tryCatchWEM(
                 #     data <- read.csv(text = paste(data, collapse = "\n"), as.is = TRUE)
@@ -445,7 +450,7 @@
                 #     admisc::stopError("The <notes> tag does not contain a valid CSV dataset.")
                 # }
 
-                
+
                 # return(list(data, codeBook$dataDscr, declared = declared, spss = spss))
 
                 # make_labelled is always and only about SPSS type of variables
