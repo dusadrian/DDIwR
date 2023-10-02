@@ -1,6 +1,7 @@
 #' @docType package
 #'
 #' @name DDIwR_package
+#' @aliases DDIwR-package
 #'
 #' @title Useful functions for various DDI (Data Documentation Initiative)
 #' related outputs.
@@ -29,8 +30,8 @@
 #' \tabular{ll}{
 #'   Package: \tab DDIwR\cr
 #'   Type: \tab Package\cr
-#'   Version: \tab 0.15\cr
-#'   Date: \tab 2023-07-11\cr
+#'   Version: \tab 0.16\cr
+#'   Date: \tab 2023-10-01\cr
 #'   License: \tab GPL-v3\cr
 #' }
 #'
