@@ -219,7 +219,8 @@
             )
 
             xpath <- sprintf("/%scodeBook/%sfileDscr/%snotes", dns, dns, dns)
-            notes <- xml2::xml_text(xml2::xml_find_all(xml, xpath))
+            all_notes <- xml2::xml_find_all(xml, xpath)
+            notes <- xml2::xml_text(all_notes)
 
             codeBook$dataDscr <- lapply(varlab, function(x) list(label = x))
 
@@ -423,42 +424,60 @@
 
     names(result) <- tp$filenames
 
+
     if (singlefile) {
         if (length(notes) > 0) {
             wdata <- which(grepl("# start data #", notes))
+
             if (length(wdata) > 0) {
+                serialized <- grepl(
+                    xml_attr(all_notes[[wdata]], "subject"),
+                    "serialized"
+                )
                 notes <- notes[wdata]
                 # this can only be possible from an XML, DDI Codebook
                 # therefore the varFormat should always be of an SPSS type
-                notes <- unlist(strsplit(notes, split = "\\n"))
-                data <- admisc::trimstr(notes[
-                    seq(
-                        which(grepl("# start data #", notes)) + 1,
-                        which(grepl("# end data #", notes)) - 1
+                notes <- unlist(strsplit(notes, split = "\\n")) # enter...?
+                data <- paste(
+                    admisc::trimstr(notes[
+                        seq(
+                            which(grepl("# start data #", notes)) + 1,
+                            which(grepl("# end data #", notes)) - 1
+                        )
+                    ], side = "left"),
+                    collapse = "\n"
+                )
+
+                if (serialized) {
+                    data <- unserialize(memDecompress(base64enc::base64decode(data), type = "gzip"))
+
+                    if (!declared & any(sapply(data, declared::is.declared))) {
+                        data <- declared::as.haven(data)
+                    }
+
+                } else {
+                    ###-------------------------------------------------------------
+                    # it seems that read.csv almost never gives an error...
+                    data <- read.csv(text = data, as.is = TRUE)
+                    # tc <- admisc::tryCatchWEM(
+                    #     data <- read.csv(text = paste(data, collapse = "\n"), as.is = TRUE)
+                    # )
+                    ###-------------------------------------------------------------
+
+                    # if (!is.null(tc$error)) {
+                    #     admisc::stopError("The <notes> tag does not contain a valid CSV dataset.")
+                    # }
+
+                    # make_labelled is always and only about SPSS type of variables
+                    data <- make_labelled(
+                        data,
+                        codeBook$dataDscr,
+                        declared = declared
                     )
-                ], side = "left")
-
-                ###-------------------------------------------------------------
-                # it seems that read.csv almost never gives an error...
-                data <- read.csv(text = paste(data, collapse = "\n"), as.is = TRUE)
-                # tc <- admisc::tryCatchWEM(
-                #     data <- read.csv(text = paste(data, collapse = "\n"), as.is = TRUE)
-                # )
-                ###-------------------------------------------------------------
-
-                # if (!is.null(tc$error)) {
-                #     admisc::stopError("The <notes> tag does not contain a valid CSV dataset.")
-                # }
-
+                }
 
                 # return(list(data, codeBook$dataDscr, declared = declared, spss = spss))
 
-                # make_labelled is always and only about SPSS type of variables
-                data <- make_labelled(
-                    data,
-                    codeBook$dataDscr,
-                    declared = declared
-                )
 
                 embed <- TRUE
             }
