@@ -7,12 +7,13 @@
 exportDDI(
   codebook,
   file = "",
-  embed = TRUE,
   OS = "",
   indent = 4,
   monolang = FALSE,
   xmlang = "en",
   xmlns = "",
+  embed = TRUE,
+  serialize = FALSE,
   ...
 )
 }
@@ -22,8 +23,6 @@ where these objects are located, for batch processing}
 
 \item{file}{either a character string naming a file or a connection open for
 writing. "" indicates output to the console}
-
-\item{embed}{Logical, embed the CSV datafile in the XML file, if present}
 
 \item{OS}{The target operating system, for the eol - end of line character(s)}
 
@@ -35,6 +34,10 @@ writing. "" indicates output to the console}
 
 \item{xmlns}{Character, namespace for the XML file (ignored if already present
 in the codebook object)}
+
+\item{embed}{Logical, embed the CSV datafile in the XML file, if present}
+
+\item{serialize}{Logical, serialize the (gzipped) version of the embedded CSV datafile}
 
 \item{...}{Other arguments, mainly for internal use}
 }
@@ -92,7 +95,7 @@ is planned for future releases.
 Argument \strong{\code{xmlang}} expects a two letter ISO country coding, for instance
 \code{"en"} to indicate English, or \code{"ro"} to indicate Romanian etc.
 
-If the document is monolang, this argument is placed a single time for the
+If the document is monolingual, this argument is placed a single time for the
 entire document, in the attributes of the \code{codeBook} element. For
 multilingual documents, it is placed in the attributes of various other
 (sub)elements, for instance \code{abstract} as an obvious one, or the study
@@ -114,6 +117,11 @@ default values but they may be specified using the three dots \strong{\code{...}
 argument. For the current version, these are: \code{IDNo}, \code{titl}, \code{agency}, \code{URI}
 (for the \code{holdings} element), \code{distrbtr}, \code{abstract} and \code{level} (for the
 \code{otherMat} element).
+
+The argument \strong{\code{serialize}} depends on embedding the data in the XML file or
+not. Until the DDI Codebook standard will be extende with a formal element to
+store the data, this serialization is R specific, and it saves a gzipped
+version of the R data frame.
 }
 \examples{
 codeBook <- list(dataDscr = list(

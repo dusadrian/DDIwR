@@ -54,7 +54,7 @@
 #' Argument **`xmlang`** expects a two letter ISO country coding, for instance
 #' `"en"` to indicate English, or `"ro"` to indicate Romanian etc.
 #'
-#' If the document is monolang, this argument is placed a single time for the
+#' If the document is monolingual, this argument is placed a single time for the
 #' entire document, in the attributes of the `codeBook` element. For
 #' multilingual documents, it is placed in the attributes of various other
 #' (sub)elements, for instance `abstract` as an obvious one, or the study
@@ -76,6 +76,11 @@
 #' argument. For the current version, these are: `IDNo`, `titl`, `agency`, `URI`
 #' (for the `holdings` element), `distrbtr`, `abstract` and `level` (for the
 #' `otherMat` element).
+#'
+#' The argument **`serialize`** depends on embedding the data in the XML file or
+#' not. Until the DDI Codebook standard will be extende with a formal element to
+#' store the data, this serialization is R specific, and it saves a gzipped
+#' version of the R data frame.
 #'
 #' @return
 #' An XML file containing a DDI version 2.5 metadata.
@@ -160,9 +165,6 @@
 #' either a character string naming a file or a connection open for
 #' writing. "" indicates output to the console
 #'
-#' @param embed
-#' Logical, embed the CSV datafile in the XML file, if present
-#'
 #' @param OS
 #' The target operating system, for the eol - end of line character(s)
 #'
@@ -176,13 +178,19 @@
 #' Character, namespace for the XML file (ignored if already present
 #' in the codebook object)
 #'
+#' @param embed
+#' Logical, embed the CSV datafile in the XML file, if present
+#'
+#' @param serialize
+#' Logical, serialize the (gzipped) version of the embedded CSV datafile
+#'
 #' @param ... Other arguments, mainly for internal use
 #'
 #' @export
 
 `exportDDI` <- function(
-    codebook, file = "", embed = TRUE, OS = "", indent = 4,
-    monolang = FALSE, xmlang = "en", xmlns = "", ...
+    codebook, file = "", OS = "", indent = 4, monolang = FALSE, xmlang = "en",
+    xmlns = "", embed = TRUE, serialize = FALSE, ...
 ) {
     # https://ddialliance.org/Specification/DDI-Codebook/2.5/XMLSchema/field_level_documentation.html
 
@@ -191,6 +199,10 @@
     # schema <- read_xml("path/to/ddi_2_5_1/schemas/codebook.xsd")
     # doc <- read_xml("path/to/filetovalidate.xml")
     # xml_validate(doc, schema)
+    # or using the CESSDA Metadata Validator
+    # https://cmv.cessda.eu/#!validation
+    # with its validation constraints
+    # https://cmv.cessda.eu/documentation/constraints.html
 
     `check_arg` <- function(x, vx, type = "c") {
         valid <- !is.null(vx) && is.atomic(vx) && length(vx) == 1
@@ -518,38 +530,73 @@
         cat(paste(s2, "</", ns, "fileTxt>", enter, sep = ""))
 
         if (embed) {
-            cat(paste(s2, "<", ns, "notes level=\"file\" subject=\"CSV dataset\">", enter, sep = ""))
             cat(paste(
-                s3, "<![CDATA[# start data #",
-                enter,
-                sep = ""
+                s2, "<", ns,
+                sprintf(
+                    "notes level=\"file\" subject=\"%s\">",
+                    ifelse(
+                        isTRUE(serialize),
+                        "R dataset, serialized gzip",
+                        "CSV dataset"
+                    )
+                ),
+                enter, sep = ""
             ))
 
-            tt <- tempfile()
-            # sink()
-            suppressWarnings(
-                write.table(
-                    undeclare(data, drop = TRUE),
-                    file = tt,
-                    sep = ",",
-                    na = "",
-                    # append = TRUE,
-                    row.names = FALSE
+
+            if (isTRUE(serialize)) {
+
+                if (isTRUE(dots$declared)) {
+                    data <- declared::as.declared(data)
+                    class(data) <- "data.frame"
+                }
+
+                cat(paste(
+                    s3, "# start data #", enter, s3,
+                    base64enc::base64encode(
+                        memCompress(serialize(data, NULL), type = "gzip"),
+                        linewidth = 500,
+                        newline = paste(enter, s3, sep = "")
+                    ),
+                    enter,
+                    s3, "# end data #",
+                    enter,
+                    sep = ""
+                ))
+            } else {
+                cat(paste(
+                    s3, "<![CDATA[# start data #",
+                    enter,
+                    sep = ""
+                ))
+
+                tt <- tempfile()
+                # sink()
+                suppressWarnings(
+                    write.table(
+                        undeclare(data, drop = TRUE),
+                        file = tt,
+                        sep = ",",
+                        na = "",
+                        # append = TRUE,
+                        row.names = FALSE
+                    )
                 )
-            )
-            # sink(file, append = TRUE)
+                # sink(file, append = TRUE)
 
-            cat(
-                paste(s3, readLines(tt), collapse = enter, sep = ""),
-                enter,
-                sep = ""
-            )
+                cat(
+                    paste(s3, readLines(tt), collapse = enter, sep = ""),
+                    enter,
+                    sep = ""
+                )
 
-            cat(paste(s3,
-                "# end data #]]>",
-                enter,
-                sep = ""
-            ))
+                cat(paste(s3,
+                    "# end data #]]>",
+                    enter,
+                    sep = ""
+                ))
+            }
+
             cat(paste(s2, "</", ns, "notes>", enter, sep = ""))
         }
 
