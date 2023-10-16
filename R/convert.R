@@ -555,7 +555,7 @@
             codeBook$fileDscr$datafile <- data
 
             if (isFALSE(dots$embed)) {
-                 write.table(
+                write.table(
                     undeclare(data, drop = TRUE),
                     file = file.path(
                         tp_to$completePath,
@@ -577,6 +577,7 @@
             exportDDI(
                 codebook = codeBook,
                 file = to,
+                declared = declared,
                 ... = ...  # embed = FALSE would go in three dots
             )
         }
@@ -585,10 +586,10 @@
                 if (!is.element("format.spss", names(attributes(x)))) {
                     attr(x, "format.spss") <- getFormat(x, type = "SPSS")
                 }
-                
+
                 na_values <- attr(x, "na_values")
                 na_range <- attr(x, "na_range")
-                
+
                 if (is.character(x)) {
                     if (length(na_values) > 3) {
                         attr(x, "na_values") <- na_values[1:3]
