@@ -30,13 +30,14 @@
 #' \tabular{ll}{
 #'   Package: \tab DDIwR\cr
 #'   Type: \tab Package\cr
-#'   Version: \tab 0.16\cr
-#'   Date: \tab 2023-10-01\cr
+#'   Version: \tab 0.16.1\cr
+#'   Date: \tab 2023-10-16\cr
 #'   License: \tab GPL-v3\cr
 #' }
 #'
 #' @importFrom admisc anyTagged asNumeric getName numdec possibleNumeric
 #' stopError trimstr tryCatchWEM wholeNumeric
+#' @importFrom base64enc base64encode base64decode
 #' @importFrom haven is_tagged_na is.labelled labelled labelled_spss na_tag
 #' read_dta read_por read_sas read_sav read_xpt tagged_na write_dta write_sas
 #' write_sav write_xpt
