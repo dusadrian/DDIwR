@@ -64,8 +64,8 @@
                 x[[i]] <- haven::labelled_spss(v, labels, na_values, na_range, label)
             }
         }
-        
-        
+
+
 
         # this is always about format.spss since both "declared" and "labelled_spss"
         # are not using Stata type extended missing values, and by consequence
