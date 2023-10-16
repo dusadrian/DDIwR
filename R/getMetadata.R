@@ -431,9 +431,10 @@
 
             if (length(wdata) > 0) {
                 serialized <- grepl(
-                    xml_attr(all_notes[[wdata]], "subject"),
-                    "serialized"
+                    "serialized",
+                    xml_attr(all_notes[[wdata]], "subject")
                 )
+
                 notes <- notes[wdata]
                 # this can only be possible from an XML, DDI Codebook
                 # therefore the varFormat should always be of an SPSS type
