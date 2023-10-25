@@ -62,7 +62,7 @@ testdf <- data.frame(
 )
 
 
-test_that("make_labelled() works", {
-  expect_true(is.data.frame(make_labelled(testdf, dataDscr)))
-  expect_true(is.data.frame(make_labelled(testdf, dataDscr, declared = FALSE)))
+test_that("makeLabelled() works", {
+  expect_true(is.data.frame(makeLabelled(testdf, dataDscr)))
+  expect_true(is.data.frame(makeLabelled(testdf, dataDscr, declared = FALSE)))
 })

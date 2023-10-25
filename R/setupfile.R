@@ -795,7 +795,7 @@
         }
 
         dictionary <- recodeMissings(
-            dataset = make_labelled(csv, obj$dataDscr),
+            dataset = makeLabelled(csv, obj$dataDscr),
             to = type,
             return_dictionary = TRUE
         )

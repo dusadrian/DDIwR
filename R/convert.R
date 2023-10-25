@@ -347,7 +347,7 @@
 
 
             # return(list(data = data, codeBook = codeBook))
-            data <- make_labelled(data, codeBook$dataDscr)
+            data <- makeLabelled(data, codeBook$dataDscr)
         }
 
         attr(data, "stdyDscr") <- codeBook[["stdyDscr"]]
