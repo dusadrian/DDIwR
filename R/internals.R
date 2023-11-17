@@ -662,6 +662,22 @@ NULL
 }
 
 
+#' @description `getDateTime`: Current date and time
+#' @return `getDateTime`: Character vector
+#' @rdname DDIwR_internal
+#' @keywords internal
+`getDateTime` <- function() {
+    time <- capture.output(print(Sys.time()))
+    return(
+        substr(
+            gsub("\"", "", time),
+            5,
+            nchar(time)
+        )
+    )
+}
+
+
 #' @description `getDelimiter`: Guess the column delimiter from a text file
 #' @return `getDelimiter`: Character scalar
 #' @rdname DDIwR_internal

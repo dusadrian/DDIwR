@@ -16,6 +16,7 @@
 \alias{datanotes}
 \alias{formatExample}
 \alias{generateID}
+\alias{getDateTime}
 \alias{getDelimiter}
 \alias{getEnter}
 \alias{getFiles}
@@ -64,6 +65,8 @@ datanotes(data)
 formatExample(xml_node, level = 0, indent = 2)
 
 generateID(x, nchars = 16)
+
+getDateTime()
 
 getDelimiter(x)
 
@@ -128,6 +131,8 @@ writeRlist(variables, OS = "windows", indent = 4, dirpath = "", filename = "")
 \code{datanotes}: A "notes" element to be added in the \code{fileDscr} element
 
 \code{generateID}: Character vector
+
+\code{getDateTime}: Character vector
 
 \code{getDelimiter}: Character scalar
 
@@ -201,6 +206,8 @@ serialized and compressed R dataset
 specification
 
 \code{generateID}: Generate simple, custom unique ID codes
+
+\code{getDateTime}: Current date and time
 
 \code{getDelimiter}: Guess the column delimiter from a text file
 
