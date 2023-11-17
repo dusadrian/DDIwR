@@ -101,33 +101,35 @@
 
     dots <- list(...)
 
-    if (any(
-        is.element(
-            c("IDNo", "titl", "agency", "URI", "distrbtr", "abstract", "level"),
-            names(dots)
-        )
-    )) {
+    if (codeBook$name == "codeBook") {
+        if (any(
+            is.element(
+                c("IDNo", "titl", "agency", "URI", "distrbtr", "abstract", "level"),
+                names(dots)
+            )
+        )) {
 
-        if (!hasChildren(codeBook, "stdyDscr")) {
+            if (!hasChildren(codeBook, "stdyDscr")) {
+                addChildren(
+                    makeElement("stdyDscr", fill = TRUE, ... = ...),
+                    to = codeBook
+                )
+            }
+
+            if (!hasChildren(codeBook, "otherMat")) {
+                addChildren(
+                    makeElement("otherMat", fill = TRUE, ... = ...),
+                    to = codeBook
+                )
+            }
+        }
+
+        if (!hasChildren(codeBook, "docDscr")) {
             addChildren(
-                makeElement("stdyDscr", fill = TRUE, ... = ...),
+                makeElement("docDscr", fill = TRUE, ... = ...),
                 to = codeBook
             )
         }
-
-        if (!hasChildren(codeBook, "otherMat")) {
-            addChildren(
-                makeElement("otherMat", fill = TRUE, ... = ...),
-                to = codeBook
-            )
-        }
-    }
-
-    if (!hasChildren(codeBook, "docDscr")) {
-        addChildren(
-            makeElement("docDscr", fill = TRUE, ... = ...),
-            to = codeBook
-        )
     }
 
 
