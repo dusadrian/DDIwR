@@ -47,6 +47,6 @@
 #' xml_find_first xml_name xml_ns xml_text
 #' @importFrom readxl read_excel
 #' @importFrom writexl write_xlsx
-#' @importFrom utils file_test packageVersion read.csv write.table
+#' @importFrom utils capture.output file_test packageVersion read.csv write.table
 #'
 NULL
