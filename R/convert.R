@@ -61,14 +61,15 @@
 #' a data file, will result (by default) in a data frame containing declared
 #' labelled variables, as defined in package \bold{\pkg{declared}}.
 #'
-#' The current version reads and creates DDI Codebook version 2.5, with future
+#' The current version reads and creates DDI Codebook version 2.6, with future
 #' versions to extend the functionality for DDI Lifecycle versions 3.x and link
 #' to the future package \bold{DDI4R} for the UML model based version 4. It
-#' extends the standard DDI Codebook by offering the possibility to embed a CSV
-#' version of the raw data into the XML file containing the Codebook, into a
-#' `notes` child of the `fileDscr` component. This type of codebook is unique to
-#' this package and automatically detected when converting to another
-#' statistical software.
+#' extends the standard DDI Codebook by offering the possibility to embed a
+#' serialized version of the R dataset into the XML file containing the
+#' Codebook, within a `notes` child of the `fileDscr` component. This type of
+#' generated codebook is unique to this package and automatically detected when
+#' converting to another statistical software. This will likely be replaced with
+#' a time insensitive text version.
 #'
 #' Converting to SAS is experimental, and it relies on the same package
 #' \bold{\pkg{haven}} that uses the ReadStat C library. The safest way to
@@ -152,13 +153,17 @@
         admisc::stopError("Argument 'from' is missing.")
     }
 
-    funargs <- unlist(lapply(match.call(), deparse)[-1])
+    funargs <- sapply(
+        lapply(match.call(), deparse)[-1],
+        function(x) gsub("'|\"|[[:space:]]", "", x)
+    )
 
     # if (missing(to)) {
     #     admisc::stopError("sprintf("Argument %s is missing.", dQuote("to").")
     # }
 
     dots <- list(...)
+    embed <- !isFALSE(dots$embed)
 
     dictionary <- dots$dictionary
 
@@ -273,10 +278,12 @@
             encoding = encoding
         )
 
-        if (is.element("datafile", names(codeBook[["fileDscr"]]))) {
-            data <- codeBook[["fileDscr"]][["datafile"]]
-        }
-        else {
+        data <- NULL
+        separateData(codeBook, declared = declared)
+
+        # if not present in the codeBook, maybe it is on a separate .csv file
+        # in the same directory as the DDI .xml Codebook
+        if (is.null(data)) {
             if (is.null(csv)) {
                 files <- getFiles(tp_from$completePath, "*")
 
@@ -317,24 +324,28 @@
 
             data <- do.call("read.csv", callist)
 
-            if (ncol(data) == length(codeBook$dataDscr)) {
+            # this stops if there is more than one or no "dataDscr" element, and
+            # also stops if there are no "var" elements
+            variables <- getVariables(codeBook)
+
+            if (ncol(data) == length(variables)) {
                 if (header) {
-                    if (!identical(names(data), names(codeBook$dataDscr))) {
+                    if (!identical(names(data), names(variables))) {
                         admisc::stopError("The .csv file does not match the DDI Codebook")
                     }
                 }
                 else {
-                    names(data) <- names(codeBook$dataDscr)
+                    names(data) <- names(variables)
                 }
             }
-            if (ncol(data) == length(codeBook$dataDscr) + 1) {
+            if (ncol(data) == length(variables) + 1) {
                 if (header) {
-                    if (!identical(names(data)[-1], names(codeBook$dataDscr))) {
+                    if (!identical(names(data)[-1], names(variables))) {
                         admisc::stopError("The .csv file does not match the DDI Codebook")
                     }
                 }
                 else {
-                    names(data) <- c("row_names_csv_file", names(codeBook$dataDscr))
+                    names(data) <- c("row_names_csv_file", names(variables))
                 }
 
                 rownames(data) <- data[, 1]
@@ -347,12 +358,13 @@
 
 
             # return(list(data = data, codeBook = codeBook))
-            data <- makeLabelled(data, codeBook$dataDscr)
+            data <- makeLabelled(data, codeBook)
+            codeBook <- appendInfo(codeBook, data)
         }
 
-        attr(data, "stdyDscr") <- codeBook[["stdyDscr"]]
-
-        return(data)
+        if (!is.null(codeBook$children$stdyDscr)) {
+            attr(data, "stdyDscr") <- codeBook$children$stdyDscr
+        }
     }
     else {
         if (tp_from$fileext == "XLS" || tp_from$fileext == "XLSX") {
@@ -508,14 +520,31 @@
             data <- from
         }
 
-        codeBook <- getMetadata(data, error_null = FALSE)
-
-        codeBook$fileDscr$fileName <- tp_from$files
-
         filetypes <- c("SPSS", "SPSS", "SPSS", "Stata", "SAS", "XPT", "R", "DDI", "Excel", "Excel")
         fileexts <- c("SAV", "ZSAV", "POR", "DTA", "SAS7BDAT", "XPT", "RDS", "XML", "XLS", "XLSX")
 
-        codeBook$fileDscr$fileType <- filetypes[which(fileexts == tp_from$fileext)]
+        codeBook <- getMetadata(data, error_null = FALSE)
+        removeChildren(
+            "fileTxt",
+            from = codeBook$children$fileDscr
+        )
+
+        fileName <- makeElement(
+            "fileName",
+            list(content = tp_from$filenames)
+        )
+
+        fileType <- makeElement(
+            "fileType",
+            list(content = filetypes[which(fileexts == tp_from$fileext)])
+        )
+
+        fileTxt <- makeElement("fileTxt")
+        addChildren(list(fileName, fileType), to = fileTxt)
+        addChildren(
+            fileTxt,
+            to = codeBook$children$fileDscr
+        )
     }
 
     subset <- dots$subset
@@ -552,9 +581,13 @@
                 return(x)
             })
 
-            codeBook$fileDscr$datafile <- data
-
-            if (isFALSE(dots$embed)) {
+            if (embed) {
+                addChildren(
+                    datanotes(data),
+                    to = codeBook$children$fileDscr
+                )
+            }
+            else {
                 write.table(
                     undeclare(data, drop = TRUE),
                     file = file.path(
@@ -567,18 +600,8 @@
                 )
             }
 
-            # return(list(codeBook = codeBook, file = to))
-
-            attrdata <- attributes(data)
-            if (is.element("stdyDscr", names(attrdata))) {
-                codeBook$stdyDscr <- attrdata$stdyDscr
-            }
-
             exportDDI(
-                codebook = codeBook,
-                file = to,
-                declared = declared,
-                ... = ...  # embed = FALSE would go in three dots
+                checkvarFormat(codeBook), file = to, ... = ...
             )
         }
         else if (identical(tp_to$fileext, "SAV")) {
@@ -621,33 +644,37 @@
             colnms <- colnames(data)
             arglist <- list(data = data)
 
+            # this will also stop if there is more than one or no dataDscr
+            checkStata(data, codeBook)
+
+            # this also stops if there is one or no "dataDscr" element, and
+            # also stops if there are no "var" elements
+            variables <- getVariables(codeBook)
+
             rechars <- c()
 
             for (i in seq(ncol(data))) {
                 x <- data[[colnms[i]]]
-                metadata <- codeBook$dataDscr[[colnms[i]]]
+                metadata <- variables[[colnms[i]]]
                 labels <- metadata$labels
+
+                if (is.null(labels)) {
+                    labels <- getElement(getValues(metadata), "labels")
+                }
+
                 if (is.null(labels)) {
                     labels <- attr(x, "labels", exact = TRUE)
                 }
 
                 if (!is.null(labels)) {
-                    if (admisc::possibleNumeric(x)) {
-                        if (!admisc::wholeNumeric(admisc::asNumeric(x))) {
-                            admisc::stopError(
-                                sprintf(
-                                    "Stata does not allow labels for non-integer variables (e.g. \"%s\").",
-                                    colnms[i]
-                                )
-                            )
-                        }
-                    }
-
                     if (is.character(x)) {
                         rechars <- c(rechars, i)
                         # Stata does not allow labels for character variables
                         if (chartonum && !is.null(labels)) {
-                            x <- recodeCharcat(declared::as.declared(x), metadata = metadata)
+                            x <- recodeCharcat(
+                                declared::as.declared(x),
+                                metadata = metadata
+                            )
                         }
                         else {
                             label <- attr(x, "label", exact = TRUE)
@@ -660,7 +687,6 @@
                 }
             }
 
-
             if (recode) {
                 data <- recodeMissings(
                     dataset = data,
@@ -671,7 +697,6 @@
                 )
             }
 
-            # return(data)
             data[] <- lapply(data, function(x) {
                 attr(x, "format.spss") <- NULL
                 if (is.null(attr(x, "format.stata"))) {
@@ -724,7 +749,7 @@
             }
         }
         else if (identical(tp_to$fileext, "XLSX")) {
-            labels <- sapply(data, function(x) {
+            varlabels <- sapply(data, function(x) {
                 lbl <- attr(x, "label", exact = TRUE)
                 if (is.null(lbl)) {
                     lbl <- ""
@@ -732,22 +757,15 @@
                 return(lbl)
             })
 
-            varFormat <- lapply(codeBook$dataDscr, function(x) {
-                as.numeric(
-                    unlist(
-                        strsplit(
-                            substring(x$varFormat[1], 2),
-                            split = "\\."
-                        )
-                    )
-                )
-            })
+            # this stops if there is one or no "dataDscr" element, and
+            # also stops if there are no "var" elements
+            variables <- getVariables(codeBook)
 
             x <- list(
                 data = data,
                 variables = data.frame(
-                    name = names(labels),
-                    label = labels,
+                    name = names(varlabels),
+                    label = varlabels,
                     type = sapply(data, mode)
                 ),
                 values = data.frame(
@@ -758,22 +776,51 @@
                 )
             )
 
-            x$variables$width <- sapply(varFormat, "[[", 1)
-            x$variables$decimals <- sapply(varFormat, function(x) {
-                ifelse(length(x) > 1, x[2], NA)
+            varFormat <- lapply(variables, function(x) {
+                vf <- NULL
+
+                if (!is.null(x$children$varFormat)) {
+                    vf <- x$children$varFormat$content
+                }
+
+                if (is.null(vf)) {
+                    return(NA)
+                }
+
+                as.numeric(
+                    unlist(
+                        strsplit(
+                            substring(vf[1], 2),
+                            split = "\\."
+                        )
+                    )
+                )
             })
 
-            for (v in names(codeBook$dataDscr)) {
-                labels <- codeBook$dataDscr[[v]][["labels"]]
+            x$variables$width <- sapply(varFormat, function(x) {
+                ifelse (all(is.na(x)), NA, x[1])
+            })
+
+            x$variables$decimals <- sapply(varFormat, function(x) {
+                ifelse (
+                    all(is.na(x)) || length(x) == 1,
+                    NA,
+                    x[2]
+                )
+            })
+
+            for (v in names(variables)) {
+                values <- getValues(variables[[v]])
+                labels <- getElement(values, "labels")
                 if (!is.null(labels)) {
                     temp <- data.frame(
                         variable = v,
-                        value = labels,
+                        value = unname(labels),
                         label = names(labels),
                         missing = NA
                     )
 
-                    na_values <- codeBook$dataDscr[[v]][["na_values"]]
+                    na_values <- getElement(values, "na_values")
 
                     if (!is.null(na_values)) {
                         temp$missing[is.element(labels, na_values)] <- "y"

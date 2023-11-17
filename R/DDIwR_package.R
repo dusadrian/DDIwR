@@ -16,7 +16,7 @@
 #' files (such as SPSS, Stata and SAS, or even Excel), using the versatile
 #' package \bold{\pkg{haven}}. For R, the default object to store data and
 #' metadata is a \bold{\code{data.frame}}, and labelled data are automatically
-#' coerced to class \code{declared}.
+#' coerced to class `declared`.
 #'
 #' The research leading to the initial functions in this package has received
 #' funding from the European Union's Seventh Framework Programme (FP7/2007-2013)
@@ -30,8 +30,8 @@
 #' \tabular{ll}{
 #'   Package: \tab DDIwR\cr
 #'   Type: \tab Package\cr
-#'   Version: \tab 0.16.1\cr
-#'   Date: \tab 2023-10-16\cr
+#'   Version: \tab 0.16.2\cr
+#'   Date: \tab 2023-11-15\cr
 #'   License: \tab GPL-v3\cr
 #' }
 #'
@@ -43,7 +43,7 @@
 #' write_sav write_xpt
 #' @importFrom declared as.declared as.haven declared is.declared undeclare
 #' @importFrom tools file_ext
-#' @importFrom xml2 as_list read_xml xml_attr xml_children xml_find_all
+#' @importFrom xml2 as_list as_xml_document read_xml xml_attr xml_children xml_find_all
 #' xml_find_first xml_name xml_ns xml_text
 #' @importFrom readxl read_excel
 #' @importFrom writexl write_xlsx

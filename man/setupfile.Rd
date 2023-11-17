@@ -87,55 +87,6 @@ The end of line character(s) changes only when the target OS is different
 from the running OS.
 }
 \examples{
-codebook <- list(dataDscr = list(
-ID = list(
-    label = "Questionnaire ID",
-    type = "num",
-    measurement = "interval"
-),
-V1 = list(
-    label = "Label for the first variable",
-    labels = c(
-        "No"             =  0,
-        "Yes"            =  1,
-        "Not applicable" = -97,
-        "Not answered"   = -99),
-    na_values = c(-99, -97),
-    type = "cat",
-    measurement = "nominal"
-),
-V2 = list(
-    label = "Label for the second variable",
-    labels = c(
-        "Very little"    =  1,
-        "Little"         =  2,
-        "So, so"         =  3,
-        "Much"           =  4,
-        "Very much"      =  5,
-        "Don't know"     = -98),
-    na_values = c(-98),
-    type = "cat",
-    measurement = "ordinal"
-),
-V3 = list(
-    label = "Label for the third variable",
-    labels = c(
-        "First answer"   = "A",
-        "Second answer"  = "B",
-        "Don't know"     = -98),
-    na_values = c(-98),
-    type = "cat",
-    measurement = "nominal"
-),
-V4 = list(
-    label = "Number of children",
-    labels = c(
-        "Don't know"     = -98,
-        "Not answered"   = -99),
-    na_values = c(-99, -98),
-    type = "numcat",
-    measurement = "ratio"
-)))
 
 
 \dontrun{
@@ -145,15 +96,15 @@ V4 = list(
 # setwd("/path/to/read/write/directory")
 
 
-setupfile(codebook)
+setupfile(codeBook)
 
 
 # if the csv data file is available
-setupfile(codebook, csv="/path/to/csv/file.csv")
+setupfile(codeBook, csv="/path/to/csv/file.csv")
 
 
 # generating a specific type of setup file
-setupfile(codebook, file = "codebook.do") # type = "Stata" also works
+setupfile(codeBook, file = "codeBook.do") # type = "Stata" also works
 
 
 # other types of possible utilizations, using paths to specific files

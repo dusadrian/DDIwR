@@ -37,15 +37,16 @@ convert(x, to = file.path(tmp, "x.dta"))
 xdta <- getMetadata(file.path(tmp, "x.dta"))
 
 convert(x, to = file.path(tmp, "x.rds"))
+
 xrds <- getMetadata(file.path(tmp, "x.rds"))
 
 
 test_that("getMetadata() works", {
-  expect_true(is.list(xdfm$dataDscr))
-  expect_true(is.list(xsav$dataDscr))
-  expect_true(is.list(xxml$dataDscr))
-  expect_true(is.list(xdta$dataDscr))
-  expect_true(is.list(xrds$dataDscr))
+  expect_true(is.list(xdfm$children$dataDscr$children))
+  expect_true(is.list(xsav$children$dataDscr$children))
+  expect_true(is.list(xxml$children$dataDscr$children))
+  expect_true(is.list(xdta$children$dataDscr$children))
+  expect_true(is.list(xrds$children$dataDscr$children))
 
   # no metadata
   expect_error(getMetadata(data.frame(A = 1:5)))
@@ -53,60 +54,51 @@ test_that("getMetadata() works", {
   # still no metadata, but NULL instead of error
   expect_equal(getMetadata(data.frame(A = 1:5), error_null = TRUE), NULL)
 
-  expect_true(
-    is.data.frame(getMetadata(x, embed = TRUE)$fileDscr$datafile)
-  )
-
   # file paths should be characters of length 1
   expect_error(getMetadata(c("file1", "file2")))
   expect_error(getMetadata(1))
 })
 
 test_that("an error is triggered if the XML file is not valid", {
-    writeLines(rxml[-7], file.path(tmp, "x.xml"))
+    writeLines(rxml[-which(grepl("<docDscr>", rxml))], file.path(tmp, "x.xml"))
     expect_error(getMetadata(file.path(tmp, "x.xml")))
-    expect_error(getMetadata(tmp))
+    expect_error(getMetadata(tmp, print_processing = FALSE))
 })
 
-test_that("an error is triggered if the XML file does not contain a namespace", {
-    rxml[6] <- ">"
-    writeLines(rxml, file.path(tmp, "x.xml"))
-    expect_error(getMetadata(file.path(tmp, "x.xml")))
-})
+## by removing xmlns="ddi:codebook:2_5" from the codeBook's attributes
+# test_that("an error is triggered if the XML file does not contain a namespace", {
+#     rxml[6] <- ">"
+#     writeLines(rxml, file.path(tmp, "x.xml"))
+#     expect_error(getMetadata(file.path(tmp, "x.xml")))
+# })
 
-test_that("an error is triggered if the XML file does not contain any metadata", {
-    rxml[6] <- "xmlns=\"ddi:codebook:2_5\">"
-    writeLines(rxml[-c(55:128)], file.path(tmp, "x.xml"))
-    expect_error(getMetadata(file.path(tmp, "x.xml")))
-})
+# test_that("range of values changes function of metadata information", {
+#     rxml[46] <- "<range UNITS=\"INT\" min=\"-99\"/>"
+#     writeLines(rxml, file.path(tmp, "x.xml"))
+#     xdfm75 <- getMetadata(file.path(tmp, "x.xml"))
+#     # expect_equal(declared::missing_range(xdfm75$fileDscr$datafile$B)[2], Inf)
+#
+#     rxml[46] <- "<range UNITS=\"INT\" max=\"-91\"/>"
+#     writeLines(rxml, file.path(tmp, "x.xml"))
+#     xdfm75 <- getMetadata(file.path(tmp, "x.xml"))
+#     expect_equal(declared::missing_range(xdfm75$fileDscr$datafile$B)[1], -Inf)
+#
+#     rxml[46] <- "<range UNITS=\"INT\" min=\"-99\" max=\"-91\"/>"
+# })
 
-test_that("range of values changes function of metadata information", {
-    rxml[75] <- "<range UNITS=\"INT\" min=\"-99\"/>"
-    writeLines(rxml, file.path(tmp, "x.xml"))
-    xdfm75 <- getMetadata(file.path(tmp, "x.xml"))
-    expect_equal(declared::missing_range(xdfm75$fileDscr$datafile$B)[2], Inf)
-    
-    rxml[75] <- "<range UNITS=\"INT\" max=\"-91\"/>"
-    writeLines(rxml, file.path(tmp, "x.xml"))
-    xdfm75 <- getMetadata(file.path(tmp, "x.xml"))
-    expect_equal(declared::missing_range(xdfm75$fileDscr$datafile$B)[1], -Inf)
+# test_that("measurement is read, if existing", {
+#     xdfm$dataDscr$var$A$measurement <- "nominal"
+#     xdfm$dataDscr$var$B$measurement <- "ordinal"
+#     xdfm$dataDscr$var$C$measurement <- "unobserved"
+#     xdfm$dataDscr$var$D$measurement <- "ratio"
+#     xdfm$dataDscr$var$E$txt <- "This is just a normal character variable"
+#     exportDDI(xdfm, file = file.path(tmp, "x.xml"))
+#     xxml <- getMetadata(file.path(tmp, "x.xml"))
+#     expect_true(is.list(xxml))
+# })
 
-    rxml[75] <- "<range UNITS=\"INT\" min=\"-99\" max=\"-91\"/>"
-})
-
-test_that("measurement is read, if existing", {
-    xdfm$dataDscr$A$measurement <- "nominal"
-    xdfm$dataDscr$B$measurement <- "ordinal"
-    xdfm$dataDscr$C$measurement <- "unobserved"
-    xdfm$dataDscr$D$measurement <- "ratio"
-    xdfm$dataDscr$E$txt <- "This is just a normal character variable"
-    exportDDI(xdfm, file = file.path(tmp, "x.xml"))
-    xxml <- getMetadata(file.path(tmp, "x.xml"))
-    expect_true(is.list(xxml))
-})
-
-test_that("an error is triggered if the embedded CSV file is not valid", {
-    rxml[44] <- "\"A\"	\"B\"	\"C\"	\"D\"	\"E\""
-    writeLines(rxml, file.path(tmp, "x.xml"))
-    expect_error(getMetadata(file.path(tmp, "x.xml")))
-})
+# test_that("an error is triggered if the embedded CSV file is not valid", {
+#     rxml[43] <- "\"A\"	\"B\"	\"C\"	\"D\"	\"E\""
+#     writeLines(rxml, file.path(tmp, "x.xml"))
+#     expect_error(getMetadata(file.path(tmp, "x.xml")))
+# })

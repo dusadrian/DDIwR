@@ -2,24 +2,12 @@
 % Please edit documentation in R/exportDDI.R
 \name{exportDDI}
 \alias{exportDDI}
-\title{Export to a DDI metadata file}
+\title{Export a DDI Codebook to an XML file.}
 \usage{
-exportDDI(
-  codebook,
-  file = "",
-  OS = "",
-  indent = 4,
-  monolang = FALSE,
-  xmlang = "en",
-  xmlns = "",
-  embed = TRUE,
-  serialize = FALSE,
-  ...
-)
+exportDDI(codeBook, file = "", OS = "", indent = 2, ...)
 }
 \arguments{
-\item{codebook}{A list object containing the metadata, or a path to a directory
-where these objects are located, for batch processing}
+\item{codeBook}{A standard element of class \code{"DDI"}.}
 
 \item{file}{either a character string naming a file or a connection open for
 writing. "" indicates output to the console}
@@ -28,78 +16,51 @@ writing. "" indicates output to the console}
 
 \item{indent}{Indent width, in number of spaces}
 
-\item{monolang}{Logical, monolang or multilingual document}
-
-\item{xmlang}{ISO two letter code for the language used in the DDI elements}
-
-\item{xmlns}{Character, namespace for the XML file (ignored if already present
-in the codebook object)}
-
-\item{embed}{Logical, embed the CSV datafile in the XML file, if present}
-
-\item{serialize}{Logical, serialize the (gzipped) version of the embedded CSV datafile}
-
 \item{...}{Other arguments, mainly for internal use}
 }
 \value{
-An XML file containing a DDI version 2.5 metadata.
+An XML file containing a DDI version 2.6 metadata.
 }
 \description{
-Create a DDI Codebook version 2.5, XML file structure.
+Create a DDI Codebook version 2.6, XML file structure.
 }
 \details{
-#' The information object can either be a data file (includign an R data
-frame) or a list having two main list components:
+#' The information object is a \code{codeBook} DDI element having at least two
+main children:
 \itemize{
-\item \strong{\code{fileDscr}}, if the data is provided in a subcomponent named
+\item \strong{\code{fileDscr}}, with the data provided as a subcomponent named
 \strong{\code{datafile}}
 \item \strong{\code{dataDscr}}, having as many components as the number of variables in the
-(meta)data. For each variable, there should a mandatory subcomponent called
-\strong{\code{label}} (that contains the variable's label) and, if the variable is of a
-categorical type, another subcomponent called \strong{\code{labels}}.
+(meta)data.
 }
 
-Additional informations about the variables can be specified as further
-subcomponents, combining DDI specific data but also other information that
-might not be covered by DDI:
-\itemize{
-\item \strong{\code{measurement}} is the equivalent of the specific DDI attribute
-\strong{\code{nature}} of the \strong{\code{var}} element, which accepts these values:
-\code{"nominal"}, \code{"ordinal"}, \code{"interval"}, \code{"ratio"}, \code{"percent"}, and
-\code{"other"}.
-\item \strong{\code{type}} is useful for multiple reasons. A first one, if the variable is
-numerical, is to differentiate between \code{discrete} and \code{continuous} values of
-the attribute \strong{\code{intrvl}} from the same DDI element \strong{\code{var}}. Another
-reason is to help identifying pure string variables (containing text), when
-the subcomponent \strong{\code{type}} is equal to \code{"char"}. It is also used for the
-subelement \strong{\code{varFormat}} of the element \strong{\code{var}}. Finally, another reason
-is to differentiate between pure categorical (\code{"cat"}) and pure numerical
-(\code{"num"}) variables, as well as mixed ones, among which \code{"numcat"} referring
-to a numerical variable with very few values (such as the number of
-children), for which it is possible to also produce a table of frequencies
-along the numerical summaries. There are also categorical variables that can
-be interpreted as numeric (\code{"catnum"}), such as a Likert type response scale
-with 7 values, where numerical summaries are also routinely performed along
-with the usual table of frequencies.
-\item \strong{\code{missing}} is an important subcomponent, indicating which of the values
-in the variable are going to be treated as missing values, and it is going to
-be exported as the attribute \code{missing} of the DDI subelement \strong{\code{catgry}}.
-}
-
-There are many more possible attributes and DDI elements to be added in the
-information object, future versions of this function will likely expand.
-
-For the moment, only DDI codebook version 2.5 is exported, and DDI Lifecycle
+For the moment, only DDI codebook version 2.6 is exported, and DDI Lifecycle
 is planned for future releases.
 
-Argument \strong{\code{xmlang}} expects a two letter ISO country coding, for instance
-\code{"en"} to indicate English, or \code{"ro"} to indicate Romanian etc.
+A small number of required DDI specific elements and attributes have generic
+default values, if not otherwise specified in the codeBook list object. For
+the current version, these are: \code{monolang}, \code{xmlang}, \code{IDNo}, \code{titl},
+\code{agency}, \code{URI} (for the \code{holdings} element), \code{distrbtr}, \code{abstract} and
+\code{level} (for the \code{otherMat} element).
 
-If the document is monolingual, this argument is placed a single time for the
-entire document, in the attributes of the \code{codeBook} element. For
-multilingual documents, it is placed in the attributes of various other
-(sub)elements, for instance \code{abstract} as an obvious one, or the study
-title, name of the distributing institution, variable labels etc.
+The \code{codeBook} object is exported as provided, and it is the user's
+responsibility to test its validity agains the XML schema. Most of these
+arguments help create the mandatory element \code{stdyDscr}, which cannot be
+harvested from the dataset. If this element is not already present, providing
+any of these arguments via the three dots \code{...} gate, signal an automatic
+creation and inclusion with the values provided.
+
+Argument \strong{\code{xmlang}} expects a two letter ISO country coding, for instance
+\code{"en"} to indicate English, or \code{"ro"} to indicate Romanian etc. The original
+DDI Codebook attribute is called \strong{\code{xml:lang}}, which for obvious reasons
+had to be renamed into this R function.
+
+A logical argument \code{monolang} signal if the document is monolingual, in which
+case the attribute \code{xmlang} is placed a single time for the entire document
+in the \code{codeBook} element. For multilingual documents, \code{xmlang} should be
+placed in the attributes of various other (sub)elements, for instance
+\code{abstract}, or the study title, name of the distributing institution,
+variable labels etc.
 
 The argument \strong{\code{OS}} can be either:\cr
 \code{"windows"} (default), or \code{"Windows"}, \code{"Win"}, \code{"win"},\cr
@@ -111,77 +72,8 @@ the running OS.
 
 The argument \strong{\code{indent}} controls how many spaces will be used in the XML
 file, to indent the different subelements.
-
-A small number of required DDI specific elements and attributes have generic
-default values but they may be specified using the three dots \strong{\code{...}}
-argument. For the current version, these are: \code{IDNo}, \code{titl}, \code{agency}, \code{URI}
-(for the \code{holdings} element), \code{distrbtr}, \code{abstract} and \code{level} (for the
-\code{otherMat} element).
-
-The argument \strong{\code{serialize}} depends on embedding the data in the XML file or
-not. Until the DDI Codebook standard will be extende with a formal element to
-store the data, this serialization is R specific, and it saves a gzipped
-version of the R data frame.
 }
 \examples{
-codeBook <- list(dataDscr = list(
-ID = list(
-    label = "Questionnaire ID",
-    type = "num",
-    measurement = "interval"
-),
-V1 = list(
-    label = "Label for the first variable",
-    labels = c(
-        "No"             =  0,
-        "Yes"            =  1,
-        "Not applicable" = -97,
-        "Not answered"   = -99),
-    na_values = c(-99, -97),
-    type = "cat",
-    measurement = "nominal"
-),
-V2 = list(
-    label = "Label for the second variable",
-    labels = c(
-        "Very little"    =  1,
-        "Little"         =  2,
-        "So, so"         =  3,
-        "Much"           =  4,
-        "Very much"      =  5,
-        "Don't know"     = -98),
-    na_values = c(-98),
-    type = "cat",
-    measurement = "ordinal"
-),
-V3 = list(
-    label = "Label for the third variable",
-    labels = c(
-        "First answer"   = "A",
-        "Second answer"  = "B",
-        "Don't know"     = -98),
-    na_values = c(-98),
-    type = "cat",
-    measurement = "nominal"
-),
-V4 = list(
-    label = "Number of children",
-    labels = c(
-        "Don't know"     = -98,
-        "Not answered"   = -99),
-    na_values = c(-99, -98),
-    type = "numcat",
-    measurement = "ratio"
-),
-V5 = list(
-    label = "Political party reference",
-    type = "char",
-    txt = "When the respondent indicated his political party reference,
-        his/her open response was recoded on a scale of 1-99 with parties
-        with a left-wing orientation coded on the low end of the scale and
-        parties with a right-wing orientation coded on the high end of the
-        scale. Categories 90-99 were reserved miscellaneous responses."
-)))
 
 \dontrun{
 exportDDI(codeBook, file = "codebook.xml")

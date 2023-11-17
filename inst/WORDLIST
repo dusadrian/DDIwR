@@ -1,4 +1,7 @@
+CESSDA
+Catalogue
 Codebook
+Codebooks
 DDI
 DwB
 FP
@@ -11,6 +14,7 @@ Recodes
 StatConverter
 Stata
 UML
+Validator
 adrian
 codebook
 csv
@@ -20,15 +24,9 @@ enviroment
 eol
 extentions
 https
-includign
 labelled
-monolang
 recode
 recoded
 recoding
 ro
-subcomponent
-subcomponents
-subelement
-subelements
 unibuc

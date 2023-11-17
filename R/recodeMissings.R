@@ -127,7 +127,7 @@
 
     dataDscr <- collectMetadata(dataset, error_null = error_null)
     charvar <- unname(sapply(dataset, is.character))
-    
+
     spss <- unname(sapply(dataset, function(x) {
         !is.null(attr(x, "labels", exact = TRUE)) &&
         (
@@ -146,12 +146,19 @@
     allMissing <- list()
 
     for (variable in names(dataset[, spss | stata, drop = FALSE])) {
-        x <- declared::undeclare(dataset[[variable]], drop = TRUE)
+        x <- declared::undeclare(getElement(dataset, variable), drop = TRUE)
         attributes(x) <- NULL
-        metadata <- dataDscr[[variable]]
-        labels <- metadata[["labels"]]
-        na_range <- metadata[["na_range"]]
-        missing <- metadata[["na_values"]]
+        metadata <- getElement(dataDscr, variable)
+        labels <- getElement(metadata, "labels")
+        missing <- getElement(metadata, "na_values")
+        na_range <- getElement(metadata, "na_range")
+
+        if (is.null(labels) & is.null(na_range) & is.null(missing)) {
+            temp <- getValues(metadata)
+            labels <- temp$labels
+            na_range <- temp$na_range
+            missing <- temp$na_values
+        }
 
         if (!is.null(na_range)) {
             misvals <- x[x >= na_range[1] & x <= na_range[2]]
@@ -187,7 +194,7 @@
             names(missing)[wel] <- names(labels)[
                 match(missing[wel], labels)
             ]
-            
+
         }
 
         allMissing[[variable]] <- missing
@@ -221,7 +228,7 @@
     torecode <- torecode[order(torecode$spss, decreasing = tospss), ]
     torecode$new <- torecode$old
     wi <- which(torecode$spss != tospss)
-    
+
     if (length(wi) > 0) {
         for (i in wi) {
             if (nzchar(torecode$label[i])) {
@@ -258,7 +265,7 @@
         if (start < 0) {
             mcodes <- -1 * mcodes
         }
-        
+
         torecode$new <- mcodes[torecode$new]
     }
     else {
@@ -269,7 +276,7 @@
         }
         torecode$new <- letters[torecode$new]
     }
-    
+
     torecode$label[is.na(torecode$label)] <- ""
 
     if (is.null(dictionary)) {
@@ -291,7 +298,7 @@
     old <- dictionary$old
     new <- dictionary$new
     pnold <- admisc::possibleNumeric(old, each = TRUE)
-    
+
     old <- tolower(old)
     if (is.character(new)) {
         new <- tolower(new)
@@ -301,10 +308,17 @@
         x <- declared::undeclare(dataset[[variable]], drop = TRUE)
         attributes(x) <- NULL # for haven_labelled with tagged NAs
 
-        metadata <- dataDscr[[variable]]
-        labels_x <- metadata[["labels"]]
-        na_values_x <- metadata[["na_values"]]
-        na_range_x <- metadata[["na_range"]]
+        metadata <- getElement(dataDscr, variable)
+        labels_x <- getElement(metadata, "labels")
+        na_values_x <- getElement(metadata, "na_values")
+        na_range_x <- getElement(metadata, "na_range")
+
+        if (is.null(labels_x) & is.null(na_values_x) & is.null(na_range_x)) {
+            temp <- getValues(metadata)
+            labels_x <- temp$labels
+            na_values_x <- temp$na_values
+            na_range_x <- temp$na_range
+        }
 
         if (!is.null(na_values_x) | !is.null(na_range_x)) {
             if (tospss) {
@@ -315,7 +329,7 @@
                 }
                 else if (!is.null(na_range_x)) {
                     na_range_x <- range(as.numeric(na_range_x))
-                    
+
                     if (any(pnold)) {
                         selection[pnold] <-
                             as.numeric(old[pnold]) >= min(na_range_x) &
@@ -329,7 +343,7 @@
                     # spss_x <- dictionary$spss[selection]
 
                     for (d in seq(length(old_x))) {
-                        
+
                         if (!is.null(na_values_x)) {
                             na_values_x[is.element(na_values_x, old_x[d])] <- new_x[d]
                         }
@@ -365,7 +379,7 @@
                 callist <- list(
                     x = x,
                     labels = labels_x,
-                    label = metadata[["label"]]
+                    label = getElement(metadata, "label")
                 )
 
                 if (length(na_values_x) > 0) {
@@ -373,7 +387,7 @@
                 }
 
                 if (length(na_range_x) > 0) {
-                    
+
                     # update na_range, this is from SPSS to an SPSS type variable
                     updated <- logical(2)
                     copy_range <- na_range_x
@@ -443,7 +457,7 @@
                 # Stata nor SAS do not accept missing values for chars technically,
                 # a char var with missing value would be "valid" in SPSS but it doesn't
                 # matter if recoding to Stata or SAS, it's like it would not exist
-                
+
                 attributes(x) <- NULL
 
                 selection <- logical(length(old))
@@ -453,7 +467,7 @@
                 }
                 else if (!is.null(na_range_x)) {
                     pnold <- admisc::possibleNumeric(old, each = TRUE)
-                    
+
                     if (any(pnold)) {
                         selection[pnold] <-
                             as.numeric(old[pnold]) >= min(na_range_x) &
@@ -471,7 +485,7 @@
 
                     for (d in seq(length(old_x))) {
                         x[is.element(x, old_x[d])] <- haven::tagged_na(new_x[d])
-                        
+
                         labels_x[
                             is.element(labels_x, old_x[d])
                         ] <- haven::tagged_na(new_x[d])
@@ -490,7 +504,7 @@
                     dataset[[variable]] <- haven::labelled(
                         x,
                         labels = labels_x,
-                        label = metadata[["label"]]
+                        label = getElement(metadata, "label")
                     )
                 }
             }

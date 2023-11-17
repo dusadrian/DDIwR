@@ -1,5 +1,4 @@
-# The following lines produce the R dataset needed for all tests,
-# available in sysdata.rda
+# The following lines produce the R dataset "dfm" needed for all tests
 
 # n <- 123
 # set.seed(n)
@@ -57,7 +56,7 @@
 #   match(10 * dfm$Area + dfm$Gender, c(11, 12, 21, 22))
 # ]
 
-
+data(dfm)
 
 tmp <- tempdir()
 convert(dfm, to = file.path(tmp, "dfm.sav"))
@@ -68,9 +67,13 @@ dfmspss[] <- lapply(dfmspss, function(x) {
   return(x)
 })
 
-# test_that("convert() works from R to SPSS and return", {
-#   expect_equal(dfm, dfmspss)
-# })
+test_that("convert() works from R to SPSS and return", {
+  expect_equal(dfm$Area, dfmspss$Area)
+  expect_equal(dfm$Gender, dfmspss$Gender)
+  expect_equal(dfm$Opinion, dfmspss$Opinion)
+  expect_equal(dfm$Age, dfmspss$Age)
+  expect_equal(dfm$Children, dfmspss$Children)
+})
 
 
 convert(dfm, to = file.path(tmp, "dfm.dta"), chartonum = TRUE)

@@ -38,11 +38,12 @@
 
     dots <- list(...)
     metadata <- dots$metadata
+
     if (is.null(metadata)) {
         metadata <- attributes(x)
     }
 
-    labels <- metadata[["labels"]]
+    labels <- getElement(metadata, "labels")
     xdeclared <- inherits(x, "declared")
 
 
@@ -60,8 +61,8 @@
 
     x <- declared::undeclare(x, drop = TRUE)
 
-    label <- metadata[["label"]]
-    na_values <- metadata[["na_values"]]
+    label <- metadata$children$labl$content
+    na_values <- getElement(metadata, "na_values")
 
     x[x == ""] <- NA
 

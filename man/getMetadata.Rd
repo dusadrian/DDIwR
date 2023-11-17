@@ -4,28 +4,16 @@
 \alias{getMetadata}
 \title{Extract metadata information}
 \usage{
-getMetadata(
-  x,
-  save = FALSE,
-  declared = TRUE,
-  OS = "Windows",
-  encoding = "UTF-8",
-  ...
-)
+getMetadata(x, declared = TRUE, encoding = "UTF-8", ...)
 }
 \arguments{
 \item{x}{A path to a file, or a data frame object}
 
-\item{save}{Logical, save an .R file in the same directory}
-
 \item{declared}{Logical, embed the data as a declared object}
-
-\item{OS}{The target operating system, for the eol - end of line separator,
-if saving the file}
 
 \item{encoding}{The character encoding used to read a file}
 
-\item{...}{.Additional arguments for this function (internal uses only)}
+\item{...}{Additional arguments for this function (internal use only)}
 }
 \value{
 An R list roughly equivalent to a DDI Codebook, containing all variables,
@@ -54,17 +42,9 @@ children)\cr
 frequencies
 }
 
-By default, this function extracts the metadata into an R list object, but
-when the argument \code{save} is activated, the argument \code{OS} (case insensitive)
-can be either:\cr
-\code{"Windows"} (default), or \code{"Win"},\cr
-\code{"MacOS"}, \code{"Darwin"}, \code{"Apple"}, \code{"Mac"},\cr
-\code{"Linux"}.\cr
+By default, this function extracts the metadata into an R list object.
 
-The end of line separator changes only when the target OS is different from
-the running OS.
-
-For the moment, only DDI version 2.5 (Codebook) is supported, but DDI
+For the moment, only DDI version 2.6 (Codebook) is supported, but DDI
 Lifecycle is planned to be implemented.
 }
 \examples{
@@ -81,7 +61,7 @@ x <- data.frame(
     )
 )
 
-getMetadata(x)$dataDscr
+getMetadata(x)
 
 }
 \author{

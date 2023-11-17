@@ -97,14 +97,15 @@ to the R enviroment. Conversion to R, either in the working space or as
 a data file, will result (by default) in a data frame containing declared
 labelled variables, as defined in package \bold{\pkg{declared}}.
 
-The current version reads and creates DDI Codebook version 2.5, with future
+The current version reads and creates DDI Codebook version 2.6, with future
 versions to extend the functionality for DDI Lifecycle versions 3.x and link
 to the future package \bold{DDI4R} for the UML model based version 4. It
-extends the standard DDI Codebook by offering the possibility to embed a CSV
-version of the raw data into the XML file containing the Codebook, into a
-\code{notes} child of the \code{fileDscr} component. This type of codebook is unique to
-this package and automatically detected when converting to another
-statistical software.
+extends the standard DDI Codebook by offering the possibility to embed a
+serialized version of the R dataset into the XML file containing the
+Codebook, within a \code{notes} child of the \code{fileDscr} component. This type of
+generated codebook is unique to this package and automatically detected when
+converting to another statistical software. This will likely be replaced with
+a time insensitive text version.
 
 Converting to SAS is experimental, and it relies on the same package
 \bold{\pkg{haven}} that uses the ReadStat C library. The safest way to
