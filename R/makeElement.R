@@ -81,6 +81,8 @@
     checkElement(name)
 
     dots <- list(...)
+    prodDateTime <- getDateTime()
+    version <- as.character(packageVersion("DDIwR"))
 
     result <- structure(list(name = name), class = "DDI")
 
@@ -188,6 +190,51 @@
             )
             return(stdyDscr)
         }
+        else if (identical(name, "prodDate")) {
+            prodDate <- makeElement("prodDate")
+            addAttributes(
+                list(date = substring(prodDateTime, 1, 19)),
+                to = prodDate
+            )
+            addContent(prodDateTime, to = prodDate)
+            return(prodDate)
+        }
+        else if (identical(name, "software")) {
+            software <- makeElement("software")
+            addAttributes(
+                list(version = version),
+                to = software
+            )
+            addContent("R package DDIwR", to = software)
+            return(software)
+        }
+        else if (identical(name, "prodStmt")) {
+            prodStmt <- makeElement("prodStmt")
+            addChildren(
+                list(
+                    makeElement("prodDate", fill = fill, ... = ...),
+                    makeElement("software", fill = fill, ... = ...)
+                ),
+                to = prodStmt
+            )
+            return(prodStmt)
+        }
+        else if (identical(name, "docDscr")) {
+            docDscr <- makeElement("docDscr")
+            addChildren(
+                makeElement(
+                    "citation",
+                    info = list(
+                        children = list(
+                            makeElement("titlStmt", fill = fill, ... = ...),
+                            makeElement("prodStmt", fill = fill, ... = ...)
+                        )
+                    )
+                ),
+                to = docDscr
+            )
+            return(docDscr)
+        }
         else if (identical(name, "otherMat")) {
             otherMat <- makeElement("otherMat")
             addAttributes(list(level = level), to = otherMat)
@@ -247,8 +294,3 @@
 # }))
 #   backward derivation    forward       qstn        var
 #         16         71        107        167        242
-
-# Application ID AA00CMJ0UZ
-# CD2049820
-
-# https://suchen.mobile.de/fahrzeuge/details.html?id=374269085&action=eyeCatcher&ecol=RED&fr=2021%3A&ft=PETROL&isSearchRequest=true&ml=%3A20000&ms=1900%3B25%3B%3B&od=up&ref=srp&refId=5de26c77-820e-92fa-144c-8c4e948f7786&s=Car&sb=p&searchId=5de26c77-820e-92fa-144c-8c4e948f7786&tr=MANUAL_GEAR&vc=Car

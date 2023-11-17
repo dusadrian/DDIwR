@@ -123,6 +123,13 @@
         }
     }
 
+    if (!hasChildren(codeBook, "docDscr")) {
+        addChildren(
+            makeElement("docDscr", fill = TRUE, ... = ...),
+            to = codeBook
+        )
+    }
+
 
     xmlang <- checkDots(dots$xmlang, default = "en")
 
