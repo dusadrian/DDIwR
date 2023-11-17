@@ -69,7 +69,7 @@ associated mandatory children, for instance title, ID number, distributor,
 citation, abstract etc.
 }
 \examples{
-stdyDscr <- makeElement("stdyDscr", fill = fill)
+stdyDscr <- makeElement("stdyDscr", fill = TRUE)
 
 # the location of the R list sub-element "abstract":
 stdyDscr$children$citation$children$titlStmt$children$titl
