@@ -9,7 +9,7 @@
 #' #' The information object is a `codeBook` DDI element having at least two
 #' main children:
 #'
-#' - **`fileDscr`**, with the data provided as a subcomponent named
+#' - **`fileDscr`**, with the data provided as a sub-component named
 #' **`datafile`**
 #'
 #' - **`dataDscr`**, having as many components as the number of variables in the
@@ -19,13 +19,13 @@
 #' is planned for future releases.
 #'
 #' A small number of required DDI specific elements and attributes have generic
-#' default values, if not otherwise specified in the codeBook list object. For
+#' default values, if not otherwise specified in the `codeBook` list object. For
 #' the current version, these are: `monolang`, `xmlang`, `IDNo`, `titl`,
 #' `agency`, `URI` (for the `holdings` element), `distrbtr`, `abstract` and
 #' `level` (for the `otherMat` element).
 #'
 #' The `codeBook` object is exported as provided, and it is the user's
-#' responsibility to test its validity agains the XML schema. Most of these
+#' responsibility to test its validity against the XML schema. Most of these
 #' arguments help create the mandatory element `stdyDscr`, which cannot be
 #' harvested from the dataset. If this element is not already present, providing
 #' any of these arguments via the three dots `...` gate, signal an automatic
@@ -39,7 +39,7 @@
 #' A logical argument `monolang` signal if the document is monolingual, in which
 #' case the attribute `xmlang` is placed a single time for the entire document
 #' in the `codeBook` element. For multilingual documents, `xmlang` should be
-#' placed in the attributes of various other (sub)elements, for instance
+#' placed in the attributes of various other (child) elements, for instance
 #' `abstract`, or the study title, name of the distributing institution,
 #' variable labels etc.
 #'
@@ -52,7 +52,7 @@
 #' the running OS.
 #'
 #' The argument **`indent`** controls how many spaces will be used in the XML
-#' file, to indent the different subelements.
+#' file, to indent the different sub-elements.
 #'
 #' @return
 #' An XML file containing a DDI version 2.6 metadata.
@@ -100,6 +100,7 @@
     # https://cmv.cessda.eu/documentation/constraints.html
 
     dots <- list(...)
+    hasdataDscr <- hasChildren(codeBook, "dataDscr")
 
     if (codeBook$name == "codeBook") {
         if (any(
@@ -130,6 +131,10 @@
                 to = codeBook
             )
         }
+
+        if (hasdataDscr) {
+            codeBook <- checkvarFormat(codeBook)
+        }
     }
 
 
@@ -147,8 +152,16 @@
         file = file
     )
 
+    if (!identical(indent, 2) || !identical(OS, "") || !hasdataDscr) {
+        xmlfile <- readLines(file)
 
-    if (!identical(indent, 2) || !identical(OS, "")) {
+        if (!hasdataDscr) {
+            dataDscr <- makeXMLdataDscr(indent = indent, ... = ...)
+            if (!is.null(dataDscr)) {
+                wfd <- which(grepl("</fileDscr>", xmlfile))
+                xmlfile <- append(xmlfile, dataDscr, after = wfd)
+            }
+        }
 
         defaultOS <- Sys.info()[["sysname"]]
         checkArgument(indent, default = 2)
@@ -156,13 +169,13 @@
 
         enter <- getEnter(OS = ifelse(OS == "", defaultOS, OS))
 
-        xmlfile <- readLines(file)
+        xmlfile <- paste(
+            prespace(xmlfile, indent),
+            collapse = enter
+        )
 
         writeLines(
-            paste(
-                prespace(xmlfile, indent),
-                collapse = enter
-            ),
+            xmlfile,
             con = file
         )
     }

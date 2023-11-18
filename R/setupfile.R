@@ -125,13 +125,15 @@
         function(x) gsub("'|\"|[[:space:]]", "", x)
     )
     objname <- admisc::getName(funargs["obj"])
+    dataDscr_vars <- NULL # to initialize
 
     if (is.data.frame(obj)) {
         csv <- obj
         # TODO: getMetadata sa nu mai intoarca codeBook ci doar var
         # setul de date o sa fie atasat in alta parte, vad eu
-        obj <- getMetadata(obj)
-        obj$fileDscr <- list(datafile = csv)
+        # obj <- getMetadata(obj)
+        dataDscr_vars <- collectRMetadata(obj)
+        # obj$fileDscr <- list(datafile = csv)
     }
 
     dots <- list(...)
@@ -683,22 +685,18 @@
         return(invisible())
     }
     else if (is.list(obj)) {
-        if (is.data.frame(obj)) {
-            obj <- getMetadata(
-                obj,
-                fromsetupfile = TRUE,
-                embed = TRUE,
-                save = saveFile
-            )
+
+        if (is.null(dataDscr_vars)) {
+            dataDscr_vars <- getVariables(obj)
         }
 
-        tmp <- getElement(getElement(obj, "fileDscr"), "datafile")
+        if (is.null(csv)) {
+            tmp <- getElement(getElement(obj, "fileDscr"), "datafile")
 
-        if (!is.null(tmp)) {
-            csv <- tmp
+            if (!is.null(tmp)) {
+                csv <- tmp
+            }
         }
-
-        dataDscr_vars <- getVariables(obj)
 
         outdir <- FALSE
     }
@@ -755,7 +753,7 @@
         }
 
         dictionary <- recodeMissings(
-            dataset = makeLabelled(csv, obj), # obj now contains the metadata, see line 687
+            dataset = makeLabelled(csv, dataDscr_vars),
             to = type,
             return_dictionary = TRUE
         )

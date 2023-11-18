@@ -133,7 +133,6 @@
     tp <- treatPath(x, type = "*")
 
     singlefile <- length(tp$files) == 1
-    notes <- NULL
 
     if (print_processing & !fromsetupfile & !singlefile) {
         cat("Processing:\n")
@@ -154,8 +153,12 @@
 
             # TODO: perhaps validate the codebook against the schema, first...!?
 
-            xml <- getXML(file.path(tp$completePath, tp$files[ff]))
-            codeBook <- fromXMList(xml2::as_list(xml))
+            xmlist <- xml2::as_list(
+                getXML(file.path(tp$completePath, tp$files[ff]))
+            )
+
+            checkXMList(xmlist)
+            codeBook <- fromXMList(xmlist)
 
         }
         else {

@@ -88,44 +88,9 @@
     to <- toupper(match.arg(to))
     tospss <- to == "SPSS"
 
-    error_null <- ifelse(isFALSE(dots$error_null), FALSE, TRUE)
-    to_declared <- ifelse(isFALSE(dots$to_declared), FALSE, TRUE)
+    to_declared <- !isFALSE(dots$to_declared)
 
-
-    if (is.data.frame(dataset)) {
-        error <- TRUE
-        i <- 1
-        while (i <= ncol(dataset) & error) {
-            attrx <- attributes(dataset[[i]])
-            if (
-                any(
-                    is.element(
-                        c("labels", "na_value", "na_range"),
-                        names(attrx)
-                    )
-                )
-            ) {
-                error <- FALSE
-            }
-            i <- i + 1
-        }
-
-        if (error && error_null) {
-            admisc::stopError(
-                paste(
-                    "The input does not seem to contain any",
-                    "metadata about values and labels."
-                )
-            )
-        }
-    }
-    else {
-        admisc::stopError(
-            "The input should be a data frame containing labelled variables."
-        )
-    }
-
-    dataDscr <- collectMetadata(dataset, error_null = error_null)
+    dataDscr <- collectRMetadata(dataset, ... = ...)
     charvar <- unname(sapply(dataset, is.character))
 
     spss <- unname(sapply(dataset, function(x) {

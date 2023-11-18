@@ -164,7 +164,7 @@
 
     dots <- list(...)
     embed <- !isFALSE(dots$embed)
-
+    codeBook <- NULL
     dictionary <- dots$dictionary
 
     Robject <- FALSE
@@ -272,18 +272,13 @@
     }
 
     if (tp_from$fileext == "XML") {
-        codeBook <- getMetadata(
-            from,
-            declared = declared,
-            encoding = encoding
-        )
-
-        data <- NULL
-        separateData(codeBook, declared = declared)
+        xml <- getXML(from)
+        data <- extractData(xml)
 
         # if not present in the codeBook, maybe it is on a separate .csv file
         # in the same directory as the DDI .xml Codebook
         if (is.null(data)) {
+
             if (is.null(csv)) {
                 files <- getFiles(tp_from$completePath, "*")
 
@@ -323,10 +318,7 @@
             header <- ifelse(isFALSE(callist$header), FALSE, TRUE)
 
             data <- do.call("read.csv", callist)
-
-            # this stops if there is more than one or no "dataDscr" element, and
-            # also stops if there are no "var" elements
-            variables <- getVariables(codeBook)
+            variables <- XMLvariables(xml)
 
             if (ncol(data) == length(variables)) {
                 if (header) {
@@ -338,6 +330,7 @@
                     names(data) <- names(variables)
                 }
             }
+
             if (ncol(data) == length(variables) + 1) {
                 if (header) {
                     if (!identical(names(data)[-1], names(variables))) {
@@ -358,176 +351,193 @@
 
 
             # return(list(data = data, codeBook = codeBook))
-            data <- makeLabelled(data, codeBook)
-            codeBook <- appendInfo(codeBook, data)
+            data <- makeLabelled(data, variables)
+            # codeBook <- appendInfo(codeBook, data)
         }
 
-        if (!is.null(codeBook$children$stdyDscr)) {
-            attr(data, "stdyDscr") <- codeBook$children$stdyDscr
+        # if (!is.null(codeBook$children$stdyDscr)) {
+        #     attr(data, "stdyDscr") <- codeBook$children$stdyDscr
+        # }
+    }
+    else if (tp_from$fileext == "XLS" || tp_from$fileext == "XLSX") {
+        if (requireNamespace("readxl", quietly = TRUE)) {
+            callist <- list(path = from)
+            for (f in names(formals(readxl::read_excel))) {
+                if (is.element(f, names(dots))) {
+                    callist[[f]] <- dots[[f]]
+                }
+            }
+
+            data <- do.call("read_excel", callist)
+            variables <- NULL
+            callist$sheet <- "variables"
+            admisc::tryCatchWEM(variables <- do.call("read_excel", callist))
+
+            values <- NULL
+            callist$sheet <- "values"
+            admisc::tryCatchWEM(values <- do.call("read_excel", callist))
+            if (is.null(values)) {
+                callist$sheet <- "codes"
+                admisc::tryCatchWEM(values <- do.call("read_excel", callist))
+            }
+
+            if (!is.null(variables) & !is.null(values)) {
+                for (v in colnames(data)) {
+                    callist <- list(x = data[[v]])
+                    label <- NULL
+                    admisc::tryCatchWEM(label <- variables$label[variables$name == v])
+                    if (length(label) == 1) {
+                        if (!identical(label, "") & !is.na(label)) {
+                            callist$label <- label
+                        }
+                    }
+
+                    labels <- NULL
+                    admisc::tryCatchWEM(labels <- values$value[values$variable == v])
+                    if (is.null(labels)) {
+                        admisc::tryCatchWEM(labels <- values$code[values$variable == v])
+                    }
+
+                    nms <- NULL
+                    admisc::tryCatchWEM(nms <- values$label[values$variable == v])
+
+                    vmissing <- NULL
+                    admisc::tryCatchWEM(vmissing <- values$missing[values$variable == v])
+
+                    if (length(labels) > 0 & length(nms) > 0 & length(vmissing) > 0) {
+                        if (admisc::possibleNumeric(labels)) {
+                            labels <- admisc::asNumeric(labels)
+                        }
+
+                        if (!all(is.na(vmissing)) && any(vmissing == "y")) {
+                            callist$na_values <- labels[which(vmissing == "y")]
+                        }
+
+                        names(labels) <- nms
+                        callist$labels <- labels
+                    }
+
+                    data[[v]] <- do.call("declared", callist)
+
+                }
+            }
         }
     }
+    else if (tp_from$fileext == "SAV" || tp_from$fileext == "ZSAV") {
+        fargs <- names(formals(read_sav))
+        arglist <- dots[is.element(names(dots), fargs)]
+        arglist$file <- from
+        arglist$user_na <- !isFALSE(dots$user_na)
+        arglist$encoding <- encoding
+        data <- do.call(haven::read_sav, arglist) # haven_labelled variables
+    }
+    else if (tp_from$fileext == "POR") {
+        fargs <- names(formals(read_por))
+        arglist <- dots[is.element(names(dots), fargs)]
+        arglist$file <- from
+        arglist$user_na <- !isFALSE(dots$user_na)
+        data <- do.call(haven::read_por, arglist)
+    }
+    else if (tp_from$fileext == "DTA") {
+        fargs <- names(formals(read_dta))
+        arglist <- dots[is.element(names(dots), fargs)]
+        arglist$file <- from
+        arglist$encoding <- encoding
+        data <- do.call(haven::read_dta, arglist)
+
+        # return(list(data = data, to = to, dictionary = dictionary, chartonum = chartonum, to_declared = FALSE, error_null = FALSE))
+        if (recode) {
+            data <- recodeMissings(
+                dataset = data,
+                to = "SPSS",
+                dictionary = dictionary,
+                chartonum = chartonum,
+                to_declared = declared,
+                error_null = FALSE
+            )
+        }
+    }
+    else if (tp_from$fileext == "SAS7BDAT") {
+        fargs <- names(formals(read_sas))
+        arglist <- dots[is.element(names(dots), fargs)]
+        arglist$data_file <- from
+        arglist$encoding <- encoding
+
+        if (is.null(arglist$catalog_file)) {
+            cats <- treatPath(tp_from$completePath, type = "sas7bcat")
+            if (any(is.element(cats$filenames, tp_from$filenames))) {
+                arglist$catalog_file <- file.path(
+                    tp_from$completePath,
+                    paste(tp_from$filenames, "sas7bcat", sep = ".")
+                )
+            }
+        }
+
+        data <- do.call(haven::read_sas, arglist)
+        if (recode) {
+            data <- recodeMissings(
+                dataset = data,
+                to = "SPSS",
+                dictionary = dictionary,
+                chartonum = chartonum,
+                to_declared = declared,
+                error_null = FALSE
+            )
+        }
+
+    }
+    else if (tp_from$fileext == "XPT") {
+        fargs <- names(formals(haven::read_xpt))
+        arglist <- dots[is.element(names(dots), fargs)]
+        arglist$file <- from
+        # arglist$encoding <- encoding
+        data <- do.call(haven::read_xpt, arglist)
+
+        if (recode) {
+            data <- recodeMissings(
+                dataset = data,
+                to = "SPSS",
+                dictionary = dictionary,
+                chartonum = chartonum,
+                to_declared = FALSE,
+                error_null = FALSE
+            )
+        }
+
+    }
+    else if (tp_from$fileext == "RDS" & !Robject) {
+        data <- readRDS(from)
+    }
     else {
-        if (tp_from$fileext == "XLS" || tp_from$fileext == "XLSX") {
-            if (requireNamespace("readxl", quietly = TRUE)) {
-                callist <- list(path = from)
-                for (f in names(formals(readxl::read_excel))) {
-                    if (is.element(f, names(dots))) {
-                        callist[[f]] <- dots[[f]]
-                    }
-                }
+        data <- from
+    }
 
-                data <- do.call("read_excel", callist)
-                variables <- NULL
-                callist$sheet <- "variables"
-                admisc::tryCatchWEM(variables <- do.call("read_excel", callist))
+    subset <- dots$subset
+    if (!is.null(subset)) {
+        data <- eval(parse(text = paste("data <- subset(data, ", subset, ")")))
+    }
 
-                values <- NULL
-                callist$sheet <- "values"
-                admisc::tryCatchWEM(values <- do.call("read_excel", callist))
-                if (is.null(values)) {
-                    callist$sheet <- "codes"
-                    admisc::tryCatchWEM(values <- do.call("read_excel", callist))
-                }
-
-                if (!is.null(variables) & !is.null(values)) {
-                    for (v in colnames(data)) {
-                        callist <- list(x = data[[v]])
-                        label <- NULL
-                        admisc::tryCatchWEM(label <- variables$label[variables$name == v])
-                        if (length(label) == 1) {
-                            if (!identical(label, "") & !is.na(label)) {
-                                callist$label <- label
-                            }
-                        }
-
-                        labels <- NULL
-                        admisc::tryCatchWEM(labels <- values$value[values$variable == v])
-                        if (is.null(labels)) {
-                            admisc::tryCatchWEM(labels <- values$code[values$variable == v])
-                        }
-
-                        nms <- NULL
-                        admisc::tryCatchWEM(nms <- values$label[values$variable == v])
-
-                        vmissing <- NULL
-                        admisc::tryCatchWEM(vmissing <- values$missing[values$variable == v])
-
-                        if (length(labels) > 0 & length(nms) > 0 & length(vmissing) > 0) {
-                            if (admisc::possibleNumeric(labels)) {
-                                labels <- admisc::asNumeric(labels)
-                            }
-
-                            if (!all(is.na(vmissing)) && any(vmissing == "y")) {
-                                callist$na_values <- labels[which(vmissing == "y")]
-                            }
-
-                            names(labels) <- nms
-                            callist$labels <- labels
-                        }
-
-                        data[[v]] <- do.call("declared", callist)
-
-                    }
-                }
-            }
-        }
-        else if (tp_from$fileext == "SAV" || tp_from$fileext == "ZSAV") {
-            fargs <- names(formals(read_sav))
-            arglist <- dots[is.element(names(dots), fargs)]
-            arglist$file <- from
-            arglist$user_na <- !isFALSE(dots$user_na)
-            arglist$encoding <- encoding
-            data <- do.call(haven::read_sav, arglist) # haven_labelled variables
-        }
-        else if (tp_from$fileext == "POR") {
-            fargs <- names(formals(read_por))
-            arglist <- dots[is.element(names(dots), fargs)]
-            arglist$file <- from
-            arglist$user_na <- !isFALSE(dots$user_na)
-            data <- do.call(haven::read_por, arglist)
-        }
-        else if (tp_from$fileext == "DTA") {
-            fargs <- names(formals(read_dta))
-            arglist <- dots[is.element(names(dots), fargs)]
-            arglist$file <- from
-            arglist$encoding <- encoding
-            data <- do.call(haven::read_dta, arglist)
-
-            # return(list(data = data, to = to, dictionary = dictionary, chartonum = chartonum, to_declared = FALSE, error_null = FALSE))
-            if (recode) {
-                data <- recodeMissings(
-                    dataset = data,
-                    to = "SPSS",
-                    dictionary = dictionary,
-                    chartonum = chartonum,
-                    to_declared = declared,
-                    error_null = FALSE
-                )
-            }
-        }
-        else if (tp_from$fileext == "SAS7BDAT") {
-            fargs <- names(formals(read_sas))
-            arglist <- dots[is.element(names(dots), fargs)]
-            arglist$data_file <- from
-            arglist$encoding <- encoding
-
-            if (is.null(arglist$catalog_file)) {
-                cats <- treatPath(tp_from$completePath, type = "sas7bcat")
-                if (any(is.element(cats$filenames, tp_from$filenames))) {
-                    arglist$catalog_file <- file.path(
-                        tp_from$completePath,
-                        paste(tp_from$filenames, "sas7bcat", sep = ".")
-                    )
-                }
-            }
-
-            data <- do.call(haven::read_sas, arglist)
-            if (recode) {
-                data <- recodeMissings(
-                    dataset = data,
-                    to = "SPSS",
-                    dictionary = dictionary,
-                    chartonum = chartonum,
-                    to_declared = declared,
-                    error_null = FALSE
-                )
-            }
-
-        }
-        else if (tp_from$fileext == "XPT") {
-            fargs <- names(formals(haven::read_xpt))
-            arglist <- dots[is.element(names(dots), fargs)]
-            arglist$file <- from
-            # arglist$encoding <- encoding
-            data <- do.call(haven::read_xpt, arglist)
-
-            if (recode) {
-                data <- recodeMissings(
-                    dataset = data,
-                    to = "SPSS",
-                    dictionary = dictionary,
-                    chartonum = chartonum,
-                    to_declared = FALSE,
-                    error_null = FALSE
-                )
-            }
-
-        }
-        else if (tp_from$fileext == "RDS" & !Robject) {
-            data <- readRDS(from)
-        }
-        else {
-            data <- from
+    if (is.null(to)) {
+        if (declared) {
+            data <- declared::as.declared(data)
+            class(data) <- "data.frame"
         }
 
-        filetypes <- c("SPSS", "SPSS", "SPSS", "Stata", "SAS", "XPT", "R", "DDI", "Excel", "Excel")
-        fileexts <- c("SAV", "ZSAV", "POR", "DTA", "SAS7BDAT", "XPT", "RDS", "XML", "XLS", "XLSX")
+        return(invisible(data))
+    }
 
-        codeBook <- getMetadata(data, error_null = FALSE)
-        removeChildren(
-            "fileTxt",
-            from = codeBook$children$fileDscr
-        )
+    filetypes <- c("SPSS", "SPSS", "SPSS", "Stata", "SAS", "XPT", "R", "DDI", "Excel", "Excel")
+    fileexts <- c("SAV", "ZSAV", "POR", "DTA", "SAS7BDAT", "XPT", "RDS", "XML", "XLS", "XLSX")
+
+    variables <- collectRMetadata(data)
+
+    if (tp_to$fileext == "XML") {
+
+        if (admisc::anyTagged(data)) {
+            admisc::stopError("DDI does not support extended missing codes")
+        }
+
+        codeBook <- makeElement("codeBook")
 
         fileName <- makeElement(
             "fileName",
@@ -541,343 +551,298 @@
 
         fileTxt <- makeElement("fileTxt")
         addChildren(list(fileName, fileType), to = fileTxt)
-        addChildren(
-            fileTxt,
-            to = codeBook$children$fileDscr
+        fileDscr <- makeElement("fileDscr")
+        addChildren(fileTxt, to = fileDscr)
+
+        data[] <- lapply(data, function(x) {
+            if (is.factor(x)) {
+                x <- as.numeric(x)
+            }
+            return(x)
+        })
+
+        if (embed) {
+            addChildren(datanotes(data), to = fileDscr)
+        }
+        else {
+            write.table(
+                undeclare(data, drop = TRUE),
+                file = file.path(
+                    tp_to$completePath,
+                    paste(tp_to$filenames[1], "csv", sep = ".")
+                ),
+                sep = ",",
+                na = "",
+                row.names = FALSE
+            )
+        }
+
+        addChildren(fileDscr, to = codeBook)
+        exportDDI(
+            codeBook,
+            file = to,
+            dataDscr = variables,
+            data = data,
+            ... = ...
         )
-    }
 
-    subset <- dots$subset
-    if (!is.null(subset)) {
-        data <- eval(parse(text = paste("data <- subset(data, ", subset, ")")))
     }
+    else if (identical(tp_to$fileext, "SAV")) {
+        data[] <- lapply(data, function(x) {
+            if (!is.element("format.spss", names(attributes(x)))) {
+                attr(x, "format.spss") <- getFormat(x, type = "SPSS")
+            }
 
-    if (is.null(to)) {
+            na_values <- attr(x, "na_values")
+            na_range <- attr(x, "na_range")
+
+            if (is.character(x)) {
+                if (length(na_values) > 3) {
+                    attr(x, "na_values") <- na_values[1:3]
+                }
+            }
+            else {
+                if (
+                    length(na_values) > 3 &
+                    length(na_range) == 0
+                ) {
+                    na_range <- range(na_values)
+                    attr(x, "na_values") <- NULL
+                    attr(x, "na_range") <- na_range
+                }
+            }
+            return(x)
+        })
+
+        if (admisc::anyTagged(data)) {
+            admisc::stopError("SPSS does not support extended missing codes")
+        }
+
+        # return(data)
+        haven::write_sav(declared::as.haven(data), to)
+    }
+    else if (identical(tp_to$fileext, "DTA")) {
+        data <- declared::as.haven(data)
+
+        colnms <- colnames(data)
+        arglist <- list(data = data)
+
+        rechars <- c()
+        err <- paste(
+            "Stata does not allow labels for non-integer variables",
+            "(e.g. \"%s\")."
+        )
+
+        for (i in seq(ncol(data))) {
+            x <- data[[colnms[i]]]
+            metadata <- variables[[colnms[i]]]
+            labels <- metadata$labels
+
+            if (is.null(labels)) {
+                labels <- getElement(getValues(metadata), "labels")
+            }
+
+            if (is.null(labels)) {
+                labels <- attr(x, "labels", exact = TRUE)
+            }
+
+            if (!is.null(labels)) {
+                if (admisc::possibleNumeric(x)) {
+                    if (!admisc::wholeNumeric(admisc::asNumeric(x))) {
+                        admisc::stopError(sprintf(err, colnms[i]))
+                    }
+                }
+
+                if (is.character(x)) {
+                    rechars <- c(rechars, i)
+                    # Stata does not allow labels for character variables
+                    if (chartonum && !is.null(labels)) {
+                        x <- recodeCharcat(
+                            declared::as.declared(x),
+                            metadata = metadata
+                        )
+                    }
+                    else {
+                        label <- attr(x, "label", exact = TRUE)
+                        x <- as.character(x)
+                        attr(x, "label") <- label
+                    }
+
+                    data[[colnms[i]]] <- x
+                }
+            }
+        }
+
+        if (recode) {
+            data <- recodeMissings(
+                dataset = data,
+                to = "Stata",
+                dictionary = dictionary,
+                to_declared = FALSE,
+                error_null = FALSE
+            )
+        }
+
+        data[] <- lapply(data, function(x) {
+            attr(x, "format.spss") <- NULL
+            if (is.null(attr(x, "format.stata"))) {
+                attr(x, "format.stata") <- getFormat(x, type = "Stata")
+            }
+            return(x)
+        })
+
+        arglist <- list(data = data)
+
+        if (is.element("version", names(dots))) {
+            arglist$version <- dots$version
+        }
+
+
+        # if (requireNamespace("readstata13", quietly = TRUE)) {
+
+        #     attr(callist$data, "var.labels") <- lapply(data, function(x) {
+        #         result <- attr(x, "label", exact = TRUE)
+        #         result <- lapply(result, function(x){
+        #             if (is.null(x)) "" else x
+        #         })
+        #         base::unlist(result, use.names = TRUE)
+        #     })
+
+        #     callist$file <- to
+        #     callist$compress <- TRUE
+        #     do.call(readstata13::save.dta13, callist)
+        # }
+        # else {
+            arglist$path <- to
+
+            do.call(haven::write_dta, arglist)
+            # return(invisible(arglist$data))
+        # }
+    }
+    else if (identical(tp_to$fileext, "RDS")) {
         if (declared) {
             data <- declared::as.declared(data)
             class(data) <- "data.frame"
-            return(invisible(data))
-        }
-
-        return(invisible(data))
-    }
-    else {
-        if (tp_to$fileext == "XML") {
-
-            if (is.null(codeBook)) {
-                admisc::stopError(
-                    "The input does not seem to contain any metadata."
-                )
-            }
-
-            if (admisc::anyTagged(data)) {
-                admisc::stopError("DDI does not support extended missing codes")
-            }
-
-            data[] <- lapply(data, function(x) {
-                if (is.factor(x)) {
-                    x <- as.numeric(x)
-                }
-                return(x)
-            })
-
-            if (embed) {
-                addChildren(
-                    datanotes(data),
-                    to = codeBook$children$fileDscr
-                )
-            }
-            else {
-                write.table(
-                    undeclare(data, drop = TRUE),
-                    file = file.path(
-                        tp_to$completePath,
-                        paste(tp_to$filenames[1], "csv", sep = ".")
-                    ),
-                    sep = ",",
-                    na = "",
-                    row.names = FALSE
-                )
-            }
-
-            exportDDI(
-                checkvarFormat(codeBook), file = to, ... = ...
-            )
-        }
-        else if (identical(tp_to$fileext, "SAV")) {
-            data[] <- lapply(data, function(x) {
-                if (!is.element("format.spss", names(attributes(x)))) {
-                    attr(x, "format.spss") <- getFormat(x, type = "SPSS")
-                }
-
-                na_values <- attr(x, "na_values")
-                na_range <- attr(x, "na_range")
-
-                if (is.character(x)) {
-                    if (length(na_values) > 3) {
-                        attr(x, "na_values") <- na_values[1:3]
-                    }
-                }
-                else {
-                    if (
-                        length(na_values) > 3 &
-                        length(na_range) == 0
-                    ) {
-                        na_range <- range(na_values)
-                        attr(x, "na_values") <- NULL
-                        attr(x, "na_range") <- na_range
-                    }
-                }
-                return(x)
-            })
-
-            if (admisc::anyTagged(data)) {
-                admisc::stopError("SPSS does not support extended missing codes")
-            }
-
-            # return(data)
-            haven::write_sav(declared::as.haven(data), to)
-        }
-        else if (identical(tp_to$fileext, "DTA")) {
-            data <- declared::as.haven(data)
-
-            colnms <- colnames(data)
-            arglist <- list(data = data)
-
-            # this will also stop if there is more than one or no dataDscr
-            checkStata(data, codeBook)
-
-            # this also stops if there is one or no "dataDscr" element, and
-            # also stops if there are no "var" elements
-            variables <- getVariables(codeBook)
-
-            rechars <- c()
-
-            for (i in seq(ncol(data))) {
-                x <- data[[colnms[i]]]
-                metadata <- variables[[colnms[i]]]
-                labels <- metadata$labels
-
-                if (is.null(labels)) {
-                    labels <- getElement(getValues(metadata), "labels")
-                }
-
-                if (is.null(labels)) {
-                    labels <- attr(x, "labels", exact = TRUE)
-                }
-
-                if (!is.null(labels)) {
-                    if (is.character(x)) {
-                        rechars <- c(rechars, i)
-                        # Stata does not allow labels for character variables
-                        if (chartonum && !is.null(labels)) {
-                            x <- recodeCharcat(
-                                declared::as.declared(x),
-                                metadata = metadata
-                            )
-                        }
-                        else {
-                            label <- attr(x, "label", exact = TRUE)
-                            x <- as.character(x)
-                            attr(x, "label") <- label
-                        }
-
-                        data[[colnms[i]]] <- x
-                    }
-                }
-            }
-
-            if (recode) {
-                data <- recodeMissings(
-                    dataset = data,
-                    to = "Stata",
-                    dictionary = dictionary,
-                    to_declared = FALSE,
-                    error_null = FALSE
-                )
-            }
-
-            data[] <- lapply(data, function(x) {
-                attr(x, "format.spss") <- NULL
-                if (is.null(attr(x, "format.stata"))) {
-                    attr(x, "format.stata") <- getFormat(x, type = "Stata")
-                }
-                return(x)
-            })
-
-            # for (i in seq(length(rechars))) {
-            #     cat("--------", colnms[rechars[i]], "--------\n")
-            #     print(attributes(data[[rechars[i]]]))
-            # }
-
-            arglist <- list(data = data)
-
-            if (is.element("version", names(dots))) {
-                arglist$version <- dots$version
-            }
-
-
-            # if (requireNamespace("readstata13", quietly = TRUE)) {
-
-            #     attr(callist$data, "var.labels") <- lapply(data, function(x) {
-            #         result <- attr(x, "label", exact = TRUE)
-            #         result <- lapply(result, function(x){
-            #             if (is.null(x)) "" else x
-            #         })
-            #         base::unlist(result, use.names = TRUE)
-            #     })
-
-            #     callist$file <- to
-            #     callist$compress <- TRUE
-            #     do.call(readstata13::save.dta13, callist)
-            # }
-            # else {
-                arglist$path <- to
-
-                do.call(haven::write_dta, arglist)
-                # return(invisible(arglist$data))
-            # }
-        }
-        else if (identical(tp_to$fileext, "RDS")) {
-            if (declared) {
-                data <- declared::as.declared(data)
-                class(data) <- "data.frame"
-                saveRDS(data, to)
-            }
-            else {
-                saveRDS(data, to)
-            }
-        }
-        else if (identical(tp_to$fileext, "XLSX")) {
-            varlabels <- sapply(data, function(x) {
-                lbl <- attr(x, "label", exact = TRUE)
-                if (is.null(lbl)) {
-                    lbl <- ""
-                }
-                return(lbl)
-            })
-
-            # this stops if there is one or no "dataDscr" element, and
-            # also stops if there are no "var" elements
-            variables <- getVariables(codeBook)
-
-            x <- list(
-                data = data,
-                variables = data.frame(
-                    name = names(varlabels),
-                    label = varlabels,
-                    type = sapply(data, mode)
-                ),
-                values = data.frame(
-                    variable = character(0),
-                    value = character(0),
-                    label = character(0),
-                    missing = character(0)
-                )
-            )
-
-            varFormat <- lapply(variables, function(x) {
-                vf <- NULL
-
-                if (!is.null(x$children$varFormat)) {
-                    vf <- x$children$varFormat$content
-                }
-
-                if (is.null(vf)) {
-                    return(NA)
-                }
-
-                as.numeric(
-                    unlist(
-                        strsplit(
-                            substring(vf[1], 2),
-                            split = "\\."
-                        )
-                    )
-                )
-            })
-
-            x$variables$width <- sapply(varFormat, function(x) {
-                ifelse (all(is.na(x)), NA, x[1])
-            })
-
-            x$variables$decimals <- sapply(varFormat, function(x) {
-                ifelse (
-                    all(is.na(x)) || length(x) == 1,
-                    NA,
-                    x[2]
-                )
-            })
-
-            for (v in names(variables)) {
-                values <- getValues(variables[[v]])
-                labels <- getElement(values, "labels")
-                if (!is.null(labels)) {
-                    temp <- data.frame(
-                        variable = v,
-                        value = unname(labels),
-                        label = names(labels),
-                        missing = NA
-                    )
-
-                    na_values <- getElement(values, "na_values")
-
-                    if (!is.null(na_values)) {
-                        temp$missing[is.element(labels, na_values)] <- "y"
-                    }
-
-                    x$values <- rbind(x$values, temp)
-                }
-            }
-
-            writexl::write_xlsx(x, path = to)
+            saveRDS(data, to)
         }
         else {
-            # if (identical(tp_to$fileext, "SAS7BDAT")) {
-            #     fargs <- names(formals(haven::write_sas))
-            #     arglist <- dots[is.element(names(dots), fargs)]
-            #     arglist$data <- declared::as.haven(data)
-            #     arglist$path <- to
-            #     do.call(haven::write_sas, arglist)
-            # }
-            # else if (identical(tp_to$fileext, "XPT")) {
-                lnms <- nchar(colnames(data))
-                if (any(lnms > 8)) {
-                    admisc::stopError("SAS .xpt files do not allow more than 8 characters for column names.")
-                }
-                fargs <- names(formals(haven::write_xpt))
-                arglist <- dots[is.element(names(dots), fargs)]
-                arglist$data <- declared::as.haven(data)
-                arglist$path <- to
-                if (is.null(arglist$version)) {
-                    # hardcode XPT version 5, since 8 doesn't work
-                    arglist$version <- 5
-                }
-                do.call(haven::write_xpt, arglist)
-            # }
-
-            to <- file.path(
-                tp_from$completePath,
-                paste(tp_from$filenames, "sas", sep = ".")
-            )
-
-            if (is.null(dictionary) & recode) {
-                dictionary <- recodeMissings(
-                    dataset = arglist$data,
-                    to = "SAS",
-                    return_dictionary = TRUE
-                )
+            saveRDS(data, to)
+        }
+    }
+    else if (identical(tp_to$fileext, "XLSX")) {
+        varlabels <- sapply(data, function(x) {
+            lbl <- attr(x, "label", exact = TRUE)
+            if (is.null(lbl)) {
+                lbl <- ""
             }
+            return(lbl)
+        })
 
-            setupfile(
-                obj = getMetadata(arglist$data),
-                file = to,
-                type = "SAS",
-                csv = arglist$data,
-                recode = recode,
-                catalog = TRUE,
-                dictionary = dictionary
+        x <- list(
+            data = data,
+            variables = data.frame(
+                name = names(varlabels),
+                label = varlabels,
+                type = sapply(data, mode)
+            ),
+            values = data.frame(
+                variable = character(0),
+                value = character(0),
+                label = character(0),
+                missing = character(0)
+            )
+        )
+
+        varFormat <- lapply(variables, function(x) {
+            as.numeric(
+                unlist(
+                    strsplit(
+                        substring(x$varFormat[1], 2),
+                        split = "\\."
+                    )
+                )
+            )
+        })
+
+        x$variables$width <- sapply(varFormat, function(x) {
+            ifelse (all(is.na(x)), NA, x[1])
+        })
+
+        x$variables$decimals <- sapply(varFormat, function(x) {
+            ifelse (
+                all(is.na(x)) || length(x) == 1,
+                NA,
+                x[2]
+            )
+        })
+
+        for (v in names(variables)) {
+            labels <- getElement(variables[[v]], "labels")
+            if (!is.null(labels)) {
+                temp <- data.frame(
+                    variable = v,
+                    value = unname(labels),
+                    label = names(labels),
+                    missing = NA
+                )
+
+                na_values <- getElement(variables[[v]], "na_values")
+
+                if (!is.null(na_values)) {
+                    temp$missing[is.element(labels, na_values)] <- "y"
+                }
+
+                x$values <- rbind(x$values, temp)
+            }
+        }
+
+        writexl::write_xlsx(x, path = to)
+    }
+    else {
+        # if (identical(tp_to$fileext, "SAS7BDAT")) {
+        #     fargs <- names(formals(haven::write_sas))
+        #     arglist <- dots[is.element(names(dots), fargs)]
+        #     arglist$data <- declared::as.haven(data)
+        #     arglist$path <- to
+        #     do.call(haven::write_sas, arglist)
+        # }
+        # else if (identical(tp_to$fileext, "XPT")) {
+            lnms <- nchar(colnames(data))
+            if (any(lnms > 8)) {
+                admisc::stopError("SAS .xpt files do not allow more than 8 characters for column names.")
+            }
+            fargs <- names(formals(haven::write_xpt))
+            arglist <- dots[is.element(names(dots), fargs)]
+            arglist$data <- declared::as.haven(data)
+            arglist$path <- to
+            if (is.null(arglist$version)) {
+                # hardcode XPT version 5, since 8 doesn't work
+                arglist$version <- 5
+            }
+            do.call(haven::write_xpt, arglist)
+        # }
+
+        to <- file.path(
+            tp_from$completePath,
+            paste(tp_from$filenames, "sas", sep = ".")
+        )
+
+        if (is.null(dictionary) & recode) {
+            dictionary <- recodeMissings(
+                dataset = arglist$data,
+                to = "SAS",
+                return_dictionary = TRUE
             )
         }
+
+        setupfile(
+            obj = getMetadata(arglist$data),
+            file = to,
+            type = "SAS",
+            csv = arglist$data,
+            recode = recode,
+            catalog = TRUE,
+            dictionary = dictionary
+        )
     }
 }
