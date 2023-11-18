@@ -9,8 +9,8 @@
 \alias{checkElement}
 \alias{checkExisting}
 \alias{checkvarFormat}
-\alias{checkStata}
 \alias{checkType}
+\alias{checkXMList}
 \alias{cleanup}
 \alias{collectMetadata}
 \alias{datanotes}
@@ -18,6 +18,7 @@
 \alias{generateID}
 \alias{getDateTime}
 \alias{getDelimiter}
+\alias{getDNS}
 \alias{getEnter}
 \alias{getFiles}
 \alias{getFormat}
@@ -33,10 +34,10 @@
 \alias{repeatSpace}
 \alias{replaceChars}
 \alias{replaceTicks}
-\alias{separateData}
 \alias{splitrows}
 \alias{treatPath}
 \alias{writeMetadata}
+\alias{XMLvariables}
 \alias{writeRlist}
 \title{DDIwR internal functions}
 \usage{
@@ -52,9 +53,9 @@ checkExisting(xpath, inside, attribute = NULL)
 
 checkvarFormat(codeBook)
 
-checkStata(data, codeBook)
-
 checkType(x, labels = NULL, na_values = NULL, na_range = NULL)
+
+checkXMList(xmlist)
 
 cleanup(x, cdata = TRUE)
 
@@ -69,6 +70,8 @@ generateID(x, nchars = 16)
 getDateTime()
 
 getDelimiter(x)
+
+getDNS(xml)
 
 getEnter(OS)
 
@@ -86,7 +89,7 @@ hasLabels(x)
 
 hasMissingLabels(variables)
 
-makeLabelled(data, codeBook, declared = TRUE)
+makeLabelled(x, variables, declared = TRUE)
 
 missingValuesSPSS(variables, range = FALSE, numvars = TRUE)
 
@@ -100,13 +103,13 @@ replaceChars(x)
 
 replaceTicks(x)
 
-separateData(codeBook, declared)
-
 splitrows(x, enter, y = 80, spacerep = "")
 
 treatPath(path, type = "*", single = FALSE, check = TRUE)
 
 writeMetadata(variables, OS = "", indent = 4)
+
+XMLvariables(xml)
 
 writeRlist(variables, OS = "windows", indent = 4, dirpath = "", filename = "")
 }
@@ -135,6 +138,8 @@ writeRlist(variables, OS = "windows", indent = 4, dirpath = "", filename = "")
 \code{getDateTime}: Character vector
 
 \code{getDelimiter}: Character scalar
+
+\code{getDNS}: Character scalar
 
 \code{getEnter}: Character scalar
 
@@ -170,6 +175,8 @@ writeRlist(variables, OS = "windows", indent = 4, dirpath = "", filename = "")
 
 \code{treatPath}: A list with four components: the complete path, the
 files, the file names and the file extensions
+
+\code{XMLvariables}: An R list
 }
 \description{
 Functions to be used internally, only by developers and
@@ -191,9 +198,9 @@ If the argument is not supplied via dots, returns a default
 \code{checkvarFormat}: Makes sure all \code{var} elements have a single
 (usually SPSS) value for the \code{varFormat} sub-element (if existing).
 
-\code{checkStata}: Check if labels for non-integer variables.
-
 \code{checkType}: Determine the variable type: categorical, numerical or mixed
+
+\code{checkXMList}: Determine if an XML list is a DDI Codebook
 
 \code{cleanup}: Rectify texts read from a metadata object
 
@@ -210,6 +217,8 @@ specification
 \code{getDateTime}: Current date and time
 
 \code{getDelimiter}: Guess the column delimiter from a text file
+
+\code{getDNS}: Extracts the "D"efault "N"ame "Space" from an XML object
 
 \code{getEnter}: Get the carriage return code from the current Operating System
 
@@ -243,10 +252,6 @@ This can be deactivated through the argument "name".
 
 \code{replaceTicks}: Recode all tick characters with a single quote.
 
-\code{separateData}: Separate the dataset from the XML based
-Codebook. It does not return anything, it overwrites the \code{codeBook} and
-the data in the parent frame.
-
 \code{splitrows}: Split the written rows in the setup file.
 
 \code{treatPath}: Determine which specific type of files are
@@ -254,6 +259,8 @@ present in a certain directory.
 
 \code{writeMetadata}: Utility function to write the metadata
 part in the setup file.
+
+\code{XMLvariables}: Extract variable information from an XML Codebook
 
 \code{writeRlist}: Write an .R file containing a metadata specific list.
 }

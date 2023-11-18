@@ -1,9 +1,9 @@
 .onAttach <- function(...) {
 
     core <- c("admisc", "declared", "haven")
-    
+
     # code borrowed from package tidyverse
-    
+
     # Attach the package from the same package library it was
     # loaded from before. https://github.com/tidyverse/tidyverse/issues/171
     same_library <- function(pkg) {
@@ -25,7 +25,7 @@
         search <- paste0("package:", core)
         return(core[!is.element(search, search())])
     }
-    
+
     to_load <- core_unloaded()
     if (length(to_load) == 0) {
         return(invisible())

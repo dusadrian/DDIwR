@@ -27,7 +27,7 @@ xdfm <- getMetadata(x)
 
 tmp <- tempdir()
 convert(x, to = file.path(tmp, "x.sav"))
-xsav <- getMetadata(file.path(tmp, "x.sav"), save = TRUE, indent = 2)
+xsav <- getMetadata(file.path(tmp, "x.sav"))
 
 convert(x, to = file.path(tmp, "x.xml"))
 xxml <- getMetadata(file.path(tmp, "x.xml"))

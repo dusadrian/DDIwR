@@ -28,7 +28,7 @@ Create a DDI Codebook version 2.6, XML file structure.
 #' The information object is a \code{codeBook} DDI element having at least two
 main children:
 \itemize{
-\item \strong{\code{fileDscr}}, with the data provided as a subcomponent named
+\item \strong{\code{fileDscr}}, with the data provided as a sub-component named
 \strong{\code{datafile}}
 \item \strong{\code{dataDscr}}, having as many components as the number of variables in the
 (meta)data.
@@ -38,13 +38,13 @@ For the moment, only DDI codebook version 2.6 is exported, and DDI Lifecycle
 is planned for future releases.
 
 A small number of required DDI specific elements and attributes have generic
-default values, if not otherwise specified in the codeBook list object. For
+default values, if not otherwise specified in the \code{codeBook} list object. For
 the current version, these are: \code{monolang}, \code{xmlang}, \code{IDNo}, \code{titl},
 \code{agency}, \code{URI} (for the \code{holdings} element), \code{distrbtr}, \code{abstract} and
 \code{level} (for the \code{otherMat} element).
 
 The \code{codeBook} object is exported as provided, and it is the user's
-responsibility to test its validity agains the XML schema. Most of these
+responsibility to test its validity against the XML schema. Most of these
 arguments help create the mandatory element \code{stdyDscr}, which cannot be
 harvested from the dataset. If this element is not already present, providing
 any of these arguments via the three dots \code{...} gate, signal an automatic
@@ -58,7 +58,7 @@ had to be renamed into this R function.
 A logical argument \code{monolang} signal if the document is monolingual, in which
 case the attribute \code{xmlang} is placed a single time for the entire document
 in the \code{codeBook} element. For multilingual documents, \code{xmlang} should be
-placed in the attributes of various other (sub)elements, for instance
+placed in the attributes of various other (child) elements, for instance
 \code{abstract}, or the study title, name of the distributing institution,
 variable labels etc.
 
@@ -71,7 +71,7 @@ The end of line separator changes only when the target OS is different from
 the running OS.
 
 The argument \strong{\code{indent}} controls how many spaces will be used in the XML
-file, to indent the different subelements.
+file, to indent the different sub-elements.
 }
 \examples{
 
