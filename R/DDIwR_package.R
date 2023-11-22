@@ -19,19 +19,20 @@
 #' coerced to class `declared`.
 #'
 #' The research leading to the initial functions in this package has received
-#' funding from the European Union's Seventh Framework Programme (FP7/2007-2013)
+#' funding from the European Union's Seventh Framework Program (FP7/2007-2013)
 #' under grant agreement no. 262608 (DwB - Data without Boundaries)
 #'
-#' @author Adrian Dusa
-#'
-#' Maintainer: Adrian Dusa (dusa.adrian@unibuc.ro)
+#' @author Adrian Dusa\cr
+#' Department of Sociology\cr
+#' University of Bucharest\cr
+#' \email{dusa.adrian@unibuc.ro}
 #'
 #' @details
 #' \tabular{ll}{
 #'   Package: \tab DDIwR\cr
 #'   Type: \tab Package\cr
-#'   Version: \tab 0.16.4\cr
-#'   Date: \tab 2023-11-19\cr
+#'   Version: \tab 0.16.5\cr
+#'   Date: \tab 2023-11-22\cr
 #'   License: \tab GPL-v3\cr
 #' }
 #'
