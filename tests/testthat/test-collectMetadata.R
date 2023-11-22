@@ -5,7 +5,7 @@ cmdfm <- collectMetadata(dfm)
 test_that("collectMetadata() works", {
   expect_true(is.list(cmdfm))
 
-  expect_equal(length(cmdfm), ncol(dfm))
+  expect_equal(length(cmdfm) - 1, ncol(dfm))
 
   expect_true(is.list(collectMetadata(
     cbind(

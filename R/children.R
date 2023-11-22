@@ -40,7 +40,7 @@
 #' @param from A standard element of class `"DDI"`.
 #' @param element A standard element of class `"DDI"`.
 #' @param content Character, the text content of a DDI element.
-#' @param attributes A list of specific attributes and values.
+#' @param attrlist A list of specific attribute names and values.
 #' @param name Character, name(s) of specific child element / attribute.
 #' @param overwrite Logical, overwrite the original object in the parent frame.
 #' @param xpath Character, a path to a DDI Codebook element.
@@ -282,20 +282,20 @@
     attrs <- attributes(to)
     to <- c(list(content), to)
     attrs$names <- c("", attrs$names)
-    attributes(to) <- attrs
 
-    to <- to[
-        order(
-            match(
-                attrs$names,
-                c(
-                    ".extra", "",
-                    attrs$names[!is.element(attrs$names, c(".extra", ""))]
-                )
+    elorder <- order(
+        match(
+            attrs$names,
+            c(
+                ".extra", "",
+                attrs$names[!is.element(attrs$names, c(".extra", ""))]
             )
         )
-    ]
+    )
 
+    to <- to[elorder]
+    attrs$names <- attrs$names[elorder]
+    attributes(to) <- attrs
 
     if (overwrite) {
         admisc::overwrite(objname, to, parent.frame())
@@ -373,13 +373,13 @@
 
 #' @rdname DDI-children
 #' @export
-`addAttributes` <- function(attributes, to, overwrite = TRUE) {
+`addAttributes` <- function(attrlist, to, overwrite = TRUE) {
     objname <- deparse1(substitute(to))
-    attrnames <- names(attributes)
+    attrnames <- names(attrlist)
 
-    if (missing(attributes) || !is.list(attributes) || is.null(attrnames)) {
+    if (missing(attrlist) || !is.list(attrlist) || is.null(attrnames)) {
         admisc::stopError(
-            "The argument 'attributes' should be a list of named values."
+            "The argument 'attrlist' should be a list of named values."
         )
     }
 
@@ -399,7 +399,7 @@
     }
 
     attrs <- attributes(to)
-    attrs <- c(attrs, attributes)
+    attrs <- c(attrs, attrlist)
 
     # make sure the children are arranged in exactly the order specified
     # by the standard (don't know if that matters, but just in case it does)
@@ -407,6 +407,7 @@
     if (!identical(corder, seq(length(attrs)))) {
         attrs <- attrs[corder]
     }
+
 
     attributes(to) <- attrs
 
@@ -437,11 +438,11 @@
 
 #' @rdname DDI-children
 #' @export
-`changeAttributes` <- function(attributes, from, overwrite = TRUE) {
+`changeAttributes` <- function(attrlist, from, overwrite = TRUE) {
     objname <- deparse1(substitute(from))
 
-    if (missing(attributes) || !is.list(attributes)) {
-        admisc::stopError("The argument 'attributes' should be a list of named values.")
+    if (missing(attrlist) || !is.list(attrlist)) {
+        admisc::stopError("The argument 'attrlist' should be a list of named values.")
     }
 
     if (missing(from) || !is.element(".extra", names(from))) {
@@ -453,7 +454,7 @@
         names(DDIC[[from$.extra$name]]$attributes)
     ))
 
-    attrnames <- names(attributes)
+    attrnames <- names(attrlist)
     if (is.null(attrnames) || !all(is.element(attrnames, all_attributes))) {
         admisc::stopError("One or more attributes do not belong to this element.")
     }
@@ -466,7 +467,7 @@
         admisc::stopError("Inexisting attribute(s) to change.")
     }
 
-    attrs[attrnames] <- attributes
+    attrs[attrnames] <- attrlist
     attributes(from) <- attrs
 
     if (overwrite) {

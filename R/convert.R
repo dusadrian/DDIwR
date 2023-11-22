@@ -577,14 +577,16 @@
         }
 
         addChildren(fileDscr, to = codeBook)
+        # addChildren(
+        #     collectMetadata(data, DDI = TRUE), # dataDscr
+        #     to = codeBook
+        # )
 
-        addChildren(
-            collectMetadata(data, DDI = TRUE), # dataDscr
-            to = codeBook
-        )
         exportDDI(
             codeBook,
             file = to,
+            data = data,
+            directly_make_dataDscr_in_XML = TRUE,
             ... = ...
         )
 

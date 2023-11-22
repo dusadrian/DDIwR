@@ -37,11 +37,11 @@ changeContent(content, to, overwrite = TRUE)
 
 removeContent(from, overwrite = TRUE)
 
-addAttributes(attributes, to, overwrite = TRUE)
+addAttributes(attrlist, to, overwrite = TRUE)
 
 anyAttributes(element)
 
-changeAttributes(attributes, from, overwrite = TRUE)
+changeAttributes(attrlist, from, overwrite = TRUE)
 
 hasAttributes(element, name)
 
@@ -66,7 +66,7 @@ removeAttributes(name, from, overwrite = TRUE)
 
 \item{content}{Character, the text content of a DDI element.}
 
-\item{attributes}{A list of specific attributes and values.}
+\item{attrlist}{A list of specific attribute names and values.}
 }
 \value{
 An invisible standard DDI element. Functions \verb{any*()} and \verb{has*()}

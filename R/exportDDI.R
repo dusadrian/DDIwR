@@ -139,12 +139,35 @@
         addAttributes(list(xmlang = xmlang), to = codeBook)
     }
 
-    xml2::write_xml(
-        xml2::as_xml_document(
+
+    if (isTRUE(dots$directly_make_dataDscr_in_XML)) {
+        data <- dots$data
+        addChildren(makeElement("dataDscr"), to = codeBook)
+
+        codeBook <- as_xml_document(
             list(codeBook = removeExtra(codeBook))
-        ),
-        file = file
-    )
+        )
+
+        dataDscrXML <- makeXMLdataDscr(
+            collectRMetadata(data),
+            data = data,
+            DDI = FALSE
+        )
+
+        dns <- getDNS(codeBook)
+
+        tmp <- xml2::xml_replace(
+            xml_find_first(codeBook, sprintf("/%scodeBook/dataDscr", dns)),
+            xml_find_first(dataDscrXML, "/dataDscr")
+        )
+    }
+    else {
+        codeBook <- xml2::as_xml_document(
+            list(codeBook = removeExtra(codeBook))
+        )
+    }
+
+    xml2::write_xml(codeBook, file = file)
 
     if (!identical(indent, 2) || !identical(OS, "")) {
         xmlfile <- readLines(file)

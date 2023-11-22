@@ -370,17 +370,19 @@ NULL
         ... = ...
     )
 
-    if (!isTRUE(dots$DDI)) {
-        result[[".extra"]] <- NULL
-    }
+    # if (!isTRUE(dots$DDI)) {
+    #     result[[".extra"]] <- NULL
+    # }
 
     return(result)
 }
 
 
-#' @description Collect metadata from a dataframe object
-#' @return An R list containing variable level metadata information
-#' @noRd
+#' @description `collectRMetadata`: Collect metadata from a dataframe object
+#' @return `collectRMetadata`: an R list containing variable level metadata information
+#' @rdname DDIwR_internal
+#' @keywords internal
+#' @export
 `collectRMetadata` <- function(dataset, ...) {
     dots <- list(...)
 
@@ -1235,11 +1237,11 @@ NULL
         return(NULL)
     }
 
-    tcon <- textConnection("tmp", "w")
+    # tcon <- textConnection("tmp", "w")
 
     on.exit({
         suppressWarnings(sink())
-        close(tcon)
+        # close(tcon)
     })
 
     pN <- logical(length(variables))
@@ -1268,7 +1270,8 @@ NULL
     ns <- "" # namespace
     enter <- "\n"
 
-    sink(tcon)
+    tmp <- tempdir()
+    sink(file.path(tmp, "dataDscr.xml"))
 
     cat(paste0("<", ns, "dataDscr>", enter))
 
@@ -1523,16 +1526,13 @@ NULL
 
     sink()
 
-    return(
-        coerceDDI(
-            xml2::as_list(
-                xml2::read_xml(
-                    # eval(parse(text = "paste(tmp, collapse = '\n')"))
-                    paste(get("tmp"), collapse = "\n")
-                )
-            )
-        )
-    )
+    dataDscr <- xml2::read_xml(file.path(tmp, "dataDscr.xml"))
+
+    if (!isFALSE(dots$DDI)) {
+        dataDscr <- coerceDDI(xml2::as_list(dataDscr))
+    }
+
+    return(dataDscr)
 }
 
 

@@ -112,8 +112,7 @@
                 addChildren(list(fileName, fileType), to = fileTxt)
                 addChildren(fileTxt, to = fileDscr)
 
-                dataDscr <- makeElement("dataDscr")
-                addChildren(collectMetadata(x), to = dataDscr)
+                dataDscr <- collectMetadata(x)
 
                 addChildren(list(dataDscr, fileDscr), to = codeBook)
 
@@ -158,7 +157,6 @@
         }
         else {
             codeBook <- makeElement("codeBook")
-            dataDscr <- makeElement("dataDscr")
             fileDscr <- makeElement("fileDscr")
 
             if (tp$fileext[ff] == "SAV" | tp$fileext[ff] == "POR") {
@@ -194,8 +192,7 @@
             #     data <- haven::read_sas(file.path(tp$completePath, tp$files[ff]))
             # }
 
-            addChildren(collectMetadata(data), to = dataDscr)
-            addChildren(dataDscr, to = codeBook)
+            addChildren(collectMetadata(data), to = codeBook) # dataDscr
 
             fileName <- makeElement(
                 "fileName",

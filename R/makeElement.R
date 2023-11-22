@@ -58,10 +58,7 @@
     checkElement(name)
 
     dots <- list(...)
-    prodDateTime <- getDateTime()
-    version <- as.character(packageVersion("DDIwR"))
-
-    result <- list(.extra = list(name = name))
+    element <- list(.extra = list(name = name))
 
     if (isTRUE(fill)) {
         IDNo <- checkDots(dots$IDNo, default = "S0000")
@@ -73,6 +70,7 @@
         level <- checkDots(dots$level, default = "0")
         xmlang <- checkDots(dots$xmlang, default = "en")
         monolang <- !isFALSE(dots$monolang)
+        prodDateTime <- getDateTime()
 
         info <- NULL
         if (identical(name, "IDNo")) {
@@ -179,7 +177,7 @@
         else if (identical(name, "software")) {
             software <- makeElement("software")
             addAttributes(
-                list(version = version),
+                list(version = as.character(packageVersion("DDIwR"))),
                 to = software
             )
             addContent("R package DDIwR", to = software)
@@ -187,12 +185,10 @@
         }
         else if (identical(name, "prodStmt")) {
             prodStmt <- makeElement("prodStmt")
-            software <- makeElement("software", fill = fill, ... = ...)
-            addAttributes(list(version = version), to = software)
             addChildren(
                 list(
                     makeElement("prodDate", fill = fill, ... = ...),
-                    software
+                    makeElement("software", fill = fill, ... = ...)
                 ),
                 to = prodStmt
             )
@@ -226,27 +222,27 @@
 
     if (!is.null(info)) {
         if (is.element("attributes", names(info))) {
-            addAttributes(info$attributes, result)
+            addAttributes(info$attributes, element)
         }
 
         if (is.element("children", names(info))) {
-            addChildren(info$children, to = result)
+            addChildren(info$children, to = element)
         }
 
         if (is.element("content", names(info))) {
-            addContent(info$content, result)
+            addContent(info$content, element)
         }
     }
 
     if (name == "codeBook") {
-        if (length(result$attributes) > 0) {
+        if (anyAttributes(element)) {
             attnms <- names(DDIC$codeBook$attributes)
             for (name in attnms) {
                 if (
-                    is.null(result$attributes[[name]]) &&
+                    is.null(attr(element, name)) &&
                     length(DDIC$codeBook$attributes$default) > 0
                 ) {
-                    result$attributes[[name]] <- DDIC$codeBook$attributes$default
+                    attr(element, name) <- DDIC$codeBook$attributes$default
                 }
             }
         }
@@ -256,12 +252,12 @@
 
             addAttributes(
                 defaults[sapply(defaults, length) > 0],
-                to = result
+                to = element
             )
         }
     }
 
-    return(result)
+    return(element)
 }
 
 # which(sapply(DDIC, function(x) {

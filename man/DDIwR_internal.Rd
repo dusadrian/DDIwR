@@ -13,6 +13,7 @@
 \alias{cleanup}
 \alias{coerceDDI}
 \alias{collectMetadata}
+\alias{collectRMetadata}
 \alias{datanotes}
 \alias{extractData}
 \alias{formatExample}
@@ -61,6 +62,8 @@ cleanup(x, cdata = TRUE)
 coerceDDI(element, name = NULL)
 
 collectMetadata(dataset, ...)
+
+collectRMetadata(dataset, ...)
 
 datanotes(data)
 
@@ -133,6 +136,8 @@ writeRlist(variables, OS = "windows", indent = 4, dirpath = "", filename = "")
 \code{coerceDDI}: A standard element of class DDI
 
 \code{collectMetadata}: A list containing variable level metadata information
+
+\code{collectRMetadata}: an R list containing variable level metadata information
 
 \code{datanotes}: A "notes" element to be added in the \code{fileDscr} element
 
@@ -207,6 +212,8 @@ If the argument is not supplied via dots, returns a default
 \code{coerceDDI}: Recursive coerce an element to a DDI class
 
 \code{collectMetadata}: Collect metadata from a file or a dataframe object
+
+\code{collectRMetadata}: Collect metadata from a dataframe object
 
 \code{datanotes}: Prepare a notes element containing a
 serialized and compressed R dataset
