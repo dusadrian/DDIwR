@@ -61,7 +61,7 @@
 
     x <- declared::undeclare(x, drop = TRUE)
 
-    label <- metadata$children$labl$content
+    label <- getElement(metadata, "label")
     na_values <- getElement(metadata, "na_values")
 
     x[x == ""] <- NA

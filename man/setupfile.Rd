@@ -8,7 +8,7 @@ setupfile(
   obj,
   file = "",
   type = "all",
-  csv = "",
+  csv = NULL,
   recode = TRUE,
   OS = "",
   stringnum = TRUE,

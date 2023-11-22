@@ -100,9 +100,8 @@
     # https://cmv.cessda.eu/documentation/constraints.html
 
     dots <- list(...)
-    hasdataDscr <- hasChildren(codeBook, "dataDscr")
 
-    if (codeBook$name == "codeBook") {
+    if (codeBook$.extra$name == "codeBook") {
         if (any(
             is.element(
                 c("IDNo", "titl", "agency", "URI", "distrbtr", "abstract", "level"),
@@ -131,12 +130,7 @@
                 to = codeBook
             )
         }
-
-        if (hasdataDscr) {
-            codeBook <- checkvarFormat(codeBook)
-        }
     }
-
 
     xmlang <- checkDots(dots$xmlang, default = "en")
 
@@ -147,21 +141,13 @@
 
     xml2::write_xml(
         xml2::as_xml_document(
-            list(codeBook = toXMList(codeBook))
+            list(codeBook = removeExtra(codeBook))
         ),
         file = file
     )
 
-    if (!identical(indent, 2) || !identical(OS, "") || !hasdataDscr) {
+    if (!identical(indent, 2) || !identical(OS, "")) {
         xmlfile <- readLines(file)
-
-        if (!hasdataDscr) {
-            dataDscr <- makeXMLdataDscr(indent = indent, ... = ...)
-            if (!is.null(dataDscr)) {
-                wfd <- which(grepl("</fileDscr>", xmlfile))
-                xmlfile <- append(xmlfile, dataDscr, after = wfd)
-            }
-        }
 
         defaultOS <- Sys.info()[["sysname"]]
         checkArgument(indent, default = 2)

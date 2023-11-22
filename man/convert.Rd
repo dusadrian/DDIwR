@@ -154,8 +154,8 @@ convert("test.sav", to = "Excel")
 
 }
 \references{
-DDI - Data Documentation Initiative, see
-\href{https://ddialliance.org/}{https://ddialliance.org/}
+DDI - Data Documentation Initiative, see the
+\href{https://ddialliance.org/}{DDI Alliance} website.
 }
 \seealso{
 \code{\link{setupfile}},

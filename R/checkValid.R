@@ -79,13 +79,13 @@
 
 
     selements <- sapply(xpaths_elements, function(x) {
-        is.element(element$name, x)
+        is.element(element$.extra$name, x)
     })
 
 
     if (length(xpaths_attributes) > 0) {
         sattributes <- sapply(xpaths_attributes, function(x) {
-            is.element(element$name, x)
+            is.element(element$.extra$name, x)
         })
     }
     else {
@@ -94,18 +94,18 @@
 
     if (any(selements)) {
         xpaths_elements <- lapply(xpaths_elements[selements], function(x) {
-            return(x[seq(which(x == element$name), length(x))])
+            return(x[seq(which(x == element$.extra$name), length(x))])
         })
 
         result <- lapply(xpaths_elements, function(xpath) {
             last <- xpath[length(xpath)]
             xpath <- xpath[-length(xpath)]
 
-            if (identical(xpath, element$name)) {
+            if (identical(xpath, element$.extra$name)) {
                 if (!checkExisting(last, element)) {
                     return(sprintf(
                         "%s expects the mandatory child %s.",
-                        element$name, last
+                        element$.extra$name, last
                     ))
                 }
             }
@@ -164,7 +164,7 @@
 
     if (any(sattributes)) {
         xpaths_attributes <- lapply(xpaths_attributes[sattributes], function(x) {
-            return(x[seq(which(x == element$name), length(x))])
+            return(x[seq(which(x == element$.extra$name), length(x))])
         })
 
         result <- lapply(xpaths_attributes, function(xpath) {

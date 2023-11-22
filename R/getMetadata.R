@@ -7,9 +7,14 @@
 #' available information about missing values.
 #'
 #' @details
-#' This function reads an XML file containing a DDI codebook version 2.5, or an
+#' This function reads an XML file containing a DDI codebook version 2.6, or an
 #' SPSS or Stata file and returns a list containing the variable labels, value
 #' labels, plus some other useful information.
+#'
+#' If the input is a dataset, it will extract the variable level metadata
+#' (labels, missing values etc.). From a DDI XML file, it will import all
+#' metadata elements, the most expensive being the data description. This
+#' element can be skipped by deactivating the `dataDscr` argument.
 #'
 #' It additionally attempts to automatically detect a type for each variable:
 #' \tabular{rl}{
@@ -24,10 +29,8 @@
 #' frequencies
 #' }
 #'
-#' By default, this function extracts the metadata into an R list object.
-#'
-#' For the moment, only DDI version 2.6 (Codebook) is supported, but DDI
-#' Lifecycle is planned to be implemented.
+#' For the moment, only DDI Codebook is supported, but DDI Lifecycle is planned
+#' to be implemented.
 #'
 #' @examples
 #' x <- data.frame(
@@ -54,15 +57,13 @@
 #'
 #' @param x A path to a file, or a data frame object
 #'
-#' @param declared Logical, embed the data as a declared object
-#'
 #' @param encoding The character encoding used to read a file
 #'
 #' @param ... Additional arguments for this function (internal use only)
 #'
 #' @export
 
-`getMetadata` <- function(x, declared = TRUE, encoding = "UTF-8", ...) {
+`getMetadata` <- function(x, encoding = "UTF-8", ...) {
 
     # TODO: detect DDI version or ask the version through a dedicated argument
     # http://www.ddialliance.org/Specification/DDI-Codebook/2.5/XMLSchema/field_level_documentation.html
@@ -111,10 +112,8 @@
                 addChildren(list(fileName, fileType), to = fileTxt)
                 addChildren(fileTxt, to = fileDscr)
 
-                dataDscr <- makeElement(
-                    "dataDscr",
-                    info = list(children = collectMetadata(x))
-                )
+                dataDscr <- makeElement("dataDscr")
+                addChildren(collectMetadata(x), to = dataDscr)
 
                 addChildren(list(dataDscr, fileDscr), to = codeBook)
 
@@ -147,21 +146,18 @@
             cat(tp$files[ff], "\n")
         }
 
-        codeBook <- makeElement("codeBook")
-
         if (tp$fileext[ff] == "XML") {
 
             # TODO: perhaps validate the codebook against the schema, first...!?
-
             xmlist <- xml2::as_list(
                 getXML(file.path(tp$completePath, tp$files[ff]))
             )
 
             checkXMList(xmlist)
-            codeBook <- fromXMList(xmlist)
-
+            codeBook <- coerceDDI(xmlist)
         }
         else {
+            codeBook <- makeElement("codeBook")
             dataDscr <- makeElement("dataDscr")
             fileDscr <- makeElement("fileDscr")
 

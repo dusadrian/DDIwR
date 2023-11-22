@@ -4,12 +4,10 @@
 \alias{getMetadata}
 \title{Extract metadata information}
 \usage{
-getMetadata(x, declared = TRUE, encoding = "UTF-8", ...)
+getMetadata(x, encoding = "UTF-8", ...)
 }
 \arguments{
 \item{x}{A path to a file, or a data frame object}
-
-\item{declared}{Logical, embed the data as a declared object}
 
 \item{encoding}{The character encoding used to read a file}
 
@@ -25,9 +23,14 @@ Extract a list containing the variable labels, value labels and any
 available information about missing values.
 }
 \details{
-This function reads an XML file containing a DDI codebook version 2.5, or an
+This function reads an XML file containing a DDI codebook version 2.6, or an
 SPSS or Stata file and returns a list containing the variable labels, value
 labels, plus some other useful information.
+
+If the input is a dataset, it will extract the variable level metadata
+(labels, missing values etc.). From a DDI XML file, it will import all
+metadata elements, the most expensive being the data description. This
+element can be skipped by deactivating the \code{dataDscr} argument.
 
 It additionally attempts to automatically detect a type for each variable:
 \tabular{rl}{
@@ -42,10 +45,8 @@ children)\cr
 frequencies
 }
 
-By default, this function extracts the metadata into an R list object.
-
-For the moment, only DDI version 2.6 (Codebook) is supported, but DDI
-Lifecycle is planned to be implemented.
+For the moment, only DDI Codebook is supported, but DDI Lifecycle is planned
+to be implemented.
 }
 \examples{
 x <- data.frame(

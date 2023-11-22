@@ -114,9 +114,9 @@
         x <- declared::undeclare(getElement(dataset, variable), drop = TRUE)
         attributes(x) <- NULL
         metadata <- getElement(dataDscr, variable)
-        labels <- getElement(metadata, "labels")
-        missing <- getElement(metadata, "na_values")
-        na_range <- getElement(metadata, "na_range")
+        labels <- getElement(metadata$.extra, "labels")
+        missing <- getElement(metadata$.extra, "na_values")
+        na_range <- getElement(metadata$.extra, "na_range")
 
         if (is.null(labels) & is.null(na_range) & is.null(missing)) {
             temp <- getValues(metadata)
@@ -152,7 +152,7 @@
         }
 
         if (
-            is.element("labels", names(metadata)) &&
+            is.element("labels", names(metadata$.extra)) &&
             any(is.element(missing, labels))
         ) {
             wel <- which(is.element(missing, labels))
@@ -274,9 +274,9 @@
         attributes(x) <- NULL # for haven_labelled with tagged NAs
 
         metadata <- getElement(dataDscr, variable)
-        labels_x <- getElement(metadata, "labels")
-        na_values_x <- getElement(metadata, "na_values")
-        na_range_x <- getElement(metadata, "na_range")
+        labels_x <- getElement(metadata$.extra, "labels")
+        na_values_x <- getElement(metadata$.extra, "na_values")
+        na_range_x <- getElement(metadata$.extra, "na_range")
 
         if (is.null(labels_x) & is.null(na_values_x) & is.null(na_range_x)) {
             temp <- getValues(metadata)
@@ -344,7 +344,7 @@
                 callist <- list(
                     x = x,
                     labels = labels_x,
-                    label = getElement(metadata, "label")
+                    label = getElement(metadata$.extra, "label")
                 )
 
                 if (length(na_values_x) > 0) {
@@ -469,7 +469,7 @@
                     dataset[[variable]] <- haven::labelled(
                         x,
                         labels = labels_x,
-                        label = getElement(metadata, "label")
+                        label = getElement(metadata$.extra, "label")
                     )
                 }
             }

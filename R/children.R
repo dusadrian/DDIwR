@@ -50,18 +50,18 @@
 #'
 #' @export
 `addChildren` <- function(children, to, overwrite = TRUE, ...) {
-    objname <- deparse(substitute(to))
+    objname <- deparse1(substitute(to))
     dots <- list(...)
 
     standard <- !missing(children) && is.list(children)
     if (standard) {
-        if (inherits(children, "DDI")) {
+        if (is.element(".extra", names(children))) {
             children <- list(children)
         }
 
         standard <- all(sapply(
             children,
-            function(x) inherits(x, "DDI")
+            function(x) is.element(".extra", names(x))
         ))
     }
 
@@ -69,37 +69,31 @@
         admisc::stopError("The argument 'children' is not standard.")
     }
 
-    if (missing(to) || !inherits(to, "DDI")) {
+    childnames <- sapply(children, function(x) x$.extra$name)
+    names(children) <- childnames
+
+    if (missing(to) || !is.element(".extra", names(to))) {
         admisc::stopError("The argument 'to' is not standard.")
     }
 
-    all_children <- DDIC[[to$name]]$children
-    childnames <- sapply(children, function(x) x$name)
+    all_children <- DDIC[[to$.extra$name]]$children
 
     if (!all(is.element(childnames, all_children))) {
         admisc::stopError("One or more children do not belong to this element.")
     }
 
-    if (is.null(to$children)) {
-        # to$children <- lapply(children, unclass)
-        to$children <- children
-    }
-    else {
-        # to$children <- append(to$children, lapply(children, unclass))
-        to$children <- append(to$children, children)
-    }
+    attrs <- attributes(to)
+    to <- append(to, children)
+    attrs$names <- c(attrs$names, childnames)
 
+    corder <- order(match(
+        attrs$names,
+        c(".extra", "", all_children)
+    ))
 
-    # just in case there were already, other children present
-    childnames <- sapply(to$children, function(x) x$name)
-    names(to$children) <- childnames
-
-    # make sure the children are arranged in exactly the order specified
-    # by the standard (don't know if that matters, but just in case it does)
-    corder <- order(match(childnames, all_children))
-    if (!identical(corder, seq(length(childnames)))) {
-        to$children <- to$children[corder]
-    }
+    to <- to[corder]
+    attrs$names <- attrs$names[corder]
+    attributes(to) <- attrs
 
     if (overwrite) {
         admisc::overwrite(objname, to, parent.frame())
@@ -113,18 +107,20 @@
 #' @rdname DDI-children
 #' @export
 `anyChildren` <- function(element) {
-    if (missing(element) || !inherits(element, "DDI")) {
-        admisc::stopError("The argument 'element' is not standard.")
+    if (missing(element) || !is.list(element)) {
+        admisc::stopError("The argument 'element' should be a list.")
     }
 
-    length(element$children) > 0
+    return(
+        length(setdiff(names(element), c(".extra", ""))) > 0
+    )
 }
 
 
 #' @rdname DDI-children
 #' @export
 `getChildren` <- function(xpath, from, ...) {
-    if (missing(from) || !inherits(from, "DDI")) {
+    if (missing(from) || !is.element(".extra", names(from))) {
         admisc::stopError("The argument 'from' is not standard.")
     }
 
@@ -142,8 +138,9 @@
     xpath <- gsub("\\$", "/", xpath)
     xpath <- unlist(strsplit(xpath, split = "/"))
 
-    if (any(xpath == from$name)) {
-        xpath <- xpath[-seq(which(xpath == from$name))]
+    wextra <- which(xpath == from$.extra$name)
+    if (length(wextra) > 0) {
+        xpath <- xpath[-seq(wextra)]
     }
 
     if (length(xpath) == 0) {
@@ -151,16 +148,7 @@
     }
 
     if (!hasChildren(from, xpath[1])) {
-        if (isTRUE(dots$skiperror)) {
-            return(NULL)
-        }
-
-        admisc::stopError(
-            sprintf(
-                "Inexisting (sub)element %s in the element %s.",
-                xpath[1], from$name
-            )
-        )
+        return(NULL)
     }
 
     if (length(xpath) >= 1) {
@@ -168,18 +156,21 @@
         if (length(index) == 1) {
             return(getChildren(
                 paste(xpath, collapse = "/"),
-                from = from$children[[index]]
+                from = from[[index]]
             ))
         }
         else {
             if (length(xpath) == 1) {
-                return(from$children[index])
+                return(from[index])
             }
 
             # e.g. codeBook/dataDscr/var/labl
             # and there are certainly, multiple "var" elements in the dataDscr
 
-            admisc::stopError("Only single elements can be currently extracted.")
+            admisc::stopError(sprintf(
+                "Multiple '%s' elements to subtract '%s' children from.",
+                xpath[1], xpath[2]
+            ))
         }
     }
 }
@@ -189,10 +180,6 @@
 #' @rdname DDI-children
 #' @export
 `hasChildren` <- function(element, name) {
-    if (missing(element) || !inherits(element, "DDI")) {
-        admisc::stopError("The argument 'element' is not standard.")
-    }
-
     if (
         missing(name) || is.null(name) ||
         !is.atomic(name) || !is.character(name)
@@ -202,40 +189,63 @@
         )
     }
 
-    is.element(name, names(element$children))
+    if (missing(element) || is.null(element) || !is.list(element)) {
+        return(logical(length(name)))
+    }
+
+    is.element(name, setdiff(names(element), ".extra"))
 }
 
 
 #' @rdname DDI-children
 #' @export
 `indexChildren` <- function(element, name) {
-    if (!hasChildren(element, name)) {
+    if (is.null(element) || !is.list(element)) {
         return(numeric(0))
     }
 
-    which(names(element$children) == name)
+    which(names(element) == name)
 }
 
 
 #' @rdname DDI-children
 #' @export
 `removeChildren` <- function(name, from, overwrite = TRUE, ...) {
-    objname <- deparse(substitute(from))
+    objname <- deparse1(substitute(from))
     dots <- list(...)
 
-    if (missing(name) || is.null(name) || !is.atomic(name) || !is.character(name)) {
+    if (
+        missing(name) || is.null(name) ||
+        !is.atomic(name) || !is.character(name)
+    ) {
         admisc::stopError("Argument 'name' should be a character vector.")
     }
 
-    if (missing(from) || !inherits(from, "DDI")) {
-        admisc::stopError("The argument 'from' is not standard.")
+    childnames <- names(from)
+
+    if (missing(from) || !is.list(from) || is.null(childnames)) {
+        admisc::stopError(
+            "To remove children, the argument 'from' should be a named list."
+        )
     }
 
-    if (length(from$children) > 0) {
-        childnames <- names(from$children)
-        if (any(is.element(childnames, name))) {
-            from$children <- from$children[-which(is.element(childnames, name))]
-        }
+    if (is.element(".extra", name)) {
+        admisc::stopError(
+            "The component '.extra' should not be removed."
+        )
+    }
+
+    if (is.element("", name)) {
+        admisc::stopError("Unknown child names to remove.")
+    }
+
+    wchildren <-  which(is.element(childnames, name))
+
+    if (length(wchildren) > 0) {
+        attrs <- attributes(from)
+        from <- from[-wchildren]
+        attrs$names <- names(from)
+        attributes(from) <- attrs
 
         if (overwrite) {
             admisc::overwrite(objname, from, parent.frame())
@@ -249,7 +259,7 @@
 #' @rdname DDI-children
 #' @export
 `addContent` <- function(content, to, overwrite = TRUE) {
-    objname <- deparse(substitute(to))
+    objname <- deparse1(substitute(to))
 
     if (
         missing(content) ||
@@ -260,16 +270,32 @@
         admisc::stopError("The content should be a vector of length 1.")
     }
 
-    if (missing(to) || !inherits(to, "DDI")) {
+    if (missing(to) || !is.element(".extra", names(to))) {
         admisc::stopError("The argument 'to' is not standard.")
     }
 
-    if (is.null(to$content)) {
-        to$content <- content
-    }
-    else {
+    nms <- names(to)
+    if (any(nms == "")) {
         admisc::stopError("This element already has a content.")
     }
+
+    attrs <- attributes(to)
+    to <- c(list(content), to)
+    attrs$names <- c("", attrs$names)
+    attributes(to) <- attrs
+
+    to <- to[
+        order(
+            match(
+                attrs$names,
+                c(
+                    ".extra", "",
+                    attrs$names[!is.element(attrs$names, c(".extra", ""))]
+                )
+            )
+        )
+    ]
+
 
     if (overwrite) {
         admisc::overwrite(objname, to, parent.frame())
@@ -282,7 +308,7 @@
 #' @rdname DDI-children
 #' @export
 `changeContent` <- function(content, to, overwrite = TRUE) {
-    objname <- deparse(substitute(to))
+    objname <- deparse1(substitute(to))
 
     if (
         missing(content) ||
@@ -293,15 +319,20 @@
         admisc::stopError("The content should be a vector of length 1.")
     }
 
-    if (missing(to) || !inherits(to, "DDI")) {
+    if (missing(to) || !is.element(".extra", names(to))) {
         admisc::stopError("The argument 'to' is not standard.")
     }
 
-    if (is.null(to$content)) {
+    nms <- names(to)
+    wcontent <- which(nms == "")
+    if (length(wcontent) == 0) {
         admisc::stopError("This element does not have a content to change.")
     }
+    else if (length(wcontent) == 1) {
+        to[[wcontent]] <- content
+    }
     else {
-        to$content <- content
+        admisc::stopError("The argument 'to' has multiple content elements.")
     }
 
     if (overwrite) {
@@ -315,13 +346,23 @@
 #' @rdname DDI-children
 #' @export
 `removeContent` <- function(from, overwrite = TRUE) {
-    objname <- deparse(substitute(from))
+    objname <- deparse1(substitute(from))
 
-    if (missing(from) || !inherits(from, "DDI")) {
+    if (missing(from) || !is.element(".extra", names(from))) {
         admisc::stopError("The argument 'from' is not standard.")
     }
 
-    from$content <- NULL
+    nms <- names(from)
+    attrs <- attributes(from)
+    wcontent <- which(nms == "")
+    if (length(wcontent) > 0) {
+        from <- from[-wcontent]
+        nms <- nms[-wcontent]
+        if (length(nms) == 0) nms <- NULL
+        attrs$names <- nms
+        attributes(from) <- attrs
+    }
+
     if (overwrite) {
         admisc::overwrite(objname, from, parent.frame())
     }
@@ -333,42 +374,41 @@
 #' @rdname DDI-children
 #' @export
 `addAttributes` <- function(attributes, to, overwrite = TRUE) {
-    objname <- deparse(substitute(to))
-    # if (to$name == "codeBook") {
-    #     print(to$attributes)
-    # }
+    objname <- deparse1(substitute(to))
+    attrnames <- names(attributes)
 
-    if (missing(attributes) || !is.list(attributes)) {
-        admisc::stopError("The argument 'attributes' should be a list of named values.")
+    if (missing(attributes) || !is.list(attributes) || is.null(attrnames)) {
+        admisc::stopError(
+            "The argument 'attributes' should be a list of named values."
+        )
     }
 
-    if (missing(to) || !inherits(to, "DDI")) {
+    if (missing(to) || !is.element(".extra", names(to))) {
         admisc::stopError("The argument 'to' is not standard.")
     }
 
     all_attributes <- unique(c(
         names(DDIC_global_attributes),
-        names(DDIC[[to$name]]$attributes)
+        names(DDIC[[to$.extra$name]]$attributes)
     ))
-    attrnames <- names(attributes)
 
     if (is.null(attrnames) || !all(is.element(attrnames, all_attributes))) {
-        admisc::stopError("One or more attributes do not belong to this element.")
+        admisc::stopError(
+            "One or more attributes do not belong to this DDI element."
+        )
     }
 
-    for (i in names(attributes)) {
-        to$attributes[[i]] <- attributes[[i]]
-    }
-
-    # just in case there were already, other attributes present
-    attrnames <- names(to$attributes)
+    attrs <- attributes(to)
+    attrs <- c(attrs, attributes)
 
     # make sure the children are arranged in exactly the order specified
     # by the standard (don't know if that matters, but just in case it does)
-    corder <- order(match(attrnames, all_attributes))
-    if (!identical(corder, seq(length(attrnames)))) {
-        to$attributes <- to$attributes[corder]
+    corder <- order(match(names(attrs), c("names", "class", all_attributes)))
+    if (!identical(corder, seq(length(attrs)))) {
+        attrs <- attrs[corder]
     }
+
+    attributes(to) <- attrs
 
     if (overwrite) {
         admisc::overwrite(objname, to, parent.frame())
@@ -382,43 +422,58 @@
 #' @rdname DDI-children
 #' @export
 `anyAttributes` <- function(element) {
-    if (missing(element) || !inherits(element, "DDI")) {
-        admisc::stopError("The argument 'element' is not standard.")
+    if (missing(element) || !is.list(element)) {
+        return(FALSE)
     }
 
-    length(element$attributes) > 0
+    length(
+        setdiff(
+            names(attributes(element)),
+            c("names", "class")
+        )
+    ) > 0
 }
 
 
 #' @rdname DDI-children
 #' @export
 `changeAttributes` <- function(attributes, from, overwrite = TRUE) {
-    objname <- deparse(substitute(from))
+    objname <- deparse1(substitute(from))
 
     if (missing(attributes) || !is.list(attributes)) {
         admisc::stopError("The argument 'attributes' should be a list of named values.")
     }
 
-    if (missing(from) || !inherits(from, "DDI")) {
+    if (missing(from) || !is.element(".extra", names(from))) {
         admisc::stopError("The argument 'from' is not standard.")
     }
 
-    if (
-        is.null(names(attributes)) ||
-        !all(is.element(names(attributes), names(to$attributes)))
-    ) {
-        admisc::stopError("Inexisting attributes to change.")
+    all_attributes <- unique(c(
+        names(DDIC_global_attributes),
+        names(DDIC[[from$.extra$name]]$attributes)
+    ))
+
+    attrnames <- names(attributes)
+    if (is.null(attrnames) || !all(is.element(attrnames, all_attributes))) {
+        admisc::stopError("One or more attributes do not belong to this element.")
     }
 
-    for (i in names(attributes)) {
-        to$attributes[[i]] <- attributes[[i]]
+    attrs <- attributes(from)
+
+    if (
+        !all(is.element(attrnames, names(attrs)))
+    ) {
+        admisc::stopError("Inexisting attribute(s) to change.")
     }
+
+    attrs[attrnames] <- attributes
+    attributes(from) <- attrs
 
     if (overwrite) {
         admisc::overwrite(objname, from, parent.frame())
     }
 
-    return(invisible(to))
+    return(invisible(from))
 }
 
 
@@ -426,8 +481,8 @@
 #' @rdname DDI-children
 #' @export
 `hasAttributes` <- function(element, name) {
-    if (missing(element) || !inherits(element, "DDI")) {
-        admisc::stopError("The argument 'element' is not standard.")
+    if (missing(element) || !is.list(element)) {
+        admisc::stopError("The argument 'element' should be a list.")
     }
 
     if (
@@ -439,14 +494,14 @@
         )
     }
 
-    is.element(name, names(element$attributes))
+    is.element(name, names(attributes(element)))
 }
 
 
 #' @rdname DDI-children
 #' @export
 `removeAttributes` <- function(name, from, overwrite = TRUE) {
-    objname <- deparse(substitute(from))
+    objname <- deparse1(substitute(from))
 
     if (
         missing(name) ||
@@ -457,15 +512,28 @@
         admisc::stopError("Argument 'name' should be a character vector of element name(s).")
     }
 
-    if (missing(from) || !inherits(from, "DDI")) {
+    all_attributes <- unique(c(
+        names(DDIC_global_attributes),
+        names(DDIC[[from$.extra$name]]$attributes)
+    ))
+
+    if (!all(is.element(name, all_attributes))) {
+        admisc::stopError("One or more attributes do not belong to this element.")
+    }
+
+    if (missing(from) || !is.element(".extra", names(from))) {
         admisc::stopError("The argument 'from' is not standard.")
     }
 
-    if (length(from$attributes) > 0) {
-        attrnames <- names(from$attributes)
-        if (any(is.element(attrnames, name))) {
-            from$attributes <- from$attributes[-which(is.element(attrnames, name))]
+    attrs <- attributes(from)
+    if (any(is.element(name, names(attrs)))) {
+        attrs <- attributes(from)
+        for (n in name) {
+            attrs[[n]] <- NULL
         }
+
+        attributes(from) <- attrs
+
         if (overwrite) {
             admisc::overwrite(objname, from, parent.frame())
         }

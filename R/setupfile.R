@@ -112,7 +112,7 @@
 #' @export
 
 `setupfile` <- function(
-    obj, file = "", type = "all", csv = "", recode = TRUE, OS = "",
+    obj, file = "", type = "all", csv = NULL, recode = TRUE, OS = "",
     stringnum = TRUE, ...
 ) {
 
@@ -129,11 +129,7 @@
 
     if (is.data.frame(obj)) {
         csv <- obj
-        # TODO: getMetadata sa nu mai intoarca codeBook ci doar var
-        # setul de date o sa fie atasat in alta parte, vad eu
-        # obj <- getMetadata(obj)
         dataDscr_vars <- collectRMetadata(obj)
-        # obj$fileDscr <- list(datafile = csv)
     }
 
     dots <- list(...)
@@ -265,69 +261,68 @@
         # it can be a string containing a path to the data
 
 
-        if (all(is.character(csv))) {
-            if (csv != "") {
-                if (length(csv) > 1) {
-                    admisc::stopError(
-                        paste(
-                            "The argument <csv> should contain",
-                            "a single path to the .csv file."
-                        )
+        if (all(is.character(csv)) && !identical(csv, "")) {
+            if (length(csv) > 1) {
+                admisc::stopError(
+                    paste(
+                        "The argument <csv> should contain",
+                        "a single path to the .csv file."
                     )
-                }
+                )
+            }
 
-                tc <- admisc::tryCatchWEM(csvlist <- treatPath(csv, type = "csv"))
-                if (is.null(tc)) {
-                    if (length(csvlist$files) > 1) {
-                        datadir <- csvlist$completePath
-                        csvdatadir <- TRUE
-                    }
-                }
-                else {
-                    cat("\nNOTE:", tc$error)
-                    # since "err" is now an error message from treatPath()
+            tc <- admisc::tryCatchWEM(csvlist <- treatPath(csv, type = "csv"))
+            if (is.null(tc)) {
+                if (length(csvlist$files) > 1) {
+                    datadir <- csvlist$completePath
+                    csvdatadir <- TRUE
                 }
             }
             else {
-                # differentiate between "data" and "Data",
-                # some Operating Systems are case sensitive
-                datathere <- file.exists(
-                    file.path(
-                        labelist$completePath,
-                        "data"
-                    )
-                )
+                cat("\nNOTE:", tc$error)
+                # since "err" is now an error message from treatPath()
+            }
+        }
 
-                datadir <- file.path(
+        if (is.null(csv)) {
+            # differentiate between "data" and "Data",
+            # some Operating Systems are case sensitive
+            datathere <- file.exists(
+                file.path(
                     labelist$completePath,
-                    "Data"
+                    "data"
                 )
+            )
 
-                # TODO:
-                # return(list(datathere, datadir))
+            datadir <- file.path(
+                labelist$completePath,
+                "Data"
+            )
 
-                csvdatadir <- file.exists(datadir)
+            # TODO:
+            # return(list(datathere, datadir))
 
-                if (csvdatadir) {
-                    csvlist <- treatPath(datadir, type = "csv")
-                    if (length(csvlist) == 1) {
-                        csvdatadir <- FALSE
-                        cat(paste(
-                            paste(
-                                "\nNOTE: There is a ",
-                                ifelse(
-                                    datathere,
-                                    "data",
-                                    "Data"
-                                ),
-                                " directory within ",
-                                labelist$completePath,
-                                ". ",
-                                sep = ""
+            csvdatadir <- file.exists(datadir)
+
+            if (csvdatadir) {
+                csvlist <- treatPath(datadir, type = "csv")
+                if (length(csvlist) == 1) {
+                    csvdatadir <- FALSE
+                    cat(paste(
+                        paste(
+                            "\nNOTE: There is a ",
+                            ifelse(
+                                datathere,
+                                "data",
+                                "Data"
                             ),
-                            csvlist
-                        ))
-                    }
+                            " directory within ",
+                            labelist$completePath,
+                            ". ",
+                            sep = ""
+                        ),
+                        csvlist
+                    ))
                 }
             }
         }
@@ -367,12 +362,16 @@
                         labelist$completePath,
                         labelist$files[i]
                     ),
-                    fromsetupfile = TRUE,
-                    embed = TRUE,
-                    save = saveFile
+                    fromsetupfile = TRUE #,
+                    # embed = TRUE,
+                    # save = saveFile
                 )
 
-                tmp <- getElement(getElement(obj, "fileDscr"), "datafile")
+                # --- TODO getMetadata() doesn't embed the data anymore...
+                # do I really need to?
+                tmp <- extractData(obj)
+                # ---
+
                 if (!is.null(tmp)) {
                     csv <- tmp
                 }
@@ -684,14 +683,20 @@
 
         return(invisible())
     }
-    else if (is.list(obj)) {
+    else if (
+        is.list(obj) &&
+        !is.null(obj$.extra) &&
+        obj$.extra$name == "codeBook"
+    ) {
 
         if (is.null(dataDscr_vars)) {
-            dataDscr_vars <- getVariables(obj)
+            # TODO: this should have the same output as collectRMetadata()...!
+            dataDscr_vars <- getChildren("codeBook/dataDscr/var", from = obj)
+            names(dataDscr_vars) <- sapply(dataDscr_vars, function(x) attr(x, "name"))
         }
 
-        if (is.null(csv)) {
-            tmp <- getElement(getElement(obj, "fileDscr"), "datafile")
+        if (identical(csv, "")) {
+            tmp <- extractData(obj)
 
             if (!is.null(tmp)) {
                 csv <- tmp

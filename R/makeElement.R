@@ -15,27 +15,9 @@
 #' @param ... Other arguments, see Details.
 #'
 #' @details The structure of a DDI element in R follows the usual structure of
-#' an XML node: it has text content, attributes and possibly other child (sub)
-#' elements. Although a typical R list perfectly fits this structure, this
-#' package uses a different type of list, to accommodate any other requirements.
-#'
-#' The standard structure of a DDI element is an R list with separate components
-#' for: "name", "content", "children" and "attributes". Instead of storing the
-#' attributes in the usual R object attributes, the choice of using a regular
-#' list component avoids the potential overlap of DDI element attribute names
-#' over R's restricted attribute names such as `names` or `class`.
-#'
-#' This slightly over-complicates the access to the list's (sub)components,
-#' instead of the usual `object$component$subcomponent`, these need to be
-#' accessed via the "children" component:
-#' `object$children$component$children$subcomponent`
-#'
-#' Dedicated functions are offered to make the manipulation of these children
-#' components as smooth as possible. They all make use of the "name" component,
-#' which is typically stored in the list component's name. Because each DDI
-#' Codebook element has a unique structure, it is important to safeguard its
-#' identification through the "name" component, especially if selecting a
-#' particular component into a separate R object.
+#' an XML node, as returned by the function `as_list()` from package **xml2**,
+#' with one additional (first) component named ".extra" to accommodate any other
+#' information that is not part of the DDI element.
 #'
 #' In the DDI Codebook, most elements and their attributes are optional, but
 #' some are mandatory. In case of attributes, some become mandatory only if the
@@ -64,14 +46,9 @@
 #' \code{\link{addChildren}}
 #' \code{\link{getChildren}}
 #' \code{\link{showDetails}}
-#' \code{\link{fromXMList}}
-#' \code{\link{toXMList}}
 #'
 #' @examples
 #' stdyDscr <- makeElement("stdyDscr", fill = TRUE)
-#'
-#' # the location of the R list sub-element "abstract":
-#' stdyDscr$children$citation$children$titlStmt$children$titl
 #'
 #' # easier to extract with:
 #' getChildren("stdyDscr/citation/titlStmt/titl", from = stdyDscr)
@@ -84,7 +61,7 @@
     prodDateTime <- getDateTime()
     version <- as.character(packageVersion("DDIwR"))
 
-    result <- structure(list(name = name), class = "DDI")
+    result <- list(.extra = list(name = name))
 
     if (isTRUE(fill)) {
         IDNo <- checkDots(dots$IDNo, default = "S0000")
@@ -251,14 +228,11 @@
         }
 
         if (is.element("children", names(info))) {
-            addChildren(info$children, result)
+            addChildren(info$children, to = result)
         }
 
-        nms <- setdiff(names(info), c("attributes", "children"))
-        if (length(nms) > 0) {
-            for (n in nms) {
-                result[[n]] <- info[[n]]
-            }
+        if (is.element("content", names(info))) {
+            addContent(info$content, result)
         }
     }
 

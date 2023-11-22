@@ -3,17 +3,18 @@
 \name{DDIwR_internal}
 \alias{DDIwR_internal}
 \alias{dfm}
-\alias{appendInfo}
+\alias{ascii}
 \alias{checkArgument}
 \alias{checkDots}
 \alias{checkElement}
 \alias{checkExisting}
-\alias{checkvarFormat}
 \alias{checkType}
 \alias{checkXMList}
 \alias{cleanup}
+\alias{coerceDDI}
 \alias{collectMetadata}
 \alias{datanotes}
+\alias{extractData}
 \alias{formatExample}
 \alias{generateID}
 \alias{getDateTime}
@@ -23,13 +24,13 @@
 \alias{getFiles}
 \alias{getFormat}
 \alias{getValues}
-\alias{getVariables}
 \alias{getXML}
 \alias{hasLabels}
 \alias{hasMissingLabels}
 \alias{makeLabelled}
 \alias{missingValuesSPSS}
 \alias{prespace}
+\alias{removeExtra}
 \alias{removeXMLang}
 \alias{repeatSpace}
 \alias{replaceChars}
@@ -41,17 +42,15 @@
 \alias{writeRlist}
 \title{DDIwR internal functions}
 \usage{
-appendInfo(codeBook, data)
+ascii(x)
 
-checkArgument(argument, default, ...)
+checkArgument(argument, default, length = 1, ...)
 
-checkDots(dotsvalue, default)
+checkDots(dotsvalue, default, length = 1)
 
 checkElement(x)
 
 checkExisting(xpath, inside, attribute = NULL)
-
-checkvarFormat(codeBook)
 
 checkType(x, labels = NULL, na_values = NULL, na_range = NULL)
 
@@ -59,9 +58,13 @@ checkXMList(xmlist)
 
 cleanup(x, cdata = TRUE)
 
+coerceDDI(element, name = NULL)
+
 collectMetadata(dataset, ...)
 
 datanotes(data)
+
+extractData(xml)
 
 formatExample(xml_node, level = 0, indent = 2)
 
@@ -81,9 +84,7 @@ getFormat(x, type = c("SPSS", "Stata"), ...)
 
 getValues(variable)
 
-getVariables(codeBook, name = TRUE)
-
-getXML(path)
+getXML(path, encoding = "UTF-8")
 
 hasLabels(x)
 
@@ -94,6 +95,8 @@ makeLabelled(x, variables, declared = TRUE)
 missingValuesSPSS(variables, range = FALSE, numvars = TRUE)
 
 prespace(text, indent = NULL)
+
+removeExtra(element)
 
 removeXMLang(x)
 
@@ -123,15 +126,17 @@ writeRlist(variables, OS = "windows", indent = 4, dirpath = "", filename = "")
 
 \code{checkExisting}: Boolean.
 
-\code{checkvarFormat}: A potentially modified \code{codeBook} element.
-
 \code{checkType}: A character scalar
 
 \code{cleanup}: A character vector
 
+\code{coerceDDI}: A standard element of class DDI
+
 \code{collectMetadata}: A list containing variable level metadata information
 
 \code{datanotes}: A "notes" element to be added in the \code{fileDscr} element
+
+\code{extractData}: An R data frame, if existing, or NULL
 
 \code{generateID}: Character vector
 
@@ -149,8 +154,6 @@ writeRlist(variables, OS = "windows", indent = 4, dirpath = "", filename = "")
 
 \code{getValues}: A list with two components: \code{labels} and \code{na_values}
 
-\code{getVariables}: A list with "var" elements, renamed with the names of the variables
-
 \code{getXML}: An XML document
 
 \code{hasLabels}: Boolean
@@ -162,6 +165,8 @@ writeRlist(variables, OS = "windows", indent = 4, dirpath = "", filename = "")
 \code{missingValuesSPSS}: A vector of missing values representation.
 
 \code{prespace}: A modified text.
+
+\code{removeExtra}: A modified element.
 
 \code{removeXMLang}: A modified \code{codeBook} element.
 
@@ -182,9 +187,7 @@ files, the file names and the file extensions
 Functions to be used internally, only by developers and
 contributors.
 
-\code{appendInfo}: Append information at variable level about
-labels: \code{na_values}, \code{na_range}, \code{measurement}, \code{type}
-etc. (taken from the XML file)
+\code{ascii}: Convert accented unicode characters to pure ascii
 
 \code{checkArgument}: Check function arguments
 
@@ -195,19 +198,21 @@ If the argument is not supplied via dots, returns a default
 
 \code{checkExisting}: Check if a certain (sub)element exists in a DDI Codebook.
 
-\code{checkvarFormat}: Makes sure all \code{var} elements have a single
-(usually SPSS) value for the \code{varFormat} sub-element (if existing).
-
 \code{checkType}: Determine the variable type: categorical, numerical or mixed
 
 \code{checkXMList}: Determine if an XML list is a DDI Codebook
 
 \code{cleanup}: Rectify texts read from a metadata object
 
+\code{coerceDDI}: Recursive coerce an element to a DDI class
+
 \code{collectMetadata}: Collect metadata from a file or a dataframe object
 
 \code{datanotes}: Prepare a notes element containing a
 serialized and compressed R dataset
+
+\code{extractData}: Extract data from an DDI Codebook XML document or
+list.
 
 \code{formatExample}: Format an example from the DDI Codebook
 specification
@@ -218,7 +223,7 @@ specification
 
 \code{getDelimiter}: Guess the column delimiter from a text file
 
-\code{getDNS}: Extracts the "D"efault "N"ame "Space" from an XML object
+\code{getDNS}: Extracts the Default Name Space from an XML object
 
 \code{getEnter}: Get the carriage return code from the current Operating System
 
@@ -228,11 +233,7 @@ specification
 
 \code{getValues}: Extract values, labels and missing values from a \code{var} element
 
-\code{getVariables}: Extract the "var" elements from a \code{dataDscr} element
-By default, the children "var" elements are renamed with the variables names.
-This can be deactivated through the argument "name".
-
-\code{getXML}: Read the DDI XML file, after testing if it can be loaded at all.
+\code{getXML}: Read the DDI XML file, testing if it can be loaded.
 
 \code{hasLabels}: Check if a dataset has (declared) labels
 
@@ -243,6 +244,8 @@ This can be deactivated through the argument "name".
 \code{missingValuesSPSS}: Prepares the missing values for the SPSS export syntax.
 
 \code{prespace}: Prepend a text with a certain number of space characters.
+
+\code{removeExtra}: Removes extra information from a DDI Codebook element
 
 \code{removeXMLang}: Remove the \code{xmlang} attribute from all elements.
 

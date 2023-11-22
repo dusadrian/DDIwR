@@ -119,8 +119,8 @@
 #' }
 #'
 #' @references
-#' DDI - Data Documentation Initiative, see
-#' \href{https://ddialliance.org/}{https://ddialliance.org/}
+#' DDI - Data Documentation Initiative, see the
+#' \href{https://ddialliance.org/}{DDI Alliance} website.
 #'
 #' @seealso
 #' \code{\link{setupfile}},
@@ -272,7 +272,7 @@
     }
 
     if (tp_from$fileext == "XML") {
-        xml <- getXML(from)
+        xml <- getXML(from, encoding = encoding)
         data <- extractData(xml)
 
         # if not present in the codeBook, maybe it is on a separate .csv file
@@ -352,11 +352,10 @@
 
             # return(list(data = data, codeBook = codeBook))
             data <- makeLabelled(data, variables)
-            # codeBook <- appendInfo(codeBook, data)
         }
 
-        # if (!is.null(codeBook$children$stdyDscr)) {
-        #     attr(data, "stdyDscr") <- codeBook$children$stdyDscr
+        # if (!is.null(codeBook$stdyDscr)) {
+        #     attr(data, "stdyDscr") <- codeBook$stdyDscr
         # }
     }
     else if (tp_from$fileext == "XLS" || tp_from$fileext == "XLSX") {
@@ -578,11 +577,14 @@
         }
 
         addChildren(fileDscr, to = codeBook)
+
+        addChildren(
+            collectMetadata(data, DDI = TRUE), # dataDscr
+            to = codeBook
+        )
         exportDDI(
             codeBook,
             file = to,
-            dataDscr = variables,
-            data = data,
             ... = ...
         )
 
@@ -635,12 +637,8 @@
 
         for (i in seq(ncol(data))) {
             x <- data[[colnms[i]]]
-            metadata <- variables[[colnms[i]]]
-            labels <- metadata$labels
-
-            if (is.null(labels)) {
-                labels <- getElement(getValues(metadata), "labels")
-            }
+            metadata <- getElement(variables, colnms[i])
+            labels <- getElement(metadata$.extra, "labels")
 
             if (is.null(labels)) {
                 labels <- attr(x, "labels", exact = TRUE)
@@ -659,7 +657,7 @@
                     if (chartonum && !is.null(labels)) {
                         x <- recodeCharcat(
                             declared::as.declared(x),
-                            metadata = metadata
+                            metadata = metadata$.extra
                         )
                     }
                     else {
@@ -757,7 +755,7 @@
             as.numeric(
                 unlist(
                     strsplit(
-                        substring(x$varFormat[1], 2),
+                        substring(x$.extra$varFormat[1], 2),
                         split = "\\."
                     )
                 )
@@ -777,7 +775,7 @@
         })
 
         for (v in names(variables)) {
-            labels <- getElement(variables[[v]], "labels")
+            labels <- getElement(variables[[v]]$.extra, "labels")
             if (!is.null(labels)) {
                 temp <- data.frame(
                     variable = v,
@@ -786,7 +784,7 @@
                     missing = NA
                 )
 
-                na_values <- getElement(variables[[v]], "na_values")
+                na_values <- getElement(variables[[v]]$.extra, "na_values")
 
                 if (!is.null(na_values)) {
                     temp$missing[is.element(labels, na_values)] <- "y"
