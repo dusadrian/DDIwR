@@ -187,10 +187,12 @@
         }
         else if (identical(name, "prodStmt")) {
             prodStmt <- makeElement("prodStmt")
+            software <- makeElement("software", fill = fill, ... = ...)
+            addAttributes(list(version = version), to = software)
             addChildren(
                 list(
                     makeElement("prodDate", fill = fill, ... = ...),
-                    makeElement("software", fill = fill, ... = ...)
+                    software
                 ),
                 to = prodStmt
             )
