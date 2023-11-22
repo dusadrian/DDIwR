@@ -42,11 +42,11 @@ xrds <- getMetadata(file.path(tmp, "x.rds"))
 
 
 test_that("getMetadata() works", {
-  expect_true(is.list(xdfm$children$dataDscr$children))
-  expect_true(is.list(xsav$children$dataDscr$children))
-  expect_true(is.list(xxml$children$dataDscr$children))
-  expect_true(is.list(xdta$children$dataDscr$children))
-  expect_true(is.list(xrds$children$dataDscr$children))
+  expect_true(is.list(xdfm$dataDscr))
+  expect_true(is.list(xsav$dataDscr))
+  expect_true(is.list(xxml$dataDscr))
+  expect_true(is.list(xdta$dataDscr))
+  expect_true(is.list(xrds$dataDscr))
 
   # no metadata
   expect_error(getMetadata(data.frame(A = 1:5)))
