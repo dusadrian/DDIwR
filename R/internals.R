@@ -1218,8 +1218,12 @@ NULL
     dots <- list(...)
     data <- dots$data
 
+    varxmlang <- any(sapply(variables, function(x) {
+        is.element("xmlang", names(x))
+    }))
+    
     xmlang <- ""
-    if (isFALSE(dots$monolang)) {
+    if (isFALSE(dots$monolang) | varxmlang) {
         xmlang <- paste0(
             " xml:lang=\"",
             checkDots(dots$xmlang, default = "en"),
