@@ -328,7 +328,8 @@ NULL
 
 
 #' @description `collectMetadata`: Collect metadata from a file or a dataframe object
-#' @return `collectMetadata`: A list containing variable level metadata information
+#' @return `collectMetadata`: a standard DDI Codebook element `dataDscr`,
+#' containing variable level metadata information
 #' @rdname DDIwR_internal
 #' @keywords internal
 #' @export
@@ -369,10 +370,6 @@ NULL
         data = dataset,
         ... = ...
     )
-
-    # if (!isTRUE(dots$DDI)) {
-    #     result[[".extra"]] <- NULL
-    # }
 
     return(result)
 }
@@ -416,7 +413,7 @@ NULL
     }
 
     output <- lapply(dataset, function(x) {
-        result <- list(.extra = list())
+        result <- list()
 
         label <- attr(x, "label", exact = TRUE)
         if (!is.null(label)) {
@@ -492,7 +489,7 @@ NULL
 
         result[["varFormat"]] <- c(format.spss, format.stata)
 
-        return(list(.extra = result))
+        return(result)
     })
 
     return(output)
@@ -1276,7 +1273,7 @@ NULL
     cat(paste0("<", ns, "dataDscr>", enter))
 
     for (i in seq(length(variables))) {
-        metadata <- variables[[i]]$.extra
+        metadata <- variables[[i]]
 
         label <- getElement(metadata, "label")
         lbls <- getElement(metadata, "labels")

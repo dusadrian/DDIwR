@@ -151,7 +151,8 @@
         dataDscrXML <- makeXMLdataDscr(
             collectRMetadata(data),
             data = data,
-            DDI = FALSE
+            DDI = FALSE,
+            ... = ...
         )
 
         dns <- getDNS(codeBook)
