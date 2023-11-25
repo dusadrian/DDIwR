@@ -133,8 +133,17 @@
     }
 
     xmlang <- checkDots(dots$xmlang, default = "en")
+    variables <- getElement(dots, "variables")
+    varxmlang <- ifelse(
+        is.null(variables),
+        FALSE,
+        any(sapply(variables, function(x) {
+            is.element("xmlang", names(x))
+        }))
+    )
+    
 
-    if (!isFALSE(dots$monolang)) {
+    if (!isFALSE(dots$monolang) & !varxmlang) {
         codeBook <- removeXMLang(codeBook)
         addAttributes(c(xmlang = xmlang), to = codeBook)
     }
@@ -149,7 +158,7 @@
         )
 
         dataDscrXML <- makeXMLdataDscr(
-            collectRMetadata(data),
+            variables,
             data = data,
             DDI = FALSE,
             ... = ...

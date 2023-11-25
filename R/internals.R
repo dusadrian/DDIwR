@@ -484,6 +484,7 @@ NULL
         }
 
         result[["varFormat"]] <- c(format.spss, format.stata)
+        result[["xmlang"]] <- attr(x, "xmlang", exact = TRUE)
 
         return(result)
     })
@@ -1277,6 +1278,7 @@ NULL
         na_range <- getElement(metadata, "na_range")
         type <- getElement(metadata, "type")
         measurement <- getElement(metadata, "measurement")
+        lxmlang <- getElement(metadata, "xmlang")
 
         dcml <- ""
         if (!is.null(data) && pN[i]) {
@@ -1435,6 +1437,12 @@ NULL
 
             # what is the difference from data[[i]] ?
             tbl <- table(data[[names(variables)[i]]])
+            if (is.null(lxmlang)) {
+                lxmlang <- rep(xmlang, length(lbls))
+            }
+            else {
+                lxmlang <- paste0(" xml:lang=\"", lxmlang, "\"")
+            }
 
             for (v in seq(length(lbls))) {
 
@@ -1459,7 +1467,7 @@ NULL
                 ))
 
                 cat(paste0(
-                    "<", ns, "labl", xmlang, ">",
+                    "<", ns, "labl", lxmlang[v], ">",
                     replaceChars(names(lbls)[v]),
                     "</", ns, "labl>",
                     enter

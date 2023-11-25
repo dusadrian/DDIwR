@@ -575,19 +575,15 @@
         }
 
         addChildren(fileDscr, to = codeBook)
-        # addChildren(
-        #     collectMetadata(data, DDI = TRUE), # dataDscr
-        #     to = codeBook
-        # )
 
         exportDDI(
             codeBook,
             file = to,
             data = data,
             dataDscr_directly_in_XML = TRUE,
+            variables = variables,
             ... = ...
         )
-
     }
     else if (identical(tp_to$fileext, "SAV")) {
         data[] <- lapply(data, function(x) {
