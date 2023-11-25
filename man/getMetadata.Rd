@@ -23,27 +23,14 @@ Extract a list containing the variable labels, value labels and any
 available information about missing values.
 }
 \details{
-This function reads an XML file containing a DDI codebook version 2.6, or an
+This function extracts the metadata from an R dataset, or alternatively it
+can read an XML file containing a DDI codebook version 2.6, or an
 SPSS or Stata file and returns a list containing the variable labels, value
-labels, plus some other useful information.
+labels and information about the missing values.
 
 If the input is a dataset, it will extract the variable level metadata
 (labels, missing values etc.). From a DDI XML file, it will import all
-metadata elements, the most expensive being the data description. This
-element can be skipped by deactivating the \code{dataDscr} argument.
-
-It additionally attempts to automatically detect a type for each variable:
-\tabular{rl}{
-\strong{\code{cat}}: \tab categorical variable using numeric values\cr
-\strong{\code{catchar}}: \tab categorical variable using character values\cr
-\strong{\code{catnum}}: \tab categorical variable for which numerical summaries\cr
-\tab can be calculated (ex. a 0...10 Likert response scale)\cr
-\strong{\code{num}}: \tab numerical\cr
-\strong{\code{numcat}}: \tab numerical variable with few enough values (ex. number of
-children)\cr
-\tab for which a table of frequencies is possible in addition to
-frequencies
-}
+metadata elements, the most expensive being the data description.
 
 For the moment, only DDI Codebook is supported, but DDI Lifecycle is planned
 to be implemented.

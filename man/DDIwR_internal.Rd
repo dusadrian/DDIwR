@@ -135,7 +135,8 @@ writeRlist(variables, OS = "windows", indent = 4, dirpath = "", filename = "")
 
 \code{coerceDDI}: A standard element of class DDI
 
-\code{collectMetadata}: A list containing variable level metadata information
+\code{collectMetadata}: a standard DDI Codebook element \code{dataDscr},
+containing variable level metadata information
 
 \code{collectRMetadata}: an R list containing variable level metadata information
 
