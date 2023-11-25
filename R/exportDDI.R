@@ -140,7 +140,7 @@
     }
 
 
-    if (isTRUE(dots$directly_make_dataDscr_in_XML)) {
+    if (isTRUE(dots$dataDscr_directly_in_XML)) {
         data <- dots$data
         addChildren(makeElement("dataDscr"), to = codeBook)
 

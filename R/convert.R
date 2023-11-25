@@ -586,7 +586,7 @@
             codeBook,
             file = to,
             data = data,
-            directly_make_dataDscr_in_XML = TRUE,
+            dataDscr_directly_in_XML = TRUE,
             ... = ...
         )
 
