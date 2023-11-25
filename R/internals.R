@@ -1454,7 +1454,11 @@ NULL
         if (!is.null(lbls)) {
 
             # what is the difference from data[[i]] ?
-            tbl <- table(data[[names(variables)[i]]])
+            tbl <- suppressWarnings(
+                declared::w_table(
+                    data[[names(variables)[i]]]
+                )
+            )
             
             for (v in seq(length(lbls))) {
 
