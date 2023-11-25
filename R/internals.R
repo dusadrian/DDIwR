@@ -1438,9 +1438,17 @@ NULL
             # what is the difference from data[[i]] ?
             tbl <- table(data[[names(variables)[i]]])
             if (is.null(lxmlang)) {
-                lxmlang <- rep(xmlang, length(lbls))
+                lxmlang <- ""
             }
             else {
+                if (!is.atomic(lxmlang) || !is.character(lxmlang) || length(lxmlang) != 1) {
+                    admisc::stopError(
+                        sprintf(
+                            "The attribute 'xmlang' at variable '%s' should be a character scalar",
+                            varnames[i]
+                        )
+                    )
+                }
                 lxmlang <- paste0(" xml:lang=\"", lxmlang, "\"")
             }
 
@@ -1467,7 +1475,7 @@ NULL
                 ))
 
                 cat(paste0(
-                    "<", ns, "labl", lxmlang[v], ">",
+                    "<", ns, "labl", ifelse(ismiss, xmlang, lxmlang), ">",
                     replaceChars(names(lbls)[v]),
                     "</", ns, "labl>",
                     enter
