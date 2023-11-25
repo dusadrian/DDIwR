@@ -292,40 +292,36 @@ NULL
 `coerceDDI` <- function(element, name = NULL) {
     if (is.list(element)) {
         nms <- names(element)
+        if (is.element(".extra", nms)) {
+            admisc::stopError("The element is already DDI structured.")
+        }
+        
         attrs <- attributes(element)
-        if (is.null(nms)) {
-            element <- c(
-                list(list(name = name)),
-                element
-            )
-            attrs$names <- c(".extra", "")[seq(length(element))]
-        }
-        else {
-            if (is.null(name)) {
-                # start of the root element, nms should have a single element
-                if (length(nms) != 1) {
-                    admisc::stopError(
-                        "Coercing should begin with the root element."
-                    )
-                }
-
-                return(coerceDDI(element[[1]], name = nms))
+        
+        if (is.null(name)) {
+            # start of the root element, nms should have a single element
+            if (length(nms) != 1) {
+                admisc::stopError(
+                    "Coercing should begin with the root element."
+                )
             }
-            element <- c(
-                list(list(name = name)),
-                lapply(seq_along(nms), function(i) {
-                    coerceDDI(element[[i]], nms[i])
-                })
-            )
-            attrs$names <- c(".extra", nms)
-        }
 
+            return(coerceDDI(element[[1]], name = nms))
+        }
+        
+        element <- c(
+            lapply(seq_along(nms), function(i) {
+                coerceDDI(element[[i]], nms[i])
+            }),
+            list(list(name = name))
+        )
+        
+        attrs$names <- c(nms, ".extra")
         attributes(element) <- attrs
     }
 
     return(element)
 }
-
 
 #' @description `collectMetadata`: Collect metadata from a file or a dataframe object
 #' @return `collectMetadata`: a standard DDI Codebook element `dataDscr`,
@@ -522,7 +518,7 @@ NULL
     )
 
     addAttributes(
-        list(
+        c(
             ID = "rawdata",
             level = "file",
             subject = "R dataset, serialized gzip"

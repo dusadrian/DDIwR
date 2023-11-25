@@ -3,20 +3,18 @@ dataDscr <- makeElement("dataDscr")
 
 #-------
 
-variable <- makeElement("var")
-addAttributes(list(name = "ID"), to = variable)
+variable <- makeElement("var", attributes = c(name = "ID"))
 addChildren(
-    makeElement("labl", list(content = "Questionnaire ID")),
+    makeElement("labl", content = "Questionnaire ID"),
     to = variable
 )
 addChildren(variable, to = dataDscr)
 
 #-------
 
-variable <- makeElement("var")
-addAttributes(list(name = "V1"), to = variable)
+variable <- makeElement("var", attributes = c(name = "V1"))
 addChildren(
-    makeElement("labl", list(content = "Label for the first variable")),
+    makeElement("labl", content = "Label for the first variable"),
     to = variable
 )
 
@@ -30,10 +28,9 @@ addChildren(variable, to = dataDscr)
 
 #-------
 
-variable <- makeElement("var")
-addAttributes(list(name = "V2"), to = variable)
+variable <- makeElement("var", attributes = c(name = "V2"))
 addChildren(
-    makeElement("labl", list(content = "Label for the second variable")),
+    makeElement("labl", content = "Label for the second variable"),
     to = variable
 )
 
@@ -47,10 +44,9 @@ addChildren(variable, to = dataDscr)
 
 #-------
 
-variable <- makeElement("var")
-addAttributes(list(name = "V3"), to = variable)
+variable <- makeElement("var", attributes = c(name = "V3"))
 addChildren(
-    makeElement("labl", list(content = "Label for the third variable")),
+    makeElement("labl", content = "Label for the third variable"),
     to = variable
 )
 
@@ -64,10 +60,9 @@ addChildren(variable, to = dataDscr)
 
 #-------
 
-variable <- makeElement("var")
-addAttributes(list(name = "V4"), to = variable)
+variable <- makeElement("var", attributes = c(name = "V4"))
 addChildren(
-    makeElement("labl", list(content = "Number of children")),
+    makeElement("labl", content = "Number of children"),
     to = variable
 )
 

@@ -8,8 +8,9 @@
 #' @return A standard list element of class `"DDI"` with reserved component names.
 #'
 #' @param name Character, a DDI Codebook element name.
-#' @param info A named list object containing information necessary to create
-#' the element.
+#' @param children A list of standard DDI codebook elements.
+#' @param attributes A vector of named values.
+#' @param content Character scalar.
 #' @param fill Logical, fill the element with arbitrary values for its
 #' mandatory children and attributes
 #' @param ... Other arguments, see Details.
@@ -54,7 +55,9 @@
 #' getChildren("stdyDscr/citation/titlStmt/titl", from = stdyDscr)
 #'
 #' @export
-`makeElement` <- function(name, info = NULL, fill = FALSE, ...) {
+`makeElement` <- function(
+    name, children = NULL, attributes = NULL, content = NULL, fill = FALSE, ...
+) {
     checkElement(name)
 
     dots <- list(...)
@@ -74,18 +77,16 @@
 
         info <- NULL
         if (identical(name, "IDNo")) {
-            IDNo <- makeElement("IDNo", list(
-                content = IDNo
-            ))
-            addAttributes(list(agency = agency), to = IDNo)
+            IDNo <- makeElement("IDNo",
+                content = IDNo,
+                attributes = c(agency = agency)
+            )
             return(IDNo)
         }
         else if (identical(name, "titl")) {
-            titl <- makeElement("titl", list(
-                content = titl
-            ))
+            titl <- makeElement("titl", content = titl)
             if (!monolang) {
-                addAttributes(list(xmlang = xmlang), to = titl)
+                addAttributes(c(xmlang = xmlang), to = titl)
             }
             return(titl)
         }
@@ -101,10 +102,10 @@
             return(titlStmt)
         }
         else if (identical(name, "distrbtr")) {
-            distrbtr <- makeElement("distrbtr", list(
-                content = distrbtr
-            ))
-            addAttributes(list(xmlang = xmlang), to = distrbtr)
+            distrbtr <- makeElement("distrbtr",
+                content = distrbtr,
+                attributes = c(xmlang = xmlang)
+            )
             return(distrbtr)
         }
         else if (identical(name, "distStmt")) {
@@ -116,33 +117,25 @@
             return(distStmt)
         }
         else if (identical(name, "holdings")) {
-            holdings <- makeElement("holdings", list(
-                content = "Description of the study holdings"
+            return(makeElement("holdings",
+                content = "Description of the study holdings",
+                attributes = c(URI = URI)
             ))
-            addAttributes(
-                list(URI = URI),
-                to = holdings
-            )
-            return(holdings)
         }
         else if (identical(name, "citation")) {
-            citation <- makeElement("citation")
-            addChildren(
-                list(
+            return(makeElement(
+                "citation",
+                children = list(
                     makeElement("titlStmt", fill = fill, ... = ...),
                     makeElement("distStmt", fill = fill, ... = ...),
                     makeElement("holdings", fill = fill, ... = ...)
-                ),
-                to = citation
-            )
-            return(citation)
+                )
+            ))
         }
         else if (identical(name, "abstract")) {
-            abstract <- makeElement("abstract", list(
-                content = "Study abstract"
-            ))
+            abstract <- makeElement("abstract", content = "Study abstract")
             if (!monolang) {
-                addAttributes(list(xmlang = xmlang), to = abstract)
+                addAttributes(c(xmlang = xmlang), to = abstract)
             }
             return(abstract)
         }
@@ -155,55 +148,45 @@
             return(stdyInfo)
         }
         else if (identical(name, "stdyDscr")) {
-            stdyDscr <- makeElement("stdyDscr")
-            addChildren(
-                list(
+            return(makeElement(
+                "stdyDscr",
+                children = list(
                     makeElement("citation", fill = fill, ... = ...),
                     makeElement("stdyInfo", fill = fill, ... = ...)
-                ),
-                to = stdyDscr
-            )
-            return(stdyDscr)
+                )
+            ))
         }
         else if (identical(name, "prodDate")) {
-            prodDate <- makeElement("prodDate")
-            addAttributes(
-                list(date = substring(prodDateTime, 1, 19)),
-                to = prodDate
-            )
-            addContent(prodDateTime, to = prodDate)
-            return(prodDate)
+            return(makeElement(
+                "prodDate",
+                content = prodDateTime,
+                attributes = c(date = substring(prodDateTime, 1, 19))
+            ))
         }
         else if (identical(name, "software")) {
-            software <- makeElement("software")
-            addAttributes(
-                list(version = as.character(packageVersion("DDIwR"))),
-                to = software
-            )
-            addContent("R package DDIwR", to = software)
-            return(software)
+            return(makeElement(
+                "software",
+                content = "R package DDIwR",
+                attributes = c(version = as.character(packageVersion("DDIwR")))
+            ))
         }
         else if (identical(name, "prodStmt")) {
-            prodStmt <- makeElement("prodStmt")
-            addChildren(
-                list(
+            return(makeElement(
+                "prodStmt",
+                children = list(
                     makeElement("prodDate", fill = fill, ... = ...),
                     makeElement("software", fill = fill, ... = ...)
-                ),
-                to = prodStmt
-            )
-            return(prodStmt)
+                )
+            ))
         }
         else if (identical(name, "docDscr")) {
             docDscr <- makeElement("docDscr")
             addChildren(
                 makeElement(
                     "citation",
-                    info = list(
-                        children = list(
-                            makeElement("titlStmt", fill = fill, ... = ...),
-                            makeElement("prodStmt", fill = fill, ... = ...)
-                        )
+                    children = list(
+                        makeElement("titlStmt", fill = fill, ... = ...),
+                        makeElement("prodStmt", fill = fill, ... = ...)
                     )
                 ),
                 to = docDscr
@@ -211,27 +194,23 @@
             return(docDscr)
         }
         else if (identical(name, "otherMat")) {
-            otherMat <- makeElement("otherMat")
-            addAttributes(list(level = level), to = otherMat)
-            return(otherMat)
+            return(makeElement("otherMat", attributes = c(level = level)))
         }
         else {
             admisc::stopError("No default for this element.")
         }
     }
 
-    if (!is.null(info)) {
-        if (is.element("attributes", names(info))) {
-            addAttributes(info$attributes, element)
-        }
-
-        if (is.element("children", names(info))) {
-            addChildren(info$children, to = element)
-        }
-
-        if (is.element("content", names(info))) {
-            addContent(info$content, element)
-        }
+    if (!is.null(children)) {
+        addChildren(children, element)
+    }
+    
+    if (!is.null(attributes)) {
+        addAttributes(attributes, element)
+    }
+    
+    if (!is.null(content)) {
+        addContent(content, element)
     }
 
     if (name == "codeBook") {
@@ -251,7 +230,7 @@
             defaults <- lapply(DDIC$codeBook$attributes, function(x) x$default)
 
             addAttributes(
-                defaults[sapply(defaults, length) > 0],
+                unlist(defaults[sapply(defaults, length) > 0]),
                 to = element
             )
         }

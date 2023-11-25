@@ -4,13 +4,23 @@
 \alias{makeElement}
 \title{Make a DDI Codebook element}
 \usage{
-makeElement(name, info = NULL, fill = FALSE, ...)
+makeElement(
+  name,
+  children = NULL,
+  attributes = NULL,
+  content = NULL,
+  fill = FALSE,
+  ...
+)
 }
 \arguments{
 \item{name}{Character, a DDI Codebook element name.}
 
-\item{info}{A named list object containing information necessary to create
-the element.}
+\item{children}{A list of standard DDI codebook elements.}
+
+\item{attributes}{A vector of named values.}
+
+\item{content}{Character scalar.}
 
 \item{fill}{Logical, fill the element with arbitrary values for its
 mandatory children and attributes}

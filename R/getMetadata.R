@@ -102,12 +102,10 @@
 
                 fileName <- makeElement(
                     "fileName",
-                    info = list(
-                        content = admisc::getName(funargs$x)
-                    )
+                    content = admisc::getName(funargs$x)
                 )
 
-                fileType <- makeElement("fileType", info = list(content = "R"))
+                fileType <- makeElement("fileType", content = "R")
                 addChildren(list(fileName, fileType), to = fileTxt)
                 addChildren(fileTxt, to = fileDscr)
 
@@ -198,12 +196,12 @@
 
             fileName <- makeElement(
                 "fileName",
-                list(content = tp$files[ff])
+                content = tp$files[ff]
             )
 
             fileType <- makeElement(
                 "fileType",
-                list(content = filetypes[which(fileexts == tp$fileext[ff])])
+                content = filetypes[which(fileexts == tp$fileext[ff])]
             )
 
             fileTxt <- makeElement("fileTxt")

@@ -540,18 +540,16 @@
 
         fileName <- makeElement(
             "fileName",
-            list(content = tp_from$filenames)
+            content = tp_from$filenames
         )
 
         fileType <- makeElement(
             "fileType",
-            list(content = filetypes[which(fileexts == tp_from$fileext)])
+            content = filetypes[which(fileexts == tp_from$fileext)]
         )
 
-        fileTxt <- makeElement("fileTxt")
-        addChildren(list(fileName, fileType), to = fileTxt)
-        fileDscr <- makeElement("fileDscr")
-        addChildren(fileTxt, to = fileDscr)
+        fileTxt <- makeElement("fileTxt", children = list(fileName, fileType))
+        fileDscr <- makeElement("fileDscr", children = list(fileTxt))
 
         data[] <- lapply(data, function(x) {
             if (is.factor(x)) {

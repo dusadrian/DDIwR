@@ -43,13 +43,13 @@
         icatgry <- makeElement("catgry")
 
         if (ismiss[i]) {
-            addAttributes(list(missing = "Y"), to = icatgry)
+            addAttributes(c(missing = "Y"), to = icatgry)
         }
 
         addChildren(
             list(
-                makeElement("labl", list(content = labels[i])),
-                makeElement("catValu", list(content = values[i]))
+                makeElement("labl", content = labels[i]),
+                makeElement("catValu", content = values[i])
             ),
             to = icatgry
         )

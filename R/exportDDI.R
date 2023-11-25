@@ -136,7 +136,7 @@
 
     if (!isFALSE(dots$monolang)) {
         codeBook <- removeXMLang(codeBook)
-        addAttributes(list(xmlang = xmlang), to = codeBook)
+        addAttributes(c(xmlang = xmlang), to = codeBook)
     }
 
 

@@ -40,7 +40,7 @@
 #' @param from A standard element of class `"DDI"`.
 #' @param element A standard element of class `"DDI"`.
 #' @param content Character, the text content of a DDI element.
-#' @param attrlist A list of specific attribute names and values.
+#' @param attrs A list of specific attribute names and values.
 #' @param name Character, name(s) of specific child element / attribute.
 #' @param overwrite Logical, overwrite the original object in the parent frame.
 #' @param xpath Character, a path to a DDI Codebook element.
@@ -82,18 +82,18 @@
         admisc::stopError("One or more children do not belong to this element.")
     }
 
-    attrs <- attributes(to)
+    attrbs <- attributes(to)
     to <- append(to, children)
-    attrs$names <- c(attrs$names, childnames)
+    attrbs$names <- c(attrbs$names, childnames)
 
     corder <- order(match(
-        attrs$names,
-        c(".extra", "", all_children)
+        attrbs$names,
+        c("", all_children, ".extra")
     ))
 
     to <- to[corder]
-    attrs$names <- attrs$names[corder]
-    attributes(to) <- attrs
+    attrbs$names <- attrbs$names[corder]
+    attributes(to) <- attrbs
 
     if (overwrite) {
         admisc::overwrite(objname, to, parent.frame())
@@ -242,10 +242,10 @@
     wchildren <-  which(is.element(childnames, name))
 
     if (length(wchildren) > 0) {
-        attrs <- attributes(from)
+        attrbs <- attributes(from)
         from <- from[-wchildren]
-        attrs$names <- names(from)
-        attributes(from) <- attrs
+        attrbs$names <- names(from)
+        attributes(from) <- attrbs
 
         if (overwrite) {
             admisc::overwrite(objname, from, parent.frame())
@@ -279,23 +279,24 @@
         admisc::stopError("This element already has a content.")
     }
 
-    attrs <- attributes(to)
+    attrbs <- attributes(to)
     to <- c(list(content), to)
-    attrs$names <- c("", attrs$names)
+    attrbs$names <- c("", attrbs$names)
 
     elorder <- order(
         match(
-            attrs$names,
+            attrbs$names,
             c(
-                ".extra", "",
-                attrs$names[!is.element(attrs$names, c(".extra", ""))]
+                "",
+                attrbs$names[!is.element(attrbs$names, c(".extra", ""))],
+                ".extra"
             )
         )
     )
 
     to <- to[elorder]
-    attrs$names <- attrs$names[elorder]
-    attributes(to) <- attrs
+    attrbs$names <- attrbs$names[elorder]
+    attributes(to) <- attrbs
 
     if (overwrite) {
         admisc::overwrite(objname, to, parent.frame())
@@ -353,14 +354,14 @@
     }
 
     nms <- names(from)
-    attrs <- attributes(from)
+    attrbs <- attributes(from)
     wcontent <- which(nms == "")
     if (length(wcontent) > 0) {
         from <- from[-wcontent]
         nms <- nms[-wcontent]
         if (length(nms) == 0) nms <- NULL
-        attrs$names <- nms
-        attributes(from) <- attrs
+        attrbs$names <- nms
+        attributes(from) <- attrbs
     }
 
     if (overwrite) {
@@ -373,13 +374,13 @@
 
 #' @rdname DDI-children
 #' @export
-`addAttributes` <- function(attrlist, to, overwrite = TRUE) {
+`addAttributes` <- function(attrs, to, overwrite = TRUE) {
     objname <- deparse1(substitute(to))
-    attrnames <- names(attrlist)
+    attrnames <- names(attrs)
 
-    if (missing(attrlist) || !is.list(attrlist) || is.null(attrnames)) {
+    if (missing(attrs) || is.null(attrnames) || !is.atomic(attrs)) {
         admisc::stopError(
-            "The argument 'attrlist' should be a list of named values."
+            "The argument 'attrs' should be a vector of named values."
         )
     }
 
@@ -398,18 +399,18 @@
         )
     }
 
-    attrs <- attributes(to)
-    attrs <- c(attrs, attrlist)
+    attrbs <- attributes(to)
+    attrbs <- c(attrbs, attrs)
 
     # make sure the children are arranged in exactly the order specified
     # by the standard (don't know if that matters, but just in case it does)
-    corder <- order(match(names(attrs), c("names", "class", all_attributes)))
-    if (!identical(corder, seq(length(attrs)))) {
-        attrs <- attrs[corder]
+    corder <- order(match(names(attrbs), c("names", "class", all_attributes)))
+    if (!identical(corder, seq(length(attrbs)))) {
+        attrbs <- attrbs[corder]
     }
 
 
-    attributes(to) <- attrs
+    attributes(to) <- attrbs
 
     if (overwrite) {
         admisc::overwrite(objname, to, parent.frame())
@@ -438,11 +439,13 @@
 
 #' @rdname DDI-children
 #' @export
-`changeAttributes` <- function(attrlist, from, overwrite = TRUE) {
+`changeAttributes` <- function(attrs, from, overwrite = TRUE) {
     objname <- deparse1(substitute(from))
 
-    if (missing(attrlist) || !is.list(attrlist)) {
-        admisc::stopError("The argument 'attrlist' should be a list of named values.")
+    if (missing(attrs) || is.null(attrnames) || !is.atomic(attrs)) {
+        admisc::stopError(
+            "The argument 'attrs' should be a vector of named values."
+        )
     }
 
     if (missing(from) || !is.element(".extra", names(from))) {
@@ -454,21 +457,21 @@
         names(DDIC[[from$.extra$name]]$attributes)
     ))
 
-    attrnames <- names(attrlist)
+    attrnames <- names(attrs)
     if (is.null(attrnames) || !all(is.element(attrnames, all_attributes))) {
         admisc::stopError("One or more attributes do not belong to this element.")
     }
 
-    attrs <- attributes(from)
+    attrbs <- attributes(from)
 
     if (
-        !all(is.element(attrnames, names(attrs)))
+        !all(is.element(attrnames, names(attrbs)))
     ) {
         admisc::stopError("Inexisting attribute(s) to change.")
     }
 
-    attrs[attrnames] <- attrlist
-    attributes(from) <- attrs
+    attrbs[attrnames] <- attrs
+    attributes(from) <- attrbs
 
     if (overwrite) {
         admisc::overwrite(objname, from, parent.frame())
@@ -526,14 +529,14 @@
         admisc::stopError("The argument 'from' is not standard.")
     }
 
-    attrs <- attributes(from)
-    if (any(is.element(name, names(attrs)))) {
-        attrs <- attributes(from)
+    attrbs <- attributes(from)
+    if (any(is.element(name, names(attrbs)))) {
+        attrbs <- attributes(from)
         for (n in name) {
-            attrs[[n]] <- NULL
+            attrbs[[n]] <- NULL
         }
 
-        attributes(from) <- attrs
+        attributes(from) <- attrbs
 
         if (overwrite) {
             admisc::overwrite(objname, from, parent.frame())
