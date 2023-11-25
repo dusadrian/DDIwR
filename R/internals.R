@@ -1283,6 +1283,20 @@ NULL
         type <- getElement(metadata, "type")
         measurement <- getElement(metadata, "measurement")
         lxmlang <- getElement(metadata, "xmlang")
+        if (is.null(lxmlang)) {
+            lxmlang <- xmlang
+        }
+        else {
+            if (!is.atomic(lxmlang) || !is.character(lxmlang) || length(lxmlang) != 1) {
+                admisc::stopError(
+                    sprintf(
+                        "The attribute 'xmlang' at variable '%s' should be a character scalar",
+                        varnames[i]
+                    )
+                )
+            }
+            lxmlang <- paste0(" xml:lang=\"", lxmlang, "\"")
+        }
 
         dcml <- ""
         if (!is.null(data) && pN[i]) {
@@ -1441,21 +1455,7 @@ NULL
 
             # what is the difference from data[[i]] ?
             tbl <- table(data[[names(variables)[i]]])
-            if (is.null(lxmlang)) {
-                lxmlang <- ""
-            }
-            else {
-                if (!is.atomic(lxmlang) || !is.character(lxmlang) || length(lxmlang) != 1) {
-                    admisc::stopError(
-                        sprintf(
-                            "The attribute 'xmlang' at variable '%s' should be a character scalar",
-                            varnames[i]
-                        )
-                    )
-                }
-                lxmlang <- paste0(" xml:lang=\"", lxmlang, "\"")
-            }
-
+            
             for (v in seq(length(lbls))) {
 
                 ismiss <- is.element(lbls[v], na_values)
