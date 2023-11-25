@@ -1670,15 +1670,11 @@ NULL
             )
         )
     )
-
-    tc <- admisc::tryCatchWEM({
-        # use case: StatConverter in Electron, the terminal that opens R
-        # probably doesn't have a suitable locale and it outputs an error
-        # this does the same thing (using hexadecimal code) and is better
-
-        # weird space character: gsub(rawToChar(as.raw(c(194, 160))), " ", x)
-        x <- gsub("\u00a0", " ", x)
-    })
+    
+    x <- gsub("\\n", " ", x)
+    x <- gsub(paste(admisc::dashes(), collapse = "|"), "-", x)
+    x <- gsub(paste(admisc::singlequotes(), collapse = "|"), "'", x)
+    x <- gsub(paste(admisc::spaces(), collapse = "|"), " ", x)
 
     return(x)
 }
