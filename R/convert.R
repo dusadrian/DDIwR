@@ -559,7 +559,7 @@
         })
 
         if (embed) {
-            addChildren(datanotes(data), to = fileDscr)
+            addChildren(makeNotes(data), to = fileDscr)
         }
         else {
             write.table(
