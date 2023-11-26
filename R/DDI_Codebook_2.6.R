@@ -32,7 +32,7 @@ DDIC <- list(
         parents = "stdyInfo",
         children = c(),
         title = "Abstract",
-        description = "An unformatted summary describing the purpose, nature, and scope of the data collection, special characteristics of its contents, major subject areas covered, and what questions the PIs attempted to answer when they conducted the study. A listing of major variables in the study is important here. In cases where a codebook contains more than one abstract (for example, one might be supplied by the data producer and another prepared by the data archive where the data are deposited), the \"source\" and \"date\" attributes may be used to distinguish the abstract versions. Maps to Dublin Core Description element. Inclusion of this element in the codebook is recommended.",
+        description = "An unformatted summary describing the purpose, nature, and scope of the data collection, special characteristics of its contents, major subject areas covered, and what questions the PIs attempted to answer when they conducted the study. A listing of major variables in the study is important here. In cases where a codebook contains more than one abstract (for example, one might be supplied by the data producer and another prepared by the data archive where the data are deposited), the \"source\" and \"date\" attributes may be used to distinguish the abstract versions. Maps to Dublin Core element \"Description\". Inclusion of this element in the codebook is recommended.",
         examples = "<abstract date=\"1999-01-28\" source=\"ICPSR\" contentType=\"abstract\" xml:lang=\"en\">Data on labor force activity for the week prior to the survey are supplied in this collection. Information is available on the employment status, occupation, and industry of persons 15 years old and over. Demographic variables such as age, sex, race, marital status, veteran status, household relationship, educational background, and Hispanic origin are included. In addition to providing these core data, the May survey also contains a supplement on work schedules for all applicable persons aged 15 years and older who were employed at the time of the survey. This supplement focuses on shift work, flexible hours, and work at home for both main and second jobs.</abstract>"
     ),
     accsPlac = list(
@@ -227,7 +227,7 @@ DDIC <- list(
         children = c(),
         title = "Authoring Entity/Primary Investigator",
         description = c(
-            "The person, corporate body, or agency responsible for the work's substantive and intellectual content. Repeat the element for each author, and use \"abbr\" and/or \"affiliation\" attribute if available. Invert first and last name and use commas. Author of data collection (codeBook/stdyDscr/citation/rspStmt/AuthEnty) maps to Dublin Core Creator element. Inclusion of this element in codebook is recommended. If the attribute \"personalID\" is used, \"typeOfPersonalID\" should also be provided.",
+            "The person, corporate body, or agency responsible for the work's substantive and intellectual content. Repeat the element for each author, and use \"abbr\" and/or \"affiliation\" attribute if available. Invert first and last name and use commas. Author of data collection (codeBook/stdyDscr/citation/rspStmt/AuthEnty) maps to Dublin Core element \"Creator\". Inclusion of this element in codebook is recommended. If the attribute \"personalID\" is used, \"typeOfPersonalID\" should also be provided.",
             "The \"author\" in the Document Description should be the individual(s) or organization(s) directly responsible for the intellectual content of the DDI version, as distinct from the person(s) or organization(s) responsible for the intellectual content of the earlier paper or electronic edition from which the DDI edition may have been derived."
         ),
         examples = c(
@@ -961,7 +961,7 @@ DDIC <- list(
         parents = "sumDscr",
         children = c(),
         title = "Date of Collection",
-        description = "Contains the date(s) when the data were collected. Maps to Dublin Core \"Coverage\" element. It can also contain a free text expression of the collection period, in which case the attribute \"xmlang\" becomes mandatory. ISO 639-1 codes are strongly encouraged to be used.",
+        description = "Contains the date(s) when the data were collected. Maps to Dublin Core element \"Coverage\". It can also contain a free text expression of the collection period, in which case the attribute \"xmlang\" becomes mandatory. ISO 639-1 codes are strongly encouraged to be used.",
         examples = "<collDate event=\"single\" date=\"1998-11-10\" xmlang=\"ro\">10 noiembrie 1998</collDate>"
     ),
     collectorTraining = list(
@@ -1255,7 +1255,7 @@ DDIC <- list(
         parents = "prodStmt",
         children = c(),
         title = "Copyright",
-        description = "Copyright statement for the work at the appropriate level. Copyright for data collection (codeBook/stdyDscr/citation/prodStmt/copyright) maps to Dublin Core Rights. Inclusion of this element is recommended.",
+        description = "Copyright statement for the work at the appropriate level. Copyright for data collection (codeBook/stdyDscr/citation/prodStmt/copyright) maps to Dublin Core element \"Rights\". Inclusion of this element is recommended.",
         examples = "<copyright>Copyright(c) ICPSR, 2000</copyright>"
     ),
     CubeCoord = list(
@@ -1556,7 +1556,7 @@ DDIC <- list(
         parents = "sumDscr",
         children = c(),
         title = "Kind of Data",
-        description = "The type of data included in the file: survey data, census/enumeration data, aggregate data, clinical data, event/transaction data, program source code, machine-readable text, administrative records data, experimental data, psychological test, textual data, coded textual, coded documents, time budget diaries, observation data/ratings, process-produced data, etc. This element maps to Dublin Core Type element. The type attribute has been DEPRECATED. For consistant use of conceptualTextType use the included content \"concept\" and related attributes to provide a reference to a controlled vocabulary.",
+        description = "The type of data included in the file: survey data, census/enumeration data, aggregate data, clinical data, event/transaction data, program source code, machine-readable text, administrative records data, experimental data, psychological test, textual data, coded textual, coded documents, time budget diaries, observation data/ratings, process-produced data, etc. This element maps to Dublin Core element \"Type\". The type attribute has been DEPRECATED. For consistant use of conceptualTextType use the included content \"concept\" and related attributes to provide a reference to a controlled vocabulary.",
         examples = "<dataKind><concept vocab=\"KindOfData\" vocabURI=\"urn:ddi:int.ddi.cv:KindOfData:1.0\">Survey</concept>survey data</dataKind>"
     ),
     dataMsng = list(
@@ -2620,7 +2620,7 @@ DDIC <- list(
         parents = "sumDscr",
         children = c(),
         title = "Geographic Coverage",
-        description = "Information on the geographic coverage of the data. Includes the total geographic scope of the data, and any additional levels of geographic coding provided in the variables. Maps to Dublin Core Coverage element. Inclusion of this element in the codebook is recommended. Fpor forward-compatibility, DDI Lifecycle XHTML tags may be used in this element.",
+        description = "Information on the geographic coverage of the data. Includes the total geographic scope of the data, and any additional levels of geographic coding provided in the variables. Maps to Dublin Core element \"Coverage\". Inclusion of this element in the codebook is recommended. Fpor forward-compatibility, DDI Lifecycle XHTML tags may be used in this element.",
         examples = "<geogCover>State of California</geogCover>"
     ),
     geogUnit = list(
@@ -2993,7 +2993,7 @@ DDIC <- list(
         parents = "subject",
         children = c(),
         title = "Keywords",
-        description = "Words or phrases that describe salient aspects of a data collection's content. Can be used for building keyword indexes and for classification and retrieval purposes. A controlled vocabulary can be employed. Maps to Dublin Core Subject element.",
+        description = "Words or phrases that describe salient aspects of a data collection's content. Can be used for building keyword indexes and for classification and retrieval purposes. A controlled vocabulary can be employed. Maps to Dublin Core element \"Subject\".",
         examples = c(
             "<keyword vocab=\"ICPSR Subject Thesaurus\" vocabURI=\"http://www.icpsr.umich.edu/thesaurus/subject.html\" vocabInstanceURI=\"http://www.icpsr.umich.edu/thesaurus/subject#qualityOfLife\">quality of life</keyword>",
             "<keyword vocab=\"ICPSR Subject Thesaurus\" vocabURI=\"http://www.icpsr.umich.edu/thesaurus/subject.html\" vocabInstanceURI=\"http://www.icpsr.umich.edu/thesaurus/subject#family\">family</keyword>",
@@ -3793,7 +3793,7 @@ DDIC <- list(
         parents = "rspStmt",
         children = c(),
         title = "Other Identifications /Acknowledgments",
-        description = "Statements of responsibility not recorded in the title and statement of responsibility areas (collaborators). Indicate here the persons or bodies connected with the work, or significant persons or bodies connected with previous editions and not already named in the description. For example, the name of the person who edited the marked-up documentation might be cited in codeBook/docDscr/rspStmt/othId, using the \"role\" and \"affiliation\" attributes. Other identifications/acknowledgments for data collection (codeBook/stdyDscr/citation/rspStmt/othId) maps to Dublin Core Contributor element. If the attribute \"personalID\" is used, \"typeOfPersonalID\" should also be provided.",
+        description = "Statements of responsibility not recorded in the title and statement of responsibility areas (collaborators). Indicate here the persons or bodies connected with the work, or significant persons or bodies connected with previous editions and not already named in the description. For example, the name of the person who edited the marked-up documentation might be cited in codeBook/docDscr/rspStmt/othId, using the \"role\" and \"affiliation\" attributes. Other identifications/acknowledgments for data collection (codeBook/stdyDscr/citation/rspStmt/othId) maps to Dublin Core element \"Contributor\". If the attribute \"personalID\" is used, \"typeOfPersonalID\" should also be provided.",
         examples = "<othId role=\"editor\" affiliation=\"INRA\" personalID=\"0000-0003-1294-0000\" typeOfPersonalID=\"orchid\">Jane Smith</othId>"
     ),
     othRefs = list(
@@ -3818,7 +3818,7 @@ DDIC <- list(
         parents = "stdyDscr",
         children = c("relMat", "relStdy", "relPubl", "othRefs"),
         title = "Other Study Description Materials",
-        description = "Other materials relating to the study description. This section describes other materials that are related to the study description that are primarily descriptions of the content and use of the study, such as appendices, sampling information, weighting details, methodological and technical details, publications based upon the study content, related studies or collections of studies, etc. This section may point to other materials related to the description of the study through use of the generic citation element, which is available for each element in this section. This maps to Dublin Core Relation element. Note that codeBook/otherMat (Other Study-Related Materials), should be used for materials used in the production of the study or useful in the analysis of the study. The materials in codeBook/otherMat may be entered as PCDATA (ASCII text) directly into the document (through use of the txt element). That section may also serve as a \"container\" for other electronic materials by providing a brief description of the study-related materials accompanied by the \"type\" and \"level\" attributes further defining the materials. Other Study-Related Materials in codeBook/otherMat may include: questionnaires, coding notes, SPSS/SAS/Stata setup files (and others), user manuals, continuity guides, sample computer software programs, glossaries of terms, interviewer/project instructions, maps, database schema, data dictionaries, show cards, coding information, interview schedules, missing values information, frequency files, variable maps, etc.",
+        description = "Other materials relating to the study description. This section describes other materials that are related to the study description that are primarily descriptions of the content and use of the study, such as appendices, sampling information, weighting details, methodological and technical details, publications based upon the study content, related studies or collections of studies, etc. This section may point to other materials related to the description of the study through use of the generic citation element, which is available for each element in this section. This maps to Dublin Core element \"Relation\". Note that codeBook/otherMat (Other Study-Related Materials), should be used for materials used in the production of the study or useful in the analysis of the study. The materials in codeBook/otherMat may be entered as PCDATA (ASCII text) directly into the document (through use of the txt element). That section may also serve as a \"container\" for other electronic materials by providing a brief description of the study-related materials accompanied by the \"type\" and \"level\" attributes further defining the materials. Other Study-Related Materials in codeBook/otherMat may include: questionnaires, coding notes, SPSS/SAS/Stata setup files (and others), user manuals, continuity guides, sample computer software programs, glossaries of terms, interviewer/project instructions, maps, database schema, data dictionaries, show cards, coding information, interview schedules, missing values information, frequency files, variable maps, etc.",
         examples = c()
     ),
     outcome = list(
@@ -4051,7 +4051,7 @@ DDIC <- list(
         parents = "prodStmt",
         children = c(),
         title = "Date of Production",
-        description = "Date when the marked-up document/marked-up document source/data collection/other material(s) were produced (not distributed or archived). The ISO standard for dates (YYYY-MM-DD) is recommended for use with the date attribute. Production date for data collection (codeBook/stdyDscr/citation/prodStmt/prodDate) maps to Dublin Core Date element.",
+        description = "Date when the marked-up document/marked-up document source/data collection/other material(s) were produced (not distributed or archived). The ISO standard for dates (YYYY-MM-DD) is recommended for use with the date attribute. Production date for data collection (codeBook/stdyDscr/citation/prodStmt/prodDate) maps to Dublin Core element \"Date\".",
         examples = "<prodDate date=\"1999-01-25\">January 25, 1999</prodDate>"
     ),
     prodPlac = list(
@@ -4874,7 +4874,7 @@ DDIC <- list(
         parents = c("dataColl", "sources"),
         children = c("typeOfDataSrc", "dataSrc", "sourceCitation", "srcOrig", "srcChar", "srcDocu", "sources"),
         title = "Sources Statement",
-        description = "Description of sources used for the data collection. The element is nestable so that the sources statement might encompass a series of discrete source statements, each of which could contain the facts about an individual source. Provides the type of data source used such as Register Records Accounts, Research Data, Biological Samples, etc. Use of an external controlled vocabulary is recommended. DDI provides Data Source Type. This element maps to Dublin Core Source element.",
+        description = "Description of sources used for the data collection. The element is nestable so that the sources statement might encompass a series of discrete source statements, each of which could contain the facts about an individual source. Provides the type of data source used such as Register Records Accounts, Research Data, Biological Samples, etc. Use of an external controlled vocabulary is recommended. DDI provides Data Source Type. This element maps to Dublin Core element \"Source\".",
         examples = c()
     ),
     southBL = list(
@@ -5418,7 +5418,7 @@ DDIC <- list(
         parents = c("table", "titlStmt"),
         children = c(),
         title = "Title",
-        description = "Full authoritative title for the work at the appropriate level: marked-up document; marked-up document source; study; other material(s) related to study description; other material(s) related to study. The study title will in most cases be identical to the title for the marked-up document. A full title should indicate the geographic scope of the data collection as well as the time period covered. Title of data collection (codeBook/stdyDscr/citation/titlStmt/titl) maps to Dublin Core Title element. This element is required in the Study Description citation. ",
+        description = "Full authoritative title for the work at the appropriate level: marked-up document; marked-up document source; study; other material(s) related to study description; other material(s) related to study. The study title will in most cases be identical to the title for the marked-up document. A full title should indicate the geographic scope of the data collection as well as the time period covered. Title of data collection (codeBook/stdyDscr/citation/titlStmt/titl) maps to Dublin Core element \"Title\". This element is required in the Study Description citation. ",
         examples = c(
             "<titl>Domestic Violence Experience in Omaha, Nebraska, 1986-1987</titl>",
             "<titl>Census of Population, 1950 [United States]: Public Use Microdata Sample</titl>",
