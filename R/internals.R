@@ -1466,7 +1466,7 @@ NULL
         if (!is.null(lbls)) {
             
             # what is the difference from data[[i]] ?
-            tbl <- table(unclass(data[[varnames[i]]]))
+            tbl <- table(undeclare(data[[varnames[i]]], drop = TRUE))
             
             for (v in seq(length(lbls))) {
 
