@@ -493,44 +493,6 @@ NULL
 }
 
 
-#' @description `datanotes`: Prepare a notes element containing a
-#' serialized and compressed R dataset
-#' @return `datanotes`: A "notes" element to be added in the `fileDscr` element
-#' @rdname DDIwR_internal
-#' @keywords internal
-#' @export
-`datanotes` <- function(data) {
-    enter <- getEnter(OS = Sys.info()[['sysname']])
-
-    notes <- makeElement("notes")
-    addContent(
-        paste0(
-            enter,
-            repeatSpace(3, indent = 2),
-            base64enc::base64encode(
-                memCompress(serialize(data, NULL), type = "gzip"),
-                linewidth = 500,
-                newline = paste(enter, repeatSpace(3, indent = 2), sep = "")
-            ),
-            enter,
-            repeatSpace(2, indent = 2)
-        ),
-        to = notes
-    )
-
-    addAttributes(
-        c(
-            ID = "rawdata",
-            level = "file",
-            subject = "R dataset, serialized gzip"
-        ),
-        to = notes
-    )
-
-    return(notes)
-}
-
-
 #' @description `extractData`: Extract data from an DDI Codebook XML document or
 #' list.
 #' @return `extractData`: An R data frame, if existing, or NULL
@@ -1466,7 +1428,8 @@ NULL
         if (!is.null(lbls)) {
             
             # what is the difference from data[[i]] ?
-            tbl <- table(undeclare(data[[varnames[i]]], drop = TRUE))
+            # tbl <- table(undeclare(data[[varnames[i]]], drop = TRUE))
+            tbl <- declared::w_table(data[[varnames[i]]])
             
             for (v in seq(length(lbls))) {
 

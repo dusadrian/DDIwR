@@ -14,7 +14,6 @@
 \alias{coerceDDI}
 \alias{collectMetadata}
 \alias{collectRMetadata}
-\alias{datanotes}
 \alias{extractData}
 \alias{formatExample}
 \alias{generateID}
@@ -64,8 +63,6 @@ coerceDDI(element, name = NULL)
 collectMetadata(dataset, ...)
 
 collectRMetadata(dataset, ...)
-
-datanotes(data)
 
 extractData(xml)
 
@@ -140,8 +137,6 @@ containing variable level metadata information
 
 \code{collectRMetadata}: an R list containing variable level metadata information
 
-\code{datanotes}: A "notes" element to be added in the \code{fileDscr} element
-
 \code{extractData}: An R data frame, if existing, or NULL
 
 \code{generateID}: Character vector
@@ -215,9 +210,6 @@ If the argument is not supplied via dots, returns a default
 \code{collectMetadata}: Collect metadata from a file or a dataframe object
 
 \code{collectRMetadata}: Collect metadata from a dataframe object
-
-\code{datanotes}: Prepare a notes element containing a
-serialized and compressed R dataset
 
 \code{extractData}: Extract data from an DDI Codebook XML document or
 list.
