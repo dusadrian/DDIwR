@@ -16,7 +16,7 @@ Depends: R (>= 3.5.0)
 Imports:
     admisc (> 0.33),
     base64enc,
-    declared (> 0.22),
+    declared (> 0.23),
     tools,
     xml2,
     haven,
