@@ -1268,7 +1268,7 @@ NULL
     ns <- "" # namespace
     enter <- "\n"
 
-    tmp <- tempdir()
+    tmp <- "~" # tempdir()
     sink(file.path(tmp, "dataDscr.xml"))
 
     cat(paste0("<", ns, "dataDscr>", enter))
@@ -1282,20 +1282,32 @@ NULL
         na_range <- getElement(metadata, "na_range")
         type <- getElement(metadata, "type")
         measurement <- getElement(metadata, "measurement")
+        
         lxmlang <- getElement(metadata, "xmlang")
         if (is.null(lxmlang)) {
-            lxmlang <- xmlang
+            lxmlang <- rep(xmlang, length.out = length(lbls))
         }
         else {
-            if (!is.atomic(lxmlang) || !is.character(lxmlang) || length(lxmlang) != 1) {
+            if (
+                !is.atomic(lxmlang) || !is.character(lxmlang) ||
+                (length(xmlang) != 1 && length(xmlang != length(lbls)))
+            ) {
                 admisc::stopError(
-                    sprintf(
-                        "The attribute 'xmlang' at variable '%s' should be a character scalar",
+                    sprintf(paste(
+                        "The attribute 'xmlang' at variable '%s' should be a",
+                        "character vector of length either 1 or equal to the",
+                        "number of labels."
+                        ),
                         varnames[i]
                     )
                 )
             }
-            lxmlang <- paste0(" xml:lang=\"", lxmlang, "\"")
+
+            lxmlang <- paste0(
+                " xml:lang=\"",
+                rep(lxmlang, length.out = length(lbls)),
+                "\""
+            )
         }
 
         dcml <- ""
@@ -1452,13 +1464,14 @@ NULL
 
 
         if (!is.null(lbls)) {
+            
+            if (any(duplicated(lbls))) {
+                lbls <- lbls[!duplicated(lbls)]
+                attr(data[[varnames[i]]], "labels") <- lbls
+            }
 
             # what is the difference from data[[i]] ?
-            tbl <- suppressWarnings(
-                declared::w_table(
-                    data[[names(variables)[i]]]
-                )
-            )
+            tbl <- table(data[[varnames[i]]])
             
             for (v in seq(length(lbls))) {
 
@@ -1483,7 +1496,7 @@ NULL
                 ))
 
                 cat(paste0(
-                    "<", ns, "labl", ifelse(ismiss, xmlang, lxmlang), ">",
+                    "<", ns, "labl", ifelse(ismiss, xmlang, lxmlang[v]), ">",
                     replaceChars(names(lbls)[v]),
                     "</", ns, "labl>",
                     enter
