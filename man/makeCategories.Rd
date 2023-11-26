@@ -11,7 +11,7 @@ makeCategories(metadata)
 \code{na_values} and/or \code{na_range}}
 }
 \value{
-A standard R list of class \verb{"DDI}.
+A list of standard "catgry" DDI elements.
 }
 \description{
 Utility function to create the \code{catgry} elements, as well as all

@@ -7,7 +7,7 @@
 #' necessary sub-elements (e.g. `catValu`, `labl`, `varFormat`) along with their
 #' associated XML attributes.
 
-#' @return A standard R list of class `"DDI`.
+#' @return A list of standard "catgry" DDI elements.
 #'
 #' @author Adrian Dusa
 #'
