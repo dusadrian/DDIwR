@@ -1268,7 +1268,7 @@ NULL
     ns <- "" # namespace
     enter <- "\n"
 
-    tmp <- "~" # tempdir()
+    tmp <- tempdir()
     sink(file.path(tmp, "dataDscr.xml"))
 
     cat(paste0("<", ns, "dataDscr>", enter))
@@ -1465,13 +1465,8 @@ NULL
 
         if (!is.null(lbls)) {
             
-            if (any(duplicated(lbls))) {
-                lbls <- lbls[!duplicated(lbls)]
-                attr(data[[varnames[i]]], "labels") <- lbls
-            }
-
             # what is the difference from data[[i]] ?
-            tbl <- table(data[[varnames[i]]])
+            tbl <- table(unclass(data[[varnames[i]]]))
             
             for (v in seq(length(lbls))) {
 
