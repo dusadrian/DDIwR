@@ -62,7 +62,6 @@
         message <- "\nSpecific attributes, use globalAttributes() for the rest:\n"
     }
 
-
     if (length(attributes) > 0) {
         cat(message)
 
@@ -76,6 +75,18 @@
         }
         for (n in name) {
             type <- gsub("xs\\:", "", attributes[[n]]$type)
+            nm <- n
+            if (attributes[[n]]$optional) {
+                if (attributes[[n]]$recommended) {
+                    nm <- paste(nm, "(recommended)")
+                }
+                else {
+                    nm <- paste(nm, "(optional)")
+                }
+            }
+            else {
+                nm <- paste(nm, "(mandatory)")
+            }
 
             if (length(attributes[[n]]$values) > 0) {
                 type <- paste0(
@@ -83,12 +94,12 @@
                     paste(attributes[[n]]$values, collapse = " | "),
                     ")"
                 )
-                if (attributes[[n]]$default != "") {
+                if (length(attributes[[n]]$default) > 0) {
                     type <- paste(type, attributes[[n]]$default, sep = " : ")
                 }
             }
 
-            cat(paste0("- ", n, ": ", type, "\n"))
+            cat(paste0("- ", nm, ": ", type, "\n"))
 
             description <- attributes[[n]]$description
 
