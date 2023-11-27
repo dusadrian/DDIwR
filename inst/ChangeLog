@@ -3,6 +3,7 @@ Version 0.17
     o major upgrade, a whole series of new functions
     o refactored function exportDDI()
     o removed arguments "declared", "save" and "OS" from function getMetadata()
+    o new argument "ignore" added to function getMetadata()
     o make_labelled() renamed to makeLabelled() for a consistent namespace
 
 Version 0.16
