@@ -71,7 +71,7 @@
         parts <- unlist(lapply(
             which(children == child),
             function(x) {
-                write_xml(
+                xml2::write_xml(
                     xml2::as_xml_document(list(codeBook = codeBook[x])),
                     file = file.path(tmp, "part.xml")
                 )
