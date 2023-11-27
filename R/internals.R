@@ -297,26 +297,35 @@ NULL
         }
         
         attrs <- attributes(element)
-        
-        if (is.null(name)) {
-            # start of the root element, nms should have a single element
-            if (length(nms) != 1) {
-                admisc::stopError(
-                    "Coercing should begin with the root element."
-                )
-            }
-
-            return(coerceDDI(element[[1]], name = nms))
+        if (is.null(nms)) {
+            element <- c(
+                element,
+                list(list(name = name))
+            )
+            attrs$names <- c("", ".extra")[seq(length(element))]
         }
-        
-        element <- c(
-            lapply(seq_along(nms), function(i) {
-                coerceDDI(element[[i]], nms[i])
-            }),
-            list(list(name = name))
-        )
-        
-        attrs$names <- c(nms, ".extra")
+        else {
+            if (is.null(name)) {
+                # start of the root element, nms should have a single element
+                if (length(nms) != 1) {
+                    admisc::stopError(
+                        "Coercing should begin with the root element."
+                    )
+                }
+
+                return(coerceDDI(element[[1]], name = nms))
+            }
+            
+            element <- c(
+                lapply(seq_along(nms), function(i) {
+                    coerceDDI(element[[i]], nms[i])
+                }),
+                list(list(name = name))
+            )
+            
+            attrs$names <- c(nms, ".extra")
+        }
+
         attributes(element) <- attrs
     }
 
