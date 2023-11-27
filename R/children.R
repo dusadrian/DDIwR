@@ -239,13 +239,12 @@
         admisc::stopError("Unknown child names to remove.")
     }
 
-    wchildren <-  which(is.element(childnames, name))
+    childnames <- childnames[is.element(childnames, name)]
 
-    if (length(wchildren) > 0) {
-        attrbs <- attributes(from)
-        from <- from[-wchildren]
-        attrbs$names <- names(from)
-        attributes(from) <- attrbs
+    if (length(childnames) > 0) {
+        for (child in childnames) {
+            from[[child]] <- NULL
+        }
 
         if (overwrite) {
             admisc::overwrite(objname, from, parent.frame())
