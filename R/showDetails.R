@@ -50,72 +50,82 @@
 #' @export
 `showAttributes` <- function(x, name = NULL, ...) {
     dots <- list(...)
-    endWith <- ifelse(is.null(dots$endWith), "\n", dots$endWith)
-
-    if (identical(x, "_global_")) {
-        attributes <- DDIC_global_attributes
-        message <- "\nGlobal attributes:\n"
+    if (is.list(x)) {
+        attrs <- attributes(x)
+        attrs$names <- NULL
+        nms <- names(attrs)
+        for (n in nms) {
+            cat(sprintf("%s: %s\n", n, attrs[[n]]))
+        }
     }
     else {
-        checkElement(x)
-        attributes <- DDIC[[x]]$attributes
-        message <- "\nSpecific attributes, use globalAttributes() for the rest:\n"
-    }
+        endWith <- ifelse(is.null(dots$endWith), "\n", dots$endWith)
 
-    if (length(attributes) > 0) {
-        cat(message)
-
-        if (is.null(name)) {
-            name <- names(attributes)
+        if (identical(x, "_global_")) {
+            attributes <- DDIC_global_attributes
+            message <- "\nGlobal attributes:\n"
         }
         else {
-            if (any(!is.element(name, names(attributes)))) {
-                admisc::stopError("Innexisting attribute name(s).")
-            }
+            checkElement(x)
+            attributes <- DDIC[[x]]$attributes
+            message <- "\nSpecific attributes, use globalAttributes() for the rest:\n"
         }
-        for (n in name) {
-            type <- gsub("xs\\:", "", attributes[[n]]$type)
-            nm <- n
-            if (attributes[[n]]$optional) {
-                if (attributes[[n]]$recommended) {
-                    nm <- paste(nm, "(recommended)")
-                }
-                else {
-                    nm <- paste(nm, "(optional)")
-                }
+
+        if (length(attributes) > 0) {
+            cat(message)
+
+            if (is.null(name)) {
+                name <- names(attributes)
             }
             else {
-                nm <- paste(nm, "(mandatory)")
-            }
-
-            if (length(attributes[[n]]$values) > 0) {
-                type <- paste0(
-                    "(",
-                    paste(attributes[[n]]$values, collapse = " | "),
-                    ")"
-                )
-                if (length(attributes[[n]]$default) > 0) {
-                    type <- paste(type, attributes[[n]]$default, sep = " : ")
+                if (any(!is.element(name, names(attributes)))) {
+                    admisc::stopError("Innexisting attribute name(s).")
                 }
             }
-
-            cat(paste0("- ", nm, ": ", type, "\n"))
-
-            description <- attributes[[n]]$description
-
-            for (i in seq(length(description))) {
-                if (nzchar(description[i]) & !is.na(description[i])) {
-                    writeLines(strwrap(description[i], prefix = "  "))
+            for (n in name) {
+                type <- gsub("xs\\:", "", attributes[[n]]$type)
+                nm <- n
+                if (attributes[[n]]$optional) {
+                    if (attributes[[n]]$recommended) {
+                        nm <- paste(nm, "(recommended)")
+                    }
+                    else {
+                        nm <- paste(nm, "(optional)")
+                    }
                 }
-            }
+                else {
+                    nm <- paste(nm, "(mandatory)")
+                }
 
+                if (length(attributes[[n]]$values) > 0) {
+                    type <- paste0(
+                        "(",
+                        paste(attributes[[n]]$values, collapse = " | "),
+                        ")"
+                    )
+                    if (length(attributes[[n]]$default) > 0) {
+                        type <- paste(type, attributes[[n]]$default, sep = " : ")
+                    }
+                }
+
+                cat(paste0("- ", nm, ": ", type, "\n"))
+
+                description <- attributes[[n]]$description
+
+                for (i in seq(length(description))) {
+                    if (nzchar(description[i]) & !is.na(description[i])) {
+                        writeLines(strwrap(description[i], prefix = "  "))
+                    }
+                }
+
+            }
         }
-    }
-    else {
-        cat("\nThis element does not have any specific attributes.\n")
-    }
+        else {
+            cat("\nThis element does not have any specific attributes.\n")
+        }
 
-    cat(endWith)
+        cat(endWith)
+    }
 }
 
 #' @rdname showDetails
