@@ -4,12 +4,12 @@
 \alias{updateCodebook}
 \title{Update Codebook.}
 \usage{
-updateCodebook(xmlfile, codeBook, ...)
+updateCodebook(xmlfile, with, ...)
 }
 \arguments{
 \item{xmlfile}{A path to a DDI Codebook XML document.}
 
-\item{codeBook}{An R object containing a \code{codeBook} element.}
+\item{with}{An R object containing a root \code{codeBook} element.}
 }
 \description{
 Update an XML file containing a DDI Codebook.

@@ -13,21 +13,21 @@
 #' @author Adrian Dusa
 #'
 #' @param xmlfile A path to a DDI Codebook XML document.
-#' @param codeBook An R object containing a `codeBook` element.
+#' @param with An R object containing a root `codeBook` element.
 #'
 #' @export
-`updateCodebook` <- function(xmlfile, codeBook, ...) {
+`updateCodebook` <- function(xmlfile, with, ...) {
     dots <- list(...)
     indent <- checkDots(dots$indent, default = 2)
     enter <- checkDots(
         dots$enter,
         default = getEnter(OS = Sys.info()[['sysname']])
     )
-    
+
     sections <- DDIC$codeBook$children
     xml <- getXML(xmlfile)
     # if this survives, it is a valid XML document
-    
+
     if (
         !all(
             is.element(
@@ -40,7 +40,7 @@
             "The XML file contains elements that are not Codebook sections."
         )
     }
-    
+
     xml <- readLines(xmlfile)
     checkXMList(codeBook)
 
@@ -48,20 +48,25 @@
         which(grepl(paste0("<", s), xml))
     })
     names(starts) <- sections
-    
+
     ends <- lapply(sections, function(s) {
         which(grepl(paste0("</", s), xml))
     })
     names(ends) <- sections
+    
+    for (s in sections) {
+        if (length(starts[[s]]) > 0 && length(ends[[s]]) == 0) {
+            ends[[s]] <- starts[[s]]
+        }
+    }
 
     # TODO: make sure the sections are PROPERLY ordered
-    
+
     tmp <- tempdir()
-    
+
     codeBook <- removeExtra(codeBook)
     children <- names(codeBook)
 
-    
     for (child in unique(children[order(match(children, rev(sections)))])) {
         parts <- unlist(lapply(
             which(children == child),
@@ -77,9 +82,22 @@
         
         start <- starts[[child]]
         end <- ends[[child]]
-        xml <- xml[-seq(start[1], end[length(end)])]
-        xml <- append(xml, parts, after = start[1] - 1)
+
+        if (length(start) > 0) {
+            xml <- xml[-seq(start[1], end[length(end)])]
+            xml <- append(xml, parts, after = start[1] - 1)
+        }
+        else {
+            # new element
+            if (child == "docDscr") {
+                xml <- append(xml, parts, after = unlist(starts)[1] - 1)
+            }
+            else {
+                end <- unlist(ends[seq(1, match(child, sections) - 1)])
+                xml <- append(xml, parts, after = end[length(end)])
+            }
+        }
     }
-    
+
     writeLines(xml, con = xmlfile)
 }
