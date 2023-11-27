@@ -4,12 +4,14 @@
 \alias{getMetadata}
 \title{Extract metadata information}
 \usage{
-getMetadata(x, encoding = "UTF-8", ...)
+getMetadata(x, encoding = "UTF-8", ignore = NULL, ...)
 }
 \arguments{
 \item{x}{A path to a file, or a data frame object}
 
 \item{encoding}{The character encoding used to read a file}
+
+\item{ignore}{Character, ignore DDI elements when reading from an XML file}
 
 \item{...}{Additional arguments for this function (internal use only)}
 }

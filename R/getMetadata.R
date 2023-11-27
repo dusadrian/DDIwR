@@ -58,11 +58,13 @@
 #'
 #' @param encoding The character encoding used to read a file
 #'
+#' @param ignore Character, ignore DDI elements when reading from an XML file
+#'
 #' @param ... Additional arguments for this function (internal use only)
 #'
 #' @export
 
-`getMetadata` <- function(x, encoding = "UTF-8", ...) {
+`getMetadata` <- function(x, encoding = "UTF-8", ignore = NULL, ...) {
 
     # TODO: detect DDI version or ask the version through a dedicated argument
     # http://www.ddialliance.org/Specification/DDI-Codebook/2.5/XMLSchema/field_level_documentation.html
@@ -144,10 +146,30 @@
 
         if (tp$fileext[ff] == "XML") {
 
+            xml <- getXML(file.path(tp$completePath, tp$files[ff]))
+            
+            if (!is.null(ignore)) {
+                if (
+                    !is.atomic(ignore) || !is.character(ignore) ||
+                    !all(is.element(ignore, DDIC$codeBook$children))
+                ) {
+                    admisc::stopError("Argument 'ignore' should be a character vector of codeBook element names.")
+                }
+                
+                children <- xml_children(xml)
+                childnames <- xml_name(children)
+                
+                todelete <- which(is.element(childnames, ignore))
+                
+                if (length(todelete) > 0) {
+                    for (d in todelete) {
+                        xml2::xml_remove(children[d])
+                    }
+                }
+            }
+            
             # TODO: perhaps validate the codebook against the schema, first...!?
-            xmlist <- xml2::as_list(
-                getXML(file.path(tp$completePath, tp$files[ff]))
-            )
+            xmlist <- xml2::as_list(xml)
 
             checkXMList(xmlist)
             codeBook <- coerceDDI(xmlist)
