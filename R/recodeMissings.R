@@ -482,17 +482,31 @@
             wx <- which(haven::is_tagged_na(x))
             if (length(wx) > 0) {
                 tags <- haven::na_tag(x[wx])
+                enavals <- numeric(0) # existing na_values
                 for (tag in unique(tags)) {
                     if (is.element(tag, old)) {
                         x[wx[tags == tag]] <- new[old == tag]
+                        enavals <- c(enavals, new[old == tag])
                     }
                     else {
                         x[wx[tags == tag]] <- NA
                     }
                 }
+                
+                if (to_declared) {
+                    attributes(x) <- NULL
+                    dataset[[variable]] <- declared::declared(
+                        x,
+                        na_values = enavals
+                    )
+                }
+                else {
+                    dataset[[variable]] <- haven::labelled_spss(
+                        x,
+                        na_values = enavals
+                    )
+                }
             }
-            
-            dataset[[variable]] <- x
         }
     }
 
