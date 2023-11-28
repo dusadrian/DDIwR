@@ -2,8 +2,6 @@
 #'
 #' @title
 #' Describe what a DDI element is
-
-#' @return Nothing, it just prints the information on the console
 #'
 #' @author Adrian Dusa
 #'
@@ -13,6 +11,15 @@
 #' @details All arguments having predefined values such as "(Y | N) : N" are
 #' mandatory if the element is used
 #'
+#' @examples
+#' showDetails("codeBook")
+#' 
+#' showAttributes("catgry")
+#' 
+#' showExamples("abstract")
+#' 
+#' showLineages("titl")
+#' 
 #' @export
 `showDetails` <- function(x, ...) {
     showDescription(x, endWith = "")

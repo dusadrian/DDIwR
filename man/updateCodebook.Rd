@@ -10,6 +10,8 @@ updateCodebook(xmlfile, with, ...)
 \item{xmlfile}{A path to a DDI Codebook XML document.}
 
 \item{with}{An R object containing a root \code{codeBook} element.}
+
+\item{...}{Other internal arguments.}
 }
 \description{
 Update an XML file containing a DDI Codebook.

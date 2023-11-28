@@ -7,7 +7,7 @@
 #' Create the `notes` element to embed a serialized, gzip-ed version of the data
 #' in the `fileDscr` section of the `codeBook`.
 
-#' @return A standard "notes" DDI element.
+#' @return A standard `notes` DDI element.
 #'
 #' @author Adrian Dusa
 #'

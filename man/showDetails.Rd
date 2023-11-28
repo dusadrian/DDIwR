@@ -31,15 +31,22 @@ showLineages(x, ...)
 
 \item{name}{Character, print only a specific element (name)}
 }
-\value{
-Nothing, it just prints the information on the console
-}
 \description{
 Describe what a DDI element is
 }
 \details{
 All arguments having predefined values such as "(Y | N) : N" are
 mandatory if the element is used
+}
+\examples{
+showDetails("codeBook")
+
+showAttributes("catgry")
+
+showExamples("abstract")
+
+showLineages("titl")
+
 }
 \author{
 Adrian Dusa

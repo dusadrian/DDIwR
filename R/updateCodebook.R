@@ -14,6 +14,7 @@
 #'
 #' @param xmlfile A path to a DDI Codebook XML document.
 #' @param with An R object containing a root `codeBook` element.
+#' @param ... Other internal arguments.
 #'
 #' @export
 `updateCodebook` <- function(xmlfile, with, ...) {

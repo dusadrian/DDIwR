@@ -10,7 +10,7 @@ makeNotes(data)
 \item{data}{An R dataframe.}
 }
 \value{
-A standard "notes" DDI element.
+A standard \code{notes} DDI element.
 }
 \description{
 Create the \code{notes} element to embed a serialized, gzip-ed version of the data
