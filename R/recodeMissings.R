@@ -268,8 +268,8 @@
     if (is.character(new)) {
         new <- tolower(new)
     }
-
-    for (variable in names(dataset[, spss | stata, drop = FALSE])) {
+    
+    for (variable in names(dataset)[spss | stata]) {
         x <- declared::undeclare(dataset[[variable]], drop = TRUE)
         attributes(x) <- NULL # for haven_labelled with tagged NAs
 
@@ -473,6 +473,26 @@
                     )
                 }
             }
+        }
+    }
+    
+    if (tospss) {
+        for (variable in names(dataset)[!spss & !stata]) {
+            x <- getElement(dataset, variable)
+            wx <- which(haven::is_tagged_na(x))
+            if (length(wx) > 0) {
+                tags <- haven::na_tag(x[wx])
+                for (tag in unique(tags)) {
+                    if (is.element(tag, old)) {
+                        x[wx[tags == tag]] <- new[old == tag]
+                    }
+                    else {
+                        x[wx[tags == tag]] <- NA
+                    }
+                }
+            }
+            
+            dataset[[variable]] <- x
         }
     }
 
