@@ -479,33 +479,52 @@
     if (tospss) {
         for (variable in names(dataset)[!spss & !stata]) {
             x <- getElement(dataset, variable)
-            wx <- which(haven::is_tagged_na(x))
-            if (length(wx) > 0) {
-                tags <- haven::na_tag(x[wx])
-                enavals <- numeric(0) # existing na_values
-                for (tag in unique(tags)) {
-                    if (is.element(tag, old)) {
-                        x[wx[tags == tag]] <- new[old == tag]
-                        enavals <- c(enavals, new[old == tag])
+            na_index <- which(haven::is_tagged_na(x))
+            if (length(na_index) > 0) {
+                extended <- haven::na_tag(x[na_index])
+                # check for unaccounted extended missing values
+                # (because they have no labels)
+                
+                emdiff <- setdiff(extended, old)
+                
+                if (length(emdiff) > 0) {
+                    nrows <- nrow(dictionary)
+                    newcodes <- mcodes[seq(nrows + 1, nrows + length(emdiff))]
+                    dictionary <- rbind(
+                        dictionary,
+                        data.frame(
+                            spss = TRUE,
+                            label = "",
+                            old = emdiff,
+                            new = newcodes
+                        )
+                    )
+                    
+                }
+                
+                x[na_index] <- NA
+                
+                names(na_index) <- dictionary$new[match(extended, dictionary$old)]
+                attr(x, "na_index") <- na_index
+                
+                if (
+                    length(
+                        intersect(
+                            c("Date", "POSIXct", "POSIXt", "POSIXlt"),
+                            class(x)
+                        )
+                    ) == 0
+                ) {
+                    # attributes(x) <- NULL
+                    if (to_declared) {
+                        class(x) <- "declared"
                     }
                     else {
-                        x[wx[tags == tag]] <- NA
+                        class(x) <- c("haven_labelled_spss", "haven_labelled")
                     }
                 }
                 
-                if (to_declared) {
-                    attributes(x) <- NULL
-                    dataset[[variable]] <- declared::declared(
-                        x,
-                        na_values = enavals
-                    )
-                }
-                else {
-                    dataset[[variable]] <- haven::labelled_spss(
-                        x,
-                        na_values = enavals
-                    )
-                }
+                dataset[[variable]] <- x
             }
         }
     }
