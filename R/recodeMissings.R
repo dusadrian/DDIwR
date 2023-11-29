@@ -504,10 +504,15 @@
                 
                 x[na_index] <- NA
                 
-                names(na_index) <- dictionary$new[match(extended, dictionary$old)]
+                na_values <- dictionary$new[match(extended, dictionary$old)]
+                names(na_index) <- na_values
+                attr(x, "na_values") <- intersect(mcodes, na_values)
                 attr(x, "na_index") <- na_index
                 
-                if (
+                if (to_declared) {
+                    class(x) <- c("declared", class(x))
+                }
+                else if (
                     length(
                         intersect(
                             c("Date", "POSIXct", "POSIXt", "POSIXlt"),
@@ -515,13 +520,7 @@
                         )
                     ) == 0
                 ) {
-                    # attributes(x) <- NULL
-                    if (to_declared) {
-                        class(x) <- "declared"
-                    }
-                    else {
-                        class(x) <- c("haven_labelled_spss", "haven_labelled")
-                    }
+                    class(x) <- c("haven_labelled_spss", "haven_labelled", class(x))
                 }
                 
                 dataset[[variable]] <- x

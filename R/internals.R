@@ -447,7 +447,9 @@ NULL
     }
 
     output <- lapply(dataset, function(x) {
-        result <- list()
+        result <- list(
+            classes = class(x)
+        )
 
         label <- attr(x, "label", exact = TRUE)
         if (!is.null(label)) {
@@ -510,18 +512,31 @@ NULL
             result$na_range
         )
 
+        
+        if (
+            length(
+                intersect(
+                    c("Date", "POSIXct", "POSIXt", "POSIXlt"),
+                    getElement(result, "classes")
+                )
+            ) == 0
+        ) {
+            format.spss <- attr(x, "format.spss", exact = TRUE)
+            if (is.null(format.spss)) {
+                format.spss <- getFormat(x, type = "SPSS")
+            }
 
-        format.spss <- attr(x, "format.spss", exact = TRUE)
-        if (is.null(format.spss)) {
-            format.spss <- getFormat(x, type = "SPSS")
+            format.stata <- attr(x, "format.stata", exact = TRUE)
+            if (is.null(format.stata)) {
+                format.stata <- getFormat(x, type = "Stata")
+            }
+
+            result[["varFormat"]] <- c(format.spss, format.stata)
+        }
+        else {
+            result[["varFormat"]] <- "date"
         }
 
-        format.stata <- attr(x, "format.stata", exact = TRUE)
-        if (is.null(format.stata)) {
-            format.stata <- getFormat(x, type = "Stata")
-        }
-
-        result[["varFormat"]] <- c(format.spss, format.stata)
         result[["xmlang"]] <- attr(x, "xmlang", exact = TRUE)
 
         return(result)
@@ -1241,6 +1256,10 @@ NULL
         suppressWarnings(sink())
         # close(tcon)
     })
+    
+    dates <- sapply(variables, function(x) {
+        identical(x$varFormat, "date")
+    })
 
     pN <- logical(length(variables))
     if (!is.null(data)) {
@@ -1282,6 +1301,10 @@ NULL
         na_range <- getElement(metadata, "na_range")
         type <- getElement(metadata, "type")
         measurement <- getElement(metadata, "measurement")
+        varFormat <- getElement(metadata, "varFormat")
+        if (!is.null(varFormat)) {
+            varFormat <- varFormat[1]
+        }
         
         lxmlang <- getElement(metadata, "xmlang")
         if (is.null(lxmlang)) {
@@ -1384,7 +1407,7 @@ NULL
         }
 
         # even if the data is not present, pN is FALSE for all variables
-        if (pN[i]) {
+        if (pN[i] & !dates[i]) {
             vals <- aN[[names(variables)[i]]]
 
             if (!is.null(lbls)) {
@@ -1515,24 +1538,55 @@ NULL
                 cat(paste0("</", ns, "catgry>", enter))
             }
         }
+        else {
+            if (identical(varFormat, "date")) {
+                if (!is.null(na_values)) {
+                    for (n in na_values) {
+                        cat(paste0(
+                            "<", ns, "catgry missing=\"Y\">",
+                            enter
+                        ))
+                        cat(paste0("<catValu>", n, "</catValu>"))
+                        cat(paste0("</", ns, "catgry>", enter))
+                    }
+                }
+            }
+            
+        }
+        
 
-        if (any(grepl("type", names(metadata)))) {
-            varFormat <- getElement(metadata, "varFormat")[1] # SPSS
-            cat(paste0(
-                "<", ns, "varFormat type=\"",
-                ifelse(
-                    grepl("char", type),
-                    "character",
-                    "numeric"
-                ),
-                # "\" schema=\"other\" formatname=\"",
-                # substr(varFormat, 1, 1),
-                "\">",
-                varFormat,
-                "</", ns, "varFormat>",
-                enter,
-                sep = ""
-            ))
+        if (!is.null(type) | !is.null(varFormat)) {
+            vartype <- NULL
+            if (!is.null(type)) {
+                vartype <- paste0(
+                    " type=\"",
+                    ifelse(
+                        grepl("char", type),
+                        "character",
+                        "numeric"
+                    ),
+                    "\""
+                )
+            }
+            
+            if (identical(varFormat, "date")) {
+                vartype <- " type=\"numeric\" schema=\"ISO\" category=\"date\""
+                varFormat <- "ISO dates"
+            }
+            
+            if (!is.null(vartype)) {
+                cat(paste0(
+                    "<", ns, "varFormat",
+                    vartype,
+                    # "\" schema=\"other\" formatname=\"",
+                    # substr(varFormat, 1, 1),
+                    ">",
+                    varFormat,
+                    "</", ns, "varFormat>",
+                    enter,
+                    sep = ""
+                ))
+            }
         }
 
         if (any(grepl("txt", names(metadata)))) {
