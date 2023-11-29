@@ -21,6 +21,35 @@ NULL
     return(x)
 }
 
+
+#' @description `changeXMLang`: Remove the `xmlang` attribute from all elements.
+#' @return `changeXMLang`: A modified `codeBook` element.
+#' @rdname DDIwR_internal
+#' @keywords internal
+#' @export
+`changeXMLang` <- function(x, remove = FALSE) {
+    xmlang <- NULL
+    if (!remove && hasAttributes(x, "xmlang")) {
+        xmlang <- attr(x, "xmlang")
+    }
+    
+    x <- removeAttributes("xmlang", from = x)
+    attr(x, "xml:lang") <- xmlang
+
+    if (anyChildren(x)) {
+        nms <- names(x)
+        wnms <- which(!is.element(nms, c(".extra", "")))
+
+        if (length(wnms) > 0) {
+            for (w in wnms) {
+                x[[w]] <- changeXMLang(x[[w]], remove = remove)
+            }
+        }
+    }
+
+    return(x)
+}
+
 #' @description `checkArgument`: Check function arguments
 #' @rdname DDIwR_internal
 #' @keywords internal
@@ -1615,29 +1644,6 @@ NULL
         attributes(element) <- attrs
     }
     return(element)
-}
-
-
-#' @description `removeXMLang`: Remove the `xmlang` attribute from all elements.
-#' @return `removeXMLang`: A modified `codeBook` element.
-#' @rdname DDIwR_internal
-#' @keywords internal
-#' @export
-`removeXMLang` <- function(x) {
-    x <- removeAttributes("xmlang", from = x, overwrite = FALSE)
-
-    if (anyChildren(x)) {
-        nms <- names(x)
-        wnms <- which(!is.element(nms, c(".extra", "")))
-
-        if (length(wnms) > 0) {
-            for (w in wnms) {
-                x[[w]] <- removeXMLang(x[[w]])
-            }
-        }
-    }
-
-    return(x)
 }
 
 

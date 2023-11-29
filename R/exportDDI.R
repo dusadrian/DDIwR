@@ -141,11 +141,13 @@
             is.element("xmlang", names(x))
         }))
     )
-    
 
     if (!isFALSE(dots$monolang) & !varxmlang) {
-        codeBook <- removeXMLang(codeBook)
-        addAttributes(c(xmlang = xmlang), to = codeBook)
+        codeBook <- changeXMLang(codeBook, remove = TRUE)
+        attr(codeBook, "xml:lang") <- xmlang
+    }
+    else {
+        codeBook <- changeXMLang(codeBook)
     }
 
 

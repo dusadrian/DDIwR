@@ -4,6 +4,7 @@
 \alias{DDIwR_internal}
 \alias{dfm}
 \alias{ascii}
+\alias{changeXMLang}
 \alias{checkArgument}
 \alias{checkDots}
 \alias{checkElement}
@@ -31,7 +32,6 @@
 \alias{missingValuesSPSS}
 \alias{prespace}
 \alias{removeExtra}
-\alias{removeXMLang}
 \alias{repeatSpace}
 \alias{replaceChars}
 \alias{replaceTicks}
@@ -43,6 +43,8 @@
 \title{DDIwR internal functions}
 \usage{
 ascii(x)
+
+changeXMLang(x, remove = FALSE)
 
 checkArgument(argument, default, length = 1, ...)
 
@@ -98,8 +100,6 @@ prespace(text, indent = NULL)
 
 removeExtra(element)
 
-removeXMLang(x)
-
 repeatSpace(times, indent)
 
 replaceChars(x)
@@ -122,6 +122,8 @@ writeRlist(variables, OS = "windows", indent = 4, dirpath = "", filename = "")
 \item{nchars}{Number of characters for each ID}
 }
 \value{
+\code{changeXMLang}: A modified \code{codeBook} element.
+
 \code{checkElement}: Boolean.
 
 \code{checkExisting}: Boolean.
@@ -169,8 +171,6 @@ containing variable level metadata information
 
 \code{removeExtra}: A modified element.
 
-\code{removeXMLang}: A modified \code{codeBook} element.
-
 \code{repeatSpace}: Character spaces
 
 \code{replaceChars}: Character vector
@@ -189,6 +189,8 @@ Functions to be used internally, only by developers and
 contributors.
 
 \code{ascii}: Convert accented unicode characters to pure ascii
+
+\code{changeXMLang}: Remove the \code{xmlang} attribute from all elements.
 
 \code{checkArgument}: Check function arguments
 
@@ -246,8 +248,6 @@ specification
 \code{prespace}: Prepend a text with a certain number of space characters.
 
 \code{removeExtra}: Removes extra information from a DDI Codebook element
-
-\code{removeXMLang}: Remove the \code{xmlang} attribute from all elements.
 
 \code{repeatSpace}: Allows indentation of XML or HTML files
 
