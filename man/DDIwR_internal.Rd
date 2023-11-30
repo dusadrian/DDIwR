@@ -187,7 +187,7 @@ containing variable level metadata information
 \code{treatPath}: A list with four components: the complete path, the
 files, the file names and the file extensions
 
-\code{XMLtoRmetadata}: An R list
+\code{XMLtoRmetadata}: An R list containing metadata
 }
 \description{
 Functions to be used internally, only by developers and
@@ -270,7 +270,7 @@ present in a certain directory.
 \code{writeMetadata}: Utility function to write the metadata
 part in the setup file.
 
-\code{XMLtoRmetadata}: Extract information from a single variable
+\code{XMLtoRmetadata}: Extract metadata from a single XML variable
 
 \code{writeRlist}: Write an .R file containing a metadata specific list.
 }
