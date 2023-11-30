@@ -17,6 +17,7 @@ Imports:
     admisc (> 0.33),
     base64enc,
     declared (> 0.23),
+    digest,
     tools,
     xml2,
     haven,

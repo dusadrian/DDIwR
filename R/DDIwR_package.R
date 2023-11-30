@@ -43,6 +43,7 @@
 #' read_dta read_por read_sas read_sav read_xpt tagged_na write_dta write_sas
 #' write_sav write_xpt
 #' @importFrom declared as.declared as.haven declared is.declared undeclare
+#' @importFrom digest digest
 #' @importFrom tools file_ext
 #' @importFrom xml2 as_list as_xml_document read_xml xml_attr xml_children xml_find_all
 #' xml_find_first xml_name xml_ns xml_text
