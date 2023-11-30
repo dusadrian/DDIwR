@@ -353,6 +353,20 @@
             # return(list(data = data, codeBook = codeBook))
             data <- makeLabelled(data, variables)
         }
+        else {
+            hashes <- attr(data, "hashes")
+            attr(data, "hashes") <- NULL
+            
+            if (!is.null(hashes)) {
+                dns <- getDNS(xml) # default name space
+                xpath <- sprintf("/%scodeBook/%sdataDscr/%svar", dns, dns, dns)
+                xmlvars <- xml2::xml_find_all(xml, xpath)
+                checkhashes <- getHashes(xmlvars)
+                if (!identical(hashes, checkhashes)) {
+                    # TODO
+                }
+            }
+        }
 
         # if (!is.null(codeBook$stdyDscr)) {
         #     attr(data, "stdyDscr") <- codeBook$stdyDscr
@@ -558,28 +572,13 @@
             return(x)
         })
 
-        if (embed) {
-            addChildren(makeNotes(data), to = fileDscr)
-        }
-        else {
-            write.table(
-                undeclare(data, drop = TRUE),
-                file = file.path(
-                    tp_to$completePath,
-                    paste(tp_to$filenames[1], "csv", sep = ".")
-                ),
-                sep = ",",
-                na = "",
-                row.names = FALSE
-            )
-        }
-
         addChildren(fileDscr, to = codeBook)
 
         exportDDI(
             codeBook,
             file = to,
             data = data,
+            embed = embed,
             dataDscr_directly_in_XML = TRUE,
             variables = variables,
             ... = ...

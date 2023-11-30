@@ -399,13 +399,13 @@ NULL
         )
     }
 
-    result <- makeXMLdataDscr(
-        collectRMetadata(dataset),
-        data = dataset,
-        ... = ...
+    return(
+        makeXMLcodeBook(
+            collectRMetadata(dataset),
+            data = dataset,
+            ... = ...
+        )[[1]]$dataDscr
     )
-
-    return(result)
 }
 
 
@@ -1012,6 +1012,16 @@ NULL
 }
 
 
+#' @description `getHashes`: Compute hashes of XML nodes
+#' @return `getHashes`: Character vector
+#' @rdname DDIwR_internal
+#' @keywords internal
+#' @export
+`getHashes` <- function(nodes) {
+    sapply(nodes, function(child) digest::digest(xml2::xml_serialize(child, NULL)))
+}
+
+
 #' @description `getValues`: Extract values, labels and missing values from a `var` element
 #' @return `getValues`: A list with two components: `labels` and `na_values`
 #' @rdname DDIwR_internal
@@ -1229,7 +1239,7 @@ NULL
 
 
 # completely internal function, not designed for general use
-`makeXMLdataDscr` <- function(variables, indent = 2, ...) {
+`makeXMLcodeBook` <- function(variables, indent = 2, ...) {
     dots <- list(...)
     data <- dots$data
 
@@ -1288,7 +1298,17 @@ NULL
     enter <- "\n"
 
     tmp <- tempdir()
-    sink(file.path(tmp, "dataDscr.xml"))
+    sink(file.path(tmp, "codeBook.xml"))
+    
+    cat(paste0("<?xml version=\"1.0\" encoding=\"UTF-8\"?>", enter))
+    cat(paste0(
+        "<codeBook ",
+        "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" ",
+        "xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" ",
+        "xmlns=\"ddi:codebook:2_5\" version=\"2.5\" ",
+        "xsi:schemaLocation=\"ddi:codebook:2_5 codebook.xsd\">",
+        enter
+    ))
 
     cat(paste0("<", ns, "dataDscr>", enter))
 
@@ -1603,16 +1623,21 @@ NULL
     }
 
     cat(paste0("</", ns, "dataDscr>", enter))
+    cat(paste0("</codeBook>", enter))
 
     sink()
 
-    dataDscr <- xml2::read_xml(file.path(tmp, "dataDscr.xml"))
+    codeBook <- xml2::read_xml(file.path(tmp, "codeBook.xml"))
+    hashes <- getHashes(xml2::xml_find_all(codeBook, "/d1:codeBook/d1:dataDscr/d1:var"))
 
     if (!isFALSE(dots$DDI)) {
-        dataDscr <- coerceDDI(xml2::as_list(dataDscr))
+        return(list(
+            coerceDDI(xml2::as_list(codeBook)),
+            hashes
+        ))
     }
-
-    return(dataDscr)
+    
+    return(list(codeBook, hashes))
 }
 
 

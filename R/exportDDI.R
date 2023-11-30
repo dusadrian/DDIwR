@@ -153,24 +153,43 @@
 
     if (isTRUE(dots$dataDscr_directly_in_XML)) {
         data <- dots$data
+        embed <- dots$embed
+        
         addChildren(makeElement("dataDscr"), to = codeBook)
 
-        codeBook <- as_xml_document(
-            list(codeBook = removeExtra(codeBook))
-        )
-
-        dataDscrXML <- makeXMLdataDscr(
+        XMLhashes <- makeXMLcodeBook(
             variables,
             data = data,
             DDI = FALSE,
             ... = ...
         )
 
+        attr(data, "hashes") <- XMLhashes[[2]]
+
+        if (embed) {
+            addChildren(makeNotes(data), to = codeBook$fileDscr)
+        }
+        else {
+            write.table(
+                undeclare(data, drop = TRUE),
+                file = file.path(
+                    tp_to$completePath,
+                    paste(tp_to$filenames[1], "csv", sep = ".")
+                ),
+                sep = ",",
+                na = "",
+                row.names = FALSE
+            )
+        }
+        
+        codeBook <- as_xml_document(
+            list(codeBook = removeExtra(codeBook))
+        )
         dns <- getDNS(codeBook)
 
         tmp <- xml2::xml_replace(
             xml_find_first(codeBook, sprintf("/%scodeBook/dataDscr", dns)),
-            xml_find_first(dataDscrXML, "/dataDscr")
+            xml_find_first(XMLhashes[[1]], "/d1:codeBook/d1:dataDscr")
         )
     }
     else {
