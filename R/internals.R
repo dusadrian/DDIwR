@@ -1508,12 +1508,11 @@ NULL
 
         if (!is.null(lbls)) {
             
-            # what is the difference from data[[i]] ?
-            # tbl <- table(undeclare(data[[varnames[i]]], drop = TRUE))
             tbl <- declared::w_table(data[[varnames[i]]])
+            # print(tbl)
             
+            nms <- names(lbls)
             for (v in seq(length(lbls))) {
-
                 ismiss <- is.element(lbls[v], na_values)
                 if (length(na_range) > 0 & pN[i]) {
                     ismiss <- ismiss | (
@@ -1536,13 +1535,13 @@ NULL
 
                 cat(paste0(
                     "<", ns, "labl", ifelse(ismiss, xmlang, lxmlang[v]), ">",
-                    replaceChars(names(lbls)[v]),
+                    replaceChars(nms[v]),
                     "</", ns, "labl>",
                     enter
                 ))
 
                 if (!is.null(data)) {
-                    freq <- tbl[match(lbls[v], names(tbl))]
+                    freq <- tbl[match(nms[v], names(tbl))]
                     cat(paste0(
                         "<", ns, "catStat type=\"freq\">",
                         ifelse(
