@@ -2059,167 +2059,152 @@ NULL
 }
 
 
-#' @description `XMLvariables`: Extract variable information from an XML Codebook
-#' @return `XMLvariables`: An R list
+
+#' @description `XMLtoRmetadata`: Extract metadata from a single XML variable
+#' @return `XMLtoRmetadata`: An R list containing metadata
 #' @rdname DDIwR_internal
 #' @keywords internal
 #' @export
-`XMLvariables` <- function(xml) {
-    children <- xml2::xml_children(xml)
-    nms <- xml2::xml_name(children)
-    dns <- getDNS(xml)
-    xpath <- sprintf("/%scodeBook/%sdataDscr/%svar", dns, dns, dns)
-    vars <- xml2::xml_find_all(xml, xpath)
+`XMLtoRmetadata` <- function(xmlvar) {
+    result <- list()
+    # nms <- xml_name(xml_contents(xml_find_all(xml, sprintf("/d1:codeBook/d1:dataDscr/d1:var[%s]", i))))
 
-    if (length(vars) == 0) {
-        admisc::stopError("This DDI Codebook file does not contain any variable level metadata.")
-    }
-
-    varlab <- cleanup(
+    # xpath <- sprintf("/%scodeBook/%sdataDscr/%svar[%s]", dns, dns, dns, i)
+    # vars_i <- xml2::xml_find_first(xml, xpath)
+    
+    label <- cleanup(
         xml2::xml_text(
-            xml2::xml_find_first(vars, sprintf("%slabl", dns))
+            xml2::xml_find_first(xmlvar, sprintf("%slabl", dns))
         )
     )
+    
+    if (!is.na(label)) {
+        result$label <- label
+    }
 
-    dataDscr <- lapply(varlab, function(x) list(label = x))
-    xpath <- sprintf("/%scodeBook/%sdataDscr/%svar/@name", dns, dns, dns)
-    names(dataDscr) <- admisc::trimstr(
-        xml2::xml_text(xml2::xml_find_all(xml, xpath))
-    )
+    measurement <- xml2::xml_attr(xmlvar, "nature")
+    na_values <- NULL
+    na_range <- NULL
+    xpath <- sprintf("%sinvalrng/%srange", dns, dns)
+    na_range[1] <- admisc::asNumeric(xml2::xml_attr(xml2::xml_find_first(xmlvar, xpath), "min"))
+    na_range[2] <- admisc::asNumeric(xml2::xml_attr(xml2::xml_find_first(xmlvar, xpath), "max"))
 
-    for (i in seq(length(dataDscr))) {
-        if (is.na(dataDscr[[i]][["label"]])) {
-            dataDscr[[i]][["label"]] <- NULL
-        }
-
-        # nms <- xml_name(xml_contents(xml_find_all(xml, sprintf("/d1:codeBook/d1:dataDscr/d1:var[%s]", i))))
-
-        # xpath <- sprintf("/%scodeBook/%sdataDscr/%svar[%s]", dns, dns, dns, i)
-        # vars_i <- xml2::xml_find_first(xml, xpath)
-
-        measurement <- xml2::xml_attr(vars[i], "nature")
-        na_values <- NULL
+    if (all(is.na(na_range))) {
         na_range <- NULL
-        xpath <- sprintf("%sinvalrng/%srange", dns, dns)
-        na_range[1] <- admisc::asNumeric(xml2::xml_attr(xml2::xml_find_first(vars[i], xpath), "min"))
-        na_range[2] <- admisc::asNumeric(xml2::xml_attr(xml2::xml_find_first(vars[i], xpath), "max"))
+    } else {
+        if (is.na(na_range[1])) na_range[1] <- -Inf
+        if (is.na(na_range[2])) na_range[2] <- Inf
+    }
 
-        if (all(is.na(na_range))) {
-            na_range <- NULL
-        } else {
-            if (is.na(na_range[1])) na_range[1] <- -Inf
-            if (is.na(na_range[2])) na_range[2] <- Inf
+    xpath <- sprintf("%scatgry/%scatValu", dns, dns)
+    values <- cleanup(xml2::xml_text(xml2::xml_find_all(xmlvar, xpath)))
+
+    xpath <- sprintf("%svarFormat", dns)
+    vformat <- xml2::xml_find_first(xmlvar, xpath)
+    type <- xml2::xml_attr(vformat, "type")
+    varFormat <- xml2::xml_text(vformat)
+
+    if (length(values) > 0) {
+
+        catgry <- xml2::xml_find_all(xmlvar, sprintf("%scatgry", dns))
+
+        na_values <- c(na_values, values[unlist(lapply(catgry, function(x) {
+            grepl("Y", xml2::xml_attr(x, "missing"))
+        }))])
+
+        labl <- unlist(lapply(catgry, function(x) {
+            xml2::xml_text(xml2::xml_find_first(x, sprintf("%slabl", dns)))
+        }))
+
+        values <- values[!is.na(labl)]
+        labl <- cleanup(labl[!is.na(labl)])
+
+        if (admisc::possibleNumeric(values)) {
+            values <- admisc::asNumeric(values)
         }
 
-        xpath <- sprintf("%scatgry/%scatValu", dns, dns)
-        values <- cleanup(xml2::xml_text(xml2::xml_find_all(vars[i], xpath)))
+        result[["labels"]] <- values
+        names(result[["labels"]]) <- labl
 
-        xpath <- sprintf("%svarFormat", dns)
-        vformat <- xml2::xml_find_first(vars[i], xpath)
-        type <- xml2::xml_attr(vformat, "type")
-        varFormat <- xml2::xml_text(vformat)
+        frequencies <- unlist(lapply(catgry, function(x) {
+            xml2::xml_text(xml2::xml_find_first(x, sprintf("%scatStat", dns)))
+        }))
 
-        if (length(values) > 0) {
-
-            catgry <- xml2::xml_find_all(vars[i], sprintf("%scatgry", dns))
-
-            na_values <- c(na_values, values[unlist(lapply(catgry, function(x) {
-                grepl("Y", xml2::xml_attr(x, "missing"))
-            }))])
-
-            labl <- unlist(lapply(catgry, function(x) {
-                xml2::xml_text(xml2::xml_find_first(x, sprintf("%slabl", dns)))
-            }))
-
-            values <- values[!is.na(labl)]
-            labl <- cleanup(labl[!is.na(labl)])
-
-            if (admisc::possibleNumeric(values)) {
-                values <- admisc::asNumeric(values)
+        if (!all(is.na(frequencies))) {
+            if (admisc::possibleNumeric(frequencies)) {
+                frequencies <- admisc::asNumeric(frequencies)
             }
 
-            dataDscr[[i]][["labels"]] <- values
-            names(dataDscr[[i]][["labels"]]) <- labl
+            names(frequencies) <- labl
+            result[["frequencies"]] <- frequencies
+        }
+    }
 
-            frequencies <- unlist(lapply(catgry, function(x) {
-                xml2::xml_text(xml2::xml_find_first(x, sprintf("%scatStat", dns)))
-            }))
+    if (length(na_values) > 0) {
 
-            if (!all(is.na(frequencies))) {
-                if (admisc::possibleNumeric(frequencies)) {
-                    frequencies <- admisc::asNumeric(frequencies)
-                }
+        if (admisc::possibleNumeric(na_values) & admisc::possibleNumeric(values)) {
+            na_values <- admisc::asNumeric(na_values)
+        }
 
-                names(frequencies) <- labl
-                dataDscr[[i]][["frequencies"]] <- frequencies
-            }
+        na_values <- sort(unique(na_values))
+
+        if (!is.null(na_range) && is.numeric(na_values)) {
+            na_values <- na_values[na_values < na_range[1] | na_values > na_range[2]]
         }
 
         if (length(na_values) > 0) {
-
-            if (admisc::possibleNumeric(na_values) & admisc::possibleNumeric(values)) {
-                na_values <- admisc::asNumeric(na_values)
-            }
-
-            na_values <- sort(unique(na_values))
-
-            if (!is.null(na_range) && is.numeric(na_values)) {
-                na_values <- na_values[na_values < na_range[1] | na_values > na_range[2]]
-            }
-
-            if (length(na_values) > 0) {
-                dataDscr[[i]]$na_values <- na_values
-            }
-        }
-
-        if (!is.null(na_range)) {
-            dataDscr[[i]]$na_range <- na_range
-        }
-
-        if (is.na(measurement)) {
-            if (!is.na(type)) {
-                dataDscr[[i]]$type <- "num" # default
-
-                if (type == "character") {
-                    dataDscr[[i]]$type <- "char"
-                }
-                else if (length(values) > 0) {
-                    if (length(setdiff(values, na_values)) > 0) {
-                        dataDscr[[i]]$type <- "cat"
-                    }
-                }
-            }
-        }
-        else {
-            if (grepl("nominal|ordinal", measurement)) {
-                dataDscr[[i]]$type <- "cat"
-            }
-            else if (grepl("interval|ratio", measurement)) {
-                dataDscr[[i]]$type <- "num"
-            }
-            else if (!is.na(type)) {
-                dataDscr[[i]]$type <- type
-            }
-
-            dataDscr[[i]]$measurement <- measurement
-        }
-
-        if (!is.na(vformat)) {
-            dataDscr[[i]]$varFormat <- varFormat
-        }
-
-        if (identical(type, "character")) {
-            xpath <- sprintf("%stxt", dns)
-            txt <- cleanup(xml2::xml_text(xml2::xml_find_first(vars[i], xpath)))
-            if (!is.na(txt)) {
-                dataDscr[[i]]$txt <- txt
-            }
+            result$na_values <- na_values
         }
     }
 
-    return(dataDscr)
+    if (!is.null(na_range)) {
+        result$na_range <- na_range
+    }
 
+    if (is.na(measurement)) {
+        if (!is.na(type)) {
+            result$type <- "num" # default
+
+            if (type == "character") {
+                result$type <- "char"
+            }
+            else if (length(values) > 0) {
+                if (length(setdiff(values, na_values)) > 0) {
+                    result$type <- "cat"
+                }
+            }
+        }
+    }
+    else {
+        if (grepl("nominal|ordinal", measurement)) {
+            result$type <- "cat"
+        }
+        else if (grepl("interval|ratio", measurement)) {
+            result$type <- "num"
+        }
+        else if (!is.na(type)) {
+            result$type <- type
+        }
+
+        result$measurement <- measurement
+    }
+
+    if (!is.na(vformat)) {
+        result$varFormat <- varFormat
+    }
+
+    if (identical(type, "character")) {
+        xpath <- sprintf("%stxt", dns)
+        txt <- cleanup(xml2::xml_text(xml2::xml_find_first(xmlvar, xpath)))
+        if (!is.na(txt)) {
+            result$txt <- txt
+        }
+    }
+    
+    return(result)
 }
+
+
 
 ##------------------------------------------------------------------------------
 ## TODO: modify this function according to DDIC

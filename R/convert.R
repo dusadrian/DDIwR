@@ -274,6 +274,16 @@
     if (tp_from$fileext == "XML") {
         xml <- getXML(from, encoding = encoding)
         data <- extractData(xml)
+        
+        dns <- getDNS(xml) # default name space
+        xpath <- sprintf("/%scodeBook/%sdataDscr/%svar", dns, dns, dns)
+        xmlvars <- xml2::xml_find_all(xml, xpath)
+        
+        if (length(xmlvars) == 0) {
+            admisc::stopError(
+                "This DDI Codebook file does not contain any variable level metadata."
+            )
+        }
 
         # if not present in the codeBook, maybe it is on a separate .csv file
         # in the same directory as the DDI .xml Codebook
@@ -316,9 +326,9 @@
             }
 
             header <- ifelse(isFALSE(callist$header), FALSE, TRUE)
-
             data <- do.call("read.csv", callist)
-            variables <- XMLvariables(xml)
+
+            variables <- lapply(xmlvars, XMLtoRmetadata)
 
             if (ncol(data) == length(variables)) {
                 if (header) {
@@ -330,6 +340,11 @@
                     names(data) <- names(variables)
                 }
             }
+            
+            xpath <- sprintf("/%scodeBook/%sdataDscr/%svar/@name", dns, dns, dns)
+            names(variables) <- admisc::trimstr(
+                xml2::xml_text(xml2::xml_find_all(xml, xpath))
+            )
 
             if (ncol(data) == length(variables) + 1) {
                 if (header) {
@@ -358,12 +373,17 @@
             attr(data, "hashes") <- NULL
             
             if (!is.null(hashes)) {
-                dns <- getDNS(xml) # default name space
-                xpath <- sprintf("/%scodeBook/%sdataDscr/%svar", dns, dns, dns)
-                xmlvars <- xml2::xml_find_all(xml, xpath)
                 checkhashes <- getHashes(xmlvars)
+                
                 if (!identical(hashes, checkhashes)) {
-                    # TODO
+                    different <- which(hashes != checkhashes)
+                    
+                    for (i in different) {
+                        metadata <- XMLtoRmetadata(xmlvars[i])
+                        for (att in c("labels", "na_values", "na_range")) {
+                            attr(data[[i]], att) <- getElement(metadata, att)
+                        }
+                    }
                 }
             }
         }

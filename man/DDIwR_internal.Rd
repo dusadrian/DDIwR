@@ -24,6 +24,7 @@
 \alias{getEnter}
 \alias{getFiles}
 \alias{getFormat}
+\alias{getHashes}
 \alias{getValues}
 \alias{getXML}
 \alias{hasLabels}
@@ -38,7 +39,7 @@
 \alias{splitrows}
 \alias{treatPath}
 \alias{writeMetadata}
-\alias{XMLvariables}
+\alias{XMLtoRmetadata}
 \alias{writeRlist}
 \title{DDIwR internal functions}
 \usage{
@@ -84,6 +85,8 @@ getFiles(path = ".", type = "*", currdir)
 
 getFormat(x, type = c("SPSS", "Stata"), ...)
 
+getHashes(nodes)
+
 getValues(variable)
 
 getXML(path, encoding = "UTF-8")
@@ -112,7 +115,7 @@ treatPath(path, type = "*", single = FALSE, check = TRUE)
 
 writeMetadata(variables, OS = "", indent = 4)
 
-XMLvariables(xml)
+XMLtoRmetadata(xmlvar)
 
 writeRlist(variables, OS = "windows", indent = 4, dirpath = "", filename = "")
 }
@@ -155,6 +158,8 @@ containing variable level metadata information
 
 \code{getFormat}: Character scalar
 
+\code{getHashes}: Character vector
+
 \code{getValues}: A list with two components: \code{labels} and \code{na_values}
 
 \code{getXML}: An XML document
@@ -182,7 +187,7 @@ containing variable level metadata information
 \code{treatPath}: A list with four components: the complete path, the
 files, the file names and the file extensions
 
-\code{XMLvariables}: An R list
+\code{XMLtoRmetadata}: An R list
 }
 \description{
 Functions to be used internally, only by developers and
@@ -233,6 +238,8 @@ specification
 
 \code{getFormat}: Determine the SPSS / Stata variable format
 
+\code{getHashes}: Compute hashes of XML nodes
+
 \code{getValues}: Extract values, labels and missing values from a \code{var} element
 
 \code{getXML}: Read the DDI XML file, testing if it can be loaded.
@@ -263,7 +270,7 @@ present in a certain directory.
 \code{writeMetadata}: Utility function to write the metadata
 part in the setup file.
 
-\code{XMLvariables}: Extract variable information from an XML Codebook
+\code{XMLtoRmetadata}: Extract information from a single variable
 
 \code{writeRlist}: Write an .R file containing a metadata specific list.
 }
