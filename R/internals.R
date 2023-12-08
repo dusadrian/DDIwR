@@ -513,14 +513,10 @@ NULL
         )
 
         
-        if (
-            length(
-                intersect(
-                    c("Date", "POSIXct", "POSIXt", "POSIXlt"),
-                    getElement(result, "classes")
-                )
-            ) == 0
-        ) {
+        if (is.element("Date", getElement(result, "classes"))) {
+            result[["varFormat"]] <- "date"
+        }
+        else {
             format.spss <- attr(x, "format.spss", exact = TRUE)
             if (is.null(format.spss)) {
                 format.spss <- getFormat(x, type = "SPSS")
@@ -532,9 +528,6 @@ NULL
             }
 
             result[["varFormat"]] <- c(format.spss, format.stata)
-        }
-        else {
-            result[["varFormat"]] <- "date"
         }
 
         result[["xmlang"]] <- attr(x, "xmlang", exact = TRUE)
@@ -2064,7 +2057,7 @@ NULL
 #' @rdname DDIwR_internal
 #' @keywords internal
 #' @export
-`XMLtoRmetadata` <- function(xmlvar) {
+`XMLtoRmetadata` <- function(xmlvar, dns) {
     result <- list()
     # nms <- xml_name(xml_contents(xml_find_all(xml, sprintf("/d1:codeBook/d1:dataDscr/d1:var[%s]", i))))
 

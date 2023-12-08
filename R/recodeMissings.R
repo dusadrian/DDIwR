@@ -510,19 +510,22 @@
                 attr(x, "na_index") <- na_index
                 
                 if (to_declared) {
-                    class(x) <- c("declared", class(x))
+                    xclass <- c("declared", class(x))
                 }
-                else if (
-                    length(
-                        intersect(
-                            c("Date", "POSIXct", "POSIXt", "POSIXlt"),
-                            class(x)
-                        )
-                    ) == 0
-                ) {
-                    class(x) <- c("haven_labelled_spss", "haven_labelled", class(x))
+                else {
+                    xclass <- c("haven_labelled_spss", "haven_labelled")
+                    
+                    if (
+                        is.element("Date", class(x)) || isTRUE(attr(x, "date"))
+                    ) {
+                        xclass <- c(xclass, "Date")
+                    }
+                    else {
+                        xclass <- c(xclass, class(x))
+                    }
                 }
                 
+                attr(x, "class") <- xclass
                 dataset[[variable]] <- x
             }
         }
