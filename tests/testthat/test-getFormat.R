@@ -17,6 +17,7 @@ test_that("getFormat() works for SPSS", {
       minusinf = "F1.0",
       plusinf = "F1.0",
       charvar = "A3",
+      datevar = "F5.0",
       fweight = "F17.3"
     )
   )
@@ -35,6 +36,7 @@ test_that("getFormat() works for Stata", {
       minusinf = "%1.0g",
       plusinf = "%1.0g",
       charvar = "%3s",
+      datevar = "%5.0g",
       fweight = "%17.3g"
     )
   )
