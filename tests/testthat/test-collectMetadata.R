@@ -1,5 +1,5 @@
 
-data(dfm)
+dfm <- makedfm()
 cmdfm <- collectMetadata(dfm)
 
 test_that("collectMetadata() works", {

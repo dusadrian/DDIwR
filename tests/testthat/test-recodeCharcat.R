@@ -1,3 +1,4 @@
+dfm <- makedfm()
 cv1 <- dfm$charvar
 declared::missing_values(cv1) <- NULL
 cv2 <- declared::undeclare(dfm$charvar)

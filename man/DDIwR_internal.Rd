@@ -2,7 +2,6 @@
 % Please edit documentation in R/internals.R
 \name{DDIwR_internal}
 \alias{DDIwR_internal}
-\alias{dfm}
 \alias{ascii}
 \alias{changeXMLang}
 \alias{checkArgument}

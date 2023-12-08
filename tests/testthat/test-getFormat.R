@@ -1,5 +1,5 @@
 
-data(dfm)
+dfm <- makedfm()
 
 # introduce a multibyte space character to test the code
 dfm$charvar[2] <- paste0(dfm$charvar[2], "\u00a0")

@@ -35,6 +35,8 @@ x <- data.frame(
   )
 )
 
+dfm <- makedfm()
+
 x2 <- x
 # erase information about declared missing values
 declared::missing_values(x2$A) <- NULL
