@@ -115,7 +115,7 @@ treatPath(path, type = "*", single = FALSE, check = TRUE)
 
 writeMetadata(variables, OS = "", indent = 4)
 
-XMLtoRmetadata(xmlvar)
+XMLtoRmetadata(xmlvar, dns)
 
 writeRlist(variables, OS = "windows", indent = 4, dirpath = "", filename = "")
 }

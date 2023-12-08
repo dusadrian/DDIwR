@@ -170,11 +170,12 @@
             addChildren(makeNotes(data), to = codeBook$fileDscr)
         }
         else {
+            tp_file <- treatPath(file, type = "*", single = TRUE)
             write.table(
                 undeclare(data, drop = TRUE),
                 file = file.path(
-                    tp_to$completePath,
-                    paste(tp_to$filenames[1], "csv", sep = ".")
+                    tp_file$completePath,
+                    paste(tp_file$filenames[1], "csv", sep = ".")
                 ),
                 sep = ",",
                 na = "",
