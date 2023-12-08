@@ -93,6 +93,12 @@
 #' from package \bold{\pkg{haven}}. It can be set to \code{NULL} to reset at the
 #' default in that package.
 #'
+#' Converting to SPSS works with numerical and character labelled vectors, with
+#' or without labels. Date/Time variables are partially supported by package 
+#' **haven**: either having such a variable with no labels and missing values,
+#' or if labels and missing values are declared the variable is automatically
+#' coerced to numeric, and users may have to make the proper settings in SPSS.
+#'
 #' @return An invisible R data frame, when the argument **`to`** is NULL.
 #'
 #' @examples
@@ -328,7 +334,7 @@
             header <- ifelse(isFALSE(callist$header), FALSE, TRUE)
             data <- do.call("read.csv", callist)
 
-            variables <- lapply(xmlvars, XMLtoRmetadata)
+            variables <- lapply(xmlvars, XMLtoRmetadata, dns = dns)
 
             if (ncol(data) == length(variables)) {
                 if (header) {
@@ -379,7 +385,7 @@
                     different <- which(hashes != checkhashes)
                     
                     for (i in different) {
-                        metadata <- XMLtoRmetadata(xmlvars[i])
+                        metadata <- XMLtoRmetadata(xmlvars[i], dns = dns)
                         for (att in c("labels", "na_values", "na_range")) {
                             attr(data[[i]], att) <- getElement(metadata, att)
                         }
@@ -387,10 +393,6 @@
                 }
             }
         }
-
-        # if (!is.null(codeBook$stdyDscr)) {
-        #     attr(data, "stdyDscr") <- codeBook$stdyDscr
-        # }
     }
     else if (tp_from$fileext == "XLS" || tp_from$fileext == "XLSX") {
         if (requireNamespace("readxl", quietly = TRUE)) {

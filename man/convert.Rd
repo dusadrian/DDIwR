@@ -128,6 +128,12 @@ like extended codes, they will be recoded to SPSS like numeric codes.
 The character \strong{\code{encoding}} is usually passed to the corresponding functions
 from package \bold{\pkg{haven}}. It can be set to \code{NULL} to reset at the
 default in that package.
+
+Converting to SPSS works with numerical and character labelled vectors, with
+or without labels. Date/Time variables are partially supported by package
+\strong{haven}: either having such a variable with no labels and missing values,
+or if labels and missing values are declared the variable is automatically
+coerced to numeric, and users may have to make the proper settings in SPSS.
 }
 \examples{
 \dontrun{
