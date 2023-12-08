@@ -158,6 +158,7 @@
     else {
         for (i in seq(length(examples))) {
             formatExample(xml2::read_xml(examples[i]))
+            cat(ifelse(i < length(examples), "\n", ""))
         }
     }
 
