@@ -6450,7 +6450,7 @@ DDIC <- list(
         repeatable = TRUE,
         attributes = list(),
         parents = "dataColl",
-        children = c(),
+        children = c("concept", "txt"),
         title = "Weighting",
         description = "The use of sampling procedures may make it necessary to apply weights to produce accurate statistical results. Describe here the criteria for using weights in analysis of a collection. If a weighting formula or coefficient was developed, provide this formula, define its elements, and indicate how the formula is applied to data. ",
         examples = c(
