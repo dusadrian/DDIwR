@@ -655,7 +655,7 @@
         for (i in seq(ncol(data))) {
             x <- data[[colnms[i]]]
             metadata <- getElement(variables, colnms[i])
-            labels <- getElement(metadata$.extra, "labels")
+            labels <- getElement(metadata, "labels")
 
             if (is.null(labels)) {
                 labels <- attr(x, "labels", exact = TRUE)
@@ -674,7 +674,7 @@
                     if (chartonum && !is.null(labels)) {
                         x <- recodeCharcat(
                             declared::as.declared(x),
-                            metadata = metadata$.extra
+                            metadata = metadata
                         )
                     }
                     else {
@@ -745,19 +745,19 @@
         }
     }
     else if (identical(tp_to$fileext, "XLSX")) {
-        varlabels <- sapply(data, function(x) {
-            lbl <- attr(x, "label", exact = TRUE)
+        var_labels <- sapply(variables, function(x) {
+            lbl <- getElement(x, "label")
             if (is.null(lbl)) {
                 lbl <- ""
             }
             return(lbl)
         })
 
-        x <- list(
+        excel <- list(
             data = data,
             variables = data.frame(
-                name = names(varlabels),
-                label = varlabels,
+                name = names(var_labels),
+                label = var_labels,
                 type = sapply(data, mode)
             ),
             values = data.frame(
@@ -772,18 +772,18 @@
             as.numeric(
                 unlist(
                     strsplit(
-                        substring(x$.extra$varFormat[1], 2),
+                        substring(x$varFormat[1], 2),
                         split = "\\."
                     )
                 )
             )
         })
 
-        x$variables$width <- sapply(varFormat, function(x) {
+        excel$variables$width <- sapply(varFormat, function(x) {
             ifelse (all(is.na(x)), NA, x[1])
         })
 
-        x$variables$decimals <- sapply(varFormat, function(x) {
+        excel$variables$decimals <- sapply(varFormat, function(x) {
             ifelse (
                 all(is.na(x)) || length(x) == 1,
                 NA,
@@ -792,7 +792,7 @@
         })
 
         for (v in names(variables)) {
-            labels <- getElement(variables[[v]]$.extra, "labels")
+            labels <- getElement(variables[[v]], "labels")
             if (!is.null(labels)) {
                 temp <- data.frame(
                     variable = v,
@@ -801,17 +801,17 @@
                     missing = NA
                 )
 
-                na_values <- getElement(variables[[v]]$.extra, "na_values")
+                na_values <- getElement(variables[[v]], "na_values")
 
                 if (!is.null(na_values)) {
                     temp$missing[is.element(labels, na_values)] <- "y"
                 }
 
-                x$values <- rbind(x$values, temp)
+                excel$values <- rbind(excel$values, temp)
             }
         }
 
-        writexl::write_xlsx(x, path = to)
+        writexl::write_xlsx(excel, path = to)
     }
     else {
         # if (identical(tp_to$fileext, "SAS7BDAT")) {
