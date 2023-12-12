@@ -188,7 +188,7 @@
         )
         dns <- getDNS(codeBook)
 
-        tmp <- xml2::xml_replace(
+        xml2::xml_replace(
             xml_find_first(codeBook, sprintf("/%scodeBook/dataDscr", dns)),
             xml_find_first(XMLhashes[[1]], "/d1:codeBook/d1:dataDscr")
         )
@@ -200,9 +200,15 @@
     }
 
     xml2::write_xml(codeBook, file = file)
+    xmlfile <- readLines(file)
+    xmlfile <- gsub(
+        "<dataDscr xmlns=\"ddi:codebook:2_5\">",
+        "<dataDscr>",
+        xmlfile
+    )
 
     if (!identical(indent, 2) || !identical(OS, "")) {
-        xmlfile <- readLines(file)
+        # xmlfile <- readLines(file)
 
         defaultOS <- Sys.info()[["sysname"]]
         checkArgument(indent, default = 2)
@@ -214,10 +220,10 @@
             prespace(xmlfile, indent),
             collapse = enter
         )
-
-        writeLines(
-            xmlfile,
-            con = file
-        )
     }
+
+    writeLines(
+        xmlfile,
+        con = file
+    )
 }
