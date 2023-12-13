@@ -43,7 +43,7 @@
     }
 
     xml <- readLines(xmlfile)
-    checkXMList(codeBook)
+    checkXMList(with)
 
     starts <- lapply(sections, function(s) {
         which(grepl(paste0("<", s), xml))
@@ -65,7 +65,10 @@
 
     tmp <- tempdir()
 
-    codeBook <- removeExtra(codeBook)
+    monolang <- codeBook$.extra$monolang
+    if (is.null(monolang)) monolang <- FALSE
+
+    codeBook <- removeExtra(changeXMLang(with, remove = monolang))
     children <- names(codeBook)
 
     for (child in unique(children[order(match(children, rev(sections)))])) {
