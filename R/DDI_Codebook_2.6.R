@@ -6481,7 +6481,9 @@ DDIC_global_attributes <- list(
         type = "xs:ID",
         description = "Anything that can uniquely identify the element within the DDI Codebook XML file",
         values = c(),
-        default = c()
+        default = c(),
+        optional = TRUE,
+        recommended = FALSE
     ),
     xmlang = list(
         type = "xs:language",
@@ -6490,36 +6492,48 @@ DDIC_global_attributes <- list(
             "(the actual attribute is named \"xml:lang\" in the final XML file.)"
         ),
         values = c(),
-        default = c()
+        default = c(),
+        optional = TRUE,
+        recommended = FALSE
     ),
     source = list(
         type = "xs:string",
         description = "This attribute identifies the source that provided information in the element. For instance, if the documentation contains two differing sets of information on Sampling Procedure -- one provided by the data producer and one by the archive where the data is deposited -- this information can be distinguished through the use of the source attribute",
         values = c("archive", "producer"),
-        default = "producer"
+        default = "producer",
+        optional = TRUE,
+        recommended = FALSE
     ),
     elementVersion = list(
         type = "xs:string",
         description = "Captures version of the element",
         values = c(),
-        default = c()
+        default = c(),
+        optional = TRUE,
+        recommended = FALSE
     ),
     elementVersionDate = list(
         type = c(),
         description = "Indicates version date for the element. Use YYYY-MM-DD, YYYY-MM, or YYYY formats.",
         values = c(),
-        default = c()
+        default = c(),
+        optional = TRUE,
+        recommended = FALSE
     ),
     ddiLifecycleUrn = list(
         type = c(),
         description = "Used to capture the DDI-Lifecycle type URN for the element. This may be captured during translation from DDI-Lifecycle to DDI-Codebook structure or in preparation for transferring to a DDI-Lifecycle structure.",
         values = c(),
-        default = c()
+        default = c(),
+        optional = TRUE,
+        recommended = FALSE
     ),
     ddiCodebookUrn = list(
         type = c(),
         description = "Used to capture the DDI-Codebook type URN for the element. This is used to assign a DDI-Codebook specific URN to the element, according the format prescribed by the DDI-Codebook standard.",
         values = c(),
-        default = c()
+        default = c(),
+        optional = TRUE,
+        recommended = FALSE
     )
 )
