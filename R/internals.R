@@ -325,6 +325,11 @@ NULL
         }
         
         attrs <- attributes(element)
+        lang <- names(attrs) == "lang"
+        if (any(lang)) {
+            names(attrs)[lang] <- "xmlang"
+        }
+        
         if (is.null(nms)) {
             element <- c(
                 element,
