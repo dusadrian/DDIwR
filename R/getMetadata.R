@@ -147,7 +147,8 @@
         if (tp$fileext[ff] == "XML") {
 
             xml <- getXML(file.path(tp$completePath, tp$files[ff]))
-            
+            monolang <- is.element("lang", names(xml2::xml_attrs(xml)))
+
             if (!is.null(ignore)) {
                 if (
                     !is.atomic(ignore) || !is.character(ignore) ||
@@ -155,24 +156,25 @@
                 ) {
                     admisc::stopError("Argument 'ignore' should be a character vector of codeBook element names.")
                 }
-                
+
                 children <- xml_children(xml)
                 childnames <- xml_name(children)
-                
+
                 todelete <- which(is.element(childnames, ignore))
-                
+
                 if (length(todelete) > 0) {
                     for (d in todelete) {
                         xml2::xml_remove(children[d])
                     }
                 }
             }
-            
+
             # TODO: perhaps validate the codebook against the schema, first...!?
             xmlist <- xml2::as_list(xml)
 
             checkXMList(xmlist)
             codeBook <- coerceDDI(xmlist)
+            codeBook$.extra$monolang <- monolang
         }
         else {
             codeBook <- makeElement("codeBook")
