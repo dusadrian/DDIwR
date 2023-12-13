@@ -199,16 +199,27 @@
         )
     }
 
+    ##-----
+    # TODO: verify how it ends up here
     xml2::write_xml(codeBook, file = file)
     xmlfile <- readLines(file)
-    xmlfile <- gsub(
-        "<dataDscr xmlns=\"ddi:codebook:2_5\">",
-        "<dataDscr>",
-        xmlfile
+    dd_with_xmlns <- grepl("<dataDscr", xmlfile) & grepl("xmlns=", xmlfile)
+    if (any(dd_with_xmlns)) {
+        xmlfile[dd_with_xmlns] <- gsub(
+            " xmlns=\"ddi:codebook:2_5\"",
+            "",
+            xmlfile[dd_with_xmlns]
+        )
+    }
+
+    writeLines(
+        xmlfile,
+        con = file
     )
+    ##-----
 
     if (!identical(indent, 2) || !identical(OS, "")) {
-        # xmlfile <- readLines(file)
+        xmlfile <- readLines(file)
 
         defaultOS <- Sys.info()[["sysname"]]
         checkArgument(indent, default = 2)
@@ -221,9 +232,4 @@
             collapse = enter
         )
     }
-
-    writeLines(
-        xmlfile,
-        con = file
-    )
 }
