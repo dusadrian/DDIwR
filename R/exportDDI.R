@@ -182,15 +182,20 @@
                 row.names = FALSE
             )
         }
-        
+
         codeBook <- as_xml_document(
             list(codeBook = removeExtra(codeBook))
         )
-        dns <- getDNS(codeBook)
 
         xml2::xml_replace(
-            xml_find_first(codeBook, sprintf("/%scodeBook/dataDscr", dns)),
-            xml_find_first(XMLhashes[[1]], "/d1:codeBook/d1:dataDscr")
+            xml2::xml_find_first(codeBook, "/d1:codeBook/dataDscr"),
+            xml2::xml_find_first(XMLhashes[[1]], "/d1:codeBook/d1:dataDscr")
+        )
+        
+        xml2::xml_set_attr(
+            xml2::xml_find_first(codeBook, "/d1:codeBook/d1:dataDscr"),
+            "xmlns",
+            NULL
         )
     }
     else {
@@ -199,24 +204,7 @@
         )
     }
 
-    ##-----
-    # TODO: verify how it ends up here
     xml2::write_xml(codeBook, file = file)
-    xmlfile <- readLines(file)
-    dd_with_xmlns <- grepl("<dataDscr", xmlfile) & grepl("xmlns=", xmlfile)
-    if (any(dd_with_xmlns)) {
-        xmlfile[dd_with_xmlns] <- gsub(
-            " xmlns=\"ddi:codebook:2_5\"",
-            "",
-            xmlfile[dd_with_xmlns]
-        )
-    }
-
-    writeLines(
-        xmlfile,
-        con = file
-    )
-    ##-----
 
     if (!identical(indent, 2) || !identical(OS, "")) {
         xmlfile <- readLines(file)
