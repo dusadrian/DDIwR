@@ -2202,6 +2202,16 @@ NULL
 
 
 
+#' @rdname DDIwR_internal
+#' @keywords internal
+#' @export
+`makeNotes` <- function(data) {
+    message("Function makeNotes() was deprecated, use makeDataNotes() instead.")
+    makeDataNotes(data)
+}
+
+
+
 ##------------------------------------------------------------------------------
 ## TODO: modify this function according to DDIC
 

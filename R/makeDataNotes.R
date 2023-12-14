@@ -1,4 +1,4 @@
-#' @name makeNotes
+#' @name makeDataNotes
 #'
 #' @title
 #' Create a `notes` element for the dataset.
@@ -14,7 +14,7 @@
 #' @param data An R dataframe.
 #'
 #' @export
-`makeNotes` <- function(data) {
+`makeDataNotes` <- function(data) {
     enter <- getEnter(OS = Sys.info()[['sysname']])
 
     notes <- makeElement("notes")

@@ -39,6 +39,7 @@
 \alias{treatPath}
 \alias{writeMetadata}
 \alias{XMLtoRmetadata}
+\alias{makeNotes}
 \alias{writeRlist}
 \title{DDIwR internal functions}
 \usage{
@@ -115,6 +116,8 @@ treatPath(path, type = "*", single = FALSE, check = TRUE)
 writeMetadata(variables, OS = "", indent = 4)
 
 XMLtoRmetadata(xmlvar, dns)
+
+makeNotes(data)
 
 writeRlist(variables, OS = "windows", indent = 4, dirpath = "", filename = "")
 }
