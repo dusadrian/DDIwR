@@ -167,7 +167,7 @@
         attr(data, "hashes") <- XMLhashes[[2]]
 
         if (embed) {
-            addChildren(makeNotes(data), to = codeBook$fileDscr)
+            addChildren(makeDataNotes(data), to = codeBook$fileDscr)
         }
         else {
             tp_file <- treatPath(file, type = "*", single = TRUE)
