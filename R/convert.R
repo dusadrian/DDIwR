@@ -386,7 +386,7 @@
                     
                     for (i in different) {
                         metadata <- XMLtoRmetadata(xmlvars[i], dns = dns)
-                        for (att in c("labels", "na_values", "na_range")) {
+                        for (att in c("label", "labels", "na_values", "na_range")) {
                             attr(data[[i]], att) <- getElement(metadata, att)
                         }
                     }
