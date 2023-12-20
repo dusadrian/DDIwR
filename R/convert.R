@@ -51,6 +51,10 @@
 #' formal parameters of the function \bold{\code{\link[utils]{read.csv}()}} can
 #' be passed via the same three dots **`...`** argument.
 #'
+#' The DDI .xml file generates unique IDs for all variables, if not already
+#' present in the attributes. These IDs are useful for newer versions of the DDI
+#' Codebook, for referencing purposes.
+#'
 #' The argument **`chartonum`** signals recoding character categorical
 #' variables, and employs the function \bold{\code{\link{recodeCharcat}()}}.
 #' This only makes sense when recoding to Stata, which does not allow allocating
