@@ -2,6 +2,7 @@ Version 0.18
   o bug fix converting to Excel
   o bug fix in globalAttributes() checking for optional and recommended
   o bug fix in updateCodebook() properly detecting the "xml:lang" attribute
+  o variable IDs are preserved if found, when converting to DDI
 
 Version 0.17
   o added pre-final DDI Codebook 2.6 elements
