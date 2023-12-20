@@ -405,7 +405,6 @@ NULL
 
     return(
         makeXMLcodeBook(
-            collectRMetadata(dataset),
             data = dataset,
             ... = ...
         )[[1]]$dataDscr
@@ -535,6 +534,7 @@ NULL
         }
 
         result[["xmlang"]] <- attr(x, "xmlang", exact = TRUE)
+        result[["ID"]] <- attr(x, "ID", exact = TRUE)
 
         return(result)
     })
@@ -1236,19 +1236,25 @@ NULL
 
 
 # completely internal function, not designed for general use
-`makeXMLcodeBook` <- function(variables, indent = 2, ...) {
+`makeXMLcodeBook` <- function(variables = NULL, data = NULL, indent = 2, ...) {
     dots <- list(...)
-    data <- dots$data
+    
+    if (is.null(variables)) {
+        if (is.null(data)) {
+            admisc::stopError("Both variables and dataset are NULL.")
+        }
+        variables <- collectRMetadata(data)
+    }
 
     varxmlang <- any(sapply(variables, function(x) {
         is.element("xmlang", names(x))
     }))
     
     xmlang <- ""
-    if (isFALSE(dots$monolang) | varxmlang) {
+    if (isFALSE(getElement(dots, "monolang")) | varxmlang) {
         xmlang <- paste0(
             " xml:lang=\"",
-            checkDots(dots$xmlang, default = "en"),
+            checkDots(getElement(dots, "xmlang"), default = "en"),
             "\""
         )
     }
@@ -1287,9 +1293,13 @@ NULL
         )
     }
 
+    
     # uuid for all variables
     uuid <- generateID(length(variables))
     varnames <- names(variables)
+
+    varuuid <- unlist(lapply(variables, function(x) x$ID))
+    uuid[match(names(varuuid), varnames)] <- varuuid
 
     ns <- "" # namespace
     enter <- "\n"
@@ -1633,7 +1643,7 @@ NULL
         ))
     }
     
-    return(list(codeBook, hashes))
+    return(list(codeBook, hashes, uuid))
 }
 
 

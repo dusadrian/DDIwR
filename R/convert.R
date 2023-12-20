@@ -370,20 +370,18 @@
                 # data <- data[, -1, drop = FALSE]
             }
 
-
-            # return(list(data = data, codeBook = codeBook))
             data <- makeLabelled(data, variables)
         }
         else {
             hashes <- attr(data, "hashes")
             attr(data, "hashes") <- NULL
-            
+
             if (!is.null(hashes)) {
                 checkhashes <- getHashes(xmlvars)
-                
+
                 if (!identical(hashes, checkhashes)) {
                     different <- which(hashes != checkhashes)
-                    
+
                     for (i in different) {
                         metadata <- XMLtoRmetadata(xmlvars[i], dns = dns)
                         for (att in c("label", "labels", "na_values", "na_range")) {

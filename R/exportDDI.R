@@ -157,16 +157,15 @@
         
         addChildren(makeElement("dataDscr"), to = codeBook)
 
-        XMLhashes <- makeXMLcodeBook(
-            variables,
-            data = data,
-            DDI = FALSE,
-            ... = ...
-        )
+        XMLhashes <- makeXMLcodeBook(DDI = FALSE, ... = ...)
 
         attr(data, "hashes") <- XMLhashes[[2]]
 
         if (embed) {
+            uuid <- XMLhashes[[3]]
+            for (i in seq(length(uuid))) {
+                attr(data[[i]], "ID") <- uuid[i]
+            }
             addChildren(makeDataNotes(data), to = codeBook$fileDscr)
         }
         else {
