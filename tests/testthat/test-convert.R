@@ -60,6 +60,7 @@ attr(dfmddi, "stdyDscr") <- NULL
 
 dfmddi[] <- lapply(dfmddi, function(x) {
   attr(x, "format.spss") <- NULL
+  attr(x, "ID") <- NULL
   return(x)
 })
 
