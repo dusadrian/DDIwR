@@ -69,17 +69,42 @@
         admisc::stopError("The argument 'children' is not standard.")
     }
 
-    childnames <- sapply(children, function(x) x$.extra$name)
-    names(children) <- childnames
-
     if (missing(to) || !is.element(".extra", names(to))) {
         admisc::stopError("The argument 'to' is not standard.")
     }
+
+    childnames <- sapply(children, function(x) x$.extra$name)
+    names(children) <- childnames
 
     all_children <- DDIC[[to$.extra$name]]$children
 
     if (!all(is.element(childnames, all_children))) {
         admisc::stopError("One or more children do not belong to this element.")
+    }
+
+    uchildren <- unique(childnames)
+    repeatable <- sapply(DDIC[uchildren], function(x) x$repeatable)
+    tbl <- table(childnames)
+    tbl <- tbl[tbl > 1 & !repeatable]
+
+    if (length(tbl) > 0) {
+        admisc::stopError(
+            sprintf(
+                "These children should not be repeated: %s.",
+                paste(names(tbl), collapse = ", ")
+            )
+        )
+    }
+    
+    uchildren <- intersect(uchildren[!repeatable], names(to))
+
+    if (length(uchildren)) {
+        admisc::stopError(
+            sprintf(
+                "These children already exist and should not be repeated: %s.",
+                paste(uchildren, collapse = ", ")
+            )
+        )
     }
 
     attrbs <- attributes(to)
