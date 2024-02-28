@@ -98,7 +98,7 @@
 #' default in that package.
 #'
 #' Converting to SPSS works with numerical and character labelled vectors, with
-#' or without labels. Date/Time variables are partially supported by package 
+#' or without labels. Date/Time variables are partially supported by package
 #' **haven**: either having such a variable with no labels and missing values,
 #' or if labels and missing values are declared the variable is automatically
 #' coerced to numeric, and users may have to make the proper settings in SPSS.
@@ -159,6 +159,7 @@
     from, to = NULL, declared = TRUE, chartonum = FALSE, recode = TRUE,
     encoding = "UTF-8", csv = NULL, ...
 ) {
+
     if (missing(from)) {
         admisc::stopError("Argument 'from' is missing.")
     }
@@ -284,11 +285,11 @@
     if (tp_from$fileext == "XML") {
         xml <- getXML(from, encoding = encoding)
         data <- extractData(xml)
-        
+
         dns <- getDNS(xml) # default name space
         xpath <- sprintf("/%scodeBook/%sdataDscr/%svar", dns, dns, dns)
         xmlvars <- xml2::xml_find_all(xml, xpath)
-        
+
         if (length(xmlvars) == 0) {
             admisc::stopError(
                 "This DDI Codebook file does not contain any variable level metadata."
@@ -350,7 +351,7 @@
                     names(data) <- names(variables)
                 }
             }
-            
+
             xpath <- sprintf("/%scodeBook/%sdataDscr/%svar/@name", dns, dns, dns)
             names(variables) <- admisc::trimstr(
                 xml2::xml_text(xml2::xml_find_all(xml, xpath))
