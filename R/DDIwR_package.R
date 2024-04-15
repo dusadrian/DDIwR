@@ -1,4 +1,5 @@
-#' @docType package
+#' @keywords internal
+#' "_PACKAGE"
 #'
 #' @name DDIwR_package
 #' @aliases DDIwR-package
@@ -31,8 +32,8 @@
 #' \tabular{ll}{
 #'   Package: \tab DDIwR\cr
 #'   Type: \tab Package\cr
-#'   Version: \tab 0.17.4\cr
-#'   Date: \tab 2023-12-20\cr
+#'   Version: \tab 0.18\cr
+#'   Date: \tab 2024-02-05\cr
 #'   License: \tab GPL-v3\cr
 #' }
 #'
