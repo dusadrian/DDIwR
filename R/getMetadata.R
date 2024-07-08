@@ -74,6 +74,8 @@
         function(x) gsub("'|\"|[[:space:]]", "", x)
     )
 
+    DDIC <- get("DDIC", envir = cacheEnv)
+
     dots <- list(...)
     data <- NULL
 

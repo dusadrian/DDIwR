@@ -13,13 +13,13 @@
 #'
 #' @examples
 #' showDetails("codeBook")
-#' 
+#'
 #' showAttributes("catgry")
-#' 
+#'
 #' showExamples("abstract")
-#' 
+#'
 #' showLineages("titl")
-#' 
+#'
 #' @export
 `showDetails` <- function(x, ...) {
     showDescription(x, endWith = "")
@@ -31,6 +31,9 @@
 #' @rdname showDetails
 #' @export
 `showDescription` <- function(x, ...) {
+
+    DDIC <- get("DDIC", envir = cacheEnv)
+
     checkElement(x)
     dots <- list(...)
     endWith <- ifelse(is.null(dots$endWith), "\n", dots$endWith)
@@ -56,6 +59,9 @@
 #' @param name Character, print only a specific element (name)
 #' @export
 `showAttributes` <- function(x, name = NULL, ...) {
+
+    DDIC <- get("DDIC", envir = cacheEnv)
+
     dots <- list(...)
     if (is.list(x)) {
         attrs <- attributes(x)
@@ -144,6 +150,9 @@
 #' @rdname showDetails
 #' @export
 `showExamples` <- function(x, ...) {
+
+    DDIC <- get("DDIC", envir = cacheEnv)
+
     checkElement(x)
     dots <- list(...)
     endWith <- ifelse(is.null(dots$endWith), "\n", dots$endWith)
@@ -168,6 +177,9 @@
 #' @rdname showDetails
 #' @export
 `showRelations` <- function(x, ...) {
+
+    DDIC <- get("DDIC", envir = cacheEnv)
+
     checkElement(x)
     dots <- list(...)
     endWith <- ifelse(is.null(dots$endWith), "\n", dots$endWith)
@@ -227,6 +239,9 @@
 #' @rdname showDetails
 #' @export
 `showLineages` <- function(x, ...) {
+
+    DDIC <- get("DDIC", envir = cacheEnv)
+
     checkElement(x)
 
     if (identical(x, "codeBook")) {
@@ -239,6 +254,9 @@
     all_lineages <- list()
 
     `getLineage` <- function(x, lineage = character(0)) {
+
+        DDIC <- get("DDIC", envir = cacheEnv)
+
         parents <- setdiff(DDIC[[x]]$parents, x) # to avoid circular references
         lineage <- c(lineage, x)
 

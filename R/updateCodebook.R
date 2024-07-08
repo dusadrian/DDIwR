@@ -18,6 +18,9 @@
 #'
 #' @export
 `updateCodebook` <- function(xmlfile, with, ...) {
+
+    DDIC <- get("DDIC", envir = cacheEnv)
+
     dots <- list(...)
     indent <- checkDots(dots$indent, default = 2)
     enter <- checkDots(
@@ -54,7 +57,7 @@
         which(grepl(paste0("</", s), xml))
     })
     names(ends) <- sections
-    
+
     for (s in sections) {
         if (length(starts[[s]]) > 0 && length(ends[[s]]) == 0) {
             ends[[s]] <- starts[[s]]
@@ -83,7 +86,7 @@
                 return(part[seq(3, length(part) - 1)])
             }
         ))
-        
+
         start <- starts[[child]]
         end <- ends[[child]]
 

@@ -214,7 +214,9 @@
     }
 
     if (name == "codeBook") {
+
         DDIC <- get("DDIC", envir = cacheEnv)
+
         if (anyAttributes(element)) {
             attnms <- names(DDIC$codeBook$attributes)
             for (name in attnms) {

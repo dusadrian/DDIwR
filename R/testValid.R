@@ -35,6 +35,8 @@
 #' @export
 `testValid` <- function(element, monolang = TRUE) {
 
+    DDIC <- get("DDIC", envir = cacheEnv)
+
     # mandatory elements
     melements <- setdiff(
         names(which(sapply(DDIC, function(x) !x$optional))),

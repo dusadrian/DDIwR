@@ -50,6 +50,9 @@
 #'
 #' @export
 `addChildren` <- function(children, to, overwrite = TRUE, ...) {
+
+    DDIC <- get("DDIC", envir = cacheEnv)
+
     objname <- deparse1(substitute(to))
     dots <- list(...)
 
@@ -95,7 +98,7 @@
             )
         )
     }
-    
+
     uchildren <- intersect(uchildren[!repeatable], names(to))
 
     if (length(uchildren)) {

@@ -31,7 +31,7 @@ NULL
     if (!remove && hasAttributes(x, "xmlang")) {
         xmlang <- attr(x, "xmlang")
     }
-    
+
     x <- removeAttributes("xmlang", from = x)
     attr(x, "xml:lang") <- xmlang
 
@@ -113,6 +113,9 @@ NULL
 #' @keywords internal
 #' @export
 `checkElement` <- function(x) {
+
+    DDIC <- get("DDIC", envir = cacheEnv)
+
     if (is.null(x) || !is.atomic(x) || !is.character(x)) {
         admisc::stopError("'x' should be an atomic character input.")
     }
@@ -261,6 +264,9 @@ NULL
 #' @rdname DDIwR_internal
 #' @export
 `checkXMList` <- function(xmlist) {
+
+    DDIC <- get("DDIC", envir = cacheEnv)
+
     nms <- c()
     extractNames <- function(x) {
         if (is.list(x)) {
@@ -323,13 +329,13 @@ NULL
         if (is.element(".extra", nms)) {
             admisc::stopError("The element is already DDI structured.")
         }
-        
+
         attrs <- attributes(element)
         lang <- names(attrs) == "lang"
         if (any(lang)) {
             names(attrs)[lang] <- "xmlang"
         }
-        
+
         if (is.null(nms)) {
             element <- c(
                 element,
@@ -348,14 +354,14 @@ NULL
 
                 return(coerceDDI(element[[1]], name = nms))
             }
-            
+
             element <- c(
                 lapply(seq_along(nms), function(i) {
                     coerceDDI(element[[i]], nms[i])
                 }),
                 list(list(name = name))
             )
-            
+
             attrs$names <- c(nms, ".extra")
         }
 
@@ -515,7 +521,7 @@ NULL
             result$na_range
         )
 
-        
+
         if (is.element("Date", getElement(result, "classes"))) {
             result[["varFormat"]] <- "date"
         }
@@ -1238,7 +1244,7 @@ NULL
 # completely internal function, not designed for general use
 `makeXMLcodeBook` <- function(variables = NULL, data = NULL, indent = 2, ...) {
     dots <- list(...)
-    
+
     if (is.null(variables)) {
         if (is.null(data)) {
             admisc::stopError("Both variables and dataset are NULL.")
@@ -1249,7 +1255,7 @@ NULL
     varxmlang <- any(sapply(variables, function(x) {
         is.element("xmlang", names(x))
     }))
-    
+
     xmlang <- ""
     if (isFALSE(getElement(dots, "monolang")) | varxmlang) {
         xmlang <- paste0(
@@ -1269,7 +1275,7 @@ NULL
         suppressWarnings(sink())
         # close(tcon)
     })
-    
+
     dates <- sapply(variables, function(x) {
         identical(x$varFormat, "date")
     })
@@ -1293,7 +1299,7 @@ NULL
         )
     }
 
-    
+
     # uuid for all variables
     uuid <- generateID(length(variables))
     varnames <- names(variables)
@@ -1306,7 +1312,7 @@ NULL
 
     tmp <- tempdir()
     sink(file.path(tmp, "codeBook.xml"))
-    
+
     cat(paste0("<?xml version=\"1.0\" encoding=\"UTF-8\"?>", enter))
     cat(paste0(
         "<codeBook ",
@@ -1332,7 +1338,7 @@ NULL
         if (!is.null(varFormat)) {
             varFormat <- varFormat[1]
         }
-        
+
         lxmlang <- getElement(metadata, "xmlang")
         if (is.null(lxmlang)) {
             lxmlang <- rep(xmlang, length.out = length(lbls))
@@ -1514,10 +1520,10 @@ NULL
 
 
         if (!is.null(lbls)) {
-            
+
             tbl <- declared::w_table(data[[varnames[i]]])
             # print(tbl)
-            
+
             nms <- names(lbls)
             for (v in seq(length(lbls))) {
                 ismiss <- is.element(lbls[v], na_values)
@@ -1577,9 +1583,9 @@ NULL
                     }
                 }
             }
-            
+
         }
-        
+
 
         if (!is.null(type) | !is.null(varFormat)) {
             vartype <- NULL
@@ -1594,12 +1600,12 @@ NULL
                     "\""
                 )
             }
-            
+
             if (identical(varFormat, "date")) {
                 vartype <- " type=\"numeric\" schema=\"ISO\" category=\"date\""
                 varFormat <- "ISO dates"
             }
-            
+
             if (!is.null(vartype)) {
                 cat(paste0(
                     "<", ns, "varFormat",
@@ -1642,7 +1648,7 @@ NULL
             hashes
         ))
     }
-    
+
     return(list(codeBook, hashes, uuid))
 }
 
@@ -1761,7 +1767,7 @@ NULL
             )
         )
     )
-    
+
     x <- gsub("\\n", " ", x)
     x <- gsub(paste(admisc::dashes(), collapse = "|"), "-", x)
     x <- gsub(paste(admisc::singlequotes(), collapse = "|"), "'", x)
@@ -2077,13 +2083,13 @@ NULL
 
     # xpath <- sprintf("/%scodeBook/%sdataDscr/%svar[%s]", dns, dns, dns, i)
     # vars_i <- xml2::xml_find_first(xml, xpath)
-    
+
     label <- cleanup(
         xml2::xml_text(
             xml2::xml_find_first(xmlvar, sprintf("%slabl", dns))
         )
     )
-    
+
     if (!is.na(label)) {
         result$label <- label
     }
@@ -2206,7 +2212,7 @@ NULL
             result$txt <- txt
         }
     }
-    
+
     return(result)
 }
 
@@ -2434,6 +2440,6 @@ makedfm <- function() {
     dfm$fweight <- weights[
       match(10 * dfm$Area + dfm$Gender, c(11, 12, 21, 22))
     ]
-    
+
     return(dfm)
 }
