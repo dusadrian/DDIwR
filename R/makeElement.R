@@ -32,10 +32,10 @@
 #' Codebook.
 #'
 #' By default, the Codebook is assumed to have a single language for all
-#' elements. This argument `monolang` can be deactivated through the `...` gate,
-#' in which situation the appropriate elements will receive a default argument
-#' `xmlang = "en"`. For other languages, that argument can also be provided
-#' through the `...` gate.
+#' elements. The argument `monolang` can be deactivated through the "`...`"
+#' gate, in which situation the appropriate elements will receive a default
+#' argument `xmlang = "en"`. For other languages, that argument can also be
+#' provided through the "`...`" gate.
 #'
 #' One such DDI Codebook element is the `stdyDscr` (Study Description), with the
 #' associated mandatory children, for instance title, ID number, distributor,
@@ -204,16 +204,17 @@
     if (!is.null(children)) {
         addChildren(children, element)
     }
-    
+
     if (!is.null(attributes)) {
         addAttributes(attributes, element)
     }
-    
+
     if (!is.null(content)) {
         addContent(content, element)
     }
 
     if (name == "codeBook") {
+        DDIC <- get("DDIC", envir = cacheEnv)
         if (anyAttributes(element)) {
             attnms <- names(DDIC$codeBook$attributes)
             for (name in attnms) {

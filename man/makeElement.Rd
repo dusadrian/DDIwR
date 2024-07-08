@@ -51,10 +51,10 @@ also filled, as expected by the CESSDA Data Catalogue profile for DDI
 Codebook.
 
 By default, the Codebook is assumed to have a single language for all
-elements. This argument \code{monolang} can be deactivated through the \code{...} gate,
-in which situation the appropriate elements will receive a default argument
-\code{xmlang = "en"}. For other languages, that argument can also be provided
-through the \code{...} gate.
+elements. The argument \code{monolang} can be deactivated through the "\code{...}"
+gate, in which situation the appropriate elements will receive a default
+argument \code{xmlang = "en"}. For other languages, that argument can also be
+provided through the "\code{...}" gate.
 
 One such DDI Codebook element is the \code{stdyDscr} (Study Description), with the
 associated mandatory children, for instance title, ID number, distributor,
