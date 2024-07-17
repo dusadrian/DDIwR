@@ -405,6 +405,9 @@
     objname <- deparse1(substitute(to))
     attrnames <- names(attrs)
 
+    DDIC <- get("DDIC", envir = cacheEnv)
+    DDIC_global_attributes <- get("DDIC_global_attributes", envir = cacheEnv)
+
     if (missing(attrs) || is.null(attrnames) || !is.atomic(attrs)) {
         admisc::stopError(
             "The argument 'attrs' should be a vector of named values."
@@ -468,6 +471,9 @@
 #' @export
 `changeAttributes` <- function(attrs, from, overwrite = TRUE) {
     objname <- deparse1(substitute(from))
+
+    DDIC <- get("DDIC", envir = cacheEnv)
+    DDIC_global_attributes <- get("DDIC_global_attributes", envir = cacheEnv)
 
     attrnames <- names(attrs)
     if (missing(attrs) || is.null(attrnames) || !is.atomic(attrs)) {
@@ -533,6 +539,9 @@
 #' @export
 `removeAttributes` <- function(name, from, overwrite = TRUE) {
     objname <- deparse1(substitute(from))
+
+    DDIC <- get("DDIC", envir = cacheEnv)
+    DDIC_global_attributes <- get("DDIC_global_attributes", envir = cacheEnv)
 
     if (
         missing(name) ||

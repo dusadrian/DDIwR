@@ -75,7 +75,7 @@
         endWith <- ifelse(is.null(dots$endWith), "\n", dots$endWith)
 
         if (identical(x, "_global_")) {
-            attributes <- DDIC_global_attributes
+            attributes <- get("DDIC_global_attributes", envir = cacheEnv)
             message <- "\nGlobal attributes:\n"
         }
         else {
