@@ -1,3 +1,6 @@
+Version 0.19
+  o The internal DDI structure is now defined as an updateable cache
+
 Version 0.18
   o bug fix converting to Excel
   o bug fix in globalAttributes() checking for optional and recommended
