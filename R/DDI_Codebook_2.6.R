@@ -1,4 +1,5 @@
 cacheEnv <- new.env()
+
 assign(
     "DDIC",
     list(
@@ -4216,7 +4217,7 @@ assign(
                     optional = TRUE,
                     recommended = FALSE
                 ),
-                responseDomain = list(
+                responseDomainType = list(
                     type = "xs:string",
                     description = "Captures the specific DDI Lifecycle response domain type to facilitate translation between DDI 2 and DDI Lifecycle.",
                     values = c("text", "numeric", "code", "category", "datetime", "geographic", "multiple", "geographicLocationCode", "geographicStructureCode", "scale", "externalCategory", "nominal", "location", "ranking", "distribution", "other"),
@@ -4224,7 +4225,7 @@ assign(
                     optional = TRUE,
                     recommended = FALSE
                 ),
-                otherResponseDomain = list(
+                otherResponseDomainType = list(
                     type = "xs:NMTOKEN",
                     description = "Other response domain, a term from a controlled vocabulary.",
                     values = c(),
@@ -6475,10 +6476,6 @@ assign(
     ),
     envir=cacheEnv
 )
-
-
-
-
 
 assign(
     "DDIC_global_attributes",
