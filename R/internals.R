@@ -789,7 +789,7 @@ NULL
 #' @export
 `getDNS` <- function(xml) {
     xmlns <- xml2::xml_ns(xml)
-    wns <- which(xmlns == "ddi:codebook:2_5")
+    wns <- which(xmlns == "ddi:codebook:2_5" | xmlns == "ddi:codebook:2_6")
     if (length(wns) == 0) {
         admisc::stopError("The XML document does not contain a DDI namespace.")
     }
@@ -1318,8 +1318,8 @@ NULL
         "<codeBook ",
         "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" ",
         "xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" ",
-        "xmlns=\"ddi:codebook:2_5\" version=\"2.5\" ",
-        "xsi:schemaLocation=\"ddi:codebook:2_5 codebook.xsd\">",
+        "xmlns=\"ddi:codebook:2_6\" version=\"2.6\" ",
+        "xsi:schemaLocation=\"ddi:codebook:2_6 codebook.xsd\">",
         enter
     ))
 

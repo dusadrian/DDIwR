@@ -186,7 +186,7 @@
     cat("\n")
     parents <- DDIC[[x]]$parents
     parents2 <- parents
-    children <- DDIC[[x]]$children
+    children <- unlist(DDIC[[x]]$children)
     children2 <- children
 
     if (is.element(x, children)) {
@@ -254,9 +254,6 @@
     all_lineages <- list()
 
     `getLineage` <- function(x, lineage = character(0)) {
-
-        DDIC <- get("DDIC", envir = cacheEnv)
-
         parents <- setdiff(DDIC[[x]]$parents, x) # to avoid circular references
         lineage <- c(lineage, x)
 
@@ -282,7 +279,7 @@
         return(c("codeBook", x))
     })
     first <- sapply(all_lineages, "[[", 2)
-    all_lineages <- all_lineages[order(match(first, DDIC$codeBook$children))]
+    all_lineages <- all_lineages[order(match(first, unlist(DDIC$codeBook$children)))]
 
     x <- structure(unique(all_lineages), class = "lineage")
     attr(x, "endWith") <- endWith

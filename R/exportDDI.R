@@ -154,7 +154,7 @@
     if (isTRUE(dots$dataDscr_directly_in_XML)) {
         data <- dots$data
         embed <- dots$embed
-        
+
         addChildren(makeElement("dataDscr"), to = codeBook)
 
         XMLhashes <- makeXMLcodeBook(DDI = FALSE, ... = ...)
@@ -190,7 +190,7 @@
             xml2::xml_find_first(codeBook, "/d1:codeBook/dataDscr"),
             xml2::xml_find_first(XMLhashes[[1]], "/d1:codeBook/d1:dataDscr")
         )
-        
+
         xml2::xml_set_attr(
             xml2::xml_find_first(codeBook, "/d1:codeBook/d1:dataDscr"),
             "xmlns",

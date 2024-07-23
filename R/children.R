@@ -79,7 +79,7 @@
     childnames <- sapply(children, function(x) x$.extra$name)
     names(children) <- childnames
 
-    all_children <- DDIC[[to$.extra$name]]$children
+    all_children <- unlist(DDIC[[to$.extra$name]]$children)
 
     if (!all(is.element(childnames, all_children))) {
         admisc::stopError("One or more children do not belong to this element.")
@@ -99,15 +99,35 @@
         )
     }
 
-    uchildren <- intersect(uchildren[!repeatable], names(to))
+    nonrep <- intersect(uchildren[!repeatable], names(to))
 
-    if (length(uchildren)) {
+    if (length(nonrep)) {
         admisc::stopError(
             sprintf(
                 "These children already exist and should not be repeated: %s.",
-                paste(uchildren, collapse = ", ")
+                paste(nonrep, collapse = ", ")
             )
         )
+    }
+
+    choice <- NULL
+    tochildren <- DDIC[[to$.extra$name]]$children
+    if (!is.null(tochildren)) {
+        choice <- tochildren$choice
+    }
+
+
+    if (!is.null(choice)) {
+        existing <- names(to)
+        uchildren <- setdiff(uchildren, existing)
+        if (length(uchildren) && any(is.element(uchildren, choice))) {
+            admisc::stopError(
+                sprintf(
+                    "Choice restriction, only one of these children should be added: %s.",
+                    paste(choice, collapse = ", ")
+                )
+            )
+        }
     }
 
     attrbs <- attributes(to)

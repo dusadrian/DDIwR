@@ -154,7 +154,7 @@
             if (!is.null(ignore)) {
                 if (
                     !is.atomic(ignore) || !is.character(ignore) ||
-                    !all(is.element(ignore, DDIC$codeBook$children))
+                    !all(is.element(ignore, unlist(DDIC$codeBook$children)))
                 ) {
                     admisc::stopError("Argument 'ignore' should be a character vector of codeBook element names.")
                 }
