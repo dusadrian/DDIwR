@@ -169,7 +169,7 @@
             addChildren(makeDataNotes(data), to = codeBook$fileDscr)
         }
         else {
-            tp_file <- treatPath(file, type = "*", single = TRUE)
+            tp_file <- treatPath(file, type = "*", single = TRUE, check = FALSE)
             write.table(
                 undeclare(data, drop = TRUE),
                 file = file.path(
