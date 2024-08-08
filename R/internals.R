@@ -1280,10 +1280,14 @@ NULL
         identical(x$varFormat, "date")
     })
 
-    pN <- logical(length(variables))
+    pN <- wN <- logical(length(variables))
     if (!is.null(data)) {
         pN <- sapply(data[names(variables)], function(x) {
             admisc::possibleNumeric(unclass(x))
+        })
+
+        wN <- sapply(data[names(variables)], function(x) {
+            admisc::wholeNumeric(unclass(x))
         })
 
         aN <- lapply(
@@ -1410,8 +1414,8 @@ NULL
                 if (identical(na_range[1], -Inf)) {
                     cat(paste0(
                         sprintf(
-                            "<%srange UNITS=\"INT\" max=\"%s\"/>",
-                            ns, na_range[2]
+                            "<%srange UNITS=\"%s\" max=\"%s\"/>",
+                            ns, ifelse(wN[i], "INT", "REAL"), na_range[2]
                         ),
                         enter
                     ))
@@ -1419,8 +1423,8 @@ NULL
                 else {
                     cat(paste0(
                         sprintf(
-                            "<%srange UNITS=\"INT\" min=\"%s\"/>",
-                            ns, na_range[1]
+                            "<%srange UNITS=\"%s\" min=\"%s\"/>",
+                            ns, ifelse(wN[i], "INT", "REAL"), na_range[1]
                         ),
                         enter
                     ))
@@ -1429,8 +1433,8 @@ NULL
             else {
                 cat(paste0(
                     sprintf(
-                        "<%srange UNITS=\"INT\" min=\"%s\" max=\"%s\"/>",
-                        ns, na_range[1], na_range[2]
+                        "<%srange UNITS=\"%s\" min=\"%s\" max=\"%s\"/>",
+                        ns, ifelse(wN[i], "INT", "REAL"), na_range[1], na_range[2]
                     ),
                     enter
                 ))
@@ -1439,6 +1443,7 @@ NULL
             cat(paste0("</", ns, "invalrng>", enter))
         }
 
+        vals <- sumna <- NULL
         # even if the data is not present, pN is FALSE for all variables
         if (pN[i] & !dates[i]) {
             vals <- aN[[names(variables)[i]]]
@@ -1451,6 +1456,7 @@ NULL
                 vals[is.element(vals, lbls[ismiss])] <- NA
             }
 
+            sumna <- sum(is.na(vals))
             vals <- na.omit(vals)
 
             # this is a test if a variable truly is numeric
@@ -1462,6 +1468,17 @@ NULL
                 # at least two non missing values are needed to calculate sd()
                 printnum <- printnum | (length(vals) > 2 & grepl("num", type))
             }
+
+            cat(paste("<", ns, "valrng>", enter, sep = ""))
+            valrng <- range(vals)
+            cat(paste0(
+                sprintf(
+                    "<%srange UNITS=\"%s\" min=\"%s\" max=\"%s\"/>",
+                    ns, ifelse(wN[i], "INT", "REAL"), valrng[1], valrng[2]
+                ),
+                enter
+            ))
+            cat(paste0("</", ns, "valrng>", enter))
 
             if (printnum) { # numeric variable
                 cat(paste0(
@@ -1514,10 +1531,46 @@ NULL
                     "</", ns, "sumStat>",
                     enter
                 ))
-
             }
         }
+        else if (!is.null(data)){
+            vals <- data[[names(variables)[i]]]
 
+            if (!is.null(lbls)) {
+                ismiss <- is.element(lbls, na_values)
+                if (length(na_range) > 0) {
+                    ismiss <- ismiss | (lbls >= na_range[1] & lbls <= na_range[2])
+                }
+                vals[is.element(vals, lbls[ismiss])] <- NA
+            }
+
+            sumna <- sum(is.na(vals))
+            vals <- na.omit(vals)
+        }
+
+        if (!is.null(vals)) {
+            cat(paste0(
+                "<", ns, "sumStat type=\"vald\" wgtd=\"not-wgtd\">",
+                format(
+                    length(vals),
+                    scientific = FALSE
+                ),
+                "</", ns, "sumStat>",
+                enter
+            ))
+        }
+
+        if (!is.null(sumna)) {
+            cat(paste0(
+                "<", ns, "sumStat type=\"invd\" wgtd=\"not-wgtd\">",
+                format(
+                    sumna,
+                    scientific = FALSE
+                ),
+                "</", ns, "sumStat>",
+                enter
+            ))
+        }
 
         if (!is.null(lbls)) {
 
