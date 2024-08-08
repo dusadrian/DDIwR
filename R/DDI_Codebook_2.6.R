@@ -3371,7 +3371,7 @@ assign(
             attributes = list(
                 charset = list(
                     type = "string",
-                    description = "Character set used in the file, e.g., US-ASCII, EBCDIC, UNICODE UTF-8, etc.",
+                    description = "Character set used in the file, e.g., US-ASCII, EBCDIC, UNICODE UTF-8, etc. The use of a standard term from a controlled vocabulary for this attribute is recommended even though its structure does not allow for the declaration of the controlled vocabulary used. DDI provides a Controlled Vocabulary for this location: \"CharacterSet\"",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -3382,7 +3382,7 @@ assign(
             parents = "fileTxt",
             children = list(),
             title = "Type of File",
-            description = "Types of data files include raw data (ASCII, EBCDIC, etc.) and software-dependent files such as SAS datasets, SPSS export files, etc. If the data are of mixed types (e.g., ASCII and packed decimal), state that here. Note that the element varFormat permits specification of the data format at the variable level. The element may be repeated to support multiple language expressions of the content. While not supporting a controlled vocabulary it is advised to use a standard term. DDI provides a Controlled Vocabulary for this location: \"CharacterSet\"",
+            description = "Types of data files include raw data (ASCII, EBCDIC, etc.) and software-dependent files such as SAS datasets, SPSS export files, etc. If the data are of mixed types (e.g., ASCII and packed decimal), state that here. Note that the element varFormat permits specification of the data format at the variable level. The element may be repeated to support multiple language expressions of the content.",
             examples = "<fileType charset=\"US-ASCII\">ASCII data file</fileType>"
         ),
         format = list(
@@ -5692,7 +5692,7 @@ assign(
             attributes = list(
                 qstn = list(
                     type = "IDREF",
-                    description = "",
+                    description = "Directly references a description of the question if entered in another variable.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -5701,7 +5701,7 @@ assign(
                 ),
                 var = list(
                     type = "IDREFS",
-                    description = "ID(s) of the variable(s) relating to the question.",
+                    description = "Used to list the IDs of variables resulting from the question.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -5719,7 +5719,7 @@ assign(
                 ),
                 sdatrefs = list(
                     type = "IDREFS",
-                    description = "References to the elements in the summary data description section of the Study Description which might apply to this question. These elements include: time period covered, date of collection, nation or country, geographic coverage, geographic unit, unit of analysis, universe, and kind of data.",
+                    description = "References the elements in the summary data description section of the Study Description which might apply to this question.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -5728,7 +5728,7 @@ assign(
                 ),
                 access = list(
                     type = "IDREFS",
-                    description = "",
+                    description = "Records the ID values of all elements in the Data Access and Metadata Access section that describe access conditions for this question. These elements include: time period covered, date of collection, nation or country, geographic coverage, geographic unit, unit of analysis, universe, and kind of data.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -5757,7 +5757,10 @@ assign(
             parents = "var",
             children = list(choice = c("preQTxt", "qstnLit", "postQTxt", "forward", "backward", "ivuInstr")),
             title = "Question",
-            description = "The question element may have mixed content. The element itself may contain text for the question, with the subelements being used to provide further information about the question. Alternatively, the question element may be empty and only the subelements used. The element has a unique question ID attribute which can be used to link a variable with other variables where the same question has been asked. This would allow searching for all variables that share the same question ID, perhaps because the questions was asked several times in a panel design. The (global) \"ID\" attribute contains a unique identifier for the question.",
+            description = c(
+                "The question element may have mixed content. The element itself may contain text for the question, with the sub-elements being used to provide further information about the question. Alternatively, the question element may be empty and only the sub-elements used. This is the recommended approach.",
+                "The global attribute \"ID\" (common to all elements) contains a unique identifier for the question. Use of the \"ID\" is required if you make use of any attribute \"qstn\" to support a reference from multiple variables, or the backward or forward flow of a questionnaire."
+            ),
             examples = "<var><qstn ID=\"Q125\">When you get together with your friends, would you say you discuss political matters frequently, occasionally, or never?</qstn></var>"
         ),
         qstnLit = list(
@@ -6323,7 +6326,7 @@ assign(
             parents = "dataAccs",
             children = list("typeOfSetAvailability", "accsPlac", "origArch", "avlStatus", "collSize", "complete", "fileQnty", "notes"),
             title = "Data Set Availability",
-            description = "Information on availability and storage of the collection. The \"media\" attribute may be used in combination with any of the subelements. See Location of Data Collection. Use of the \"type\" attribute has been DEPRECATED. Use the element typeOfSetAvailability.",
+            description = "Information on availability and storage of the collection. The \"media\" attribute may be used in combination with any of the sub-elements. See Location of Data Collection. Use of the \"type\" attribute has been DEPRECATED. Use the element typeOfSetAvailability.",
             examples = c()
         ),
         software = list(
@@ -7640,7 +7643,7 @@ assign(
                 ),
                 qstn = list(
                     type = "IDREFS",
-                    description = "Question ID for the variable.",
+                    description = "Reference to the question ID when the question itself is entered in another variable.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
