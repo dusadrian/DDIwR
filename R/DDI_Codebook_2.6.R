@@ -362,7 +362,7 @@ assign(
             attributes = list(
                 unit = list(
                     type = "string",
-                    description = "Facilitates the development of a controlled vocabulary for this element. DEPRECATED",
+                    description = "Used to facilitate the development of a controlled vocabulary for this element. DEPRECATED",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -389,8 +389,8 @@ assign(
             parents = c("nCube", "var"),
             children = list(choice = c("concept", "txt")),
             title = "Analysis Unit",
-            description = c(),
-            examples = c()
+            description = "",
+            examples = c("<var><anlysUnit><concept vocabInstanceCodeTerm=\"constituency\">constituency level</concept>This variable reports election returns at the constituency level.</anlysUnit></var>")
         ),
         AuthEnty = list(
             type = "AuthEntyType",
@@ -401,7 +401,7 @@ assign(
             attributes = list(
                 affiliation = list(
                     type = "string",
-                    description = "Affiliation of the authoring entity.",
+                    description = "Affiliation of the authoring entity with an agency or organization.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -410,7 +410,7 @@ assign(
                 ),
                 abbr = list(
                     type = "string",
-                    description = "Abbreviation of the authoring entity.",
+                    description = "Abbreviation for the authoring entity.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -549,10 +549,8 @@ assign(
                 "If the boundPoly element is used, then geoBndBox MUST be present, and all points enclosed by the boundPoly MUST be contained within the geoBndBox. Elements westBL, eastBL, southBL, and northBL of the geoBndBox should each be represented in at least one point of the boundPoly description."
             ),
             examples = c(
-                "<sumDscr><geogCover>Nevada State</geogCover>",
-                "<boundPoly><polygon><point><gringLat>42.002207</gringLat><gringLon>-120.005729004</gringLon></point><point><gringLat>42.002207</gringLat><gringLon>-114.039663</gringLon></point><point><gringLat>35.9</gringLat><gringLon>-114.039663</gringLon></point><point><gringLat>36.080</gringLat><gringLon>-114.544</gringLon></point><point><gringLat>35.133</gringLat><gringLon>-114.542</gringLon></point><point><gringLat>35.00208499998</gringLat><gringLon>-114.63288</gringLon></point><point><gringLat>35.00208499998</gringLat><gringLon>-114.63323</gringLon></point><point><gringLat>38.999</gringLat><gringLon>-120.005729004</gringLon></point><point><gringLat>42.002207</gringLat><gringLon>-120.005729004</gringLon></point></polygon></boundPoly></sumDscr>",
-                "<sumDscr><geogCover>Norway</geogCover>",
-                "<boundPoly><polygon><point><gringLat>80.76416</gringLat><gringLon>33.637497</gringLon></point><point><gringLat>80.76416</gringLat><gringLon>10.2</gringLon></point><point><gringLat>62.48395</gringLat><gringLon>4.789583</gringLon></point><point><gringLat>57.987915</gringLat><gringLon>4.789583</gringLon></point><point><gringLat>57.987915</gringLat><gringLon>11.8</gringLon></point><point><gringLat>61.27794</gringLat><gringLon>13.2336</gringLon></point><point><gringLat>63.19012</gringLat><gringLon>13.2336</gringLon></point><point><gringLat>67.28615</gringLat><gringLon>17.24580</gringLon></point><point><gringLat>68.14297</gringLat><gringLon>21.38362</gringLon></point><point><gringLat>68.14297</gringLat><gringLon>25.50054</gringLon></point><point><gringLat>69.39685</gringLat><gringLon>27.38137</gringLon></point><point><gringLat>68.76991</gringLat><gringLon>28.84424</gringLon></point><point><gringLat>68.76991</gringLat><gringLon>31.31021</gringLon></point><point><gringLat>71.42</gringLat><gringLon>31.31021</gringLon></point><point><gringLat>71.42</gringLat><gringLon>33.637497</gringLon></point><point><gringLat>80.76416</gringLat><gringLon>33.637497</gringLon></point></polygon></boundPoly></sumDscr>"
+                "<sumDscr><geogCover>Nevada State</geogCover><boundPoly><polygon><point><gringLat>42.002207</gringLat><gringLon>-120.005729004</gringLon></point><point><gringLat>42.002207</gringLat><gringLon>-114.039663</gringLon></point><point><gringLat>35.9</gringLat><gringLon>-114.039663</gringLon></point><point><gringLat>36.080</gringLat><gringLon>-114.544</gringLon></point><point><gringLat>35.133</gringLat><gringLon>-114.542</gringLon></point><point><gringLat>35.00208499998</gringLat><gringLon>-114.63288</gringLon></point><point><gringLat>35.00208499998</gringLat><gringLon>-114.63323</gringLon></point><point><gringLat>38.999</gringLat><gringLon>-120.005729004</gringLon></point><point><gringLat>42.002207</gringLat><gringLon>-120.005729004</gringLon></point></polygon></boundPoly></sumDscr>",
+                "<sumDscr><geogCover>Norway</geogCover><boundPoly><polygon><point><gringLat>80.76416</gringLat><gringLon>33.637497</gringLon></point><point><gringLat>80.76416</gringLat><gringLon>10.2</gringLon></point><point><gringLat>62.48395</gringLat><gringLon>4.789583</gringLon></point><point><gringLat>57.987915</gringLat><gringLon>4.789583</gringLon></point><point><gringLat>57.987915</gringLat><gringLon>11.8</gringLon></point><point><gringLat>61.27794</gringLat><gringLon>13.2336</gringLon></point><point><gringLat>63.19012</gringLat><gringLon>13.2336</gringLon></point><point><gringLat>67.28615</gringLat><gringLon>17.24580</gringLon></point><point><gringLat>68.14297</gringLat><gringLon>21.38362</gringLon></point><point><gringLat>68.14297</gringLat><gringLon>25.50054</gringLon></point><point><gringLat>69.39685</gringLat><gringLon>27.38137</gringLon></point><point><gringLat>68.76991</gringLat><gringLon>28.84424</gringLon></point><point><gringLat>68.76991</gringLat><gringLon>31.31021</gringLon></point><point><gringLat>71.42</gringLat><gringLon>31.31021</gringLon></point><point><gringLat>71.42</gringLat><gringLon>33.637497</gringLon></point><point><gringLat>80.76416</gringLat><gringLon>33.637497</gringLon></point></polygon></boundPoly></sumDscr>"
             )
         ),
         caseQnty = list(
@@ -1074,8 +1072,7 @@ assign(
             description = c(
                 "Every element in the DDI DTD/Schema has the following attributes:",
                 "ID - This uniquely identifies each element.",
-                "The DDI contains a linking mechanism permitting arbitrary links between internal elements (See Link) and from internal elements to external sources (See ExtLink). Note that the use of these two elements has been DEPRECATED in version 2.6.",
-                "The top-level element, codeBook, also includes a version attribute to specify the version number of the DDI specification."
+                "The DDI contains a linking mechanism permitting arbitrary links between internal elements (See Link) and from internal elements to external sources (See ExtLink). Note that the use of these two elements has been DEPRECATED in version 2.6."
             ),
             examples = c()
         ),
@@ -1279,7 +1276,7 @@ assign(
             parents = "tgroup",
             children = list(),
             title = "Column Specification",
-            description = c(),
+            description = "",
             examples = c()
         ),
         complete = list(
@@ -1543,7 +1540,7 @@ assign(
             attributes = list(
                 affiliation = list(
                     type = "string",
-                    description = "Affiliation of the authoring entity.",
+                    description = "Affiliation of the authoring entity with an agency or organization.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -1608,7 +1605,7 @@ assign(
             parents = c("distStmt", "useStmt"),
             children = list(),
             title = "Contact Persons",
-            description = "Names and addresses of individuals responsible for the work. Individuals listed as contact persons will be used as resource persons regarding problems or questions raised by the user community. The URI attribute should be used to indicate a URN or URL for the homepage of  the contact individual. The email attribute is used to indicate an email address for the contact individual. If the attribute \"agentIdentifier\" is used, \"typeOfAgentIdentifier\" should also be provided. Use \"isPersistantIdentifier\" (true|false) to indicate if this is intended to be a persistent identifier. Use \"agentType\" to indicate if the agent is an organization or an individual.",
+            description = "Names and addresses of individuals responsible for the work. Individuals listed as contact persons will be used as resource persons regarding problems or questions raised by the user community.",
             examples = "<contact affiliation=\"University of Wisconsin\" email=\"jsmith@wisc.edu\" URI=\"wisc.edu\" personalID=\"0000-0003-1294-0000\" typeOfAgentIdentifier=\"orcid\">Jane Smith</contact>"
         ),
         ConOps = list(
@@ -1847,7 +1844,7 @@ assign(
             parents = "dataItem",
             children = list(),
             title = "Cube Coordinate",
-            description = "This is an empty element containing only the attributes listed below. It is used to identify the coordinates of the data item within a logical nCube describing aggregate data. CubeCoord is repeated for each dimension of the nCube giving the \"coordNo\" and \"coordVal\". The attribute \"cordValRef\" is an ID reference to the variable that carries the coordinate value. The attributes provide a complete coordinate location of a cell within the nCube.",
+            description = "This is an empty element containing only the attributes listed below. It is used to identify the coordinates of the data item within a logical nCube describing aggregate data. CubeCoord is repeated for each dimension of the nCube. The attributes provide a complete coordinate location of a cell within the nCube.",
             examples = c(
                 "<CubeCoord coordNo=\"1\" coordVal=\"3\"/>",
                 "<CubeCoord coordNo=\"2\" coordVal=\"7\"/>",
@@ -1876,7 +1873,7 @@ assign(
             attributes = list(
                 type = list(
                     type = "string",
-                    description = "Optional typing of data appraisal processes and option for controlled vocabulary. DEPRECATED.",
+                    description = "Used to specify a controlled vocabulary concept. DEPRECATED.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -1961,7 +1958,17 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                event = list(
+                    type = "NMTOKEN",
+                    description = "",
+                    values = c("start", "end", "single"),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "sampleFrame",
             children = list(),
             title = "Valid Period",
@@ -1974,7 +1981,17 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                event = list(
+                    type = "NMTOKEN",
+                    description = "",
+                    values = c("start", "end", "single"),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "sampleFrame",
             children = list(),
             title = "Reference Period",
@@ -2001,7 +2018,7 @@ assign(
             parents = "sampleFrame",
             children = list("unitType", "txt"),
             title = "Frame Unit",
-            description = "Provides information about the sampling frame unit. The attribute \"isPrimary\" is boolean, indicating whether the unit is primary or not.",
+            description = "Provides information about the sampling frame unit.",
             examples = "<frameUnit isPrimary=\"true\"><unitType numberOfUnits=\"150000\">Primary listed owners of published phone numbers in the City of St. Paul</unitType></frameUnit>"
         ),
         unitType = list(
@@ -2024,7 +2041,7 @@ assign(
             parents = "frameUnit",
             children = list("concept", "txt"),
             title = "Unit Type",
-            description = "Describes the type of sampling frame unit using a conceptualText structure supporting a description and the use of an external controlled Vocabulary. PLEASE NOTE A CHANGE IN USAGE INSTRUCTIONS: The string content of the element now contains the language specific label obtained from the controlled vocabulary. This allows for multiple languages through the repeated entry of the \"concept\" element. The attribute \"vocabInstanceCodeTerm\" has been added to accommodate the code term as it appears in the controlled vocabulary. See the high level documentation for a complete description of usage. The attribute \"numberOfUnits\" provides the number of units in the sampling frame.",
+            description = "Describes the type of sampling frame unit using a conceptualText structure supporting a description and the use of an external controlled Vocabulary. PLEASE NOTE A CHANGE IN USAGE INSTRUCTIONS: The string content of \"concept\" now contains the language specific label obtained from the controlled vocabulary. This allows for multiple languages through the repeated entry of the \"concept\" element. See the high level documentation for a complete description of usage.",
             examples = "<unitType numberOfUnits=\"150000\"><concept vocab=\"SampleFrame_UnitType\" vocabInstanceCodeTerm=\"telephoneNumber\">Telephone Number</concept>Primary listed owners of published phone numbers in the City of St. Paul</unitType>"
         ),
         targetSampleSize = list(
@@ -2203,11 +2220,75 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                affiliation = list(
+                    type = "string",
+                    description = "Affiliation of the custodian with an agency or organization.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                abbr = list(
+                    type = "string",
+                    description = "Abbreviation for the custodian.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                role = list(
+                    type = "string",
+                    description = "Role of the person / agency responsible with creating or maintaining the sample frame.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                agentIdentifier = list(
+                    type = "string",
+                    description = "Identifier of the custodian.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                typeOfAgentIdentifier = list(
+                    type = "string",
+                    description = "Type of identifier, should be provided if agentIdentifier is used.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isPersistantIdentifier = list(
+                    type = "boolean",
+                    description = "Indicate if the agent identifier is intended to be a persistent identifier",
+                    values = c("true", "false"),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                agentType = list(
+                    type = "NMTOKEN",
+                    description = "Type of custodian: organization or individual.",
+                    values = c("organization", "individual"),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "sampleFrame",
             children = list(),
             title = "Custodian",
-            description = "Custodian identifies the agency or individual who is responsible for creating or maintaining the sample frame. Attribute affiliation provides the affiliation of the custodian with an agency or organization. Attribute abbr provides an abbreviation for the custodian.",
+            description = "Custodian identifies the agency or individual who is responsible for creating or maintaining the sample frame.",
             examples = "<custodian abbr=\"DEX\">DEX Publications</custodian>"
         ),
         collectorTraining = list(
@@ -2242,7 +2323,7 @@ assign(
             attributes = list(
                 abbr = list(
                     type = "string",
-                    description = "Common abbreviations given to agencies.",
+                    description = "Abbreviation for the data collector.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -2251,7 +2332,7 @@ assign(
                 ),
                 affiliation = list(
                     type = "string",
-                    description = "Affiliation of the data collector.",
+                    description = "Affiliation of the data collector with an agency or organization.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -2468,7 +2549,7 @@ assign(
             parents = "distStmt",
             children = list(),
             title = "Date of Deposit",
-            description = "The date that the work was deposited with the archive that originally received it. The focus of this element is on the original archive, differentiating between the designated depository and any locally held copies obtained to support local use",
+            description = "The date that the work was deposited with the archive that originally received it. The focus of this element is on the original archive, differentiating between the designated depository and any locally held copies obtained to support local use.",
             examples = "<depDate date=\"1999-01-25\">January 25, 1999</depDate>"
         ),
         deposReq = list(
@@ -2493,7 +2574,7 @@ assign(
             attributes = list(
                 abbr = list(
                     type = "string",
-                    description = "Abbreviation of the depositor.",
+                    description = "Abbreviation for the depositor.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -2502,7 +2583,7 @@ assign(
                 ),
                 affiliation = list(
                     type = "string",
-                    description = "Affiliation of the depositor.",
+                    description = "Affiliation of the depositor with an agency or organization.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -2561,7 +2642,7 @@ assign(
             attributes = list(
                 var = list(
                     type = "IDREFS",
-                    description = "ID values of the other variables in the study used to generate this derived variable.",
+                    description = "Provides the ID values of the other variables in the study used to generate this derived variable.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -2572,7 +2653,7 @@ assign(
             parents = "var",
             children = list("varRange", "drvdesc", "drvcmd"),
             title = "Derivation",
-            description = "Used only in the case of a derived variable, this element provides both a description of how the derivation was performed and the command used to generate the derived variable, as well as a specification of the other variables in the study used to generate the derivation. The \"var\" attribute provides the ID values of the other variables in the study used to generate this derived variable. Alternatively the variables may be expressed as a range using the varRange element. Note that use of varRange is implementation dependent. Since the order of variables can change during the execution of a script, it is computationally difficult to identify which variables belong to a variable range.  It has been provided to support the automated creation of derivation information. Order should be determined by the physical order expressed in location as opposed to the order expressed in the metadata document. varRange should only be used when the physical order of variables is available and machine-actionable.",
+            description = "Used only in the case of a derived variable, this element provides both a description of how the derivation was performed and the command used to generate the derived variable, as well as a specification of the other variables in the study used to generate the derivation. Alternatively the variables may be expressed as a range using the varRange element. Note that use of varRange is implementation dependent. Since the order of variables can change during the execution of a script, it is computationally difficult to identify which variables belong to a variable range.  It has been provided to support the automated creation of derivation information. Order should be determined by the physical order expressed in location as opposed to the order expressed in the metadata document. varRange should only be used when the physical order of variables is available and machine-actionable.",
             examples = "<derivation var=\"V4 V9\"><drvdesc>Taxible Income (V10) expressed as a combination of wage and salary income (V4) plus interest income (V9)</drvdesc><drvcmd syntax=\"SPSS\">V10=V4+V9</drvcmd></derivation>"
         ),
         deviat = list(
@@ -2597,7 +2678,11 @@ assign(
             attributes = list(
                 type = list(
                     type = "NMTOKEN",
-                    description = "Either data or dataFile.",
+                    description = c(
+                        "Set this attribute to:",
+                        "| \"data\", when the hash value provides a digital fingerprint to the data contained in the file regardless of the storage format (ASCII, SAS, binary, etc.).",
+                        "| \"dataFile\", if the digital fingerprint is only for the data file in its current storage format."
+                    ),
                     values = c("data", "dataFile"),
                     default = c(),
                     optional = FALSE,
@@ -2608,7 +2693,7 @@ assign(
             parents = "fileTxt",
             children = list("digitalFingerprintValue", "algorithmSpecification", "algorithmVersion"),
             title = "Data Fingerprint",
-            description = "Allows for assigning a hash value (digital fingerprint) to the data or data file. Set the attribute flag to \"data\" when the hash value provides a digital fingerprint to the data contained in the file regardless of the storage format (ASCII, SAS, binary, etc.). One approach to compute a data fingerprint is the Universal Numerical Fingerprint (UNF). Set the attribute flag to \"dataFile\" if the digital fingerprint is only for the data file in its current storage format. Provide the digital fingerprint in \"digitalFingerprintValue\" and identify the algorithm specification used in \"algorithmSpecification\" (adding a version number in \"algorithmVersion\" as a separate entry if it is not part of the specification entry).",
+            description = "Allows for assigning a hash value (digital fingerprint) to the data or data file. One approach to compute a data fingerprint is the Universal Numerical Fingerprint (UNF). Provide the digital fingerprint in \"digitalFingerprintValue\" and identify the algorithm specification used in \"algorithmSpecification\" (adding a version number in \"algorithmVersion\" as a separate entry if it is not part of the specification entry).",
             examples = "<dataFingerprint type=\"data\"><digitalFingerprintValue>UNF:3:DaYlT6QSX9r0D50ye+tXpA== </digitalFingerprintValue><algorithmSpecification>UNF v5.0 Calculation Production [http://thedata.org/book/unf-version-5-0]</algorithmSpecification><algorithmVersion>UNF V5</algorithmVersion></dataFingerprint>"
         ),
         dimensns = list(
@@ -2682,7 +2767,7 @@ assign(
             attributes = list(
                 abbr = list(
                     type = "string",
-                    description = "Institutional abbreviation.",
+                    description = "Abbreviation for the institution.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -2691,7 +2776,7 @@ assign(
                 ),
                 affiliation = list(
                     type = "string",
-                    description = "Affiliation of the distributor.",
+                    description = "Affiliation of the distributor with an agency or organization.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -2828,7 +2913,7 @@ assign(
             parents = "docDscr",
             children = list("titlStmt", "rspStmt", "prodStmt", "distStmt", "serStmt", "verStmt", "biblCit", "holdings", "notes"),
             title = "Documentation Source",
-            description = "Citation for the source document. This element encodes the bibliographic information describing the source codebook, including title information, statement of responsibility, production and distribution information, series and version information, text of a preferred bibliographic citation, and notes (if any). Information for this section should be taken directly from the source document whenever possible. If additional information is obtained and entered in the elements within this section, the source of this information should be noted in the source attribute of the particular element tag. A MARCURI attribute is provided to link to the MARC record for this citation.",
+            description = "Citation for the source document. This element encodes the bibliographic information describing the source codebook, including title information, statement of responsibility, production and distribution information, series and version information, text of a preferred bibliographic citation, and notes (if any). Information for this section should be taken directly from the source document whenever possible. If additional information is obtained and entered in the elements within this section, the source of this information should be noted in the source attribute of the particular element tag.",
             examples = c()
         ),
         docStatus = list(
@@ -3015,7 +3100,6 @@ assign(
             title = "Embargo",
             description = c(
                 "Provides information on variables/nCubes which are not currently available because of policies established by the principal investigators and/or data producers.",
-                "The \"format\" attribute could be used to specify other conventions for the way that information within the embargo element is set out, if conventions for encoding embargo information were established in the future.",
                 "This element may be repeated to support multiple language expressions of the content."
             ),
             examples = "<var><embargo event=\"notBefore\" date=\"2001-09-30\"> The data associated with this variable/nCube will not become available until September 30, 2001, because of embargo provisions established by the data producers.</embargo></var>"
@@ -3026,11 +3110,102 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                colname = list(
+                    type = "NMTOKEN",
+                    description = "",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                namest = list(
+                    type = "NMTOKEN",
+                    description = "",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                nameend = list(
+                    type = "NMTOKEN",
+                    description = "",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                morerows = list(
+                    type = "string",
+                    description = "",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                colsep = list(
+                    type = "string",
+                    description = "",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                rowsep = list(
+                    type = "string",
+                    description = "",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                align = list(
+                    type = "NMTOKEN",
+                    description = "",
+                    values = c("left", "right", "center", "justify", "char"),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                char = list(
+                    type = "string",
+                    description = "",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                charoff = list(
+                    type = "NMTOKEN",
+                    description = "",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                valign = list(
+                    type = "NMTOKEN",
+                    description = "",
+                    values = c("top", "middle", "bottom"),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "row",
             children = list(),
             title = "Table Entry",
-            description = c(),
+            description = "",
             examples = c()
         ),
         EstSmpErr = list(
@@ -3055,7 +3230,7 @@ assign(
             attributes = list(
                 fileDerivationCasesAction = list(
                     type = "NMTOKEN",
-                    description = "If applicable, use the values \"add\" or \"drop\" if this command added or dropped cases from the referenced source files.",
+                    description = "If applicable, provide information about added or dropped cases from the referenced source files.",
                     values = c("add", "drop"),
                     default = c(),
                     optional = TRUE,
@@ -3068,7 +3243,8 @@ assign(
             title = "File Command",
             description = c(
                 "The element allows for the description of the file command by capturing a textual description of the command including the capture of pseudo code in \"drvdesc\" as well as the specific command using \"drvcmd\". Follow the same convention as the variable derivation; source=\"producer\" holds original and source=\"archive\" holds the SDTD.",
-                "Provide linkage to source and target variables that were involved in this derivation command in \"fileDerivationVars\". Basically, any dropped variable from the source will only be identified and referenced here. A variable that is kept and unchanged, will have a derivation pointing to it source, but the specific command which led to its retention will only be identified here at the file level. Variables created by a file level command will be linked here, and their derivation elements will repeat the command."
+                "Provide linkage to source and target variables that were involved in this derivation command in \"fileDerivationVars\". Basically, any dropped variable from the source will only be identified and referenced here. A variable that is kept and unchanged, will have a derivation pointing to it source, but the specific command which led to its retention will only be identified here at the file level. Variables created by a file level command will be linked here, and their derivation elements will repeat the command.",
+                "If applicable, use the values \"add\" or \"drop\" if this command added or dropped cases from the referenced source files."
             ),
             examples = c()
         ),
@@ -3512,7 +3688,7 @@ assign(
             attributes = list(
                 freq = list(
                     type = "string",
-                    description = "Specifies a controlled vocabulary concept. DEPRECATED",
+                    description = "Used to specify a controlled vocabulary concept. DEPRECATED.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -3538,7 +3714,7 @@ assign(
             attributes = list(
                 affiliation = list(
                     type = "string",
-                    description = "Affiliation of the funding agency.",
+                    description = "Affiliation of the funding agency with an agency or organization.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -3547,7 +3723,7 @@ assign(
                 ),
                 abbr = list(
                     type = "string",
-                    description = "Abbreviation of the funding agency.",
+                    description = "Abbreviation for the funding agency.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -4526,7 +4702,7 @@ assign(
             attributes = list(
                 type = list(
                     type = "string",
-                    description = "Type of (re)coding instruction. DEPRECATED",
+                    description = "Used to specify the type of coding instruction. DEPRECATED.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -4555,11 +4731,21 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                formalLanguage = list(
+                    type = "string",
+                    description = "Identifies the language of the command code.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "codingInstructions",
             children = list(),
             title = "Command",
-            description = "Provide command code for the coding instruction. The formalLanguage attribute identifies the language of the command code.",
+            description = "Provide command code for the coding instruction.",
             examples = "<command formalLanguage=\"SPSS\">RECODE V1 TO V100 (10 THROUGH HIGH = 0)</command>"
         ),
         dataProcessing = list(
@@ -4906,7 +5092,7 @@ assign(
             parents = "sumDscr",
             children = list("concept", "txt"),
             title = "Country",
-            description = "Indicates the country or countries covered in the file. Attribute \"abbr\" may be used to list common abbreviations. Maps to Dublin Core element \"Coverage\". Inclusion of this element is recommended. For forward-compatibility, DDI Lifecycle XHTML tags may be used in this element. PLEASE NOTE A CHANGE IN USAGE INSTRUCTIONS: The string content of the element now contains the language specific label obtained from the controlled vocabulary. This allows for multiple languages through the repeated entry of the \"concept\" element. See the high level documentation for a complete description of usage.",
+            description = "Indicates the country or countries covered in the file. Maps to Dublin Core element \"Coverage\". Inclusion of this element is recommended. For forward-compatibility, DDI Lifecycle XHTML tags may be used in this element. PLEASE NOTE A CHANGE IN USAGE INSTRUCTIONS: The string content of the element now contains the language specific label obtained from the controlled vocabulary. This allows for multiple languages through the repeated entry of the \"concept\" element. See the high level documentation for a complete description of usage.",
             examples = c(
                 "<nation vocab=\"ISO 3166-1 alpha-2\" vocabURI=\"http://www.iso.org/ISO_3166-1/alpha-2\" vocabInstanceURI=\"http://www.iso.org/ISO_3166-1/alpha-2#FI\" vocabInstanceCodeTerm=\"FI\" abbr=\"FI\" xml:lang=\"en\">Finland</nation>",
                 "<nation vocab=\"ISO 3166-1 alpha-2\" vocabURI=\"http://www.iso.org/ISO_3166-1/alpha-2\" vocabInstanceURI=\"http://www.iso.org/ISO_3166-1/alpha-2#FI\" vocabInstanceCodeTerm=\"FI\" abbr=\"FI\" xml:lang=\"fi\">Suomi</nation>"
@@ -5038,7 +5224,7 @@ assign(
             attributes = list(
                 affiliation = list(
                     type = "string",
-                    description = "Affiliation of the originating archive.",
+                    description = "Affiliation of the originating archive with an agency or organization.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -5047,7 +5233,7 @@ assign(
                 ),
                 abbr = list(
                     type = "string",
-                    description = "Abbreviation of the originating archive.",
+                    description = "Abbreviation for the originating archive.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -5133,7 +5319,7 @@ assign(
                 ),
                 abbr = list(
                     type = "string",
-                    description = "Abbreviation of the authoring entity.",
+                    description = "Abbreviation for the authoring entity.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -5142,7 +5328,7 @@ assign(
                 ),
                 affiliation = list(
                     type = "string",
-                    description = "Affiliation of the authoring entity.",
+                    description = "Affiliation of the authoring entity with an agency or organization.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -5248,7 +5434,8 @@ assign(
             title = "Other Study-Related Materials",
             description = c(
                 "This section allows for the inclusion of other materials that are related to the study as identified and labeled by the DTD/Schema users (encoders). The materials may be entered as PCDATA (ASCII text) directly into the document (through use of the \"txt\" element). This section may also serve as a \"container\" for other electronic materials such as setup files by providing a brief description of the study-related materials accompanied by the attributes \"type\" and \"level\" defining the material further.  Note that the use of the attribute \"type\" has been DEPRECATED and the element \"typeOfOtherMaterial\" should be used instead. This element provide support for the use of a controlled vocabulary.",
-                "Other Study-Related Materials may include: questionnaires, coding notes, SPSS/SAS/Stata setup files (and others), user manuals, continuity guides, sample computer software programs, glossaries of terms, interviewer/project instructions, maps, database schema, data dictionaries, show cards, coding information, interview schedules, missing values information, frequency files, variable maps, etc."
+                "Other Study-Related Materials may include: questionnaires, coding notes, SPSS/SAS/Stata setup files (and others), user manuals, continuity guides, sample computer software programs, glossaries of terms, interviewer/project instructions, maps, database schema, data dictionaries, show cards, coding information, interview schedules, missing values information, frequency files, variable maps, etc.",
+                "In Section 5, Other Material is recursively defined."
             ),
             examples = c()
         ),
@@ -5570,7 +5757,7 @@ assign(
                 ),
                 affiliation = list(
                     type = "string",
-                    description = "Affiliation of the producer.",
+                    description = "Affiliation of the producer with an agency or organization.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -5842,7 +6029,7 @@ assign(
             parents = c("cohort", "invalrng", "valrng"),
             children = list(),
             title = "Value Range",
-            description = "This is the actual range of values. The \"UNITS\" attribute permits the specification of integer/real numbers. The \"min\" and \"max\" attributes specify the lowest and highest values that are part of the range. The \"minExclusive\" and \"maxExclusive\" attributes specify values that are immediately outside the range. This is an empty element consisting only of its attributes.",
+            description = "Empty element consisting only of its attributes, containing the actual range of values.",
             examples = c(
                 "For example, x < 1 or 10 <= x < 20 would be expressed as:",
                 "<range maxExclusive=\"1\"/>",
@@ -6067,7 +6254,7 @@ assign(
             attributes = list(
                 type = list(
                     type = "string",
-                    description = "DEPRECATED.",
+                    description = "Used to specify a controlled vocabulary concept. DEPRECATED.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -6107,7 +6294,7 @@ assign(
             parents = c("nCube", "var"),
             children = list(choice = c("concept", "txt")),
             title = "Response Unit",
-            description = "Provides information regarding who is intended to provide the information contained within the variable/nCube, e.g., respondent, proxy, interviewer. This element contains the sub-element \"concept\". DDI provides a Controlled Vocabulary for this location: \"ResponseUnit\". PLEASE NOTE A CHANGE IN USAGE INSTRUCTIONS: The string content of the element now contains the language specific label obtained from the controlled vocabulary. This allows for multiple languages through the repeated entry of the \"concept\" element. The attribute \"vocabInstanceCodeTerm\" has been added to accommodate the code term as it appears in the controlled vocabulary. See the high level documentation for a complete description of usage. Additional textual description is entered in the mixed text content or using the sub-element \"txt\".",
+            description = "Provides information regarding who is intended to provide the information contained within the variable/nCube, e.g., respondent, proxy, interviewer. This element contains the sub-element \"concept\". DDI provides a Controlled Vocabulary for this location: \"ResponseUnit\". PLEASE NOTE A CHANGE IN USAGE INSTRUCTIONS: The string content of the element now contains the language specific label obtained from the controlled vocabulary. This allows for multiple languages through the repeated entry of the \"concept\" element. See the high level documentation for a complete description of usage. Additional textual description is entered in the mixed text content or using the sub-element \"txt\".",
             examples = c(
                 "<var><respUnit><concept vocab=\"IPUMS_ResponseUnit\" vocabAgency=\"IPUMS\" vocabInstanceCodeTerm=\"HouseholdHead\">Head of household</concept>If the Head of Household is unavailable the information may be provided by the proxy respondent.</respUnit></var>",
                 "<nCube><respUnit>Head of household</respUnit></nCube>"
@@ -6158,7 +6345,7 @@ assign(
             parents = c("tbody", "thead"),
             children = list("entry"),
             title = "Table Row",
-            description = c(),
+            description = "",
             examples = c()
         ),
         rspStmt = list(
@@ -6627,7 +6814,7 @@ assign(
             attributes = list(
                 type = list(
                     type = "string",
-                    description = "DEPRECATED.",
+                    description = "Used to specify a controlled vocabulary concept. DEPRECATED.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -6693,7 +6880,7 @@ assign(
             attributes = list(
                 type = list(
                     type = "string",
-                    description = "DEPRECATED.",
+                    description = "Used to specify a controlled vocabulary concept. DEPRECATED.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -6705,7 +6892,7 @@ assign(
             children = list("typeOfDevelopmentActivity", "description", "participant", "resource", "outcome"),
             title = "Development Activity",
             description = "Information on the development activity including a description, set of participants, resources used, and outcomes. Use of the \"type\" attribute has been DEPRECATED. Use the element typeOfSetAvailability which supports the use of a controlled vocabulary. Repeat if multiple language labels are being provided directly within the documentation.",
-            examples = "<developmentActivity><typeOfDevelopmentActivity vocab=\"LifecycleEventType\" vocabURI=\"https://www.ddialliance.org/Specification/DDI-CV/LifecycleEventType_1.0.html\">QuestionnaireTranslation</typeOfDevelopmentActivity><typeOfDevelopmentActivity vocab=\"DIME Questionnaire Translation\" vocabURI=\"https://dimewiki.worldbank.org/index.php?title=Questionnaire_Translation&oldid=8152\">Forward Translation</typeOfDevelopmentActivity><description>Translation from language A to language B of question and response text. Language experts are used. Translation is tested through round-trip translation practices. Translated question will be tested for response consistency with original language text.</description><participant affiliation=\"ISRDI\" role=\"language exert\">Ragi Yousef</participant><resource><srcCitation><titlStmt><titl>Labor Force Survey 2017-2018</titl></titlStmt><holding><URI>https://www.ilo.org/surveyLib/index.php/catalog/2549/related-materials</URI></holding></srcCitation></resource><outcome>Translated question resulted in valid replication of original language in the round trip test. Translated question resulted in statistically similar results as original language question following testing.</outcome></developmentActivity>"
+            examples = "<developmentActivity><typeOfDevelopmentActivity vocab=\"LifecycleEventType\" vocabURI=\"https://www.ddialliance.org/Specification/DDI-CV/LifecycleEventType_1.0.html\">QuestionnaireTranslation</typeOfDevelopmentActivity><typeOfDevelopmentActivity vocab=\"DIME Questionnaire Translation\" vocabURI=\"https://dimewiki.worldbank.org/index.php?title=Questionnaire_Translation&amp;oldid=8152\">Forward Translation</typeOfDevelopmentActivity><description>Translation from language A to language B of question and response text. Language experts are used. Translation is tested through round-trip translation practices. Translated question will be tested for response consistency with original language text.</description><participant affiliation=\"ISRDI\" role=\"language exert\">Ragi Yousef</participant><resource><srcCitation><titlStmt><titl>Labor Force Survey 2017-2018</titl></titlStmt><holding><URI>https://www.ilo.org/surveyLib/index.php/catalog/2549/related-materials</URI></holding></srcCitation></resource><outcome>Translated question resulted in valid replication of original language in the round trip test. Translated question resulted in statistically similar results as original language question following testing.</outcome></developmentActivity>"
         ),
         participant = list(
             type = "participantType",
@@ -6716,7 +6903,7 @@ assign(
             attributes = list(
                 affiliation = list(
                     type = "string",
-                    description = "Affiliation of the participant.",
+                    description = "Affiliation of the participant with an agency or organization.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -6725,7 +6912,16 @@ assign(
                 ),
                 abbr = list(
                     type = "string",
-                    description = "Abbreviation of the participant.",
+                    description = "Abbreviation for the participant.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                role = list(
+                    type = "string",
+                    description = "Role of the participant.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -6817,11 +7013,66 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                affiliation = list(
+                    type = "string",
+                    description = "Institutional affiliation of the authorizing agent or agency.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                abbr = list(
+                    type = "string",
+                    description = "Abbreviation for the authorizing agent's or agency's name",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                agentIdentifier = list(
+                    type = "string",
+                    description = "Identifier of the authorizing agency.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                typeOfAgentIdentifier = list(
+                    type = "string",
+                    description = "Type of identifier, should be provided if agentIdentifier is used.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isPersistantIdentifier = list(
+                    type = "boolean",
+                    description = "Indicate if the agent identifier is intended to be a persistent identifier",
+                    values = c("true", "false"),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                agentType = list(
+                    type = "NMTOKEN",
+                    description = "Type of authorizing agency: organization or individual.",
+                    values = c("organization", "individual"),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "studyAuthorization",
             children = list(),
             title = "Authorizing Agency",
-            description = "Name of the agent or agency that authorized the study. The \"affiliation\" attribute indicates the institutional affiliation of the authorizing agent or agency. The \"abbr\" attribute holds the abbreviation of the authorizing agent's or agency's name. If the attribute \"agentIdentifier\" is used, \"typeOfAgentIdentifier\" should also be provided. Use \"isPersistantIdentifier\" (true|false) to indicate if this is intended to be a persistent identifier. Use \"agentType\" to indicate if the agent is an organization or an individual.",
+            description = "Name of the agent or agency that authorized the study.",
             examples = "<authorizingAgency affiliation=\"Purdue University\" abbr=\"OUHS\">Office for Use of Human Subjects</authorizingAgency>"
         ),
         authorizationStatement = list(
@@ -6895,11 +7146,39 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                date = list(
+                    type = "dateSimpleType",
+                    description = "Specifies the date when the standard was published",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                version = list(
+                    type = "string",
+                    description = "Includes the specific version of the standard with which the study is compliant.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                URI = list(
+                    type = "anyURI",
+                    description = "URI for the actual standard.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "standard",
             children = list(),
             title = "Standard Name",
-            description = "Contains the name of the standard with which the study complies. The \"date\" attribute specifies the date when the standard was published, the \"version\" attribute includes the specific version of the standard with which the study is compliant, and the \"URI\" attribute includes the URI for the actual standard.",
+            description = "Contains the name of the standard with which the study complies.",
             examples = "<standardName date=\"2009-10-18\" version=\"3.1\" URI=\"http://www.ddialliance.org/Specification/DDI-Lifecycle/3.1/\">Data Documentation Initiative</standardName>"
         ),
         exPostEvaluation = list(
@@ -6940,11 +7219,75 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                affiliation = list(
+                    type = "string",
+                    description = "Affiliation of the evaluator with an agency or organization.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                abbr = list(
+                    type = "string",
+                    description = "Abbreviation for the evaluator.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                role = list(
+                    type = "string",
+                    description = "The role played by the individual or organization in the evaluation process.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                agentIdentifier = list(
+                    type = "string",
+                    description = "Identifier of the evaluator.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                typeOfAgentIdentifier = list(
+                    type = "string",
+                    description = "Type of identifier, should be provided if agentIdentifier is used.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isPersistantIdentifier = list(
+                    type = "boolean",
+                    description = "Indicate if the agent identifier is intended to be a persistent identifier",
+                    values = c("true", "false"),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                agentType = list(
+                    type = "NMTOKEN",
+                    description = "Type of evaluator: organization or individual.",
+                    values = c("organization", "individual"),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "exPostEvaluation",
             children = list(),
             title = "Evaluator Type",
-            description = "The evaluator element identifies persons or organizations involved in the evaluation. The affiliation attribute contains the affiliation of the individual or organization. The abbr attribute holds an abbreviation for the individual or organization. The role attribute indicates the role played by the individual or organization in the evaluation process. If the attribute \"agentIdentifier\" is used, \"typeOfAgentIdentifier\" should also be provided. Use \"isPersistantIdentifier\" (true|false) to indicate if this is intended to be a persistent identifier. Use \"agentType\" to indicate if the agent is an organization or an individual.",
+            description = "The evaluator element identifies persons or organizations involved in the evaluation process.",
             examples = "<evaluator affiliation=\"United Nations\" abbr=\"UNSD\" role=\"consultant\">United Nations Statistical Division</evaluator>"
         ),
         evaluationProcess = list(
@@ -7154,7 +7497,7 @@ assign(
             parents = c("key", "notes", "otherMat", "txt"),
             children = list("titl", "tgroup"),
             title = "Table",
-            description = c(),
+            description = "",
             examples = c()
         ),
         tbody = list(
@@ -7177,7 +7520,7 @@ assign(
             parents = "tgroup",
             children = list("row"),
             title = "Table Body",
-            description = c(),
+            description = "",
             examples = c()
         ),
         tgroup = list(
@@ -7227,7 +7570,7 @@ assign(
             parents = "table",
             children = list("colspec", "thead", "tbody"),
             title = "Table Group",
-            description = c(),
+            description = "",
             examples = c()
         ),
         thead = list(
@@ -7250,7 +7593,7 @@ assign(
             parents = "tgroup",
             children = list("row"),
             title = "Table Head",
-            description = c(),
+            description = "",
             examples = c()
         ),
         timeMeth = list(
@@ -7262,7 +7605,7 @@ assign(
             attributes = list(
                 method = list(
                     type = "string",
-                    description = "DEPRECATED.",
+                    description = "Used to specify a controlled vocabulary concept. DEPRECATED.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -7962,7 +8305,24 @@ assign(
             attributes = list(
                 type = list(
                     type = "NMTOKEN",
-                    description = "General type of grouping of the variables, e.g., subject, multiple response. Use the value of \"other\" if the value is to come from an external controlled vocabulary, and place the term into the otherType attribute.",
+                    description = c(
+                        "General type of grouping of the variables, e.g., subject, multiple response. Use the value of \"other\" if the value is to come from an external controlled vocabulary, and place the term into the otherType attribute.",
+                        "Specific variable groups, included included in this attribute, are:",
+                        "| section: Questions which derive from the same section of the questionnaire, e.g., all variables located in Section C.",
+                        "| multiple response: Questions where the respondent has the opportunity to select more than one answer from a variety of choices, e.g., what newspapers have you read in the past month (with the respondent able to select up to five choices).",
+                        "| grid: Sub-questions of an introductory or main question but which do not constitute a multiple response group, e.g., I am going to read you some events in the news lately and you tell me for each one whether you are very interested in the event, fairly interested in the fact, or not interested in the event.",
+                        "| display: Questions which appear on the same interview screen (CAI) together or are presented to the interviewer or respondent as a group.",
+                        "| repetition: The same variable (or group of variables) which are repeated for different groups of respondents or for the same respondent at a different time.",
+                        "| subject: Questions which address a common topic or subject, e.g., income, poverty, children.",
+                        "| version: Variables, often appearing in pairs, which represent different aspects of the same question, e.g., pairs of variables (or groups) which are adjusted/unadjusted for inflation or season or whatever, pairs of variables with/without missing data imputed, and versions of the same basic question.",
+                        "| iteration: Questions that appear in different sections of the data file measuring a common subject in different ways, e.g., a set of variables which report the progression of respondent income over the life course.",
+                        "| analysis: Variables combined into the same index, e.g., the components of a calculation, such as the numerator and the denominator of an economic statistic.",
+                        "| pragmatic: A variable group without shared properties.",
+                        "| record: Variable from a single record in a hierarchical file.",
+                        "| file: Variable from a single file in a multifile study.",
+                        "| randomized: Variables generated by CAI surveys produced by one or more random number variables together with a response variable, e.g., random variable X which could equal 1 or 2 (at random) which in turn would control whether Q.23 is worded \"men\" or \"women\", e.g., would you favor helping [men/women] laid off from a factory obtain training for a new job?",
+                        "| other: Variables which do not fit easily into any of the categories listed above, e.g., a group of variables whose documentation is in another language."
+                    ),
                     values = c("section", "multipleResp", "grid", "display", "repetition", "subject", "version", "iteration", "analysis", "pragmatic", "record", "file", "randomized", "other"),
                     default = "other",
                     optional = TRUE,
@@ -8056,22 +8416,7 @@ assign(
             title = "Variable Group",
             description = c(
                 "A group of variables that may share a common subject, arise from the interpretation of a single question, or are linked by some other factor.",
-                "Variable groups are created this way in order to permit variables to belong to multiple groups, including multiple subject groups such as a group of variables on sex and income, or to a subject and a multiple response group, without causing overlapping groups. Variables that are linked by use of the same question need not be identified by a Variable Group element because they are linked by a common unique question identifier in the Variable element. Note that as a result of the strict sequencing required by XML, all Variable Groups must be marked up before the Variable element is opened. That is, the mark-up author cannot mark up a Variable Group, then mark up its constituent variables, then mark up another Variable Group.",
-                "Specific variable groups, included within the \"type\" attribute, are:",
-                "| Section: Questions which derive from the same section of the questionnaire, e.g., all variables located in Section C.",
-                "| Multiple response: Questions where the respondent has the opportunity to select more than one answer from a variety of choices, e.g., what newspapers have you read in the past month (with the respondent able to select up to five choices).",
-                "| Grid: Sub-questions of an introductory or main question but which do not constitute a multiple response group, e.g., I am going to read you some events in the news lately and you tell me for each one whether you are very interested in the event, fairly interested in the fact, or not interested in the event.",
-                "| Display: Questions which appear on the same interview screen (CAI) together or are presented to the interviewer or respondent as a group.",
-                "| Repetition: The same variable (or group of variables) which are repeated for different groups of respondents or for the same respondent at a different time.",
-                "| Subject: Questions which address a common topic or subject, e.g., income, poverty, children.",
-                "| Version: Variables, often appearing in pairs, which represent different aspects of the same question, e.g., pairs of variables (or groups) which are adjusted/unadjusted for inflation or season or whatever, pairs of variables with/without missing data imputed, and versions of the same basic question.",
-                "| Iteration: Questions that appear in different sections of the data file measuring a common subject in different ways, e.g., a set of variables which report the progression of respondent income over the life course.",
-                "| Analysis: Variables combined into the same index, e.g., the components of a calculation, such as the numerator and the denominator of an economic statistic.",
-                "| Pragmatic: A variable group without shared properties.",
-                "| Record: Variable from a single record in a hierarchical file.",
-                "| File: Variable from a single file in a multifile study.",
-                "| Randomized: Variables generated by CAI surveys produced by one or more random number variables together with a response variable, e.g., random variable X which could equal 1 or 2 (at random) which in turn would control whether Q.23 is worded \"men\" or \"women\", e.g., would you favor helping [men/women] laid off from a factory obtain training for a new job?",
-                "| Other: Variables which do not fit easily into any of the categories listed above, e.g., a group of variables whose documentation is in another language."
+                "Variable groups are created this way in order to permit variables to belong to multiple groups, including multiple subject groups such as a group of variables on sex and income, or to a subject and a multiple response group, without causing overlapping groups. Variables that are linked by use of the same question need not be identified by a Variable Group element because they are linked by a common unique question identifier in the Variable element. Note that as a result of the strict sequencing required by XML, all Variable Groups must be marked up before the Variable element is opened. That is, the mark-up author cannot mark up a Variable Group, then mark up its constituent variables, then mark up another Variable Group."
             ),
             examples = c()
         ),
@@ -8129,7 +8474,7 @@ assign(
             attributes = list(
                 affiliation = list(
                     type = "string",
-                    description = "Affiliation of the authoring entity.",
+                    description = "Affiliation of the authoring entity with an agency or organization.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -8316,7 +8661,7 @@ assign(
                 ),
                 vocabVersionID = list(
                     type = "string",
-                    description = "Version of controlled vocabulary, if needed",
+                    description = "Version of controlled vocabulary, if needed.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -8354,7 +8699,7 @@ assign(
             parents = c("dataAccs", "metadataAccs"),
             children = list(),
             title = "Type of Access",
-            description = "The applied use of the element is found in the parent item. PLEASE NOTE A CHANGE IN USAGE INSTRUCTIONS: The string content of element now contains the language specific label obtained from the controlled vocabulary. This allows for multiple languages through the repeated entry of the \"concept\" element. See the high level documentation for a complete description of usage.",
+            description = "The applied use of the element is found in the parent item. PLEASE NOTE A CHANGE IN USAGE INSTRUCTIONS: The string content of the element now contains the language specific label obtained from the controlled vocabulary. This allows for multiple languages through the repeated entry of the \"concept\" element. See the high level documentation for a complete description of usage.",
             examples = c()
         ),
         digitalFingerprintValue = list(
@@ -8399,11 +8744,93 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                vocab = list(
+                    type = "string",
+                    description = "Indicates the name of the controlled vocabulary, if any, used in the element, e.g., LCSH (Library of Congress Subject Headings), MeSH (Medical Subject Headings), etc.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabURI = list(
+                    type = "string",
+                    description = "Specifies the location for the full controlled vocabulary.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabInstanceURI = list(
+                    type = "string",
+                    description = "Specifies the identification URI of the term/code within the controlled vocabulary if available.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabID = list(
+                    type = "string",
+                    description = "Another form of identification (do not use for URI).",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabAgencyName = list(
+                    type = "string",
+                    description = "Agency managing the controlled vocabulary.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabVersionID = list(
+                    type = "string",
+                    description = "Version of controlled vocabulary, if needed.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                otherValue = list(
+                    type = "string",
+                    description = "If the controlled vocabulary term is \"other\", provide a more specific value.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabSchemeURN = list(
+                    type = "string",
+                    description = "The URN of the controlled vocabulary.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabInstanceCodeTerm = list(
+                    type = "string",
+                    description = "Added to accommodate the code term as it appears in the controlled vocabulary.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "codingInstructions",
             children = list(),
-            title = "",
-            description = "",
+            title = "Type of Coding Instruction",
+            description = "The applied use of the element is found in the parent item. PLEASE NOTE A CHANGE IN USAGE INSTRUCTIONS: The string content of the element now contains the language specific label obtained from the controlled vocabulary. This allows for multiple languages through the repeated entry of the \"concept\" element. See the high level documentation for a complete description of usage.",
             examples = c()
         ),
         typeOfOtherMaterial = list(
@@ -8412,11 +8839,93 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                vocab = list(
+                    type = "string",
+                    description = "Indicates the name of the controlled vocabulary, if any, used in the element, e.g., LCSH (Library of Congress Subject Headings), MeSH (Medical Subject Headings), etc.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabURI = list(
+                    type = "string",
+                    description = "Specifies the location for the full controlled vocabulary.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabInstanceURI = list(
+                    type = "string",
+                    description = "Specifies the identification URI of the term/code within the controlled vocabulary if available.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabID = list(
+                    type = "string",
+                    description = "Another form of identification (do not use for URI).",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabAgencyName = list(
+                    type = "string",
+                    description = "Agency managing the controlled vocabulary.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabVersionID = list(
+                    type = "string",
+                    description = "Version of controlled vocabulary, if needed.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                otherValue = list(
+                    type = "string",
+                    description = "If the controlled vocabulary term is \"other\", provide a more specific value.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabSchemeURN = list(
+                    type = "string",
+                    description = "The URN of the controlled vocabulary.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabInstanceCodeTerm = list(
+                    type = "string",
+                    description = "Added to accommodate the code term as it appears in the controlled vocabulary.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "otherMat",
             children = list(),
-            title = "",
-            description = "",
+            title = "Type of Other Material",
+            description = "The applied use of the element is found in the parent item. PLEASE NOTE A CHANGE IN USAGE INSTRUCTIONS: The string content of the element now contains the language specific label obtained from the controlled vocabulary. This allows for multiple languages through the repeated entry of the \"concept\" element. See the high level documentation for a complete description of usage.",
             examples = c()
         ),
         typeOfSetAvailability = list(
@@ -8425,11 +8934,93 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                vocab = list(
+                    type = "string",
+                    description = "Indicates the name of the controlled vocabulary, if any, used in the element, e.g., LCSH (Library of Congress Subject Headings), MeSH (Medical Subject Headings), etc.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabURI = list(
+                    type = "string",
+                    description = "Specifies the location for the full controlled vocabulary.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabInstanceURI = list(
+                    type = "string",
+                    description = "Specifies the identification URI of the term/code within the controlled vocabulary if available.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabID = list(
+                    type = "string",
+                    description = "Another form of identification (do not use for URI).",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabAgencyName = list(
+                    type = "string",
+                    description = "Agency managing the controlled vocabulary.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabVersionID = list(
+                    type = "string",
+                    description = "Version of controlled vocabulary, if needed.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                otherValue = list(
+                    type = "string",
+                    description = "If the controlled vocabulary term is \"other\", provide a more specific value.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabSchemeURN = list(
+                    type = "string",
+                    description = "The URN of the controlled vocabulary.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabInstanceCodeTerm = list(
+                    type = "string",
+                    description = "Added to accommodate the code term as it appears in the controlled vocabulary.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "setAvail",
             children = list(),
-            title = "",
-            description = "",
+            title = "Type of Set Availability",
+            description = "The applied use of the element is found in the parent item. PLEASE NOTE A CHANGE IN USAGE INSTRUCTIONS: The string content of the element now contains the language specific label obtained from the controlled vocabulary. This allows for multiple languages through the repeated entry of the \"concept\" element. See the high level documentation for a complete description of usage.",
             examples = c()
         ),
         typeOfDataSrc = list(
@@ -8438,11 +9029,93 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                vocab = list(
+                    type = "string",
+                    description = "Indicates the name of the controlled vocabulary, if any, used in the element, e.g., LCSH (Library of Congress Subject Headings), MeSH (Medical Subject Headings), etc.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabURI = list(
+                    type = "string",
+                    description = "Specifies the location for the full controlled vocabulary.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabInstanceURI = list(
+                    type = "string",
+                    description = "Specifies the identification URI of the term/code within the controlled vocabulary if available.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabID = list(
+                    type = "string",
+                    description = "Another form of identification (do not use for URI).",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabAgencyName = list(
+                    type = "string",
+                    description = "Agency managing the controlled vocabulary.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabVersionID = list(
+                    type = "string",
+                    description = "Version of controlled vocabulary, if needed.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                otherValue = list(
+                    type = "string",
+                    description = "If the controlled vocabulary term is \"other\", provide a more specific value.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabSchemeURN = list(
+                    type = "string",
+                    description = "The URN of the controlled vocabulary.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabInstanceCodeTerm = list(
+                    type = "string",
+                    description = "Added to accommodate the code term as it appears in the controlled vocabulary.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = c("sources", "resource"),
             children = list(),
-            title = "",
-            description = "",
+            title = "Type of Data Source",
+            description = "The applied use of the element is found in the parent item. PLEASE NOTE A CHANGE IN USAGE INSTRUCTIONS: The string content of the element now contains the language specific label obtained from the controlled vocabulary. This allows for multiple languages through the repeated entry of the \"concept\" element. See the high level documentation for a complete description of usage.",
             examples = c()
         ),
         typeOfDevelopmentActivity = list(
@@ -8451,11 +9124,93 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                vocab = list(
+                    type = "string",
+                    description = "Indicates the name of the controlled vocabulary, if any, used in the element, e.g., LCSH (Library of Congress Subject Headings), MeSH (Medical Subject Headings), etc.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabURI = list(
+                    type = "string",
+                    description = "Specifies the location for the full controlled vocabulary.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabInstanceURI = list(
+                    type = "string",
+                    description = "Specifies the identification URI of the term/code within the controlled vocabulary if available.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabID = list(
+                    type = "string",
+                    description = "Another form of identification (do not use for URI).",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabAgencyName = list(
+                    type = "string",
+                    description = "Agency managing the controlled vocabulary.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabVersionID = list(
+                    type = "string",
+                    description = "Version of controlled vocabulary, if needed.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                otherValue = list(
+                    type = "string",
+                    description = "If the controlled vocabulary term is \"other\", provide a more specific value.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabSchemeURN = list(
+                    type = "string",
+                    description = "The URN of the controlled vocabulary.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabInstanceCodeTerm = list(
+                    type = "string",
+                    description = "Added to accommodate the code term as it appears in the controlled vocabulary.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "developmentActivity",
             children = list(),
-            title = "",
-            description = "",
+            title = "Type of Development Activity",
+            description = "The applied use of the element is found in the parent item. PLEASE NOTE A CHANGE IN USAGE INSTRUCTIONS: The string content of the element now contains the language specific label obtained from the controlled vocabulary. This allows for multiple languages through the repeated entry of the \"concept\" element. See the high level documentation for a complete description of usage.",
             examples = c()
         ),
         description = list(
@@ -8512,15 +9267,97 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                vocab = list(
+                    type = "string",
+                    description = "Indicates the name of the controlled vocabulary, if any, used in the element, e.g., LCSH (Library of Congress Subject Headings), MeSH (Medical Subject Headings), etc.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabURI = list(
+                    type = "string",
+                    description = "Specifies the location for the full controlled vocabulary.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabInstanceURI = list(
+                    type = "string",
+                    description = "Specifies the identification URI of the term/code within the controlled vocabulary if available.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabID = list(
+                    type = "string",
+                    description = "Another form of identification (do not use for URI).",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabAgencyName = list(
+                    type = "string",
+                    description = "Agency managing the controlled vocabulary.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabVersionID = list(
+                    type = "string",
+                    description = "Version of controlled vocabulary, if needed.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                otherValue = list(
+                    type = "string",
+                    description = "If the controlled vocabulary term is \"other\", provide a more specific value.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabSchemeURN = list(
+                    type = "string",
+                    description = "The URN of the controlled vocabulary.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabInstanceCodeTerm = list(
+                    type = "string",
+                    description = "Added to accommodate the code term as it appears in the controlled vocabulary.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "exPostEvaluation",
             children = list(),
-            title = "",
-            description = "",
+            title = "Type of ExPost Evaluation",
+            description = "The applied use of the element is found in the parent item. PLEASE NOTE A CHANGE IN USAGE INSTRUCTIONS: The string content of the element now contains the language specific label obtained from the controlled vocabulary. This allows for multiple languages through the repeated entry of the \"concept\" element. See the high level documentation for a complete description of usage.",
             examples = c()
         )
     ),
-    envir=cacheEnv
+    envir = cacheEnv
 )
 
 assign(
@@ -8537,7 +9374,7 @@ assign(
         xmlang = list(
             type = "language",
             description = c(
-                "This attribute specifies the language used in the contents and attribute values of any element in the XML document. Use of ISO (www.iso.org) language codes is recommended.",
+                "This attribute specifies the language used in the contents of any element in the XML document. Use of ISO (www.iso.org) language codes is recommended.",
                 "(the actual attribute is named \"xml:lang\" in the final XML file.)"
             ),
             values = c(),
@@ -8586,5 +9423,5 @@ assign(
             recommended = FALSE
         )
     ),
-    envir=cacheEnv
+    envir = cacheEnv
 )
