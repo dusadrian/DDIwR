@@ -367,14 +367,14 @@
                     # save = saveFile
                 )
 
-                # --- TODO getMetadata() doesn't embed the data anymore...
-                # do I really need to?
-                tmp <- extractData(obj)
-                # ---
+                ### --- TODO getMetadata() doesn't embed the data anymore...
+                ## do I really need to?
+                # tmp <- extractData(obj)
 
-                if (!is.null(tmp)) {
-                    csv <- tmp
-                }
+                # if (!is.null(tmp)) {
+                #     csv <- tmp
+                # }
+                ### ---
             }
             else {
                 aa <- ls()

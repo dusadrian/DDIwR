@@ -48,9 +48,13 @@
         )
     ))
 
-    writeLines(strwrap(
-        unlist(strsplit(DDIC[[x]]$description, split = "\n"))
-    ))
+    if (DDIC[[x]]$description == "") {
+        cat("\nThis element does not have a description.\n")
+    } else {
+        writeLines(strwrap(
+            unlist(strsplit(DDIC[[x]]$description, split = "\n"))
+        ))
+    }
 
     cat(endWith)
 }
@@ -166,7 +170,7 @@
     }
     else {
         for (i in seq(length(examples))) {
-            formatExample(xml2::read_xml(examples[i]))
+            formatExample(xml2::read_xml(examples[i]), ... = ...)
             cat(ifelse(i < length(examples), "\n", ""))
         }
     }
