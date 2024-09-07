@@ -55,8 +55,6 @@ test_that("The labels of character variable are preserved in Stata", {
 
 convert(dfm, to = file.path(tmp, "dfm.xml"))
 dfmddi <- convert(file.path(tmp, "dfm.xml"))
-stdyDscr <- attr(dfmddi, "stdyDscr")
-attr(dfmddi, "stdyDscr") <- NULL
 
 dfmddi[] <- lapply(dfmddi, function(x) {
   attr(x, "format.spss") <- NULL

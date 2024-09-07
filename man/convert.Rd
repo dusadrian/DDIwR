@@ -170,8 +170,7 @@ DDI - Data Documentation Initiative, see the
 \seealso{
 \code{\link{setupfile}},
 \code{\link{getMetadata}},
-\code{\link[declared]{declared}},
-\code{\link[haven]{labelled}}
+\code{\link[declared]{declared}}
 }
 \author{
 Adrian Dusa
