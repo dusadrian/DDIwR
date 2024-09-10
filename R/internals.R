@@ -1165,13 +1165,13 @@ NULL
         #------------------------------------------------------------------
         # attrx$label, if not existing, takes from attrx$labels
         # attrx[["label"]] is something like attr(x, "label", exact = TRUE)
-        label <- variables[[i]]$.extra[["label"]]
-        labels <- variables[[i]]$.extra[["labels"]]
+        label <- variables[[i]][["label"]]
+        labels <- variables[[i]][["labels"]]
         #------------------------------------------------------------------
 
-        na_values <- variables[[i]]$.extra[["na_values"]]
-        na_range <- variables[[i]]$.extra[["na_range"]]
-        measurement <- variables[[i]]$.extra[["measurement"]]
+        na_values <- variables[[i]][["na_values"]]
+        na_range <- variables[[i]][["na_range"]]
+        measurement <- variables[[i]][["measurement"]]
 
         v <- x[[i]]
         attributes(v) <- NULL
