@@ -339,9 +339,10 @@
             data <- do.call("read.csv", callist)
 
             variables <- lapply(xmlvars, XMLtoRmetadata, dns = dns)
-            names(variables) <- sapply(
-                lapply(xmlvars, xml2::xml_attrs),
-                function(x) x["name"]
+
+            xpath <- sprintf("/%scodeBook/%sdataDscr/%svar/@name", dns, dns, dns)
+            names(variables) <- admisc::trimstr(
+                xml2::xml_text(xml2::xml_find_all(xml, xpath))
             )
 
             if (ncol(data) == length(variables)) {
@@ -354,11 +355,6 @@
                     names(data) <- names(variables)
                 }
             }
-
-            xpath <- sprintf("/%scodeBook/%sdataDscr/%svar/@name", dns, dns, dns)
-            names(variables) <- admisc::trimstr(
-                xml2::xml_text(xml2::xml_find_all(xml, xpath))
-            )
 
             if (ncol(data) == length(variables) + 1) {
                 if (header) {
