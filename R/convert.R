@@ -339,6 +339,10 @@
             data <- do.call("read.csv", callist)
 
             variables <- lapply(xmlvars, XMLtoRmetadata, dns = dns)
+            names(variables) <- sapply(
+                lapply(xmlvars, xml2::xml_attrs),
+                function(x) x["name"]
+            )
 
             if (ncol(data) == length(variables)) {
                 if (header) {

@@ -565,6 +565,11 @@ NULL
         dns <- getDNS(xml) # default name space
         xpath <- sprintf("/%scodeBook/%sfileDscr/%snotes", dns, dns, dns)
         elements <- xml2::xml_find_all(xml, xpath)
+
+        if (length(elements) == 0) {
+            return(NULL)
+        }
+
         attrs <- lapply(elements, xml2::xml_attrs)
 
         wdata <- which(sapply(elements, function(x) {
