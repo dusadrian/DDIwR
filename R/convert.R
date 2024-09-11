@@ -348,7 +348,16 @@
             if (ncol(data) == length(variables)) {
                 if (header) {
                     if (!identical(names(data), names(variables))) {
-                        admisc::stopError("The .csv file does not match the DDI Codebook")
+                        admisc::stopError(
+                            sprintf(
+                                "The .csv file does not match the DDI Codebook%s.",
+                                ifelse(
+                                    identical(tolower(names(data)), tolower(names(variables))),
+                                    ", the variable names have differences in upper / lower case",
+                                    ""
+                                )
+                            )
+                        )
                     }
                 }
                 else {
