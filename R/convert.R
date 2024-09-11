@@ -46,10 +46,11 @@
 #'
 #' When converting from DDI, if the dataset is not embedded in the XML file, the
 #' CSV file is expected to be found in the same directory as the DDI Codebook,
-#' and it should have the same file name as the XML file. Alternatively, the
-#' path to the CSV file can be provided via the **`csv`** argument. Additional
-#' formal parameters of the function \bold{\code{\link[utils]{read.csv}()}} can
-#' be passed via the same three dots **`...`** argument.
+#' and it should have the same file name as the XML file. The path to the CSV
+#' file can be provided via the **`csv`** argument. Additional formal
+#' parameters of the function \bold{\code{\link[utils]{read.csv}()}} can
+#' be passed via the same three dots **`...`** argument. Alternatively, the
+#' **`csv`** argument can also be an R data frame.
 #'
 #' The DDI .xml file generates unique IDs for all variables, if not already
 #' present in the attributes. These IDs are useful for newer versions of the DDI
@@ -147,8 +148,8 @@
 #' categorical variables
 #' @param recode Logical, recode missing values
 #' @param encoding The character encoding used to read a file
-#' @param csv Path to the CSV file, if not embedded in XML file containing the
-#' DDI Codebook
+#' @param csv A dataframe or a path to the CSV file, if not embedded in XML file
+#' containing the DDI Codebook
 #' @param ... Additional parameters passed to other functions, see the
 #' Details section
 #'
@@ -295,15 +296,18 @@
             )
         }
 
+        header <- TRUE
+
         # if not present in the codeBook, maybe it is on a separate .csv file
         # in the same directory as the DDI .xml Codebook
         if (is.null(data)) {
-
+            csvisdata <- FALSE
             if (is.null(csv)) {
                 files <- getFiles(tp_from$completePath, "*")
 
                 csvexists <- FALSE
                 csvfiles <- files$fileext == "CSV"
+
                 if (any(csvfiles)) {
                     csvexists <- is.element(
                         toupper(tp_from$filenames),
@@ -324,19 +328,29 @@
                 csv <- file.path(tp_from$completePath, csvfile)
             }
             else {
-                # test if the csv is a path
-                treatPath(csv)
-            }
+                if (inherits(csv, "tibble")) {
+                    csv <- as.data.frame(csv)
+                }
 
-            callist <- list(file = csv)
-            for (f in names(formals(utils::read.csv))) {
-                if (is.element(f, names(dots))) {
-                    callist[[f]] <- dots[[f]]
+                if (csvisdata <- inherits(csv, "data.frame")) {
+                    data <- csv
+                } else {
+                    # test if the csv is a path
+                    treatPath(csv)
                 }
             }
 
-            header <- ifelse(isFALSE(callist$header), FALSE, TRUE)
-            data <- do.call("read.csv", callist)
+            if (!csvisdata) {
+                callist <- list(file = csv)
+                for (f in names(formals(utils::read.csv))) {
+                    if (is.element(f, names(dots))) {
+                        callist[[f]] <- dots[[f]]
+                    }
+                }
+
+                header <- ifelse(isFALSE(callist$header), FALSE, TRUE)
+                data <- do.call("read.csv", callist)
+            }
 
             variables <- lapply(xmlvars, XMLtoRmetadata, dns = dns)
 

@@ -30,8 +30,8 @@ categorical variables}
 
 \item{encoding}{The character encoding used to read a file}
 
-\item{csv}{Path to the CSV file, if not embedded in XML file containing the
-DDI Codebook}
+\item{csv}{A dataframe or a path to the CSV file, if not embedded in XML file
+containing the DDI Codebook}
 
 \item{...}{Additional parameters passed to other functions, see the
 Details section}
@@ -82,10 +82,11 @@ XML file.
 
 When converting from DDI, if the dataset is not embedded in the XML file, the
 CSV file is expected to be found in the same directory as the DDI Codebook,
-and it should have the same file name as the XML file. Alternatively, the
-path to the CSV file can be provided via the \strong{\code{csv}} argument. Additional
-formal parameters of the function \bold{\code{\link[utils]{read.csv}()}} can
-be passed via the same three dots \strong{\code{...}} argument.
+and it should have the same file name as the XML file. The path to the CSV
+file can be provided via the \strong{\code{csv}} argument. Additional formal
+parameters of the function \bold{\code{\link[utils]{read.csv}()}} can
+be passed via the same three dots \strong{\code{...}} argument. Alternatively, the
+\strong{\code{csv}} argument can also be an R data frame.
 
 The DDI .xml file generates unique IDs for all variables, if not already
 present in the attributes. These IDs are useful for newer versions of the DDI
