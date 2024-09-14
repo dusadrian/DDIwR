@@ -5094,8 +5094,8 @@ assign(
             title = "Country",
             description = "Indicates the country or countries covered in the file. Maps to Dublin Core element \"Coverage\". Inclusion of this element is recommended. For forward-compatibility, DDI Lifecycle XHTML tags may be used in this element. PLEASE NOTE A CHANGE IN USAGE INSTRUCTIONS: The string content of the element now contains the language specific label obtained from the controlled vocabulary. This allows for multiple languages through the repeated entry of the \"concept\" element. See the high level documentation for a complete description of usage.",
             examples = c(
-                "<nation vocab=\"ISO 3166-1 alpha-2\" vocabURI=\"http://www.iso.org/ISO_3166-1/alpha-2\" vocabInstanceURI=\"http://www.iso.org/ISO_3166-1/alpha-2#FI\" vocabInstanceCodeTerm=\"FI\" abbr=\"FI\" xml:lang=\"en\">Finland</nation>",
-                "<nation vocab=\"ISO 3166-1 alpha-2\" vocabURI=\"http://www.iso.org/ISO_3166-1/alpha-2\" vocabInstanceURI=\"http://www.iso.org/ISO_3166-1/alpha-2#FI\" vocabInstanceCodeTerm=\"FI\" abbr=\"FI\" xml:lang=\"fi\">Suomi</nation>"
+                "<nation vocab=\"ISO 3166-1 alpha-2\" vocabURI=\"http://www.iso.org/ISO_3166-1/alpha-2\" vocabInstanceURI=\"http://www.iso.org/ISO_3166-1/alpha-2#FI\" vocabInstanceCodeTerm=\"FI\" abbr=\"FI\" xml:lang=\"en\">Finland</nation>",
+                "<nation vocab=\"ISO 3166-1 alpha-2\" vocabURI=\"http://www.iso.org/ISO_3166-1/alpha-2\" vocabInstanceURI=\"http://www.iso.org/ISO_3166-1/alpha-2#FI\" vocabInstanceCodeTerm=\"FI\" abbr=\"FI\" xml:lang=\"fi\">Suomi</nation>"
             )
         ),
         northBL = list(
@@ -5290,7 +5290,7 @@ assign(
             children = list(),
             title = "Archive Where Study Originally Stored",
             description = "Archive from which the data collection was obtained; the originating archive.",
-            examples = "<origArch abbr=\"GESIS\" URI=\"gesis.org\" agentIdentifier=\"018afyw53\" typeOfAgentIdentifier=\"ROR\">GESIS Leibniz-Institut für Sozialwissenschaften</origArch>"
+            examples = "<origArch abbr=\"GESIS\" URI=\"gesis.org\" agentIdentifier=\"018afyw53\" typeOfAgentIdentifier=\"ROR\">GESIS Leibniz-Institut f\u00fcr Sozialwissenschaften</origArch>"
         ),
         othId = list(
             type = "othIdType",
