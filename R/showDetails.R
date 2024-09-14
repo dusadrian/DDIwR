@@ -48,7 +48,7 @@
         )
     ))
 
-    if (DDIC[[x]]$description == "") {
+    if (identical(DDIC[[x]]$description, "")) {
         cat("\nThis element does not have a description.\n")
     } else {
         writeLines(strwrap(
