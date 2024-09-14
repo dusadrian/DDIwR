@@ -14,9 +14,9 @@ Description: Useful functions for various DDI (Data Documentation Initiative)
 License: GPL (>= 3)
 Depends: R (>= 3.5.0)
 Imports:
-    admisc (> 0.33),
+    admisc (> 0.35),
     base64enc,
-    declared (> 0.23),
+    declared (> 0.24),
     digest,
     tools,
     xml2,
