@@ -168,7 +168,7 @@
             }
             addChildren(makeDataNotes(data), to = codeBook$fileDscr)
         }
-        else {
+        else if (!isFALSE(dots$csv)) {
             tp_file <- treatPath(file, type = "*", single = TRUE, check = FALSE)
             write.table(
                 undeclare(data, drop = TRUE),

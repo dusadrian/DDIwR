@@ -30,8 +30,7 @@ categorical variables}
 
 \item{encoding}{The character encoding used to read a file}
 
-\item{csv}{A dataframe or a path to the CSV file, if not embedded in XML file
-containing the DDI Codebook}
+\item{csv}{Complex argument, see the Details section}
 
 \item{...}{Additional parameters passed to other functions, see the
 Details section}
@@ -87,6 +86,10 @@ file can be provided via the \strong{\code{csv}} argument. Additional formal
 parameters of the function \bold{\code{\link[utils]{read.csv}()}} can
 be passed via the same three dots \strong{\code{...}} argument. Alternatively, the
 \strong{\code{csv}} argument can also be an R data frame.
+
+When converting to DDI, if the argument \strong{\code{embed}} is set to \code{FALSE}, users
+have the option to save the data in a separate CSV file (the default) or not
+to save the data at all, by setting \strong{\code{csv}} to \code{FALSE}.
 
 The DDI .xml file generates unique IDs for all variables, if not already
 present in the attributes. These IDs are useful for newer versions of the DDI

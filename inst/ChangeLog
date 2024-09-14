@@ -1,5 +1,10 @@
 Version 0.19
-  o The internal DDI structure is now defined as an updateable cache
+  o the internal DDI structure is now defined as an updateable cache
+  o bug fix importing a DDI Codebook wih a separate CSV file
+    (thanks to Pyry Kantanen for the report)
+  o argument "csv" in function convert() can also be set to a logical
+    value when argument "embed" is set to FALSE, when converting to
+    DDI Codebook .xml files
 
 Version 0.18
   o bug fix converting to Excel

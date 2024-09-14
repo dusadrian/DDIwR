@@ -52,6 +52,10 @@
 #' be passed via the same three dots **`...`** argument. Alternatively, the
 #' **`csv`** argument can also be an R data frame.
 #'
+#' When converting to DDI, if the argument **`embed`** is set to `FALSE`, users
+#' have the option to save the data in a separate CSV file (the default) or not
+#' to save the data at all, by setting **`csv`** to `FALSE`.
+#'
 #' The DDI .xml file generates unique IDs for all variables, if not already
 #' present in the attributes. These IDs are useful for newer versions of the DDI
 #' Codebook, for referencing purposes.
@@ -148,8 +152,7 @@
 #' categorical variables
 #' @param recode Logical, recode missing values
 #' @param encoding The character encoding used to read a file
-#' @param csv A dataframe or a path to the CSV file, if not embedded in XML file
-#' containing the DDI Codebook
+#' @param csv Complex argument, see the Details section
 #' @param ... Additional parameters passed to other functions, see the
 #' Details section
 #'
@@ -628,6 +631,7 @@
             embed = embed,
             dataDscr_directly_in_XML = TRUE,
             variables = variables,
+            csv = csv,
             ... = ...
         )
     }
