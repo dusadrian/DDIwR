@@ -1368,6 +1368,12 @@ NULL
             )
         }
 
+        files <- ifelse(
+            is.null(dots$fileid),
+            "",
+            paste0(" files=\"", dots$fileid, "\"")
+        )
+
         dcml <- ""
         if (!is.null(data) && pN[i]) {
             dcml <- paste0(
@@ -1391,6 +1397,7 @@ NULL
 
         cat(paste0(
             "<", ns, "var ID=\"", uuid[i], "\"",
+            files,
             " name=\"", varnames[i], "\"",
             dcml, nature, ">",
             enter
@@ -1467,16 +1474,18 @@ NULL
                 printnum <- printnum | (length(vals) > 2 & grepl("num", type))
             }
 
-            cat(paste("<", ns, "valrng>", enter, sep = ""))
-            valrng <- range(vals)
-            cat(paste0(
-                sprintf(
-                    "<%srange UNITS=\"%s\" min=\"%s\" max=\"%s\"/>",
-                    ns, ifelse(wN[i], "INT", "REAL"), valrng[1], valrng[2]
-                ),
-                enter
-            ))
-            cat(paste0("</", ns, "valrng>", enter))
+            if (length(vals) > 1) {
+                valrng <- range(vals)
+                cat(paste("<", ns, "valrng>", enter, sep = ""))
+                cat(paste0(
+                    sprintf(
+                        "<%srange UNITS=\"%s\" min=\"%s\" max=\"%s\"/>",
+                        ns, ifelse(wN[i], "INT", "REAL"), valrng[1], valrng[2]
+                    ),
+                    enter
+                ))
+                cat(paste0("</", ns, "valrng>", enter))
+            }
 
             if (printnum) { # numeric variable
                 cat(paste0(
