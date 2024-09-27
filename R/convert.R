@@ -592,6 +592,12 @@
     filetypes <- c("SPSS", "SPSS", "SPSS", "Stata", "SAS", "XPT", "R", "DDI", "Excel", "Excel")
     fileexts <- c("SAV", "ZSAV", "POR", "DTA", "SAS7BDAT", "XPT", "RDS", "XML", "XLS", "XLSX")
 
+    if (!is.null(dots$varIDs) && length(dots$varIDs) == ncol(data)) {
+        for (i in seq(ncol(data))) {
+            attr(data[[i]], "ID") <- dots$varIDs[i]
+        }
+    }
+
     variables <- collectRMetadata(data)
 
     if (tp_to$fileext == "XML") {
@@ -612,8 +618,26 @@
             content = filetypes[which(fileexts == tp_from$fileext)]
         )
 
-        fileTxt <- makeElement("fileTxt", children = list(fileName, fileType))
+        dimensns <- makeElement(
+            "dimensns",
+            children = list(
+                makeElement("caseQnty", content = nrow(data)),
+                makeElement("varQnty", content = ncol(data))
+            )
+        )
+
+        fileTxt <- makeElement("fileTxt", children = list(fileName, fileType, dimensns))
         fileDscr <- makeElement("fileDscr", children = list(fileTxt))
+
+        fileid <- dots$fileid
+        if (!is.null(fileid)) {
+            if (!is.atomic(fileid) || !is.character(fileid) || length(fileid) != 1) {
+                admisc::stopError("The argument 'fileid' must be a single character string.")
+            }
+
+            names(fileid) <- "ID"
+            addAttributes(fileid, to = fileDscr)
+        }
 
         data[] <- lapply(data, function(x) {
             if (is.factor(x)) {
