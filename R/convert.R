@@ -178,14 +178,21 @@
 
     dots <- list(...)
     embed <- !isFALSE(dots$embed)
+
+    file_extension <- dots$file_extension
+    file_name <- dots$file_name
+    file_id <- dots$file_id
+    dots$file_extension <- NULL
+    dots$file_name <- NULL
+    dots$file_id <- NULL
+
     codeBook <- NULL
     dictionary <- dots$dictionary
 
     Robject <- FALSE
     if (is.character(from)) {
         tp_from <- treatPath(from, type = "*", single = TRUE)
-    }
-    else if (is.element("data.frame", class(from))) {
+    } else if (is.element("data.frame", class(from))) {
         Robject <- TRUE
         # filename <- as.character(substitute(from))
         # filename <- admisc::getName(funargs["from"], object = TRUE)
@@ -202,8 +209,10 @@
             filenames = filename,
             fileext = "RDS"
         )
-    }
-    else {
+
+        dots$file_extension <- NULL
+
+    } else {
         admisc::stopError("Unsuitable input.")
     }
 
@@ -610,12 +619,20 @@
 
         fileName <- makeElement(
             "fileName",
-            content = tp_from$filenames
+            content = ifelse(
+                is.null(file_name),
+                tp_from$filenames,
+                file_name
+            )
         )
+
+        if (is.null(file_extension)) {
+            file_extension <- tp_from$fileext
+        }
 
         fileType <- makeElement(
             "fileType",
-            content = filetypes[which(fileexts == tp_from$fileext)]
+            content = filetypes[which(fileexts == file_extension)]
         )
 
         dimensns <- makeElement(
@@ -629,14 +646,13 @@
         fileTxt <- makeElement("fileTxt", children = list(fileName, fileType, dimensns))
         fileDscr <- makeElement("fileDscr", children = list(fileTxt))
 
-        fileid <- dots$fileid
-        if (!is.null(fileid)) {
-            if (!is.atomic(fileid) || !is.character(fileid) || length(fileid) != 1) {
+        if (!is.null(file_id)) {
+            if (!is.atomic(file_id) || !is.character(file_id) || length(file_id) != 1) {
                 admisc::stopError("The argument 'fileid' must be a single character string.")
             }
 
-            names(fileid) <- "ID"
-            addAttributes(fileid, to = fileDscr)
+            names(file_id) <- "ID"
+            addAttributes(file_id, to = fileDscr)
         }
 
         data[] <- lapply(data, function(x) {
