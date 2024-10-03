@@ -1369,9 +1369,9 @@ NULL
         }
 
         files <- ifelse(
-            is.null(dots$fileid),
+            is.null(dots$file_id),
             "",
-            paste0(" files=\"", dots$fileid, "\"")
+            paste0(" files=\"", dots$file_id, "\"")
         )
 
         dcml <- ""
