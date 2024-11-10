@@ -63,13 +63,13 @@ cleanup(x, cdata = TRUE)
 
 coerceDDI(element, name = NULL)
 
-collectMetadata(dataset, ...)
+collectMetadata(from, ...)
 
-collectRMetadata(dataset, ...)
+collectRMetadata(from, ...)
 
 extractData(xml)
 
-formatExample(xml_node, level = 0, indent = 2)
+formatExample(xml_node, level = 0, indent = 2, output = NULL, ...)
 
 generateID(x, nchars = 16)
 
