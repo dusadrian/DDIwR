@@ -45,7 +45,7 @@
 #'     )
 #' )
 #'
-#' getMetadata(x)
+#' getMetadata(from = x)
 #'
 #' @return
 #' An R list roughly equivalent to a DDI Codebook, containing all variables,
@@ -54,7 +54,7 @@
 #'
 #' @author Adrian Dusa
 #'
-#' @param x A path to a file, or a data frame object
+#' @param from A path to a file, or a data frame object
 #'
 #' @param encoding The character encoding used to read a file
 #'
@@ -64,7 +64,7 @@
 #'
 #' @export
 
-`getMetadata` <- function(x, encoding = "UTF-8", ignore = NULL, ...) {
+`getMetadata` <- function(from = NULL, encoding = "UTF-8", ignore = NULL, ...) {
 
     # TODO: detect DDI version or ask the version through a dedicated argument
     # http://www.ddialliance.org/Specification/DDI-Codebook/2.5/XMLSchema/field_level_documentation.html
@@ -77,6 +77,10 @@
     DDIC <- get("DDIC", envir = cacheEnv)
 
     dots <- list(...)
+    if (is.null(from) & !is.null(dots$x)) {
+        from <- dots$x
+    }
+
     data <- NULL
 
     print_processing <- !isFALSE(dots$print_processing)
@@ -87,12 +91,12 @@
     user_na <- !isFALSE(dots$user_na) # force reading the value labels
     embed <- isTRUE(dots$embed)
 
-    if (is.null(x)) {
-        admisc::stopError("`x` should be a path or a data frame.")
+    if (is.null(from)) {
+        admisc::stopError("`from` should be a path or a data frame.")
     } else {
-        if (is.data.frame(x)) {
+        if (is.data.frame(from)) {
 
-            if (!hasLabels(x)) {
+            if (!hasLabels(from)) {
                 if (is.element("error_null", names(dots))) {
                     return(NULL)
                 }
@@ -106,14 +110,14 @@
 
                 fileName <- makeElement(
                     "fileName",
-                    content = admisc::getName(funargs$x)
+                    content = admisc::getName(funargs$from)
                 )
 
                 fileType <- makeElement("fileType", content = "R")
                 addChildren(list(fileName, fileType), to = fileTxt)
                 addChildren(fileTxt, to = fileDscr)
 
-                dataDscr <- collectMetadata(x, ... = ...)
+                dataDscr <- collectMetadata(from, ... = ...)
 
                 addChildren(list(dataDscr, fileDscr), to = codeBook)
 
@@ -121,7 +125,7 @@
             }
         }
         else {
-            if (!is.atomic(x) || !is.character(x) || length(x) != 1) {
+            if (!is.atomic(from) || !is.character(from) || length(from) != 1) {
                 admisc::stopError("A path should be a character vector of length 1.")
             }
         }
@@ -129,7 +133,7 @@
 
     fromsetupfile <- isTRUE(dots$fromsetupfile)
 
-    tp <- treatPath(x, type = "*")
+    tp <- treatPath(from, type = "*")
 
     singlefile <- length(tp$files) == 1
 
