@@ -61,21 +61,20 @@
 #' \url{https://ddialliance.org/Specification/DDI-Codebook/2.5/XMLSchema/field_level_documentation.html}
 #'
 #' @examples
-#'
 #' \dontrun{
-#' exportDDI(codeBook, file = "codebook.xml")
+#' exportDDI(codeBook, to = "codebook.xml")
 #'
 #' # using a namespace
-#' exportDDI(codeBook, file = "codebook.xml", xmlns = "ddi")
+#' exportDDI(codeBook, to = "codebook.xml", xmlns = "ddi")
 #' }
 #'
 #' @author Adrian Dusa
 #'
 #' @param codeBook A standard element of class `"DDI"`.
 #'
-#' @param file
+#' @param to
 #' either a character string naming a file or a connection open for
-#' writing. "" indicates output to the console
+#' writing ("" indicates output to the console)
 #'
 #' @param OS
 #' The target operating system, for the eol - end of line character(s)
@@ -85,8 +84,7 @@
 #' @param ... Other arguments, mainly for internal use
 #'
 #' @export
-`exportDDI` <- function(codeBook, file = "", OS = "", indent = 2, ...) {
-
+`exportDDI` <- function(codeBook, to = "", OS = "", indent = 2, ...) {
     # https://ddialliance.org/Specification/DDI-Codebook/2.5/XMLSchema/field_level_documentation.html
 
     # validation procedure:
@@ -101,6 +99,10 @@
 
     dots <- list(...)
 
+    if (identical(to, "") && !is.null(dots$file)) {
+        to <- dots$file
+    }
+
     if (codeBook$.extra$name == "codeBook") {
         if (any(
             is.element(
@@ -108,7 +110,6 @@
                 names(dots)
             )
         )) {
-
             if (!hasChildren(codeBook, "stdyDscr")) {
                 addChildren(
                     makeElement("stdyDscr", fill = TRUE, ... = ...),
@@ -145,8 +146,7 @@
     if (!isFALSE(dots$monolang) & !varxmlang) {
         codeBook <- changeXMLang(codeBook, remove = TRUE)
         attr(codeBook, "xml:lang") <- xmlang
-    }
-    else {
+    } else {
         codeBook <- changeXMLang(codeBook)
     }
 
@@ -167,9 +167,8 @@
                 attr(data[[i]], "ID") <- uuid[i]
             }
             addChildren(makeDataNotes(data), to = codeBook$fileDscr)
-        }
-        else if (!isFALSE(dots$csv)) {
-            tp_file <- treatPath(file, type = "*", single = TRUE, check = FALSE)
+        } else if (!isFALSE(dots$csv)) {
+            tp_file <- treatPath(to, type = "*", single = TRUE, check = FALSE)
             write.table(
                 undeclare(data, drop = TRUE),
                 file = file.path(
@@ -196,17 +195,16 @@
             "xmlns",
             NULL
         )
-    }
-    else {
+    } else {
         codeBook <- xml2::as_xml_document(
             list(codeBook = removeExtra(codeBook))
         )
     }
 
-    xml2::write_xml(codeBook, file = file)
+    xml2::write_xml(codeBook, file = to)
 
     if (!identical(indent, 2) || !identical(OS, "")) {
-        xmlfile <- readLines(file)
+        xmlfile <- readLines(to)
 
         defaultOS <- Sys.info()[["sysname"]]
         checkArgument(indent, default = 2)

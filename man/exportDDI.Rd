@@ -4,13 +4,13 @@
 \alias{exportDDI}
 \title{Export a DDI Codebook to an XML file.}
 \usage{
-exportDDI(codeBook, file = "", OS = "", indent = 2, ...)
+exportDDI(codeBook, to = "", OS = "", indent = 2, ...)
 }
 \arguments{
 \item{codeBook}{A standard element of class \code{"DDI"}.}
 
-\item{file}{either a character string naming a file or a connection open for
-writing. "" indicates output to the console}
+\item{to}{either a character string naming a file or a connection open for
+writing ("" indicates output to the console)}
 
 \item{OS}{The target operating system, for the eol - end of line character(s)}
 
@@ -74,12 +74,11 @@ The argument \strong{\code{indent}} controls how many spaces will be used in the
 file, to indent the different sub-elements.
 }
 \examples{
-
 \dontrun{
-exportDDI(codeBook, file = "codebook.xml")
+exportDDI(codeBook, to = "codebook.xml")
 
 # using a namespace
-exportDDI(codeBook, file = "codebook.xml", xmlns = "ddi")
+exportDDI(codeBook, to = "codebook.xml", xmlns = "ddi")
 }
 
 }
