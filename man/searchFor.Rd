@@ -5,21 +5,24 @@
 \title{Search for key words}
 \usage{
 searchFor(
-  word,
-  where = c("everywhere", "description", "examples", "attributes")
+  x,
+  where = c("everywhere", "title", "description", "attributes", "examples"),
+  ...
 )
 }
 \arguments{
-\item{word}{Character, either a word or a regular expression.}
+\item{x}{Character, either word(s) or a regular expression.}
 
-\item{where}{Character, in which sections to search for.}
+\item{where}{Character, in which section(s) to search for.}
+
+\item{...}{Other arguments to be passed to the grepl() function.}
 }
 \value{
 Character vector of DDI element names.
 }
 \description{
 Search function to return elements that contain a certain
-word of regular expression pattern.
+word or regular expression pattern.
 }
 \author{
 Adrian Dusa

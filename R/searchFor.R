@@ -3,21 +3,33 @@
 #' @title Search for key words
 #'
 #' @description Search function to return elements that contain a certain
-#' word of regular expression pattern.
+#' word or regular expression pattern.
 #'
-#' @param word Character, either a word or a regular expression.
-#' @param where Character, in which sections to search for.
+#' @param x Character, either word(s) or a regular expression.
+#' @param where Character, in which section(s) to search for.
+#' @param ... Other arguments to be passed to the grepl() function.
 #'
 #' @return Character vector of DDI element names.
 #'
 #' @author Adrian Dusa
 #' @export
 `searchFor` <- function(
-    word, where = c("everywhere", "description", "examples", "attributes")
+    x,
+    where = c("everywhere", "title", "description", "attributes", "examples"),
+    ...
 ) {
     tryit <- admisc::tryCatchWEM(
         where <- match.arg(where, several.ok = TRUE)
     )
+
+    `xmlcontent` <- function(x) {
+        xml2::xml_text(
+            xml2::xml_find_all(
+                xml2::read_xml(paste0("<root>", x, "</root>")),
+                ".//*"
+            )
+        )
+    }
 
     if (!is.null(tryit$error)) {
         admisc::stopError(
@@ -25,27 +37,58 @@
         )
     }
 
-    if (is.element("everywhere", where)) {
-        where <- c("description", "examples", "attributes")
+    if (is.element("everywhere", tolower(where))) {
+        where <- c("title", "description", "attributes", "examples")
     }
 
     DDIC <- get("DDIC", envir = cacheEnv)
 
-    hasword <- sapply(DDIC, function(x) {
+    hasword <- sapply(DDIC, function(element) {
         result <- FALSE
-        if (is.element("description", where)) {
-            result <- result | any(grepl(word, x$description))
+        if (is.element("title", tolower(where))) {
+            result <- result | any(
+                grepl(
+                    paste(x, collapse = "|"),
+                    element$title,
+                    ... = ...
+                )
+            )
         }
 
-        if (is.element("examples", where)) {
-            result <- result | any(grepl(word, x$examples))
+        if (is.element("description", tolower(where))) {
+            result <- result | any(
+                grepl(
+                    paste(x, collapse = "|"),
+                    element$description,
+                    ... = ...
+                )
+            )
         }
 
-        if (is.element("attributes", where)) {
-            result <- result | any(sapply(x$attributes, function(a) {
-                any(grepl(word, a$description))
-            }))
+        if (is.element("attributes", tolower(where)) && length(element$attributes) > 0) {
+            for (i in seq_along(element$attributes)) {
+                result <- result | any(
+                    grepl(
+                        paste(x, collapse = "|"),
+                        element$attributes[[i]]$description,
+                        ... = ...
+                    )
+                )
+            }
         }
+
+        if (is.element("examples", tolower(where)) && length(element$examples) > 0) {
+            for (i in seq_along(element$examples)) {
+                result <- result | any(
+                    grepl(
+                        paste(x, collapse = "|"),
+                        xmlcontent(element$examples[i]),
+                        ... = ...
+                    )
+                )
+            }
+        }
+
         return(result)
     })
 
