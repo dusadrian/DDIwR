@@ -1,4 +1,4 @@
-#' @name updateCodebook
+#' @name updateDDI
 #'
 #' @title
 #' Update Codebook.
@@ -17,7 +17,7 @@
 #' @param ... Other internal arguments.
 #'
 #' @export
-`updateCodebook` <- function(xmlfile, with, ...) {
+`updateDDI` <- function(xmlfile, with, ...) {
 
     DDIC <- get("DDIC", envir = cacheEnv)
 
@@ -107,4 +107,10 @@
     }
 
     writeLines(xml, con = xmlfile)
+}
+
+
+#' @export
+`updateCodebook` <- function(...) {
+    updateDDI(... = ...)
 }
