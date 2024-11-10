@@ -482,7 +482,7 @@ assign(
             description = "Statement of collection availability. An archive may need to indicate that a collection is unavailable because it is embargoed for a period of time, because it has been superseded, because a new edition is imminent, etc. It is anticipated that a controlled vocabulary will be developed for this element. This element contains the sub-element \"concept\" to support the use of an external controlled vocabulary. PLEASE NOTE A CHANGE IN USAGE INSTRUCTIONS: The string content of the element now contains the language specific label obtained from the controlled vocabulary. This allows for multiple languages through the repeated entry of the \"concept\" element. The attribute \"vocabInstanceCodeTerm\" has been added to accommodate the code term as it appears in the controlled vocabulary. See the high level documentation for a complete description of usage. Additional textual description is entered in the mixed text content or using the sub-element \"txt\".",
             examples = c(
                 "<avlStatus>This collection is superseded by CENSUS OF POPULATION, 1880 [UNITED STATES]: PUBLIC USE SAMPLE (ICPSR 6460).</avlStatus>",
-                "<avlStatus><concept vocab=\"ICPSR_Access_Restricted\" vocabURI=\"https://www.icpsr.umich.edu/web/pages/ICPSR/access/restricted/\"  vocabInstanceCodeTerm=\"1\">Secure Download</concept>Upon approval, researchers will receive an encrypted file via e-mail which they may download to the secure location specified in the application.</avlStatus>"
+                "<avlStatus><concept vocab=\"ICPSR_Access_Restricted\" vocabURI=\"https://www.icpsr.umich.edu/web/pages/ICPSR/access/restricted/\" vocabInstanceCodeTerm=\"1\">Secure Download</concept>Upon approval, researchers will receive an encrypted file via e-mail which they may download to the secure location specified in the application.</avlStatus>"
             )
         ),
         backward = list(
@@ -804,7 +804,6 @@ assign(
                 "<catLevel ID=\"Level1\" levelnm=\"Broader sectors\"/>",
                 "<catLevel ID=\"Level2\" levelnm=\"Narrower sectors\"/>",
                 "<catLevel ID=\"Level3\" levelnm=\"Occupations\"/>",
-                "[ comment ]",
                 "<catgry ID=\"C1\" catgry=\"C2\" level=\"Level1\"><catValu>0</catValu><labl>Management, professional and related occupations</labl></catgry>",
                 "<catgry ID=\"C2\" catgry=\"C3 C4\" level=\"Level2\"><catValu>01</catValu><labl>Management occupations</labl></catgry>",
                 "<catgry ID=\"C3\" level=\"Level3\"><catValu>011</catValu><labl>Top executives</labl></catgry>",
@@ -6029,9 +6028,8 @@ assign(
             parents = c("cohort", "invalrng", "valrng"),
             children = list(),
             title = "Value Range",
-            description = "Empty element consisting only of its attributes, containing the actual range of values.",
+            description = "Empty element consisting only of its attributes, containing the actual range of values. See examples for usage, for instance how to express x < 1 or 10 <= x < 20",
             examples = c(
-                "For example, x < 1 or 10 <= x < 20 would be expressed as:",
                 "<range maxExclusive=\"1\"/>",
                 "<range min=\"10\" maxExclusive=\"20\"/>"
             )
