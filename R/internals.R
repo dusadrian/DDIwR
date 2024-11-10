@@ -337,11 +337,15 @@ NULL
         }
 
         if (is.null(nms)) {
+            attrs$names <- c("", ".extra")
+            if (length(element) == 0) {
+                attrs$names <- ".extra"
+            }
+
             element <- c(
                 element,
                 list(list(name = name))
             )
-            attrs$names <- c("", ".extra")[seq(length(element))]
         }
         else {
             if (is.null(name)) {
@@ -377,14 +381,14 @@ NULL
 #' @rdname DDIwR_internal
 #' @keywords internal
 #' @export
-`collectMetadata` <- function(dataset, ...) {
+`collectMetadata` <- function(from, ...) {
     dots <- list(...)
 
-    if (is.data.frame(dataset)) {
+    if (is.data.frame(from)) {
         error <- TRUE
         i <- 1
-        while (i <= ncol(dataset) & error) {
-            attrx <- attributes(dataset[[i]])
+        while (i <= ncol(from) & error) {
+            attrx <- attributes(from[[i]])
             if (any(is.element(
                 c("label", "labels", "na_value", "na_range"),
                 names(attrx)
@@ -411,7 +415,7 @@ NULL
 
     return(
         makeXMLcodeBook(
-            data = dataset,
+            data = from,
             ... = ...
         )[[1]]$dataDscr
     )
@@ -423,14 +427,14 @@ NULL
 #' @rdname DDIwR_internal
 #' @keywords internal
 #' @export
-`collectRMetadata` <- function(dataset, ...) {
+`collectRMetadata` <- function(from, ...) {
     dots <- list(...)
 
-    if (is.data.frame(dataset)) {
+    if (is.data.frame(from)) {
         error <- TRUE
         i <- 1
-        while (i <= ncol(dataset) & error) {
-            attrx <- attributes(dataset[[i]])
+        while (i <= ncol(from) & error) {
+            attrx <- attributes(from[[i]])
             if (any(is.element(
                 c("label", "labels", "na_value", "na_range"),
                 names(attrx)
@@ -455,7 +459,7 @@ NULL
         )
     }
 
-    output <- lapply(dataset, function(x) {
+    output <- lapply(from, function(x) {
         result <- list(
             classes = class(x)
         )
@@ -631,7 +635,10 @@ NULL
 #' @rdname DDIwR_internal
 #' @keywords internal
 #' @export
-`formatExample` <- function(xml_node, level = 0, indent = 2) {
+`formatExample` <- function(xml_node, level = 0, indent = 2, output = NULL, ...) {
+    if (is.null(output)) {
+        output <- ""
+    }
     prespace <- repeatSpace(level, indent = indent)
     element <- paste0("<", xml2::xml_name(xml_node))
     attrs <- unlist(xml2::xml_attrs(xml_node))
@@ -652,62 +659,94 @@ NULL
 
     if (length(children) > 0) {
         element <- paste0(element, ">")
-        cat(paste(
-            strwrap(
-                element,
-                width = width,
-                prefix = prespace
-            ),
-            collapse = "\n"
-        ))
-        cat("\n")
-        for (child in children) {
-            formatExample(child, level + 1)
-            xml2::xml_remove(child)
-        }
-    }
-
-    text <- xml2::xml_text(xml_node)
-    if (nzchar(text)) {
-        if (length(children) == 0) {
-            element <- paste0(element, ">")
-            cat(paste(
+        output <- paste0(
+            output,
+            paste(
                 strwrap(
                     element,
                     width = width,
                     prefix = prespace
                 ),
                 collapse = "\n"
-            ))
-            cat("\n")
+            )
+        )
+        output <- paste0(output, "\n")
+        childoutput <- ""
+        for (child in children) {
+            childoutput <- paste0(
+                childoutput,
+                formatExample(child, level + 1, output = childoutput)
+            )
+            xml2::xml_remove(child)
         }
+        output <- paste0(output, childoutput)
+    }
+
+
+    text <- xml2::xml_text(xml_node)
+
+    if (nzchar(text)) {
+        if (length(children) == 0) {
+            element <- paste0(element, ">")
+            output <- paste0(
+                output,
+                paste(
+                    strwrap(
+                        element,
+                        width = width,
+                        prefix = prespace
+                    ),
+                    collapse = "\n"
+                )
+            )
+            output <- paste0(output, "\n")
+        }
+
         prespaceplus <- repeatSpace(level + 1, indent = indent)
-        writeLines(strwrap(
-            text,
-            width = width,
-            prefix = prespaceplus
-        ))
+
+        output <- paste0(
+            output,
+            paste(
+                strwrap(
+                    text,
+                    width = width,
+                    prefix = prespaceplus
+                ),
+                collapse = "\n"
+            )
+        )
+        output <- paste0(output, "\n")
     }
 
     if (text == "" & length(children) == 0) {
         element <- paste0(element, "/>")
-        cat(paste(
-            strwrap(
-                element,
-                width = width,
-                prefix = prespace
-            ),
-            collapse = "\n"
-        ))
+        output <- paste0(
+            output,
+            paste(
+                strwrap(
+                    element,
+                    width = width,
+                    prefix = prespace
+                ),
+                collapse = "\n"
+            )
+        )
     }
     else {
-        cat(strwrap(
-            paste0("</", xml2::xml_name(xml_node), ">"),
-            width = width,
-            prefix = prespace
-        ))
+        output <- paste0(
+            output,
+            paste(
+                strwrap(
+                    paste0("</", xml2::xml_name(xml_node), ">"),
+                    width = width,
+                    prefix = prespace
+                ),
+                collapse = "\n"
+            )
+        )
     }
-    cat("\n")
+
+    return(paste0(output, "\n"))
 }
 
 
@@ -1474,7 +1513,7 @@ NULL
                 printnum <- printnum | (length(vals) > 2 & grepl("num", type))
             }
 
-            if (length(vals) > 1) {
+            if (length(unique(vals)) > 1) {
                 valrng <- range(vals)
                 cat(paste("<", ns, "valrng>", enter, sep = ""))
                 cat(paste0(
@@ -1485,59 +1524,59 @@ NULL
                     enter
                 ))
                 cat(paste0("</", ns, "valrng>", enter))
-            }
 
-            if (printnum) { # numeric variable
-                cat(paste0(
-                    "<", ns, "sumStat type=\"min\">",
-                    format(
-                        min(vals, na.rm = TRUE),
-                        scientific = FALSE
-                    ),
-                    "</", ns, "sumStat>",
-                    enter
-                ))
+                if (printnum) { # numeric variable
+                    cat(paste0(
+                        "<", ns, "sumStat type=\"min\">",
+                        format(
+                            min(vals, na.rm = TRUE),
+                            scientific = FALSE
+                        ),
+                        "</", ns, "sumStat>",
+                        enter
+                    ))
 
-                cat(paste0(
-                    "<", ns, "sumStat type=\"max\">",
-                    format(
-                        max(vals, na.rm = TRUE),
-                        scientific = FALSE
-                    ),
-                    "</", ns, "sumStat>",
-                    enter
-                ))
+                    cat(paste0(
+                        "<", ns, "sumStat type=\"max\">",
+                        format(
+                            max(vals, na.rm = TRUE),
+                            scientific = FALSE
+                        ),
+                        "</", ns, "sumStat>",
+                        enter
+                    ))
 
-                cat(paste0(
-                    "<", ns, "sumStat type=\"mean\">",
-                    format(
-                        mean(vals, na.rm = TRUE),
-                        scientific = FALSE
-                    ),
-                    "</", ns, "sumStat>",
-                    enter
-                ))
+                    cat(paste0(
+                        "<", ns, "sumStat type=\"mean\">",
+                        format(
+                            mean(vals, na.rm = TRUE),
+                            scientific = FALSE
+                        ),
+                        "</", ns, "sumStat>",
+                        enter
+                    ))
 
-                cat(paste0(
-                    "<", ns, "sumStat type=\"medn\">",
-                    format(
-                        median(vals, na.rm = TRUE),
-                        scientific = FALSE
-                    ),
-                    "</", ns, "sumStat>",
-                    enter,
-                    sep = ""
-                ))
+                    cat(paste0(
+                        "<", ns, "sumStat type=\"medn\">",
+                        format(
+                            median(vals, na.rm = TRUE),
+                            scientific = FALSE
+                        ),
+                        "</", ns, "sumStat>",
+                        enter,
+                        sep = ""
+                    ))
 
-                cat(paste0(
-                    "<", ns, "sumStat type=\"stdev\">",
-                    format(
-                        sd(vals, na.rm = TRUE),
-                        scientific = FALSE
-                    ),
-                    "</", ns, "sumStat>",
-                    enter
-                ))
+                    cat(paste0(
+                        "<", ns, "sumStat type=\"stdev\">",
+                        format(
+                            sd(vals, na.rm = TRUE),
+                            scientific = FALSE
+                        ),
+                        "</", ns, "sumStat>",
+                        enter
+                    ))
+                }
             }
         }
         else if (!is.null(data)){
