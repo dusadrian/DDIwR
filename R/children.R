@@ -120,7 +120,19 @@
     if (!is.null(choice)) {
         existing <- names(to)
         uchildren <- setdiff(uchildren, existing)
-        if (length(uchildren) && any(is.element(uchildren, choice))) {
+
+        restriction <- FALSE
+
+        if (identical(existing, ".extra")) {
+            if (length(uchildren) > 1) {
+                restriction <- TRUE
+            }
+        }
+        else if (length(uchildren) && any(is.element(uchildren, choice))) {
+            restriction <- TRUE
+        }
+
+        if (restriction) {
             admisc::stopError(
                 sprintf(
                     "Choice restriction, only one of these children should be added: %s.",
