@@ -41,6 +41,11 @@
 #' associated mandatory children, for instance title, ID number, distributor,
 #' citation, abstract etc.
 #'
+#' The complete list of elements for which default values are added is: "IDNo",
+#' "titl", "titlStmt", "distrbtr", "distStmt", "holdings", "citation",
+#' "abstract", "stdyInfo", "stdyDscr", "prodDate", "software", "prodStmt",
+#' "docDscr" and "otherMat".
+#'
 #' @author Adrian Dusa
 #'
 #' @seealso
@@ -52,7 +57,7 @@
 #' stdyDscr <- makeElement("stdyDscr", fill = TRUE)
 #'
 #' # easier to extract with:
-#' getChildren("stdyDscr/citation/titlStmt/titl", from = stdyDscr)
+#' getChildren("citation/titlStmt/titl", from = stdyDscr)
 #'
 #' @export
 `makeElement` <- function(
@@ -196,8 +201,8 @@
         else if (identical(name, "otherMat")) {
             return(makeElement("otherMat", attributes = c(level = level)))
         }
-        else {
-            admisc::stopError("No default for this element.")
+        else if (!isFALSE(dots$message)) {
+            message("\nThis element does not have any defaults.\n")
         }
     }
 

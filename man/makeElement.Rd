@@ -59,12 +59,17 @@ provided through the "\code{...}" gate.
 One such DDI Codebook element is the \code{stdyDscr} (Study Description), with the
 associated mandatory children, for instance title, ID number, distributor,
 citation, abstract etc.
+
+The complete list of elements for which default values are added is: "IDNo",
+"titl", "titlStmt", "distrbtr", "distStmt", "holdings", "citation",
+"abstract", "stdyInfo", "stdyDscr", "prodDate", "software", "prodStmt",
+"docDscr" and "otherMat".
 }
 \examples{
 stdyDscr <- makeElement("stdyDscr", fill = TRUE)
 
 # easier to extract with:
-getChildren("stdyDscr/citation/titlStmt/titl", from = stdyDscr)
+getChildren("citation/titlStmt/titl", from = stdyDscr)
 
 }
 \seealso{
