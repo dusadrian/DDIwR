@@ -1,4 +1,4 @@
-#' @name exportDDI
+#' @name exportCodebook
 #' @title
 #' Export a DDI Codebook to an XML file.
 #'
@@ -62,10 +62,10 @@
 #'
 #' @examples
 #' \dontrun{
-#' exportDDI(codeBook, to = "codebook.xml")
+#' exportCodebook(codeBook, to = "codebook.xml")
 #'
 #' # using a namespace
-#' exportDDI(codeBook, to = "codebook.xml", xmlns = "ddi")
+#' exportCodebook(codeBook, to = "codebook.xml", xmlns = "ddi")
 #' }
 #'
 #' @author Adrian Dusa
@@ -84,7 +84,7 @@
 #' @param ... Other arguments, mainly for internal use
 #'
 #' @export
-`exportDDI` <- function(codeBook, to = "", OS = "", indent = 2, ...) {
+`exportCodebook` <- function(codeBook, to = "", OS = "", indent = 2, ...) {
     # https://ddialliance.org/Specification/DDI-Codebook/2.5/XMLSchema/field_level_documentation.html
 
     # validation procedure:

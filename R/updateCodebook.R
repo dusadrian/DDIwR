@@ -1,4 +1,4 @@
-#' @name updateDDI
+#' @name updateCodebook
 #'
 #' @title
 #' Update Codebook.
@@ -17,7 +17,7 @@
 #' @param ... Other internal arguments.
 #'
 #' @export
-`updateDDI` <- function(xmlfile, with, ...) {
+`updateCodebook` <- function(xmlfile, with, ...) {
 
     DDIC <- get("DDIC", envir = cacheEnv)
 
@@ -68,7 +68,7 @@
 
     tmp <- tempdir()
 
-    monolang <- codeBook$.extra$monolang
+    monolang <- with$.extra$monolang
     if (is.null(monolang)) monolang <- FALSE
 
     codeBook <- removeExtra(changeXMLang(with, remove = monolang))
@@ -107,10 +107,4 @@
     }
 
     writeLines(xml, con = xmlfile)
-}
-
-
-#' @export
-`updateCodebook` <- function(...) {
-    updateDDI(... = ...)
 }

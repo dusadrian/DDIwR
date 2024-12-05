@@ -2327,6 +2327,26 @@ NULL
 
 
 
+#' @rdname DDIwR_internal
+#' @keywords internal
+#' @export
+`getMetadata` <- function(...) {
+    message("Function getMetadata() was deprecated, use getCodebook() instead.")
+    getCodebook(...)
+}
+
+
+#' @rdname DDIwR_internal
+#' @keywords internal
+#' @export
+`exportDDI` <- function(...) {
+    message("Function exportDDI() was deprecated, use exportCodebook() instead.")
+    exportCodebook(...)
+}
+
+
+
+
 ##------------------------------------------------------------------------------
 ## TODO: modify this function according to DDIC
 

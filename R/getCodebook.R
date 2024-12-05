@@ -1,4 +1,4 @@
-#' @name getMetadata
+#' @name getCodebook
 #'
 #' @title Extract metadata information
 #'
@@ -45,7 +45,7 @@
 #'     )
 #' )
 #'
-#' getMetadata(from = x)
+#' getCodebook(from = x)
 #'
 #' @return
 #' An R list roughly equivalent to a DDI Codebook, containing all variables,
@@ -64,7 +64,7 @@
 #'
 #' @export
 
-`getMetadata` <- function(from = NULL, encoding = "UTF-8", ignore = NULL, ...) {
+`getCodebook` <- function(from = NULL, encoding = "UTF-8", ignore = NULL, ...) {
 
     # TODO: detect DDI version or ask the version through a dedicated argument
     # http://www.ddialliance.org/Specification/DDI-Codebook/2.5/XMLSchema/field_level_documentation.html
