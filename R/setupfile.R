@@ -357,7 +357,7 @@
 
         for (i in seq(length(labelist$files))) {
             if (pathtofiles) {
-                obj <- getMetadata(
+                obj <- getCodebook(
                     file.path(
                         labelist$completePath,
                         labelist$files[i]
@@ -367,7 +367,7 @@
                     # save = saveFile
                 )
 
-                ### --- TODO getMetadata() doesn't embed the data anymore...
+                ### --- TODO getCodebook() doesn't embed the data anymore...
                 ## do I really need to?
                 # tmp <- extractData(obj)
 
