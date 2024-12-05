@@ -32,8 +32,8 @@
 #' \tabular{ll}{
 #'   Package: \tab DDIwR\cr
 #'   Type: \tab Package\cr
-#'   Version: \tab 0.18.7\cr
-#'   Date: \tab 2024-09-27\cr
+#'   Version: \tab 0.18.8\cr
+#'   Date: \tab 2024-10-07\cr
 #'   License: \tab GPL-v3\cr
 #' }
 #'

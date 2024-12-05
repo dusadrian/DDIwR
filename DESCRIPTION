@@ -1,6 +1,6 @@
 Package: DDIwR
 Title: DDI with R
-Version: 0.18.7
+Version: 0.18.8
 Authors@R: person(
     "Adrian", "Dusa",
     email = "dusa.adrian@unibuc.ro",
@@ -14,7 +14,7 @@ Description: Useful functions for various DDI (Data Documentation Initiative)
 License: GPL (>= 3)
 Depends: R (>= 3.5.0)
 Imports:
-    admisc (> 0.35),
+    admisc (> 0.36),
     base64enc,
     declared (> 0.24),
     digest,
