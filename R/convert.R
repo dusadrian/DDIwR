@@ -38,8 +38,8 @@
 #' specifying `user_na = FALSE` in function **`convert()`**.
 #'
 #' The same three dots argument is used to pass additional parameters to other
-#' functions in this package, for instance **`exportDDI()`** when converting to
-#' a DDI file. One of its argument **`embed`** (activated by default) can be
+#' functions in this package, for instance **`exportCodebook()`** when writing
+#' to a DDI file. One of its argument **`embed`** (activated by default) can be
 #' used to control embedding the data in the XML file. Deactivating it will
 #' create a CSV file in the same directory, using the same file name as the
 #' XML file.
@@ -139,7 +139,7 @@
 #'
 #' @seealso
 #' \code{\link{setupfile}},
-#' \code{\link{getMetadata}},
+#' \code{\link{getCodebook}},
 #' \code{\link[declared]{declared}}
 #'
 #' @author Adrian Dusa
@@ -664,7 +664,7 @@
 
         addChildren(fileDscr, to = codeBook)
 
-        exportDDI(
+        exportCodebook(
             codeBook,
             file = to,
             data = data,
@@ -920,7 +920,7 @@
         }
 
         setupfile(
-            obj = getMetadata(arglist$data),
+            obj = getCodebook(arglist$data),
             file = to,
             type = "SAS",
             csv = arglist$data,

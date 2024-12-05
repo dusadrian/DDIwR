@@ -73,8 +73,8 @@ having the value of \code{TRUE}, and it can be deactivated by explicitly
 specifying \code{user_na = FALSE} in function \strong{\code{convert()}}.
 
 The same three dots argument is used to pass additional parameters to other
-functions in this package, for instance \strong{\code{exportDDI()}} when converting to
-a DDI file. One of its argument \strong{\code{embed}} (activated by default) can be
+functions in this package, for instance \strong{\code{exportCodebook()}} when writing
+to a DDI file. One of its argument \strong{\code{embed}} (activated by default) can be
 used to control embedding the data in the XML file. Deactivating it will
 create a CSV file in the same directory, using the same file name as the
 XML file.
@@ -173,7 +173,7 @@ DDI - Data Documentation Initiative, see the
 }
 \seealso{
 \code{\link{setupfile}},
-\code{\link{getMetadata}},
+\code{\link{getCodebook}},
 \code{\link[declared]{declared}}
 }
 \author{
