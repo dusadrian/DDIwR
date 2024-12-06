@@ -854,7 +854,7 @@ NULL
     if (target_os == "WINDOWS" | target_os == "WIN") {
         enter <- ifelse(current_os == "Windows", "\n", "\r\n")
     }
-    else if (target_os == "LINUX") {
+    else if (target_os == "LINUX" | target_os == "EMSCRIPTEN") {
         enter <- "\n"
     }
     else if (
