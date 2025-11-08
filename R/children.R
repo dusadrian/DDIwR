@@ -155,6 +155,15 @@
     attrbs$names <- attrbs$names[corder]
     attributes(to) <- attrbs
 
+    nms <- names(to)
+    if (length(nms) > 0) {
+        for (i in seq_along(nms)) {
+            if (!identical(nms[i], ".extra") && !identical(nms[i], "")) {
+                to[[i]]$.extra$index <- sum(nms[seq_len(i)] == nms[i])
+            }
+        }
+    }
+
     if (overwrite) {
         admisc::overwrite(objname, to, parent.frame())
     }

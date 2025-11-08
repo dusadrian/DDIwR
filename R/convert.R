@@ -173,7 +173,7 @@
     )
 
     # if (missing(to)) {
-    #     admisc::stopError("sprintf("Argument %s is missing.", dQuote("to").")
+    #     admisc::stopError(sprintf("Argument %s is missing.", dQuote("to").)
     # }
 
     dots <- list(...)

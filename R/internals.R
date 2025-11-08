@@ -360,12 +360,18 @@ NULL
                 return(coerceDDI(element[[1]], name = nms))
             }
 
-            element <- c(
-                lapply(seq_along(nms), function(i) {
-                    coerceDDI(element[[i]], nms[i])
-                }),
-                list(list(name = name))
-            )
+            children <- lapply(seq_along(nms), function(i) {
+                coerceDDI(element[[i]], nms[i])
+            })
+
+            if (length(children) > 0) {
+                for (i in seq_along(children)) {
+                    idx <- sum(nms[seq_len(i)] == nms[i])
+                    children[[i]]$.extra$index <- idx
+                }
+            }
+
+            element <- c(children, list(list(name = name)))
 
             attrs$names <- c(nms, ".extra")
         }
