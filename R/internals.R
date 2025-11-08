@@ -303,8 +303,9 @@ NULL
     x <- gsub("&amp;", "&", x)
     x <- gsub("&lt;", "<", x)
     x <- gsub("&gt;", ">", x)
-    x <- gsub("^[[:space:]]+|[[:space:]]+$", "", x)
+    x <- gsub("&apos;|&quot;", "'", x)
     x <- gsub("\"", "'", x)
+    x <- gsub("^[[:space:]]+|[[:space:]]+$", "", x)
 
     # replace backslash with a forward slash
     x <- gsub("\\\\", "/", x)
@@ -1856,16 +1857,11 @@ NULL
 #' @export
 `replaceChars` <- function(x) {
     x <- replaceTicks(x)
-    x <- gsub(
-        "<", "&lt;",
-        gsub(
-            ">", "&gt;",
-            gsub(
-                "&", "&amp;",
-                x
-            )
-        )
-    )
+    x <- gsub("<", "&lt;", x, fixed = TRUE)
+    x <- gsub(">", "&gt;", x, fixed = TRUE)
+    x <- gsub("&", "&amp;", x, fixed = TRUE)
+    x <- gsub('"', "&quot;", x, fixed = TRUE)
+    x <- gsub("'", "&apos;", x, fixed = TRUE)
 
     x <- gsub("\\n", " ", x)
     x <- gsub(paste(admisc::dashes(), collapse = "|"), "-", x)
