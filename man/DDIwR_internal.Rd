@@ -43,6 +43,7 @@
 \alias{getMetadata}
 \alias{exportDDI}
 \alias{writeRlist}
+\alias{normalizeRepeatedSiblings}
 \title{DDIwR internal functions}
 \usage{
 ascii(x)
@@ -126,6 +127,8 @@ getMetadata(...)
 exportDDI(...)
 
 writeRlist(variables, OS = "windows", indent = 4, dirpath = "", filename = "")
+
+normalizeRepeatedSiblings(x)
 }
 \arguments{
 \item{x}{Number of ID values to return}

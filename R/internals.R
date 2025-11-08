@@ -2564,3 +2564,44 @@ makedfm <- function() {
 
     return(dfm)
 }
+
+
+#' @rdname DDIwR_internal
+#' @keywords internal
+#' @export
+`normalizeRepeatedSiblings` <- function(x) {
+    if (!is.list(x)) return(x)
+
+    # Recurse into children first
+    x <- lapply(x, normalizeRepeatedSiblings)
+
+    nms <- names(x)
+    if (is.null(nms)) return(x)  # already an array (unnamed list)
+
+    base <- sub("\\.\\d+$", "", nms)
+    uniq <- unique(base)
+
+    out <- setNames(vector("list", length(uniq)), uniq)
+
+    for (b in uniq) {
+        idxs <- which(base == b)
+        keys <- nms[idxs]
+
+        # Detect numeric suffixes of form .<digits>
+        has_num <- grepl("\\.\\d+$", keys)
+        num <- ifelse(has_num, as.integer(sub("^.*\\.(\\d+)$", "\\1", keys)), NA_integer_)
+
+        # Order: unsuffixed first, then by numeric suffix ascending
+        ord <- order(has_num, num, na.last = TRUE)
+        vals <- x[idxs][ord]
+
+        # If single and no suffix siblings, keep as object; otherwise array
+        if (length(vals) == 1L && !any(has_num)) {
+            out[[b]] <- vals[[1L]]
+        } else {
+            out[[b]] <- unname(vals)
+        }
+    }
+
+    out
+}
