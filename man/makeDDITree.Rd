@@ -2,29 +2,19 @@
 % Please edit documentation in R/makeDDITree.R
 \name{makeDDITree}
 \alias{makeDDITree}
-\title{Build a DDI Codebook tree structure}
+\title{Build the DDI Codebook tree structure}
 \usage{
-makeDDITree(root = "codeBook", max_depth = Inf, include_meta = TRUE)
+makeDDITree(root = "codeBook")
 }
 \arguments{
 \item{root}{Character, the root element to start from (default \code{"codeBook"}).}
-
-\item{max_depth}{Integer, the maximum depth to traverse (default \code{Inf}).}
-
-\item{include_meta}{Logical, include element metadata like \code{title},
-\code{optional}, \code{repeatable}, \code{deprecated}, \code{recommended}, \code{type} (default TRUE).}
-
-\item{DDIC}{The DDI structure object. Defaults to the object obtained via
-\code{get("DDIC", envir = cacheEnv)}.}
 }
 \value{
-A nested list representing the element tree, or a JSON string if
-\code{as_json = TRUE} and package \code{jsonlite} is available.
+A nested list representing the element tree.
 }
 \description{
 Builds a tree-shaped representation of the DDI Codebook 2.6 element
-hierarchy using the in-package structure definition (\code{DDIC}). The result can
-be returned as an R list or serialized to JSON.
+hierarchy using the in-package structure definition.
 }
 \examples{
 

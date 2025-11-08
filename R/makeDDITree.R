@@ -1,21 +1,14 @@
 #' @name makeDDITree
 #'
-#' @title Build a DDI Codebook tree structure
+#' @title Build the DDI Codebook tree structure
 #'
 #' @description
 #' Builds a tree-shaped representation of the DDI Codebook 2.6 element
-#' hierarchy using the in-package structure definition (`DDIC`). The result can
-#' be returned as an R list or serialized to JSON.
+#' hierarchy using the in-package structure definition.
 #'
-#' @return A nested list representing the element tree, or a JSON string if
-#' `as_json = TRUE` and package `jsonlite` is available.
+#' @return A nested list representing the element tree.
 #'
 #' @param root Character, the root element to start from (default `"codeBook"`).
-#' @param DDIC The DDI structure object. Defaults to the object obtained via
-#' `get("DDIC", envir = cacheEnv)`.
-#' @param max_depth Integer, the maximum depth to traverse (default `Inf`).
-#' @param include_meta Logical, include element metadata like `title`,
-#' `optional`, `repeatable`, `deprecated`, `recommended`, `type` (default TRUE).
 #'
 #' @examples
 #'
@@ -24,11 +17,14 @@
 #'
 #' @export
 `makeDDITree` <- function(
-    root = "codeBook",
-    max_depth = Inf,
-    include_meta = TRUE
+    root = "codeBook"
 ) {
     DDIC <- get("DDIC", envir = cacheEnv)
+    max_depth <- Inf
+
+    # include element metadata like `title`,`optional`,
+    # `repeatable`, `deprecated`, `recommended`, `type` (default TRUE).
+    include_meta <- TRUE
 
     if (!is.list(DDIC) || is.null(DDIC[[root]])) {
         admisc::stopError(sprintf("Root element '%s' not found in DDIC.", root))
