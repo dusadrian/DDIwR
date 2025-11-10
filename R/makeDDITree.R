@@ -1,111 +1,69 @@
 #' @name makeDDITree
 #'
-#' @title Build the DDI Codebook tree structure
+#' @title Build a simplified DDI Codebook tree
 #'
 #' @description
 #' Builds a tree-shaped representation of the DDI Codebook 2.6 element
-#' hierarchy using the in-package structure definition.
+#' hierarchy using only element names and their title descriptions.
+#' The result is a nested list where each node is labeled as
+#' "<element>: <title>". Leaf nodes are returned as empty lists so every
+#' level consistently contains lists.
 #'
-#' @return A nested list representing the element tree.
+#' @return A nested (tree) list of labels in the form "<element>: <title>",
+#' plus a list of all elements.
 #'
 #' @param root Character, the root element to start from (default `"codeBook"`).
 #'
 #' @examples
 #'
-#' # Build the tree as an R list
+#' # Build the simplified tree as an R list
 #' tree <- makeDDITree()
 #'
 #' @export
-`makeDDITree` <- function(
-    root = "codeBook"
-) {
+`makeDDITree` <- function(root = "codeBook") {
     DDIC <- get("DDIC", envir = cacheEnv)
-    max_depth <- Inf
-
-    # include element metadata like `title`,`optional`,
-    # `repeatable`, `deprecated`, `recommended`, `type` (default TRUE).
-    include_meta <- TRUE
 
     if (!is.list(DDIC) || is.null(DDIC[[root]])) {
         admisc::stopError(sprintf("Root element '%s' not found in DDIC.", root))
     }
 
-    build_node <- function(name, depth, path_stack) {
-        if (is.null(DDIC[[name]])) {
-            # Unknown element in schema; return minimal node
-            return(list(name = name))
-        }
-
+    # Build children list with consistent list structure:
+    # - Every child is added as a named list entry (label -> list of children)
+    # - Leaves use an empty list as their value
+    build_children <- function(name, visited) {
         spec <- DDIC[[name]]
-        node <- list(name = name)
-
-        if (isTRUE(include_meta)) {
-            node$type <- spec$type
-            node$title <- spec$title
-            node$optional <- isTRUE(spec$optional)
-            node$repeatable <- isTRUE(spec$repeatable)
-            node$recommended <- isTRUE(spec$recommended)
-            node$deprecated <- isTRUE(spec$deprecated)
-        }
-
-        if (!is.null(spec$attributes)) {
-            # Keep a lightweight view of attributes: name + type (and optional)
-            atts <- spec$attributes
-            node$attributes <- lapply(names(atts), function(an) {
-                list(
-                    name = an,
-                    type = atts[[an]]$type,
-                    optional = isTRUE(atts[[an]]$optional),
-                    recommended = isTRUE(atts[[an]]$recommended),
-                    deprecated = isTRUE(atts[[an]]$deprecated)
-                )
-            })
-        }
-
-        if (depth >= max_depth) {
-            return(node)
-        }
 
         ch <- spec$children
         if (is.null(ch) || length(ch) == 0) {
-            return(node)
+            return(NULL)
         }
 
-        if (is.null(ch$choice)) {
-            child_names <- unlist(ch)
-            if (length(child_names)) {
-                node$children <- lapply(child_names, function(cn) {
-                    if (cn %in% path_stack) {
-                        return(list(name = cn, ref = TRUE))
-                    }
-                    build_node(cn, depth + 1, c(path_stack, name))
-                })
-            }
-        } else {
-            choice_names <- ch$choice
-            node$choice <- lapply(choice_names, function(cn) {
-                if (cn %in% path_stack) {
-                    return(list(name = cn, ref = TRUE))
-                }
-                build_node(cn, depth + 1, c(path_stack, name))
-            })
-            # Also include any non-choice children (if present)
-            non_choice <- setdiff(unlist(ch), choice_names)
-            if (length(non_choice)) {
-                node$children <- lapply(non_choice, function(cn) {
-                    if (cn %in% path_stack) {
-                        return(list(name = cn, ref = TRUE))
-                    }
-                    build_node(cn, depth + 1, c(path_stack, name))
-                })
-            }
+        child_names <- unique(unlist(ch, use.names = FALSE))
+        if (length(child_names) == 0) {
+            return(NULL)
         }
 
-        return(node)
+        res <- list()
+        for (cn in child_names) {
+            if (cn %in% visited || is.null(DDIC[[cn]])) {
+                next
+            }
+            cspec <- DDIC[[cn]]
+            label <- paste0(cn, ": ", cspec$title)
+            grand <- build_children(cn, c(visited, name))
+            if (is.null(grand)) grand <- list()
+            tmp <- list(grand)
+            names(tmp) <- label
+            res <- c(res, tmp)
+        }
+        res
     }
 
-    tree <- build_node(root, depth = 0, path_stack = character(0))
+    root_spec <- DDIC[[root]]
+    root_label <- paste0(root, ": ", root_spec$title)
+    tree <- list()
+    tree[[root_label]] <- build_children(root, visited = character())
+    tree$elements <- DDIC
 
     return(tree)
 }
-

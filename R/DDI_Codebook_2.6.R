@@ -327,6 +327,30 @@ assign(
             description = "Summary of actions taken to minimize data loss. Includes information on actions such as follow-up visits, supervisory checks, historical matching, estimation, etc. This element contains the sub-element \"concept\" to support the use of an external controlled vocabulary. PLEASE NOTE A CHANGE IN USAGE INSTRUCTIONS: The string content of the element now contains the language specific label obtained from the controlled vocabulary. This allows for multiple languages through the repeated entry of the \"concept\" element. The attribute \"vocabInstanceCodeTerm\" has been added to accommodate the code term as it appears in the controlled vocabulary. See the high level documentation for a complete description of usage. Additional textual description is entered in the mixed text content or using the sub-element \"txt\".",
             examples = "<actMin>To minimize the number of unresolved cases and reduce the potential nonresponse bias, four follow-up contacts were made with agencies that had not responded by various stages of the data collection process.</actMin>"
         ),
+        algorithmSpecification = list(
+            optional = TRUE,
+            repeatable = FALSE,
+            recommended = FALSE,
+            deprecated = FALSE,
+            attributes = list(),
+            parents = "dataFingerprint",
+            children = list(),
+            title = "",
+            description = "",
+            examples = c()
+        ),
+        algorithmVersion = list(
+            optional = TRUE,
+            repeatable = FALSE,
+            recommended = FALSE,
+            deprecated = FALSE,
+            attributes = list(),
+            parents = "dataFingerprint",
+            children = list(),
+            title = "",
+            description = "",
+            examples = c()
+        ),
         altTitl = list(
             type = "simpleTextType",
             optional = TRUE,
@@ -468,6 +492,87 @@ assign(
                 "<AuthEnty affiliation=\"European Commission\">Rabier, Jacques-Rene</AuthEnty>",
                 "<AuthEnty personalID=\"0000-0002-4402-9644\" typeOfAgentIdentifier=\"ORCID\">Shepherdson, John</AuthEnty>"
             )
+        ),
+        authorizingAgency = list(
+            type = "authorizingAgencyType",
+            optional = TRUE,
+            repeatable = TRUE,
+            recommended = FALSE,
+            deprecated = FALSE,
+            attributes = list(
+                affiliation = list(
+                    type = "string",
+                    description = "Institutional affiliation of the authorizing agent or agency.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                abbr = list(
+                    type = "string",
+                    description = "Abbreviation for the authorizing agent's or agency's name",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                agentIdentifier = list(
+                    type = "string",
+                    description = "Identifier of the authorizing agency.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                typeOfAgentIdentifier = list(
+                    type = "string",
+                    description = "Type of identifier, should be provided if agentIdentifier is used.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isPersistantIdentifier = list(
+                    type = "boolean",
+                    description = "Indicate if the agent identifier is intended to be a persistent identifier",
+                    values = c("true", "false"),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                agentType = list(
+                    type = "NMTOKEN",
+                    description = "Type of authorizing agency: organization or individual.",
+                    values = c("organization", "individual"),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
+            parents = "studyAuthorization",
+            children = list(),
+            title = "Authorizing Agency",
+            description = "Name of the agent or agency that authorized the study.",
+            examples = "<authorizingAgency affiliation=\"Purdue University\" abbr=\"OUHS\">Office for Use of Human Subjects</authorizingAgency>"
+        ),
+        authorizationStatement = list(
+            type = "simpleTextType",
+            optional = TRUE,
+            repeatable = TRUE,
+            recommended = FALSE,
+            deprecated = FALSE,
+            attributes = list(),
+            parents = "studyAuthorization",
+            children = list(),
+            title = "Authorization Statement",
+            description = "The text of the authorization. Use XHTML to capture significant structure in the document.",
+            examples = "<authorizationStatement>Required documentation covering the study purpose, disclosure information, questionnaire content, and consent statements was delivered to the OUHS on 2010-10-01 and was reviewed by the compliance officer. Statement of authorization for the described study was issued on 2010-11-04</authorizationStatement>"
         ),
         avlStatus = list(
             type = "conceptualTextType",
@@ -2313,6 +2418,18 @@ assign(
             description = "Describes the training provided to data collectors including interviewer training, process testing, compliance with standards etc. This is repeatable for language and to capture different aspects of the training process. The use of the attribute \"type\" as a means of specifying a controlled vocabulary concept is DEPRECATED. To specify the use of a Controlled Vocabulary or standard concept use the internal element \"concept\". If multiple concepts are needed the parent element should be replicated. Internal text related to each concept should be allocated to accompany the relevant concept.",
             examples = "<collectorTraining><concept vocab=\"TrainingObject\" vocabURI=\"http://xyzdatacollection.org/vocabularies/TrainingObject\" vocabInstanceURI=\"http://xyzdatacollection.org/vocabularies/TrainingObject#InterviewerTraining\">InterviewerTraining</concept>Describe research project, describe population and sample, suggest methods and language for approaching subjects, explain questions and key terms of survey instrument.</collectorTraining>"
         ),
+        complianceDescription = list(
+            optional = TRUE,
+            repeatable = TRUE,
+            recommended = FALSE,
+            deprecated = FALSE,
+            attributes = list(),
+            parents = "standardsCompliance",
+            children = list(),
+            title = "",
+            description = "",
+            examples = c()
+        ),
         dataCollector = list(
             type = "dataCollectorType",
             optional = TRUE,
@@ -2655,6 +2772,18 @@ assign(
             description = "Used only in the case of a derived variable, this element provides both a description of how the derivation was performed and the command used to generate the derived variable, as well as a specification of the other variables in the study used to generate the derivation. Alternatively the variables may be expressed as a range using the varRange element. Note that use of varRange is implementation dependent. Since the order of variables can change during the execution of a script, it is computationally difficult to identify which variables belong to a variable range.  It has been provided to support the automated creation of derivation information. Order should be determined by the physical order expressed in location as opposed to the order expressed in the metadata document. varRange should only be used when the physical order of variables is available and machine-actionable.",
             examples = "<derivation var=\"V4 V9\"><drvdesc>Taxible Income (V10) expressed as a combination of wage and salary income (V4) plus interest income (V9)</drvdesc><drvcmd syntax=\"SPSS\">V10=V4+V9</drvcmd></derivation>"
         ),
+        description = list(
+            optional = TRUE,
+            repeatable = TRUE,
+            recommended = FALSE,
+            deprecated = FALSE,
+            attributes = list(),
+            parents = "developmentActivity",
+            children = list(),
+            title = "",
+            description = "",
+            examples = c()
+        ),
         deviat = list(
             type = "simpleTextType",
             optional = TRUE,
@@ -2694,6 +2823,18 @@ assign(
             title = "Data Fingerprint",
             description = "Allows for assigning a hash value (digital fingerprint) to the data or data file. One approach to compute a data fingerprint is the Universal Numerical Fingerprint (UNF). Provide the digital fingerprint in \"digitalFingerprintValue\" and identify the algorithm specification used in \"algorithmSpecification\" (adding a version number in \"algorithmVersion\" as a separate entry if it is not part of the specification entry).",
             examples = "<dataFingerprint type=\"data\"><digitalFingerprintValue>UNF:3:DaYlT6QSX9r0D50ye+tXpA== </digitalFingerprintValue><algorithmSpecification>UNF v5.0 Calculation Production [http://thedata.org/book/unf-version-5-0]</algorithmSpecification><algorithmVersion>UNF V5</algorithmVersion></dataFingerprint>"
+        ),
+        digitalFingerprintValue = list(
+            optional = FALSE,
+            repeatable = FALSE,
+            recommended = FALSE,
+            deprecated = FALSE,
+            attributes = list(),
+            parents = "dataFingerprint",
+            children = list(),
+            title = "",
+            description = "",
+            examples = c()
         ),
         dimensns = list(
             type = "dimensnsType",
@@ -3220,6 +3361,128 @@ assign(
             description = "Measure of how precisely one can estimate a population value from a given sample.",
             examples = "<EstSmpErr> To assist NES analysts, the PC SUDAAN program was used to compute sampling errors for a wide-ranging example set of proportions estimated from the 1996 NES Pre-election Survey dataset. For each estimate, sampling errors were computed for the total sample and for twenty demographic and political affiliation subclasses of the 1996 NES Pre-election Survey sample. The results of these sampling error computations were then summarized and translated into the general usage sampling error table provided in Table 11. The mean value of deft, the square root of the design effect, was found to be 1.346. The design effect was primarily due to weighting effects (Kish, 1965) and did not vary significantly by subclass size. Therefore the generalized variance table is produced by multiplying the simple random sampling standard error for each proportion and sample size by the average deft for the set of sampling error computations.</EstSmpErr>"
         ),
+        evaluator = list(
+            type = "evaluatorType",
+            optional = TRUE,
+            repeatable = TRUE,
+            recommended = FALSE,
+            deprecated = FALSE,
+            attributes = list(
+                affiliation = list(
+                    type = "string",
+                    description = "Affiliation of the evaluator with an agency or organization.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                abbr = list(
+                    type = "string",
+                    description = "Abbreviation for the evaluator.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                role = list(
+                    type = "string",
+                    description = "The role played by the individual or organization in the evaluation process.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                agentIdentifier = list(
+                    type = "string",
+                    description = "Identifier of the evaluator.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                typeOfAgentIdentifier = list(
+                    type = "string",
+                    description = "Type of identifier, should be provided if agentIdentifier is used.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isPersistantIdentifier = list(
+                    type = "boolean",
+                    description = "Indicate if the agent identifier is intended to be a persistent identifier",
+                    values = c("true", "false"),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                agentType = list(
+                    type = "NMTOKEN",
+                    description = "Type of evaluator: organization or individual.",
+                    values = c("organization", "individual"),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
+            parents = "exPostEvaluation",
+            children = list(),
+            title = "Evaluator Type",
+            description = "The evaluator element identifies persons or organizations involved in the evaluation process.",
+            examples = "<evaluator affiliation=\"United Nations\" abbr=\"UNSD\" role=\"consultant\">United Nations Statistical Division</evaluator>"
+        ),
+        evaluationProcess = list(
+            type = "conceptualTextType",
+            optional = TRUE,
+            repeatable = TRUE,
+            recommended = FALSE,
+            deprecated = FALSE,
+            attributes = list(),
+            parents = "exPostEvaluation",
+            children = list(choice = c("concept", "txt")),
+            title = "Evaluation Process",
+            description = "Describes the evaluation process followed. Use the contained \"concept\" element when a controlled vocabulary is used.",
+            examples = "<evaluationProcess><concept>meta-evaluation</concept>An evaluation of the quality of this series of evaluations and its adherence to established good practice in evaluation. It is based on and presents summaries of existing evaluations of each instrument.</evaluationProcess>"
+        ),
+        exPostEvaluation = list(
+            type = "exPostEvaluationType",
+            optional = TRUE,
+            repeatable = TRUE,
+            recommended = FALSE,
+            deprecated = FALSE,
+            attributes = list(
+                completionDate = list(
+                    type = "dateSimpleType",
+                    description = "Holds the date the evaluation was completed.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                type = list(
+                    type = "string",
+                    description = "DEPRECATED.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = TRUE
+                )
+            ),
+            parents = "stdyInfo",
+            children = list("typeOfExPostEvaluation", "evaluator", "evaluationProcess", "outcomes"),
+            title = "Post Evaluation Procedures",
+            description = "Use this section to describe evaluation procedures not address in data evaluation processes. These may include issues such as timing of the study, sequencing issues, cost/budget issues, relevance, institutional or legal arrangements etc. of the study. The type attribute has been DEPRECATED. Use the element typeOfExPostEvaluation to identify the type of evaluation with or without the use of a controlled vocabulary.",
+            examples = "<exPostEvaluation completionDate=\"2003\" type=\"comprehensive\"><typeOfExPostEvaluation>comprehensive</typeOfExPostEvaluation><evaluator affiliation=\"United Nations\" abbr=\"UNSD\" role=\"consultant\">United Nations Statistical Division</evaluator><evaluationProcess>In-depth review of pre-collection and collection procedures</evaluationProcess><outcomes>The following steps were highly effective in increasing response rates, and should be repeated in the next collection cycle...</outcomes></exPostEvaluation>"
+        ),
         fileCommand = list(
             type = "fileCommandType",
             optional = TRUE,
@@ -3268,7 +3531,7 @@ assign(
             children = list("fileCommand"),
             title = "File Derivation",
             description = "The element allows for the description of the file commands used to creation the file derivation.",
-        examples = "<fileDerivation sourceFiles=\"F1\"><fileCommand><drvdesc>Delete AGE, MARITAL from the dataset.</drvdesc><drvcmd source=\"producer\" syntax=\"spss\">delete variables AGE MARITAL.</drvcmd><drvcmd source=\"archive\" syntax=\"sdtl-pojo\">{
+            examples = "<fileDerivation sourceFiles=\"F1\"><fileCommand><drvdesc>Delete AGE, MARITAL from the dataset.</drvdesc><drvcmd source=\"producer\" syntax=\"spss\">delete variables AGE MARITAL.</drvcmd><drvcmd source=\"archive\" syntax=\"sdtl-pojo\">{
                 \"$type\" : \"DeleteVariables\",
                 \"command\" : \"delete\",
                 \"sourceInformation\" : {
@@ -5451,6 +5714,43 @@ assign(
             description = "Other materials relating to the study description. This section describes other materials that are related to the study description that are primarily descriptions of the content and use of the study, such as appendices, sampling information, weighting details, methodological and technical details, publications based upon the study content, related studies or collections of studies, etc. This section may point to other materials related to the description of the study through use of the generic citation element, which is available for each element in this section. This maps to Dublin Core Relation element. Note that codeBook/otherMat (Other Study-Related Materials), should be used for materials used in the production of the study or useful in the analysis of the study. The materials in codeBook/otherMat may be entered as PCDATA (ASCII text) directly into the document (through use of the txt element). That section may also serve as a \"container\" for other electronic materials by providing a brief description of the study-related materials accompanied by the \"type\" and \"level\" attributes further defining the materials. Other Study-Related Materials in codeBook/otherMat may include: questionnaires, coding notes, SPSS/SAS/Stata setup files (and others), user manuals, continuity guides, sample computer software programs, glossaries of terms, interviewer/project instructions, maps, database schema, data dictionaries, show cards, coding information, interview schedules, missing values information, frequency files, variable maps, etc.",
             examples = c()
         ),
+        outcome = list(
+            optional = TRUE,
+            repeatable = TRUE,
+            recommended = FALSE,
+            deprecated = FALSE,
+            attributes = list(),
+            parents = "developmentActivity",
+            children = list(),
+            title = "",
+            description = "",
+            examples = c()
+        ),
+        outcomes = list(
+            type = "simpleTextType",
+            optional = TRUE,
+            repeatable = TRUE,
+            recommended = FALSE,
+            deprecated = FALSE,
+            attributes = list(),
+            parents = "exPostEvaluation",
+            children = list(),
+            title = "Evaluation Outcomes",
+            description = "Describe the outcomes of the evaluation.",
+            examples = "<outcomes>The following steps were highly effective in increasing response rates, and should be repeated in the next collection cycle...</outcomes>"
+        ),
+        otherQualityStatement = list(
+            optional = TRUE,
+            repeatable = TRUE,
+            recommended = FALSE,
+            deprecated = FALSE,
+            attributes = list(),
+            parents = "qualityStatement",
+            children = list(),
+            title = "",
+            description = "",
+            examples = c()
+        ),
         parTitl = list(
             type = "simpleTextType",
             optional = TRUE,
@@ -7005,87 +7305,6 @@ assign(
             description = "Provides structured information on the agency that authorized the study, the date of authorization, and an authorization statement.",
             examples = "<studyAuthorization date=\"2010-11-04\"><authorizingAgency affiliation=\"University of Georgia\" abbr=\"HSO\">Human Subjects Office</authorizingAgency><authorizationStatement>Statement of authorization issued by OUHS on 2010-11-04</authorizationStatement></studyAuthorization>"
         ),
-        authorizingAgency = list(
-            type = "authorizingAgencyType",
-            optional = TRUE,
-            repeatable = TRUE,
-            recommended = FALSE,
-            deprecated = FALSE,
-            attributes = list(
-                affiliation = list(
-                    type = "string",
-                    description = "Institutional affiliation of the authorizing agent or agency.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                abbr = list(
-                    type = "string",
-                    description = "Abbreviation for the authorizing agent's or agency's name",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                agentIdentifier = list(
-                    type = "string",
-                    description = "Identifier of the authorizing agency.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                typeOfAgentIdentifier = list(
-                    type = "string",
-                    description = "Type of identifier, should be provided if agentIdentifier is used.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                isPersistantIdentifier = list(
-                    type = "boolean",
-                    description = "Indicate if the agent identifier is intended to be a persistent identifier",
-                    values = c("true", "false"),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                agentType = list(
-                    type = "NMTOKEN",
-                    description = "Type of authorizing agency: organization or individual.",
-                    values = c("organization", "individual"),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                )
-            ),
-            parents = "studyAuthorization",
-            children = list(),
-            title = "Authorizing Agency",
-            description = "Name of the agent or agency that authorized the study.",
-            examples = "<authorizingAgency affiliation=\"Purdue University\" abbr=\"OUHS\">Office for Use of Human Subjects</authorizingAgency>"
-        ),
-        authorizationStatement = list(
-            type = "simpleTextType",
-            optional = TRUE,
-            repeatable = TRUE,
-            recommended = FALSE,
-            deprecated = FALSE,
-            attributes = list(),
-            parents = "studyAuthorization",
-            children = list(),
-            title = "Authorization Statement",
-            description = "The text of the authorization. Use XHTML to capture significant structure in the document.",
-            examples = "<authorizationStatement>Required documentation covering the study purpose, disclosure information, questionnaire content, and consent statements was delivered to the OUHS on 2010-10-01 and was reviewed by the compliance officer. Statement of authorization for the described study was issued on 2010-11-04</authorizationStatement>"
-        ),
         stdyInfo = list(
             type = "stdyInfoType",
             optional = TRUE,
@@ -7178,141 +7397,6 @@ assign(
             title = "Standard Name",
             description = "Contains the name of the standard with which the study complies.",
             examples = "<standardName date=\"2009-10-18\" version=\"3.1\" URI=\"http://www.ddialliance.org/Specification/DDI-Lifecycle/3.1/\">Data Documentation Initiative</standardName>"
-        ),
-        exPostEvaluation = list(
-            type = "exPostEvaluationType",
-            optional = TRUE,
-            repeatable = TRUE,
-            recommended = FALSE,
-            deprecated = FALSE,
-            attributes = list(
-                completionDate = list(
-                    type = "dateSimpleType",
-                    description = "Holds the date the evaluation was completed.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                type = list(
-                    type = "string",
-                    description = "DEPRECATED.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = TRUE
-                )
-            ),
-            parents = "stdyInfo",
-            children = list("typeOfExPostEvaluation", "evaluator", "evaluationProcess", "outcomes"),
-            title = "Post Evaluation Procedures",
-            description = "Use this section to describe evaluation procedures not address in data evaluation processes. These may include issues such as timing of the study, sequencing issues, cost/budget issues, relevance, institutional or legal arrangements etc. of the study. The type attribute has been DEPRECATED. Use the element typeOfExPostEvaluation to identify the type of evaluation with or without the use of a controlled vocabulary.",
-            examples = "<exPostEvaluation completionDate=\"2003\" type=\"comprehensive\"><typeOfExPostEvaluation>comprehensive</typeOfExPostEvaluation><evaluator affiliation=\"United Nations\" abbr=\"UNSD\" role=\"consultant\">United Nations Statistical Division</evaluator><evaluationProcess>In-depth review of pre-collection and collection procedures</evaluationProcess><outcomes>The following steps were highly effective in increasing response rates, and should be repeated in the next collection cycle...</outcomes></exPostEvaluation>"
-        ),
-        evaluator = list(
-            type = "evaluatorType",
-            optional = TRUE,
-            repeatable = TRUE,
-            recommended = FALSE,
-            deprecated = FALSE,
-            attributes = list(
-                affiliation = list(
-                    type = "string",
-                    description = "Affiliation of the evaluator with an agency or organization.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                abbr = list(
-                    type = "string",
-                    description = "Abbreviation for the evaluator.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                role = list(
-                    type = "string",
-                    description = "The role played by the individual or organization in the evaluation process.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                agentIdentifier = list(
-                    type = "string",
-                    description = "Identifier of the evaluator.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                typeOfAgentIdentifier = list(
-                    type = "string",
-                    description = "Type of identifier, should be provided if agentIdentifier is used.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                isPersistantIdentifier = list(
-                    type = "boolean",
-                    description = "Indicate if the agent identifier is intended to be a persistent identifier",
-                    values = c("true", "false"),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                agentType = list(
-                    type = "NMTOKEN",
-                    description = "Type of evaluator: organization or individual.",
-                    values = c("organization", "individual"),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                )
-            ),
-            parents = "exPostEvaluation",
-            children = list(),
-            title = "Evaluator Type",
-            description = "The evaluator element identifies persons or organizations involved in the evaluation process.",
-            examples = "<evaluator affiliation=\"United Nations\" abbr=\"UNSD\" role=\"consultant\">United Nations Statistical Division</evaluator>"
-        ),
-        evaluationProcess = list(
-            type = "conceptualTextType",
-            optional = TRUE,
-            repeatable = TRUE,
-            recommended = FALSE,
-            deprecated = FALSE,
-            attributes = list(),
-            parents = "exPostEvaluation",
-            children = list(choice = c("concept", "txt")),
-            title = "Evaluation Process",
-            description = "Describes the evaluation process followed. Use the contained \"concept\" element when a controlled vocabulary is used.",
-            examples = "<evaluationProcess><concept>meta-evaluation</concept>An evaluation of the quality of this series of evaluations and its adherence to established good practice in evaluation. It is based on and presents summaries of existing evaluations of each instrument.</evaluationProcess>"
-        ),
-        outcomes = list(
-            type = "simpleTextType",
-            optional = TRUE,
-            repeatable = TRUE,
-            recommended = FALSE,
-            deprecated = FALSE,
-            attributes = list(),
-            parents = "exPostEvaluation",
-            children = list(),
-            title = "Evaluation Outcomes",
-            description = "Describe the outcomes of the evaluation.",
-            examples = "<outcomes>The following steps were highly effective in increasing response rates, and should be repeated in the next collection cycle...</outcomes>"
         ),
         studyBudget = list(
             type = "simpleTextType",
@@ -8700,42 +8784,6 @@ assign(
             description = "The applied use of the element is found in the parent item. PLEASE NOTE A CHANGE IN USAGE INSTRUCTIONS: The string content of the element now contains the language specific label obtained from the controlled vocabulary. This allows for multiple languages through the repeated entry of the \"concept\" element. See the high level documentation for a complete description of usage.",
             examples = c()
         ),
-        digitalFingerprintValue = list(
-            optional = FALSE,
-            repeatable = FALSE,
-            recommended = FALSE,
-            deprecated = FALSE,
-            attributes = list(),
-            parents = "dataFingerprint",
-            children = list(),
-            title = "",
-            description = "",
-            examples = c()
-        ),
-        algorithmSpecification = list(
-            optional = TRUE,
-            repeatable = FALSE,
-            recommended = FALSE,
-            deprecated = FALSE,
-            attributes = list(),
-            parents = "dataFingerprint",
-            children = list(),
-            title = "",
-            description = "",
-            examples = c()
-        ),
-        algorithmVersion = list(
-            optional = TRUE,
-            repeatable = FALSE,
-            recommended = FALSE,
-            deprecated = FALSE,
-            attributes = list(),
-            parents = "dataFingerprint",
-            children = list(),
-            title = "",
-            description = "",
-            examples = c()
-        ),
         typeOfCodingInstruction = list(
             type = "conceptType",
             optional = TRUE,
@@ -9209,54 +9257,6 @@ assign(
             children = list(),
             title = "Type of Development Activity",
             description = "The applied use of the element is found in the parent item. PLEASE NOTE A CHANGE IN USAGE INSTRUCTIONS: The string content of the element now contains the language specific label obtained from the controlled vocabulary. This allows for multiple languages through the repeated entry of the \"concept\" element. See the high level documentation for a complete description of usage.",
-            examples = c()
-        ),
-        description = list(
-            optional = TRUE,
-            repeatable = TRUE,
-            recommended = FALSE,
-            deprecated = FALSE,
-            attributes = list(),
-            parents = "developmentActivity",
-            children = list(),
-            title = "",
-            description = "",
-            examples = c()
-        ),
-        outcome = list(
-            optional = TRUE,
-            repeatable = TRUE,
-            recommended = FALSE,
-            deprecated = FALSE,
-            attributes = list(),
-            parents = "developmentActivity",
-            children = list(),
-            title = "",
-            description = "",
-            examples = c()
-        ),
-        otherQualityStatement = list(
-            optional = TRUE,
-            repeatable = TRUE,
-            recommended = FALSE,
-            deprecated = FALSE,
-            attributes = list(),
-            parents = "qualityStatement",
-            children = list(),
-            title = "",
-            description = "",
-            examples = c()
-        ),
-        complianceDescription = list(
-            optional = TRUE,
-            repeatable = TRUE,
-            recommended = FALSE,
-            deprecated = FALSE,
-            attributes = list(),
-            parents = "standardsCompliance",
-            children = list(),
-            title = "",
-            description = "",
             examples = c()
         ),
         typeOfExPostEvaluation = list(

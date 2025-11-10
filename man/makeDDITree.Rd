@@ -2,7 +2,7 @@
 % Please edit documentation in R/makeDDITree.R
 \name{makeDDITree}
 \alias{makeDDITree}
-\title{Build the DDI Codebook tree structure}
+\title{Build a simplified DDI Codebook tree}
 \usage{
 makeDDITree(root = "codeBook")
 }
@@ -10,15 +10,19 @@ makeDDITree(root = "codeBook")
 \item{root}{Character, the root element to start from (default \code{"codeBook"}).}
 }
 \value{
-A nested list representing the element tree.
+A nested (tree) list of labels in the form "\if{html}{\out{<element>}}: \if{html}{\out{<title>}}",
+plus a list of all elements.
 }
 \description{
 Builds a tree-shaped representation of the DDI Codebook 2.6 element
-hierarchy using the in-package structure definition.
+hierarchy using only element names and their title descriptions.
+The result is a nested list where each node is labeled as
+"\if{html}{\out{<element>}}: \if{html}{\out{<title>}}". Leaf nodes are returned as empty lists so every
+level consistently contains lists.
 }
 \examples{
 
-# Build the tree as an R list
+# Build the simplified tree as an R list
 tree <- makeDDITree()
 
 }
