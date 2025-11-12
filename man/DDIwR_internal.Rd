@@ -40,6 +40,7 @@
 \alias{writeMetadata}
 \alias{XMLtoRmetadata}
 \alias{makeNotes}
+\alias{getEnv}
 \alias{getMetadata}
 \alias{exportDDI}
 \alias{writeRlist}
@@ -120,6 +121,8 @@ writeMetadata(variables, OS = "", indent = 4)
 XMLtoRmetadata(xmlvar, dns)
 
 makeNotes(data)
+
+getEnv()
 
 getMetadata(...)
 

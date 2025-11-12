@@ -2332,6 +2332,14 @@ NULL
 #' @rdname DDIwR_internal
 #' @keywords internal
 #' @export
+`getEnv` <- function() {
+    return(cacheEnv)
+}
+
+
+#' @rdname DDIwR_internal
+#' @keywords internal
+#' @export
 `getMetadata` <- function(...) {
     message("Function getMetadata() was deprecated, use getCodebook() instead.")
     getCodebook(...)
