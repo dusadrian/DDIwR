@@ -167,52 +167,6 @@ assign(
             description = "Formatting element: marks a word or phrase as graphically distinct from the surrounding text, while making no claim for the reasons.",
             examples = c()
         ),
-        list = list(
-            type = "listType",
-            optional = TRUE,
-            repeatable = TRUE,
-            recommended = FALSE,
-            deprecated = FALSE,
-            attributes = list(
-                type = list(
-                    type = "NMTOKEN",
-                    description = "",
-                    values = c("ordered", "bulleted", "simple", "gloss"),
-                    default = "simple",
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                )
-            ),
-            parents = c("emph", "head", "hi", "itm", "p"),
-            children = list(choice = c("itm", "label")),
-            title = "List",
-            description = "Formatting element: contains any sequence of items (entries) organized as a list.",
-            examples = c()
-        ),
-        itm = list(
-            type = "itmType",
-            optional = TRUE,
-            repeatable = TRUE,
-            recommended = FALSE,
-            deprecated = FALSE,
-            attributes = list(
-                type = list(
-                    type = "string",
-                    description = "",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                )
-            ),
-            parents = "list",
-            children = list(choice = c("emph", "hi", "list", "p", "label")),
-            title = "Item",
-            description = "Formatting element: marks entries (items) in a list.",
-            examples = c()
-        ),
         label = list(
             type = "labelType",
             optional = TRUE,
@@ -415,6 +369,19 @@ assign(
             title = "Analysis Unit",
             description = "",
             examples = c("<var><anlysUnit><concept vocabInstanceCodeTerm=\"constituency\">constituency level</concept>This variable reports election returns at the constituency level.</anlysUnit></var>")
+        ),
+        attribute = list(
+            type = "attributeType",
+            optional = TRUE,
+            repeatable = FALSE,
+            recommended = FALSE,
+            deprecated = FALSE,
+            attributes = list(),
+            parents = "usage",
+            children = list(),
+            title = "Attribute",
+            description = "Identifies an attribute within the element(s) identified by the selector or specificElements in which the controlled vocabulary is used. The fully qualified name used here must correspond to that in the instance, which is to say that if the attribute is namespace qualified, the prefix used here must match that which is defined in the instance.",
+            examples = "<attribute>type</attribute>"
         ),
         AuthEnty = list(
             type = "AuthEntyType",
@@ -1826,76 +1793,40 @@ assign(
             description = "Identifies the code list scheme using a URN.",
             examples = "<codeListSchemeURN>http://www.ddialliance.org/Specification/DDI-CV/TimeMethod_1.1_Genericode1.0_DDI-CVProfile1.0.xml</codeListSchemeURN>"
         ),
-        usage = list(
-            type = "usageType",
+        collectorTraining = list(
+            type = "collectorTrainingType",
+            optional = TRUE,
+            repeatable = TRUE,
+            recommended = FALSE,
+            deprecated = FALSE,
+            attributes = list(
+                type = list(
+                    type = "string",
+                    description = "Type of training being described. DEPRECATED.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = TRUE
+                )
+            ),
+            parents = "dataColl",
+            children = list("concept", "txt"),
+            title = "Collector Training",
+            description = "Describes the training provided to data collectors including interviewer training, process testing, compliance with standards etc. This is repeatable for language and to capture different aspects of the training process. The use of the attribute \"type\" as a means of specifying a controlled vocabulary concept is DEPRECATED. To specify the use of a Controlled Vocabulary or standard concept use the internal element \"concept\". If multiple concepts are needed the parent element should be replicated. Internal text related to each concept should be allocated to accompany the relevant concept.",
+            examples = "<collectorTraining><concept vocab=\"TrainingObject\" vocabURI=\"http://xyzdatacollection.org/vocabularies/TrainingObject\" vocabInstanceURI=\"http://xyzdatacollection.org/vocabularies/TrainingObject#InterviewerTraining\">InterviewerTraining</concept>Describe research project, describe population and sample, suggest methods and language for approaching subjects, explain questions and key terms of survey instrument.</collectorTraining>"
+        ),
+        complianceDescription = list(
             optional = TRUE,
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
             attributes = list(),
-            parents = "controlledVocabUsed",
-            children = list(choice = c("selector", "specificElements"), "attribute"),
-            title = "Usage",
-            description = "Defines where in the instance the controlled vocabulary which is identified is utilized. A controlled vocabulary may occur either in the content of an element or in an attribute on an element. The usage can either point to a collection of elements using an XPath via the selector element or point to a more specific collection of elements via their identifier using the specificElements element. If the controlled vocabulary occurs in an attribute within the element, the attribute element identifies the specific attribute. When specific elements are specified, an authorized code value may also be provided. If the current value of the element or attribute identified is not in the controlled vocabulary or is not identical to a code value, the authorized code value identifies a valid code value corresponding to the meaning of the content in the element or attribute.",
+            parents = "standardsCompliance",
+            children = list(),
+            title = "",
+            description = "",
             examples = c()
-        ),
-        selector = list(
-            type = "selectorType",
-            optional = FALSE,
-            repeatable = FALSE,
-            recommended = FALSE,
-            deprecated = FALSE,
-            attributes = list(),
-            parents = "usage",
-            children = list(),
-            title = "Selector",
-            description = "Identifies a collection of elements in which a controlled vocabulary is used. This is a simplified XPath which must correspond to the actual instance in which it occurs, which is to say that the fully qualified element names here must correspond to those in the instance. This XPath can only identify elements and does not allow for any predicates. The XPath must either be rooted or deep.",
-            examples = c()
-        ),
-        specificElements = list(
-            type = "specificElementsType",
-            optional = FALSE,
-            repeatable = FALSE,
-            recommended = FALSE,
-            deprecated = FALSE,
-            attributes = list(
-                refs = list(
-                    type = "IDREFS",
-                    description = "IDs of the specific elements.",
-                    values = c(),
-                    default = c(),
-                    optional = FALSE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                authorizedCodeValue = list(
-                    type = "NMTOKEN",
-                    description = "A valid code value corresponding to the meaning of the content in the element or attribute when the identified element or attribute does not use an actual valid value from the controlled vocabulary.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                )
-            ),
-            parents = "usage",
-            children = list(),
-            title = "Specific Elements",
-            description = "Identifies a collection of specific elements via their identifiers in the refs attribute, which allows for a tokenized list of identifier values which must correspond to identifiers which exist in the instance.",
-            examples = "<specificElements refs=\"ICPSR4328timeMeth\" authorizedCodeValue=\"CrossSection\"/>"
-        ),
-        attribute = list(
-            type = "attributeType",
-            optional = TRUE,
-            repeatable = FALSE,
-            recommended = FALSE,
-            deprecated = FALSE,
-            attributes = list(),
-            parents = "usage",
-            children = list(),
-            title = "Attribute",
-            description = "Identifies an attribute within the element(s) identified by the selector or specificElements in which the controlled vocabulary is used. The fully qualified name used here must correspond to that in the instance, which is to say that if the attribute is namespace qualified, the prefix used here must match that which is defined in the instance.",
-            examples = "<attribute>type</attribute>"
         ),
         copyright = list(
             type = "simpleTextType",
@@ -1954,369 +1885,6 @@ assign(
                 "<CubeCoord coordNo=\"2\" coordVal=\"7\"/>",
                 "<CubeCoord coordNo=\"3\" coordVal=\"2\" coordValRef=\"AGE-3\"/>"
             )
-        ),
-        dataAccs = list(
-            type = "dataAccsType",
-            optional = TRUE,
-            repeatable = TRUE,
-            recommended = FALSE,
-            deprecated = FALSE,
-            attributes = list(),
-            parents = "stdyDscr",
-            children = list("typeOfAccess", "setAvail", "license", "useStmt", "notes"),
-            title = "Data Access",
-            description = "This section describes access conditions and terms of use for the data collection. In cases where access conditions differ across individual files or variables, multiple access conditions can be specified. In cases where access conditions differ across individual files, variables, or categories multiple access conditions can be specified. The access conditions applying to a study, file, variable group, variable or category can be indicated by an IDREF attribute on the study, file, variable group, nCube group, variable, category, or data item elements called \"access\". The member element \"typeOfAccss\" is of the type \"concept\" and is intended to provide a specific type of access. If a license applies to the data access, use the optional \"license\" element.",
-            examples = c()
-        ),
-        dataAppr = list(
-            type = "dataApprType",
-            optional = TRUE,
-            repeatable = TRUE,
-            recommended = FALSE,
-            deprecated = FALSE,
-            attributes = list(
-                type = list(
-                    type = "string",
-                    description = "Used to specify a controlled vocabulary concept. DEPRECATED.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = TRUE
-                )
-            ),
-            parents = "anlyInfo",
-            children = list("concept", "txt"),
-            title = "Other Forms of Data Appraisal",
-            description = "Other issues pertaining to data appraisal. Describe here issues such as response variance, nonresponse rate and testing for bias, interviewer and response bias, confidence levels, question bias, etc. The use of the attribute \"type\" as a means of specifying a controlled vocabulary concept is DEPRECATED. To specify the use of a Controlled Vocabulary or standard concept use the internal element \"concept\". If multiple concepts are needed the parent element should be replicated. Internal text related to each concept should be allocated to accompany the relevant concept.",
-            examples = "<dataAppr><concept vocab=\"IPUMS\" vocabInstanceCodeType=\"ProducerAppraised\">Appraised by Producer</concept>These data files were obtained from the United States House of Representatives, who received them from the Census Bureau accompanied by the following caveats: \"The numbers contained herein are not official 1990 decennial Census counts. The numbers represent estimates of the population based on a statistical adjustment method applied to the official 1990 Census figures using a sample survey intended to measure overcount or undercount in the Census results. On July 15, 1991, the Secretary of Commerce decided not to adjust the official 1990 decennial Census counts (see 56 Fed. Reg. 33582, July 22, 1991). In reaching his decision, the Secretary determined that there was not sufficient evidence that the adjustment method accurately distributed the population across and within states. The numbers contained in these tapes, which had to be produced prior to the Secretary's decision, are now known to be biased. Moreover, the tapes do not satisfy standards for the publication of Federal statistics, as established in Statistical Policy Directive No. 2, 1978, Office of Federal Statistical Policy and Standards. Accordingly, the Department of Commerce deems that these numbers cannot be used for any purpose that legally requires use of data from the decennial Census and assumes no responsibility for the accuracy of the data for any purpose whatsoever. The Department will provide no assistance in interpretation or use of these numbers.\"</dataAppr>"
-        ),
-        dataChck = list(
-            type = "conceptualTextType",
-            optional = TRUE,
-            repeatable = TRUE,
-            recommended = FALSE,
-            deprecated = FALSE,
-            attributes = list(),
-            parents = "fileTxt",
-            children = list(choice = c("concept", "txt")),
-            title = "Extent of Processing Checks",
-            description = "Indicate here, at the file level, the types of checks and operations performed on the data file. Use the internal \"concept\" to make use of a controlled vocabulary The following examples, except for the last, are based on ICPSR's Extent of Processing scheme:",
-            examples = c(
-                "<dataChck>The archive produced a codebook for this collection.</dataChck>",
-                "<dataChck><concept vocab=\"GSBPM\" vocabAgency=\"UNECE\" vocabVersionID=\"5.1\" vocabInstanceCodeTerm=\"5.3\">Review &amp; validate</concept>Consistency checks were performed by Data Producer/ Principal Investigator.</dataChck>",
-                "<dataChck>The archive generated SAS and/or SPSS data definition  statements for this collection.</dataChck>",
-                "<dataChck>Frequencies were provided by Data Producer/Principal Investigator.</dataChck>",
-                "<dataChck>Frequencies provided by the archive.</dataChck>",
-                "<dataChck>Missing data codes were standardized by Data  Producer/ Principal Investigator.</dataChck>",
-                "<dataChck>Missing data codes were standardized by the archive.</dataChck>",
-                "<dataChck>The archive performed recodes and/or calculated derived variables. </dataChck>",
-                "<dataChck>Data were reformatted by the archive.</dataChck>",
-                "<dataChck>Checks for undocumented codes were performed by  Data Producer/Principal Investigator.</dataChck>",
-                "<dataChck>Checks for undocumented codes were performed by the archive.</dataChck>",
-                "<dataChck><concept vocab=\"EOSDIS\" vocabURI=\"https://ghrc.nsstc.nasa.gov/uso/proc_level.html\" vocabInstanceCodeTerm=\"2\">Level 2</concept>Derived geophysical variables at the same resolution and location as the Level 1 source data.</dataChck>"
-            )
-        ),
-        dataColl = list(
-            type = "dataCollType",
-            optional = TRUE,
-            repeatable = TRUE,
-            recommended = FALSE,
-            deprecated = FALSE,
-            attributes = list(),
-            parents = "method",
-            children = list("timeMeth", "dataCollector", "collectorTraining", "frequenc", "sampProc", "sampleFrame", "targetSampleSize", "deviat", "collMode", "resInstru", "instrumentDevelopment", "sources", "collSitu", "actMin", "ConOps", "weight", "cleanOps"),
-            title = "Data Collection Methodology",
-            description = "Information about the methodology employed in a data collection.",
-            examples = c()
-        ),
-        sampleFrame = list(
-            type = "sampleFrameType",
-            optional = TRUE,
-            repeatable = TRUE,
-            recommended = FALSE,
-            deprecated = FALSE,
-            attributes = list(),
-            parents = "dataColl",
-            children = list("sampleFrameName", "labl", "txt", "validPeriod", "custodian", "useStmt", "universe", "frameUnit", "referencePeriod", "updateProcedure"),
-            title = "Sample Frame",
-            description = "Sample frame describes the sampling frame used for identifying the population from which the sample was taken. For example, a telephone book may be a sample frame for a phone survey. In addition to the name, label and text describing the sample frame, this structure lists who maintains the sample frame, the period for which it is valid, a use statement, the universe covered, the type of unit contained in the frame as well as the number of units available, the reference period of the frame and procedures used to update the frame. Use multiple use statements to provide different uses under different conditions. Repeat elements within the use statement to support multiple languages.",
-            examples = c()
-        ),
-        sampleFrameName = list(
-            type = "stringType",
-            optional = TRUE,
-            repeatable = TRUE,
-            recommended = FALSE,
-            deprecated = FALSE,
-            attributes = list(),
-            parents = "sampleFrame",
-            children = list(),
-            title = "Sample Frame Name",
-            description = "Name of the sample frame.",
-            examples = "<sampleFrameName>City of St. Paul Directory</sampleFrameName>"
-        ),
-        validPeriod = list(
-            type = "eventDateType",
-            optional = TRUE,
-            repeatable = TRUE,
-            recommended = FALSE,
-            deprecated = FALSE,
-            attributes = list(
-                event = list(
-                    type = "NMTOKEN",
-                    description = "",
-                    values = c("start", "end", "single"),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                )
-            ),
-            parents = "sampleFrame",
-            children = list(),
-            title = "Valid Period",
-            description = "Defines a time period for the validity of the sampling frame. Enter dates in YYYY-MM-DD format.",
-            examples = "<sampleFrame><validPeriod event=\"start\">2009-07-01</validPeriod><validPeriod event=\"end\">2011-06-30</validPeriod></sampleFrame>"
-        ),
-        referencePeriod = list(
-            type = "eventDateType",
-            optional = TRUE,
-            repeatable = TRUE,
-            recommended = FALSE,
-            deprecated = FALSE,
-            attributes = list(
-                event = list(
-                    type = "NMTOKEN",
-                    description = "",
-                    values = c("start", "end", "single"),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                )
-            ),
-            parents = "sampleFrame",
-            children = list(),
-            title = "Reference Period",
-            description = "Indicates the period of time in which the sampling frame was actually used for the study in question. Use ISO 8601 date/time formats to enter the relevant date(s).",
-            examples = "<referencePeriod event=\"single\">2009-06-01</referencePeriod>"
-        ),
-        frameUnit = list(
-            type = "frameUnitType",
-            optional = TRUE,
-            repeatable = TRUE,
-            recommended = FALSE,
-            deprecated = FALSE,
-            attributes = list(
-                isPrimary = list(
-                    type = "boolean",
-                    description = "Boolean, indicates whether the unit is primary or not.",
-                    values = c("true", "false"),
-                    default = "true",
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                )
-            ),
-            parents = "sampleFrame",
-            children = list("unitType", "txt"),
-            title = "Frame Unit",
-            description = "Provides information about the sampling frame unit.",
-            examples = "<frameUnit isPrimary=\"true\"><unitType numberOfUnits=\"150000\">Primary listed owners of published phone numbers in the City of St. Paul</unitType></frameUnit>"
-        ),
-        unitType = list(
-            type = "unitTypeType",
-            optional = FALSE,
-            repeatable = FALSE,
-            recommended = FALSE,
-            deprecated = FALSE,
-            attributes = list(
-                numberOfUnits = list(
-                    type = "integer",
-                    description = "Number of units in the sampling frame.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                )
-            ),
-            parents = "frameUnit",
-            children = list("concept", "txt"),
-            title = "Unit Type",
-            description = "Describes the type of sampling frame unit using a conceptualText structure supporting a description and the use of an external controlled Vocabulary. PLEASE NOTE A CHANGE IN USAGE INSTRUCTIONS: The string content of \"concept\" now contains the language specific label obtained from the controlled vocabulary. This allows for multiple languages through the repeated entry of the \"concept\" element. See the high level documentation for a complete description of usage.",
-            examples = "<unitType numberOfUnits=\"150000\"><concept vocab=\"SampleFrame_UnitType\" vocabInstanceCodeTerm=\"telephoneNumber\">Telephone Number</concept>Primary listed owners of published phone numbers in the City of St. Paul</unitType>"
-        ),
-        targetSampleSize = list(
-            type = "targetSampleSizeType",
-            optional = TRUE,
-            repeatable = TRUE,
-            recommended = FALSE,
-            deprecated = FALSE,
-            attributes = list(),
-            parents = "dataColl",
-            children = list("sampleSize", "sampleSizeFormula"),
-            title = "Target Sample Size",
-            description = "Provides both the target size of the sample (this is the number in the original sample, not the number of respondents) as well as the formula used for determining the sample size.",
-            examples = c()
-        ),
-        sampleSize = list(
-            type = "integerType",
-            optional = TRUE,
-            repeatable = FALSE,
-            recommended = FALSE,
-            deprecated = FALSE,
-            attributes = list(),
-            parents = "targetSampleSize",
-            children = list(),
-            title = "Sample Size",
-            description = "This element provides the targeted sample size in integer format.",
-            examples = "<sampleSize>385</sampleSize>"
-        ),
-        sampleSizeFormula = list(
-            type = "stringType",
-            optional = TRUE,
-            repeatable = TRUE,
-            recommended = FALSE,
-            deprecated = FALSE,
-            attributes = list(),
-            parents = "targetSampleSize",
-            children = list(),
-            title = "Sample Size Formula",
-            description = "This element includes the formula that was used to determine the sample size.",
-            examples = "<sampleSizeFormula>n0=Z2pq/e2=(1.96)2(.5)(.5)/(.05)2=385 individuals</sampleSizeFormula>"
-        ),
-        generalDataFormat = list(
-            type = "conceptType",
-            optional = TRUE,
-            repeatable = TRUE,
-            recommended = FALSE,
-            deprecated = FALSE,
-            attributes = list(
-                vocab = list(
-                    type = "string",
-                    description = "Indicates the name of the controlled vocabulary, if any, used in the element, e.g., LCSH (Library of Congress Subject Headings), MeSH (Medical Subject Headings), etc.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                vocabURI = list(
-                    type = "string",
-                    description = "Specifies the location for the full controlled vocabulary.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                vocabInstanceURI = list(
-                    type = "string",
-                    description = "Specifies the identification URI of the term/code within the controlled vocabulary if available.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                vocabID = list(
-                    type = "string",
-                    description = "Another form of identification (do not use for URI).",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                vocabAgencyName = list(
-                    type = "string",
-                    description = "Agency managing the controlled vocabulary.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                vocabVersionID = list(
-                    type = "string",
-                    description = "Version of controlled vocabulary, if needed",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                otherValue = list(
-                    type = "string",
-                    description = "If the controlled vocabulary term is \"other\", provide a more specific value.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                vocabSchemeURN = list(
-                    type = "string",
-                    description = "The URN of the controlled vocabulary.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                vocabInstanceCodeTerm = list(
-                    type = "string",
-                    description = "Added to accommodate the code term as it appears in the controlled vocabulary.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                )
-            ),
-            parents = "sumDscr",
-            children = list(),
-            title = "General Data Format",
-            description = "Expresses the variety of data formats covered i.e. Numeric, Text, Audio, Visual, Geospatial, StillImage, Software, 3D, other. Supports the use of an external controlled vocabulary. DDI provides a Controlled Vocabulary for this location: \"GeneralDataFormat\"",
-            examples = "<generalDataFormat vocab=\"GeneralDataFormat\" vocabURI=\"urn:ddi:int.ddi.cv:GeneralDataFormat:2.0\" vocabInstanceURI=\"urn:ddi:int.ddi.cv:GeneralDataFormat:2.0\">Geospatial</generalDataFormat>"
-        ),
-        instrumentDevelopment = list(
-            type = "instrumentDevelopmentType",
-            optional = TRUE,
-            repeatable = TRUE,
-            recommended = FALSE,
-            deprecated = FALSE,
-            attributes = list(
-                type = list(
-                    type = "string",
-                    description = "Specify a controlled vocabulary concept. DEPRECATED.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = TRUE
-                )
-            ),
-            parents = "dataColl",
-            children = list("concept", "txt"),
-            title = "Instrument Development",
-            description = "Describe any development work on the data collection instrument. The use of the attribute \"type\" as a means of specifying a controlled vocabulary concept is DEPRECATED. To specify the use of a Controlled Vocabulary or standard concept use the internal element \"concept\". If multiple concepts are needed the parent element should be replicated. Internal text related to each concept should be allocated to accompany the relevant concept.",
-            examples = "<instrumentDevelopment><concept vocab=\"123surveys\" vocabURI=\"http://123surveys.com/internal/developmentProtocal\" vocabInstanceURI=\"http://123surveys.com/internal/developmentProtocal#Pretest.SplitPanel\">Pretest.SplitPanel</concept>The questionnaire was pre-tested with split-panel tests, as well as an analysis of non-response rates for individual items, and response distributions.</instrumentDevelopment>"
-        ),
-        updateProcedure = list(
-            type = "conceptualTextType",
-            optional = TRUE,
-            repeatable = TRUE,
-            recommended = FALSE,
-            deprecated = FALSE,
-            attributes = list(),
-            parents = "sampleFrame",
-            children = list(choice = c("concept", "txt")),
-            title = "Instrument Development",
-            description = "Description of how and with what frequency the sample frame is updated. This element contains the sub-element \"concept\" to support the use of an external controlled vocabulary. PLEASE NOTE A CHANGE IN USAGE INSTRUCTIONS: The string content of the element now contains the language specific label obtained from the controlled vocabulary. This allows for multiple languages through the repeated entry of the \"concept\" element. The attribute \"vocabInstanceCodeTerm\" has been added to accommodate the code term as it appears in the controlled vocabulary. See the high level documentation for a complete description of usage. Additional textual description is entered in the mixed text content or using the sub-element \"txt\".",
-            examples = "<updateProcedure>Changes are collected as they occur through registration and loss of phone number from the specified geographic area. Data are compiled for the date June 1st of odd numbered years, and published on July 1st for the following two-year period.</updateProcedure>"
         ),
         custodian = list(
             type = "custodianType",
@@ -2395,8 +1963,21 @@ assign(
             description = "Custodian identifies the agency or individual who is responsible for creating or maintaining the sample frame.",
             examples = "<custodian abbr=\"DEX\">DEX Publications</custodian>"
         ),
-        collectorTraining = list(
-            type = "collectorTrainingType",
+        dataAccs = list(
+            type = "dataAccsType",
+            optional = TRUE,
+            repeatable = TRUE,
+            recommended = FALSE,
+            deprecated = FALSE,
+            attributes = list(),
+            parents = "stdyDscr",
+            children = list("typeOfAccess", "setAvail", "license", "useStmt", "notes"),
+            title = "Data Access",
+            description = "This section describes access conditions and terms of use for the data collection. In cases where access conditions differ across individual files or variables, multiple access conditions can be specified. In cases where access conditions differ across individual files, variables, or categories multiple access conditions can be specified. The access conditions applying to a study, file, variable group, variable or category can be indicated by an IDREF attribute on the study, file, variable group, nCube group, variable, category, or data item elements called \"access\". The member element \"typeOfAccss\" is of the type \"concept\" and is intended to provide a specific type of access. If a license applies to the data access, use the optional \"license\" element.",
+            examples = c()
+        ),
+        dataAppr = list(
+            type = "dataApprType",
             optional = TRUE,
             repeatable = TRUE,
             recommended = FALSE,
@@ -2404,7 +1985,7 @@ assign(
             attributes = list(
                 type = list(
                     type = "string",
-                    description = "Type of training being described. DEPRECATED.",
+                    description = "Used to specify a controlled vocabulary concept. DEPRECATED.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -2412,22 +1993,49 @@ assign(
                     deprecated = TRUE
                 )
             ),
-            parents = "dataColl",
+            parents = "anlyInfo",
             children = list("concept", "txt"),
-            title = "Collector Training",
-            description = "Describes the training provided to data collectors including interviewer training, process testing, compliance with standards etc. This is repeatable for language and to capture different aspects of the training process. The use of the attribute \"type\" as a means of specifying a controlled vocabulary concept is DEPRECATED. To specify the use of a Controlled Vocabulary or standard concept use the internal element \"concept\". If multiple concepts are needed the parent element should be replicated. Internal text related to each concept should be allocated to accompany the relevant concept.",
-            examples = "<collectorTraining><concept vocab=\"TrainingObject\" vocabURI=\"http://xyzdatacollection.org/vocabularies/TrainingObject\" vocabInstanceURI=\"http://xyzdatacollection.org/vocabularies/TrainingObject#InterviewerTraining\">InterviewerTraining</concept>Describe research project, describe population and sample, suggest methods and language for approaching subjects, explain questions and key terms of survey instrument.</collectorTraining>"
+            title = "Other Forms of Data Appraisal",
+            description = "Other issues pertaining to data appraisal. Describe here issues such as response variance, nonresponse rate and testing for bias, interviewer and response bias, confidence levels, question bias, etc. The use of the attribute \"type\" as a means of specifying a controlled vocabulary concept is DEPRECATED. To specify the use of a Controlled Vocabulary or standard concept use the internal element \"concept\". If multiple concepts are needed the parent element should be replicated. Internal text related to each concept should be allocated to accompany the relevant concept.",
+            examples = "<dataAppr><concept vocab=\"IPUMS\" vocabInstanceCodeType=\"ProducerAppraised\">Appraised by Producer</concept>These data files were obtained from the United States House of Representatives, who received them from the Census Bureau accompanied by the following caveats: \"The numbers contained herein are not official 1990 decennial Census counts. The numbers represent estimates of the population based on a statistical adjustment method applied to the official 1990 Census figures using a sample survey intended to measure overcount or undercount in the Census results. On July 15, 1991, the Secretary of Commerce decided not to adjust the official 1990 decennial Census counts (see 56 Fed. Reg. 33582, July 22, 1991). In reaching his decision, the Secretary determined that there was not sufficient evidence that the adjustment method accurately distributed the population across and within states. The numbers contained in these tapes, which had to be produced prior to the Secretary's decision, are now known to be biased. Moreover, the tapes do not satisfy standards for the publication of Federal statistics, as established in Statistical Policy Directive No. 2, 1978, Office of Federal Statistical Policy and Standards. Accordingly, the Department of Commerce deems that these numbers cannot be used for any purpose that legally requires use of data from the decennial Census and assumes no responsibility for the accuracy of the data for any purpose whatsoever. The Department will provide no assistance in interpretation or use of these numbers.\"</dataAppr>"
         ),
-        complianceDescription = list(
+        dataChck = list(
+            type = "conceptualTextType",
             optional = TRUE,
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
             attributes = list(),
-            parents = "standardsCompliance",
-            children = list(),
-            title = "",
-            description = "",
+            parents = "fileTxt",
+            children = list(choice = c("concept", "txt")),
+            title = "Extent of Processing Checks",
+            description = "Indicate here, at the file level, the types of checks and operations performed on the data file. Use the internal \"concept\" to make use of a controlled vocabulary The following examples, except for the last, are based on ICPSR's Extent of Processing scheme:",
+            examples = c(
+                "<dataChck>The archive produced a codebook for this collection.</dataChck>",
+                "<dataChck><concept vocab=\"GSBPM\" vocabAgency=\"UNECE\" vocabVersionID=\"5.1\" vocabInstanceCodeTerm=\"5.3\">Review &amp; validate</concept>Consistency checks were performed by Data Producer/ Principal Investigator.</dataChck>",
+                "<dataChck>The archive generated SAS and/or SPSS data definition  statements for this collection.</dataChck>",
+                "<dataChck>Frequencies were provided by Data Producer/Principal Investigator.</dataChck>",
+                "<dataChck>Frequencies provided by the archive.</dataChck>",
+                "<dataChck>Missing data codes were standardized by Data  Producer/ Principal Investigator.</dataChck>",
+                "<dataChck>Missing data codes were standardized by the archive.</dataChck>",
+                "<dataChck>The archive performed recodes and/or calculated derived variables. </dataChck>",
+                "<dataChck>Data were reformatted by the archive.</dataChck>",
+                "<dataChck>Checks for undocumented codes were performed by  Data Producer/Principal Investigator.</dataChck>",
+                "<dataChck>Checks for undocumented codes were performed by the archive.</dataChck>",
+                "<dataChck><concept vocab=\"EOSDIS\" vocabURI=\"https://ghrc.nsstc.nasa.gov/uso/proc_level.html\" vocabInstanceCodeTerm=\"2\">Level 2</concept>Derived geophysical variables at the same resolution and location as the Level 1 source data.</dataChck>"
+            )
+        ),
+        dataColl = list(
+            type = "dataCollType",
+            optional = TRUE,
+            repeatable = TRUE,
+            recommended = FALSE,
+            deprecated = FALSE,
+            attributes = list(),
+            parents = "method",
+            children = list("timeMeth", "dataCollector", "collectorTraining", "frequenc", "sampProc", "sampleFrame", "targetSampleSize", "deviat", "collMode", "resInstru", "instrumentDevelopment", "sources", "collSitu", "actMin", "ConOps", "weight", "cleanOps"),
+            title = "Data Collection Methodology",
+            description = "Information about the methodology employed in a data collection.",
             examples = c()
         ),
         dataCollector = list(
@@ -2529,6 +2137,33 @@ assign(
             title = "Variable Description",
             description = "Description of variables, variable groups, nCubes, and nCube groups.",
             examples = c()
+        ),
+        dataFingerprint = list(
+            type = "dataFingerprintType",
+            optional = TRUE,
+            repeatable = TRUE,
+            recommended = FALSE,
+            deprecated = FALSE,
+            attributes = list(
+                type = list(
+                    type = "NMTOKEN",
+                    description = c(
+                        "Set this attribute to:",
+                        "| \"data\", when the hash value provides a digital fingerprint to the data contained in the file regardless of the storage format (ASCII, SAS, binary, etc.).",
+                        "| \"dataFile\", if the digital fingerprint is only for the data file in its current storage format."
+                    ),
+                    values = c("data", "dataFile"),
+                    default = c(),
+                    optional = FALSE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
+            parents = "fileTxt",
+            children = list("digitalFingerprintValue", "algorithmSpecification", "algorithmVersion"),
+            title = "Data Fingerprint",
+            description = "Allows for assigning a hash value (digital fingerprint) to the data or data file. One approach to compute a data fingerprint is the Universal Numerical Fingerprint (UNF). Provide the digital fingerprint in \"digitalFingerprintValue\" and identify the algorithm specification used in \"algorithmSpecification\" (adding a version number in \"algorithmVersion\" as a separate entry if it is not part of the specification entry).",
+            examples = "<dataFingerprint type=\"data\"><digitalFingerprintValue>UNF:3:DaYlT6QSX9r0D50ye+tXpA== </digitalFingerprintValue><algorithmSpecification>UNF v5.0 Calculation Production [http://thedata.org/book/unf-version-5-0]</algorithmSpecification><algorithmVersion>UNF V5</algorithmVersion></dataFingerprint>"
         ),
         dataItem = list(
             type = "dataItemType",
@@ -2784,6 +2419,29 @@ assign(
             description = "",
             examples = c()
         ),
+        developmentActivity = list(
+            type = "developmentActivityType",
+            optional = TRUE,
+            repeatable = TRUE,
+            recommended = FALSE,
+            deprecated = FALSE,
+            attributes = list(
+                type = list(
+                    type = "string",
+                    description = "Used to specify a controlled vocabulary concept. DEPRECATED.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = TRUE
+                )
+            ),
+            parents = "studyDevelopment",
+            children = list("typeOfDevelopmentActivity", "description", "participant", "resource", "outcome"),
+            title = "Development Activity",
+            description = "Information on the development activity including a description, set of participants, resources used, and outcomes. Use of the \"type\" attribute has been DEPRECATED. Use the element typeOfSetAvailability which supports the use of a controlled vocabulary. Repeat if multiple language labels are being provided directly within the documentation.",
+            examples = "<developmentActivity><typeOfDevelopmentActivity vocab=\"LifecycleEventType\" vocabURI=\"https://www.ddialliance.org/Specification/DDI-CV/LifecycleEventType_1.0.html\">QuestionnaireTranslation</typeOfDevelopmentActivity><typeOfDevelopmentActivity vocab=\"DIME Questionnaire Translation\" vocabURI=\"https://dimewiki.worldbank.org/index.php?title=Questionnaire_Translation&amp;oldid=8152\">Forward Translation</typeOfDevelopmentActivity><description>Translation from language A to language B of question and response text. Language experts are used. Translation is tested through round-trip translation practices. Translated question will be tested for response consistency with original language text.</description><participant affiliation=\"ISRDI\" role=\"language exert\">Ragi Yousef</participant><resource><srcCitation><titlStmt><titl>Labor Force Survey 2017-2018</titl></titlStmt><holding><URI>https://www.ilo.org/surveyLib/index.php/catalog/2549/related-materials</URI></holding></srcCitation></resource><outcome>Translated question resulted in valid replication of original language in the round trip test. Translated question resulted in statistically similar results as original language question following testing.</outcome></developmentActivity>"
+        ),
         deviat = list(
             type = "simpleTextType",
             optional = TRUE,
@@ -2796,33 +2454,6 @@ assign(
             title = "Major Deviations from the Sample Design",
             description = "Information indicating correspondence as well as discrepancies between the sampled units (obtained) and available statistics for the population (age, sex-ratio, marital status, etc.) as a whole. XHTML formatting may be used in this element for forward-compatibility with DDI Lifecycle.",
             examples = "<deviat>The suitability of Ohio as a research site reflected its similarity to the United States as a whole. The evidence extended by Tuchfarber (1988) shows that Ohio is representative of the United States in several ways: percent urban and rural, percent of the population that is African American, median age, per capita income, percent living below the poverty level, and unemployment rate. Although results generated from an Ohio sample are not empirically generalizable to the United States, they may be suggestive of what might be expected nationally.</deviat>"
-        ),
-        dataFingerprint = list(
-            type = "dataFingerprintType",
-            optional = TRUE,
-            repeatable = TRUE,
-            recommended = FALSE,
-            deprecated = FALSE,
-            attributes = list(
-                type = list(
-                    type = "NMTOKEN",
-                    description = c(
-                        "Set this attribute to:",
-                        "| \"data\", when the hash value provides a digital fingerprint to the data contained in the file regardless of the storage format (ASCII, SAS, binary, etc.).",
-                        "| \"dataFile\", if the digital fingerprint is only for the data file in its current storage format."
-                    ),
-                    values = c("data", "dataFile"),
-                    default = c(),
-                    optional = FALSE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                )
-            ),
-            parents = "fileTxt",
-            children = list("digitalFingerprintValue", "algorithmSpecification", "algorithmVersion"),
-            title = "Data Fingerprint",
-            description = "Allows for assigning a hash value (digital fingerprint) to the data or data file. One approach to compute a data fingerprint is the Universal Numerical Fingerprint (UNF). Provide the digital fingerprint in \"digitalFingerprintValue\" and identify the algorithm specification used in \"algorithmSpecification\" (adding a version number in \"algorithmVersion\" as a separate entry if it is not part of the specification entry).",
-            examples = "<dataFingerprint type=\"data\"><digitalFingerprintValue>UNF:3:DaYlT6QSX9r0D50ye+tXpA== </digitalFingerprintValue><algorithmSpecification>UNF v5.0 Calculation Production [http://thedata.org/book/unf-version-5-0]</algorithmSpecification><algorithmVersion>UNF V5</algorithmVersion></dataFingerprint>"
         ),
         digitalFingerprintValue = list(
             optional = FALSE,
@@ -3941,6 +3572,29 @@ assign(
             description = "Contains a reference to IDs of possible following questions.",
             examples = "<var><qstn><forward qstn=\"Q120 Q121 Q122 Q123 Q124\">If yes, please ask questions 120-124.</forward></qstn></var>"
         ),
+        frameUnit = list(
+            type = "frameUnitType",
+            optional = TRUE,
+            repeatable = TRUE,
+            recommended = FALSE,
+            deprecated = FALSE,
+            attributes = list(
+                isPrimary = list(
+                    type = "boolean",
+                    description = "Boolean, indicates whether the unit is primary or not.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
+            parents = "sampleFrame",
+            children = list("unitType", "txt"),
+            title = "Frame Unit",
+            description = "Provides information about the sampling frame unit.",
+            examples = "<frameUnit isPrimary=\"true\"><unitType numberOfUnits=\"150000\">Primary listed owners of published phone numbers in the City of St. Paul</unitType></frameUnit>"
+        ),
         frequenc = list(
             type = "frequencType",
             optional = TRUE,
@@ -4137,6 +3791,101 @@ assign(
             title = "Geographic Unit",
             description = "Lowest level of geographic aggregation covered by the data.",
             examples = "<geogUnit>state</geogUnit>"
+        ),
+        generalDataFormat = list(
+            type = "conceptType",
+            optional = TRUE,
+            repeatable = TRUE,
+            recommended = FALSE,
+            deprecated = FALSE,
+            attributes = list(
+                vocab = list(
+                    type = "string",
+                    description = "Indicates the name of the controlled vocabulary, if any, used in the element, e.g., LCSH (Library of Congress Subject Headings), MeSH (Medical Subject Headings), etc.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabURI = list(
+                    type = "string",
+                    description = "Specifies the location for the full controlled vocabulary.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabInstanceURI = list(
+                    type = "string",
+                    description = "Specifies the identification URI of the term/code within the controlled vocabulary if available.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabID = list(
+                    type = "string",
+                    description = "Another form of identification (do not use for URI).",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabAgencyName = list(
+                    type = "string",
+                    description = "Agency managing the controlled vocabulary.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabVersionID = list(
+                    type = "string",
+                    description = "Version of controlled vocabulary, if needed",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                otherValue = list(
+                    type = "string",
+                    description = "If the controlled vocabulary term is \"other\", provide a more specific value.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabSchemeURN = list(
+                    type = "string",
+                    description = "The URN of the controlled vocabulary.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabInstanceCodeTerm = list(
+                    type = "string",
+                    description = "Added to accommodate the code term as it appears in the controlled vocabulary.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
+            parents = "sumDscr",
+            children = list(),
+            title = "General Data Format",
+            description = "Expresses the variety of data formats covered i.e. Numeric, Text, Audio, Visual, Geospatial, StillImage, Software, 3D, other. Supports the use of an external controlled vocabulary. DDI provides a Controlled Vocabulary for this location: \"GeneralDataFormat\"",
+            examples = "<generalDataFormat vocab=\"GeneralDataFormat\" vocabURI=\"urn:ddi:int.ddi.cv:GeneralDataFormat:2.0\" vocabInstanceURI=\"urn:ddi:int.ddi.cv:GeneralDataFormat:2.0\">Geospatial</generalDataFormat>"
         ),
         grantNo = list(
             type = "grantNoType",
@@ -4452,6 +4201,29 @@ assign(
                                 99 Inappropriate
                             </key></invalrng>"
         ),
+        instrumentDevelopment = list(
+            type = "instrumentDevelopmentType",
+            optional = TRUE,
+            repeatable = TRUE,
+            recommended = FALSE,
+            deprecated = FALSE,
+            attributes = list(
+                type = list(
+                    type = "string",
+                    description = "Specify a controlled vocabulary concept. DEPRECATED.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = TRUE
+                )
+            ),
+            parents = "dataColl",
+            children = list("concept", "txt"),
+            title = "Instrument Development",
+            description = "Describe any development work on the data collection instrument. The use of the attribute \"type\" as a means of specifying a controlled vocabulary concept is DEPRECATED. To specify the use of a Controlled Vocabulary or standard concept use the internal element \"concept\". If multiple concepts are needed the parent element should be replicated. Internal text related to each concept should be allocated to accompany the relevant concept.",
+            examples = "<instrumentDevelopment><concept vocab=\"123surveys\" vocabURI=\"http://123surveys.com/internal/developmentProtocal\" vocabInstanceURI=\"http://123surveys.com/internal/developmentProtocal#Pretest.SplitPanel\">Pretest.SplitPanel</concept>The questionnaire was pre-tested with split-panel tests, as well as an analysis of non-response rates for individual items, and response distributions.</instrumentDevelopment>"
+        ),
         item = list(
             type = "itemType",
             optional = TRUE,
@@ -4486,6 +4258,29 @@ assign(
                 "<valrng><item UNITS=\"INT\" VALUE=\"10\"/><item UNITS=\"INT\" VALUE=\"15\"/><item UNITS=\"INT\" VALUE=\"22\"/></valrng>",
                 "<valrng><item VALUE=\"1\"/><item VALUE=\"2\"/><item VALUE=\"3\"/></valrng>"
             )
+        ),
+        itm = list(
+            type = "itmType",
+            optional = TRUE,
+            repeatable = TRUE,
+            recommended = FALSE,
+            deprecated = FALSE,
+            attributes = list(
+                type = list(
+                    type = "string",
+                    description = "",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
+            parents = "list",
+            children = list(choice = c("emph", "hi", "list", "p", "label")),
+            title = "Item",
+            description = "Formatting element: marks entries (items) in a list.",
+            examples = c()
         ),
         ivuInstr = list(
             type = "simpleTextType",
@@ -4754,6 +4549,29 @@ assign(
             title = "License",
             description = "A legal document giving official permission to something with the resource. Recommendation is to provide the license document URI. Equates to https://www.dublincore.org/specifications/dublin-core/dcmi-terms/terms/license/",
             examples = "<license type=\"metadata\" scope=\"study\" URI=\"https://creativecommons.org/licenses/by/4.0/legalcode\">CC by 4.0</license>"
+        ),
+        list = list(
+            type = "listType",
+            optional = TRUE,
+            repeatable = TRUE,
+            recommended = FALSE,
+            deprecated = FALSE,
+            attributes = list(
+                type = list(
+                    type = "NMTOKEN",
+                    description = "",
+                    values = c("ordered", "bulleted", "simple", "gloss"),
+                    default = "simple",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
+            parents = c("emph", "head", "hi", "itm", "p"),
+            children = list(choice = c("itm", "label")),
+            title = "List",
+            description = "Formatting element: contains any sequence of items (entries) organized as a list.",
+            examples = c()
         ),
         locMap = list(
             type = "locMapType",
@@ -5751,6 +5569,83 @@ assign(
             description = "",
             examples = c()
         ),
+        participant = list(
+            type = "participantType",
+            optional = TRUE,
+            repeatable = TRUE,
+            recommended = FALSE,
+            deprecated = FALSE,
+            attributes = list(
+                affiliation = list(
+                    type = "string",
+                    description = "Affiliation of the participant with an agency or organization.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                abbr = list(
+                    type = "string",
+                    description = "Abbreviation for the participant.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                role = list(
+                    type = "string",
+                    description = "Role of the participant.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                agentIdentifier = list(
+                    type = "string",
+                    description = "Identifier of the participant.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                typeOfAgentIdentifier = list(
+                    type = "string",
+                    description = "Type of identifier, should be provided if agentIdentifier is used.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isPersistantIdentifier = list(
+                    type = "boolean",
+                    description = "Indicate if the agent identifier is intended to be a persistent identifier",
+                    values = c("true", "false"),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                agentType = list(
+                    type = "NMTOKEN",
+                    description = "Type of participant: organization or individual.",
+                    values = c("organization", "individual"),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
+            parents = "developmentActivity",
+            children = list(),
+            title = "Participant",
+            description = "Name of \"participant\" in the activity being described in the parent element.",
+            examples = c()
+        ),
         parTitl = list(
             type = "simpleTextType",
             optional = TRUE,
@@ -6272,6 +6167,19 @@ assign(
             description = "Text of the actual, literal question asked.",
             examples = "<var><qstn><qstnLit>Why didn't you go away in 1985?</qstnLit></qstn></var>"
         ),
+        qualityStatement = list(
+            type = "qualityStatementType",
+            optional = TRUE,
+            repeatable = FALSE,
+            recommended = FALSE,
+            deprecated = FALSE,
+            attributes = list(),
+            parents = "stdyInfo",
+            children = list("standardsCompliance", "otherQualityStatement"),
+            title = "Quality Statement",
+            description = "This structure consists of two parts, \"standardsCompliance\" and \"otherQualityStatements\". In \"standardsCompliance\" list all specific standards complied with during the execution of this study. Note the standard name and producer and how the study complied with the standard. Enter any additional quality statements in \"otherQualityStatements\".",
+            examples = c()
+        ),
         range = list(
             type = "rangeType",
             optional = TRUE,
@@ -6460,6 +6368,29 @@ assign(
             description = "Records per case in the file. This element should be used for card-image data or other files in which there are multiple records per case.",
             examples = "<dimensns><recPrCas>5</recPrCas></dimensns>"
         ),
+        referencePeriod = list(
+            type = "eventDateType",
+            optional = TRUE,
+            repeatable = TRUE,
+            recommended = FALSE,
+            deprecated = FALSE,
+            attributes = list(
+                event = list(
+                    type = "NMTOKEN",
+                    description = "",
+                    values = c("start", "end", "single"),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
+            parents = "sampleFrame",
+            children = list(),
+            title = "Reference Period",
+            description = "Indicates the period of time in which the sampling frame was actually used for the study in question. Use ISO 8601 date/time formats to enter the relevant date(s).",
+            examples = "<referencePeriod event=\"single\">2009-06-01</referencePeriod>"
+        ),
         relMat = list(
             type = "relMatType",
             optional = TRUE,
@@ -6566,6 +6497,19 @@ assign(
             description = "The type of data collection instrument used. \"Structured\" indicates an instrument in which all respondents are asked the same questions/tests, possibly with precoded answers. If a small portion of such a questionnaire includes open-ended questions, provide appropriate comments. \"Semi-structured\" indicates that the research instrument contains mainly open-ended questions. \"Unstructured\" indicates that in-depth interviews were conducted. The use of the attribute \"type\" as a means of specifying a controlled vocabulary concept is DEPRECATED. To specify the use of a Controlled Vocabulary or standard concept use the internal element \"concept\". DDI provides a Controlled Vocabulary for this location: \"TypeOfInstrument\". If multiple concepts are needed the parent element should be replicated. Internal text related to each concept should be allocated to accompany the relevant concept.",
             examples = "<resInstru><concept vocab=\"TypeOfInstrument\" vocabURI=\"http://www.ddialiance.org/Specification/DDI-CV/TypeOfInstruent_1.1.html\"  vocabInstanceCodeTerm=\"Questionnaire.Structured\" xml:lang=\"it\">Questionario strutturato</concept>A structured questionnaire developed by ISTAT</resInstru>"
         ),
+        resource = list(
+            type = "resourceType",
+            optional = TRUE,
+            repeatable = TRUE,
+            recommended = FALSE,
+            deprecated = FALSE,
+            attributes = list(),
+            parents = "developmentActivity",
+            children = list("typeOfDataSrc", "dataSrc", "srcOrig", "srcChar", "srcDocu"),
+            title = "Resource",
+            description = "Resource provides the means of describing an external data source including a \"typeOfDataSrc\" which supports othe use of an external controllec vocabulary. DDI provides a Controlled Vocabulary for this location: \"DataSourceType\". Describe the data source using the \"dataSrc\" field, describe the original data source in \"dataOrig\" for secondary use data, source characteristics in \"scrChar\" to identify any particularities of the data source that may affect analysis, and the ability to provide the document source in \"srcDocu\".",
+            examples = c()
+        ),
         respRate = list(
             type = "simpleTextType",
             optional = TRUE,
@@ -6659,6 +6603,58 @@ assign(
             description = "Part of citation covering author (AuthEnty) and collaborators (othID). Responsibility for the creation of the work at the appropriate level: marked-up document; marked-up document source; study; study description, other material; other material for study.",
             examples = c()
         ),
+        sampleFrame = list(
+            type = "sampleFrameType",
+            optional = TRUE,
+            repeatable = TRUE,
+            recommended = FALSE,
+            deprecated = FALSE,
+            attributes = list(),
+            parents = "dataColl",
+            children = list("sampleFrameName", "labl", "txt", "validPeriod", "custodian", "useStmt", "universe", "frameUnit", "referencePeriod", "updateProcedure"),
+            title = "Sample Frame",
+            description = "Sample frame describes the sampling frame used for identifying the population from which the sample was taken. For example, a telephone book may be a sample frame for a phone survey. In addition to the name, label and text describing the sample frame, this structure lists who maintains the sample frame, the period for which it is valid, a use statement, the universe covered, the type of unit contained in the frame as well as the number of units available, the reference period of the frame and procedures used to update the frame. Use multiple use statements to provide different uses under different conditions. Repeat elements within the use statement to support multiple languages.",
+            examples = c()
+        ),
+        sampleFrameName = list(
+            type = "stringType",
+            optional = TRUE,
+            repeatable = TRUE,
+            recommended = FALSE,
+            deprecated = FALSE,
+            attributes = list(),
+            parents = "sampleFrame",
+            children = list(),
+            title = "Sample Frame Name",
+            description = "Name of the sample frame.",
+            examples = "<sampleFrameName>City of St. Paul Directory</sampleFrameName>"
+        ),
+        sampleSize = list(
+            type = "integerType",
+            optional = TRUE,
+            repeatable = FALSE,
+            recommended = FALSE,
+            deprecated = FALSE,
+            attributes = list(),
+            parents = "targetSampleSize",
+            children = list(),
+            title = "Sample Size",
+            description = "This element provides the targeted sample size in integer format.",
+            examples = "<sampleSize>385</sampleSize>"
+        ),
+        sampleSizeFormula = list(
+            type = "stringType",
+            optional = TRUE,
+            repeatable = TRUE,
+            recommended = FALSE,
+            deprecated = FALSE,
+            attributes = list(),
+            parents = "targetSampleSize",
+            children = list(),
+            title = "Sample Size Formula",
+            description = "This element includes the formula that was used to determine the sample size.",
+            examples = "<sampleSizeFormula>n0=Z2pq/e2=(1.96)2(.5)(.5)/(.05)2=385 individuals</sampleSizeFormula>"
+        ),
         sampProc = list(
             type = "conceptualTextType",
             optional = TRUE,
@@ -6704,6 +6700,19 @@ assign(
                 "<var><security date=\"1998-05-10\"> This variable has been recoded for reasons of confidentiality. Users should contact the archive for information on obtaining access.</security></var>",
                 "<var><security date=\"1998-05-10\">Variable(s) within this nCube have been recoded for reasons of confidentiality.  Users should contact the archive for information on obtaining access.</security></var>"
             )
+        ),
+        selector = list(
+            type = "selectorType",
+            optional = FALSE,
+            repeatable = FALSE,
+            recommended = FALSE,
+            deprecated = FALSE,
+            attributes = list(),
+            parents = "usage",
+            children = list(),
+            title = "Selector",
+            description = "Identifies a collection of elements in which a controlled vocabulary is used. This is a simplified XPath which must correspond to the actual instance in which it occurs, which is to say that the fully qualified element names here must correspond to those in the instance. This XPath can only identify elements and does not allow for any predicates. The XPath must either be rooted or deep.",
+            examples = c()
         ),
         serInfo = list(
             type = "simpleTextType",
@@ -6982,6 +6991,38 @@ assign(
             description = "The southernmost coordinate delimiting the geographic extent of the dataset. A valid range of values, expressed in decimal degrees (positive east and positive north), is: -90,0 <=South Bounding Latitude Value <= 90,0 ; South Bounding Latitude Value <= North Bounding Latitude Value",
             examples = "<southBL>57.987915</southBL>"
         ),
+        specificElements = list(
+            type = "specificElementsType",
+            optional = FALSE,
+            repeatable = FALSE,
+            recommended = FALSE,
+            deprecated = FALSE,
+            attributes = list(
+                refs = list(
+                    type = "IDREFS",
+                    description = "IDs of the specific elements.",
+                    values = c(),
+                    default = c(),
+                    optional = FALSE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                authorizedCodeValue = list(
+                    type = "NMTOKEN",
+                    description = "A valid code value corresponding to the meaning of the content in the element or attribute when the identified element or attribute does not use an actual valid value from the controlled vocabulary.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
+            parents = "usage",
+            children = list(),
+            title = "Specific Elements",
+            description = "Identifies a collection of specific elements via their identifiers in the refs attribute, which allows for a tokenized list of identifier values which must correspond to identifiers which exist in the instance.",
+            examples = "<specificElements refs=\"ICPSR4328timeMeth\" authorizedCodeValue=\"CrossSection\"/>"
+        ),
         specPerm = list(
             type = "specPermType",
             optional = TRUE,
@@ -7169,119 +7210,6 @@ assign(
                 "This generic structure would allow you to designate additional design activities etc."
             )
         ),
-        developmentActivity = list(
-            type = "developmentActivityType",
-            optional = TRUE,
-            repeatable = TRUE,
-            recommended = FALSE,
-            deprecated = FALSE,
-            attributes = list(
-                type = list(
-                    type = "string",
-                    description = "Used to specify a controlled vocabulary concept. DEPRECATED.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = TRUE
-                )
-            ),
-            parents = "studyDevelopment",
-            children = list("typeOfDevelopmentActivity", "description", "participant", "resource", "outcome"),
-            title = "Development Activity",
-            description = "Information on the development activity including a description, set of participants, resources used, and outcomes. Use of the \"type\" attribute has been DEPRECATED. Use the element typeOfSetAvailability which supports the use of a controlled vocabulary. Repeat if multiple language labels are being provided directly within the documentation.",
-            examples = "<developmentActivity><typeOfDevelopmentActivity vocab=\"LifecycleEventType\" vocabURI=\"https://www.ddialliance.org/Specification/DDI-CV/LifecycleEventType_1.0.html\">QuestionnaireTranslation</typeOfDevelopmentActivity><typeOfDevelopmentActivity vocab=\"DIME Questionnaire Translation\" vocabURI=\"https://dimewiki.worldbank.org/index.php?title=Questionnaire_Translation&amp;oldid=8152\">Forward Translation</typeOfDevelopmentActivity><description>Translation from language A to language B of question and response text. Language experts are used. Translation is tested through round-trip translation practices. Translated question will be tested for response consistency with original language text.</description><participant affiliation=\"ISRDI\" role=\"language exert\">Ragi Yousef</participant><resource><srcCitation><titlStmt><titl>Labor Force Survey 2017-2018</titl></titlStmt><holding><URI>https://www.ilo.org/surveyLib/index.php/catalog/2549/related-materials</URI></holding></srcCitation></resource><outcome>Translated question resulted in valid replication of original language in the round trip test. Translated question resulted in statistically similar results as original language question following testing.</outcome></developmentActivity>"
-        ),
-        participant = list(
-            type = "participantType",
-            optional = TRUE,
-            repeatable = TRUE,
-            recommended = FALSE,
-            deprecated = FALSE,
-            attributes = list(
-                affiliation = list(
-                    type = "string",
-                    description = "Affiliation of the participant with an agency or organization.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                abbr = list(
-                    type = "string",
-                    description = "Abbreviation for the participant.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                role = list(
-                    type = "string",
-                    description = "Role of the participant.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                agentIdentifier = list(
-                    type = "string",
-                    description = "Identifier of the participant.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                typeOfAgentIdentifier = list(
-                    type = "string",
-                    description = "Type of identifier, should be provided if agentIdentifier is used.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                isPersistantIdentifier = list(
-                    type = "boolean",
-                    description = "Indicate if the agent identifier is intended to be a persistent identifier",
-                    values = c("true", "false"),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                agentType = list(
-                    type = "NMTOKEN",
-                    description = "Type of participant: organization or individual.",
-                    values = c("organization", "individual"),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                )
-            ),
-            parents = "developmentActivity",
-            children = list(),
-            title = "Participant",
-            description = "Name of \"participant\" in the activity being described in the parent element.",
-            examples = c()
-        ),
-        resource = list(
-            type = "resourceType",
-            optional = TRUE,
-            repeatable = TRUE,
-            recommended = FALSE,
-            deprecated = FALSE,
-            attributes = list(),
-            parents = "developmentActivity",
-            children = list("typeOfDataSrc", "dataSrc", "srcOrig", "srcChar", "srcDocu"),
-            title = "Resource",
-            description = "Resource provides the means of describing an external data source including a \"typeOfDataSrc\" which supports othe use of an external controllec vocabulary. DDI provides a Controlled Vocabulary for this location: \"DataSourceType\". Describe the data source using the \"dataSrc\" field, describe the original data source in \"dataOrig\" for secondary use data, source characteristics in \"scrChar\" to identify any particularities of the data source that may affect analysis, and the ability to provide the document source in \"srcDocu\".",
-            examples = c()
-        ),
         studyAuthorization = list(
             type = "studyAuthorizationType",
             optional = TRUE,
@@ -7316,19 +7244,6 @@ assign(
             children = list("studyBudget", "subject", "abstract", "sumDscr", "qualityStatement", "notes", "exPostEvaluation"),
             title = "Study Scope",
             description = "This section contains information about the data collection's scope across several dimensions, including substantive content, geography, and time.",
-            examples = c()
-        ),
-        qualityStatement = list(
-            type = "qualityStatementType",
-            optional = TRUE,
-            repeatable = FALSE,
-            recommended = FALSE,
-            deprecated = FALSE,
-            attributes = list(),
-            parents = "stdyInfo",
-            children = list("standardsCompliance", "otherQualityStatement"),
-            title = "Quality Statement",
-            description = "This structure consists of two parts, \"standardsCompliance\" and \"otherQualityStatements\". In \"standardsCompliance\" list all specific standards complied with during the execution of this study. Note the standard name and producer and how the study complied with the standard. Enter any additional quality statements in \"otherQualityStatements\".",
             examples = c()
         ),
         standardsCompliance = list(
@@ -7580,6 +7495,19 @@ assign(
             children = list("titl", "tgroup"),
             title = "Table",
             description = "",
+            examples = c()
+        ),
+        targetSampleSize = list(
+            type = "targetSampleSizeType",
+            optional = TRUE,
+            repeatable = TRUE,
+            recommended = FALSE,
+            deprecated = FALSE,
+            attributes = list(),
+            parents = "dataColl",
+            children = list("sampleSize", "sampleSizeFormula"),
+            title = "Target Sample Size",
+            description = "Provides both the target size of the sample (this is the number in the original sample, not the number of respondents) as well as the formula used for determining the sample size.",
             examples = c()
         ),
         tbody = list(
@@ -7936,6 +7864,671 @@ assign(
                 "<otherMat><txt>This is a PDF version of the original questionnaire provided by the principal investigator.</txt></otherMat>"
             )
         ),
+        typeOfAccess = list(
+            type = "conceptType",
+            optional = TRUE,
+            repeatable = TRUE,
+            recommended = FALSE,
+            deprecated = FALSE,
+            attributes = list(
+                vocab = list(
+                    type = "string",
+                    description = "Indicates the name of the controlled vocabulary, if any, used in the element, e.g., LCSH (Library of Congress Subject Headings), MeSH (Medical Subject Headings), etc.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabURI = list(
+                    type = "string",
+                    description = "Specifies the location for the full controlled vocabulary.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabInstanceURI = list(
+                    type = "string",
+                    description = "Specifies the identification URI of the term/code within the controlled vocabulary if available.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabID = list(
+                    type = "string",
+                    description = "Another form of identification (do not use for URI).",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabAgencyName = list(
+                    type = "string",
+                    description = "Agency managing the controlled vocabulary.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabVersionID = list(
+                    type = "string",
+                    description = "Version of controlled vocabulary, if needed.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                otherValue = list(
+                    type = "string",
+                    description = "If the controlled vocabulary term is \"other\", provide a more specific value.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabSchemeURN = list(
+                    type = "string",
+                    description = "The URN of the controlled vocabulary.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabInstanceCodeTerm = list(
+                    type = "string",
+                    description = "Added to accommodate the code term as it appears in the controlled vocabulary.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
+            parents = c("dataAccs", "metadataAccs"),
+            children = list(),
+            title = "Type of Access",
+            description = "The applied use of the element is found in the parent item. PLEASE NOTE A CHANGE IN USAGE INSTRUCTIONS: The string content of the element now contains the language specific label obtained from the controlled vocabulary. This allows for multiple languages through the repeated entry of the \"concept\" element. See the high level documentation for a complete description of usage.",
+            examples = c()
+        ),
+        typeOfCodingInstruction = list(
+            type = "conceptType",
+            optional = TRUE,
+            repeatable = TRUE,
+            recommended = FALSE,
+            deprecated = FALSE,
+            attributes = list(
+                vocab = list(
+                    type = "string",
+                    description = "Indicates the name of the controlled vocabulary, if any, used in the element, e.g., LCSH (Library of Congress Subject Headings), MeSH (Medical Subject Headings), etc.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabURI = list(
+                    type = "string",
+                    description = "Specifies the location for the full controlled vocabulary.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabInstanceURI = list(
+                    type = "string",
+                    description = "Specifies the identification URI of the term/code within the controlled vocabulary if available.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabID = list(
+                    type = "string",
+                    description = "Another form of identification (do not use for URI).",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabAgencyName = list(
+                    type = "string",
+                    description = "Agency managing the controlled vocabulary.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabVersionID = list(
+                    type = "string",
+                    description = "Version of controlled vocabulary, if needed.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                otherValue = list(
+                    type = "string",
+                    description = "If the controlled vocabulary term is \"other\", provide a more specific value.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabSchemeURN = list(
+                    type = "string",
+                    description = "The URN of the controlled vocabulary.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabInstanceCodeTerm = list(
+                    type = "string",
+                    description = "Added to accommodate the code term as it appears in the controlled vocabulary.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
+            parents = "codingInstructions",
+            children = list(),
+            title = "Type of Coding Instruction",
+            description = "The applied use of the element is found in the parent item. PLEASE NOTE A CHANGE IN USAGE INSTRUCTIONS: The string content of the element now contains the language specific label obtained from the controlled vocabulary. This allows for multiple languages through the repeated entry of the \"concept\" element. See the high level documentation for a complete description of usage.",
+            examples = c()
+        ),
+        typeOfOtherMaterial = list(
+            type = "conceptType",
+            optional = TRUE,
+            repeatable = TRUE,
+            recommended = FALSE,
+            deprecated = FALSE,
+            attributes = list(
+                vocab = list(
+                    type = "string",
+                    description = "Indicates the name of the controlled vocabulary, if any, used in the element, e.g., LCSH (Library of Congress Subject Headings), MeSH (Medical Subject Headings), etc.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabURI = list(
+                    type = "string",
+                    description = "Specifies the location for the full controlled vocabulary.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabInstanceURI = list(
+                    type = "string",
+                    description = "Specifies the identification URI of the term/code within the controlled vocabulary if available.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabID = list(
+                    type = "string",
+                    description = "Another form of identification (do not use for URI).",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabAgencyName = list(
+                    type = "string",
+                    description = "Agency managing the controlled vocabulary.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabVersionID = list(
+                    type = "string",
+                    description = "Version of controlled vocabulary, if needed.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                otherValue = list(
+                    type = "string",
+                    description = "If the controlled vocabulary term is \"other\", provide a more specific value.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabSchemeURN = list(
+                    type = "string",
+                    description = "The URN of the controlled vocabulary.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabInstanceCodeTerm = list(
+                    type = "string",
+                    description = "Added to accommodate the code term as it appears in the controlled vocabulary.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
+            parents = "otherMat",
+            children = list(),
+            title = "Type of Other Material",
+            description = "The applied use of the element is found in the parent item. PLEASE NOTE A CHANGE IN USAGE INSTRUCTIONS: The string content of the element now contains the language specific label obtained from the controlled vocabulary. This allows for multiple languages through the repeated entry of the \"concept\" element. See the high level documentation for a complete description of usage.",
+            examples = c()
+        ),
+        typeOfSetAvailability = list(
+            type = "conceptType",
+            optional = TRUE,
+            repeatable = TRUE,
+            recommended = FALSE,
+            deprecated = FALSE,
+            attributes = list(
+                vocab = list(
+                    type = "string",
+                    description = "Indicates the name of the controlled vocabulary, if any, used in the element, e.g., LCSH (Library of Congress Subject Headings), MeSH (Medical Subject Headings), etc.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabURI = list(
+                    type = "string",
+                    description = "Specifies the location for the full controlled vocabulary.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabInstanceURI = list(
+                    type = "string",
+                    description = "Specifies the identification URI of the term/code within the controlled vocabulary if available.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabID = list(
+                    type = "string",
+                    description = "Another form of identification (do not use for URI).",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabAgencyName = list(
+                    type = "string",
+                    description = "Agency managing the controlled vocabulary.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabVersionID = list(
+                    type = "string",
+                    description = "Version of controlled vocabulary, if needed.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                otherValue = list(
+                    type = "string",
+                    description = "If the controlled vocabulary term is \"other\", provide a more specific value.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabSchemeURN = list(
+                    type = "string",
+                    description = "The URN of the controlled vocabulary.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabInstanceCodeTerm = list(
+                    type = "string",
+                    description = "Added to accommodate the code term as it appears in the controlled vocabulary.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
+            parents = "setAvail",
+            children = list(),
+            title = "Type of Set Availability",
+            description = "The applied use of the element is found in the parent item. PLEASE NOTE A CHANGE IN USAGE INSTRUCTIONS: The string content of the element now contains the language specific label obtained from the controlled vocabulary. This allows for multiple languages through the repeated entry of the \"concept\" element. See the high level documentation for a complete description of usage.",
+            examples = c()
+        ),
+        typeOfDataSrc = list(
+            type = "conceptType",
+            optional = TRUE,
+            repeatable = TRUE,
+            recommended = FALSE,
+            deprecated = FALSE,
+            attributes = list(
+                vocab = list(
+                    type = "string",
+                    description = "Indicates the name of the controlled vocabulary, if any, used in the element, e.g., LCSH (Library of Congress Subject Headings), MeSH (Medical Subject Headings), etc.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabURI = list(
+                    type = "string",
+                    description = "Specifies the location for the full controlled vocabulary.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabInstanceURI = list(
+                    type = "string",
+                    description = "Specifies the identification URI of the term/code within the controlled vocabulary if available.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabID = list(
+                    type = "string",
+                    description = "Another form of identification (do not use for URI).",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabAgencyName = list(
+                    type = "string",
+                    description = "Agency managing the controlled vocabulary.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabVersionID = list(
+                    type = "string",
+                    description = "Version of controlled vocabulary, if needed.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                otherValue = list(
+                    type = "string",
+                    description = "If the controlled vocabulary term is \"other\", provide a more specific value.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabSchemeURN = list(
+                    type = "string",
+                    description = "The URN of the controlled vocabulary.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabInstanceCodeTerm = list(
+                    type = "string",
+                    description = "Added to accommodate the code term as it appears in the controlled vocabulary.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
+            parents = c("sources", "resource"),
+            children = list(),
+            title = "Type of Data Source",
+            description = "The applied use of the element is found in the parent item. PLEASE NOTE A CHANGE IN USAGE INSTRUCTIONS: The string content of the element now contains the language specific label obtained from the controlled vocabulary. This allows for multiple languages through the repeated entry of the \"concept\" element. See the high level documentation for a complete description of usage.",
+            examples = c()
+        ),
+        typeOfDevelopmentActivity = list(
+            type = "conceptType",
+            optional = TRUE,
+            repeatable = TRUE,
+            recommended = FALSE,
+            deprecated = FALSE,
+            attributes = list(
+                vocab = list(
+                    type = "string",
+                    description = "Indicates the name of the controlled vocabulary, if any, used in the element, e.g., LCSH (Library of Congress Subject Headings), MeSH (Medical Subject Headings), etc.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabURI = list(
+                    type = "string",
+                    description = "Specifies the location for the full controlled vocabulary.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabInstanceURI = list(
+                    type = "string",
+                    description = "Specifies the identification URI of the term/code within the controlled vocabulary if available.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabID = list(
+                    type = "string",
+                    description = "Another form of identification (do not use for URI).",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabAgencyName = list(
+                    type = "string",
+                    description = "Agency managing the controlled vocabulary.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabVersionID = list(
+                    type = "string",
+                    description = "Version of controlled vocabulary, if needed.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                otherValue = list(
+                    type = "string",
+                    description = "If the controlled vocabulary term is \"other\", provide a more specific value.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabSchemeURN = list(
+                    type = "string",
+                    description = "The URN of the controlled vocabulary.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabInstanceCodeTerm = list(
+                    type = "string",
+                    description = "Added to accommodate the code term as it appears in the controlled vocabulary.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
+            parents = "developmentActivity",
+            children = list(),
+            title = "Type of Development Activity",
+            description = "The applied use of the element is found in the parent item. PLEASE NOTE A CHANGE IN USAGE INSTRUCTIONS: The string content of the element now contains the language specific label obtained from the controlled vocabulary. This allows for multiple languages through the repeated entry of the \"concept\" element. See the high level documentation for a complete description of usage.",
+            examples = c()
+        ),
+        typeOfExPostEvaluation = list(
+            type = "conceptType",
+            optional = TRUE,
+            repeatable = TRUE,
+            recommended = FALSE,
+            deprecated = FALSE,
+            attributes = list(
+                vocab = list(
+                    type = "string",
+                    description = "Indicates the name of the controlled vocabulary, if any, used in the element, e.g., LCSH (Library of Congress Subject Headings), MeSH (Medical Subject Headings), etc.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabURI = list(
+                    type = "string",
+                    description = "Specifies the location for the full controlled vocabulary.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabInstanceURI = list(
+                    type = "string",
+                    description = "Specifies the identification URI of the term/code within the controlled vocabulary if available.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabID = list(
+                    type = "string",
+                    description = "Another form of identification (do not use for URI).",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabAgencyName = list(
+                    type = "string",
+                    description = "Agency managing the controlled vocabulary.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabVersionID = list(
+                    type = "string",
+                    description = "Version of controlled vocabulary, if needed.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                otherValue = list(
+                    type = "string",
+                    description = "If the controlled vocabulary term is \"other\", provide a more specific value.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabSchemeURN = list(
+                    type = "string",
+                    description = "The URN of the controlled vocabulary.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                vocabInstanceCodeTerm = list(
+                    type = "string",
+                    description = "Added to accommodate the code term as it appears in the controlled vocabulary.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
+            parents = "exPostEvaluation",
+            children = list(),
+            title = "Type of ExPost Evaluation",
+            description = "The applied use of the element is found in the parent item. PLEASE NOTE A CHANGE IN USAGE INSTRUCTIONS: The string content of the element now contains the language specific label obtained from the controlled vocabulary. This allows for multiple languages through the repeated entry of the \"concept\" element. See the high level documentation for a complete description of usage.",
+            examples = c()
+        ),
         undocCod = list(
             type = "simpleTextType",
             optional = TRUE,
@@ -7948,6 +8541,45 @@ assign(
             title = "List of Undocumented Codes",
             description = "Values whose meaning is unknown.",
             examples = "<var><undocCod>Responses for categories 9 and 10 are unavailable.</undocCod></var>"
+        ),
+        updateProcedure = list(
+            type = "conceptualTextType",
+            optional = TRUE,
+            repeatable = TRUE,
+            recommended = FALSE,
+            deprecated = FALSE,
+            attributes = list(),
+            parents = "sampleFrame",
+            children = list(choice = c("concept", "txt")),
+            title = "Instrument Development",
+            description = "Description of how and with what frequency the sample frame is updated. This element contains the sub-element \"concept\" to support the use of an external controlled vocabulary. PLEASE NOTE A CHANGE IN USAGE INSTRUCTIONS: The string content of the element now contains the language specific label obtained from the controlled vocabulary. This allows for multiple languages through the repeated entry of the \"concept\" element. The attribute \"vocabInstanceCodeTerm\" has been added to accommodate the code term as it appears in the controlled vocabulary. See the high level documentation for a complete description of usage. Additional textual description is entered in the mixed text content or using the sub-element \"txt\".",
+            examples = "<updateProcedure>Changes are collected as they occur through registration and loss of phone number from the specified geographic area. Data are compiled for the date June 1st of odd numbered years, and published on July 1st for the following two-year period.</updateProcedure>"
+        ),
+        usage = list(
+            type = "usageType",
+            optional = TRUE,
+            repeatable = TRUE,
+            recommended = FALSE,
+            deprecated = FALSE,
+            attributes = list(),
+            parents = "controlledVocabUsed",
+            children = list(choice = c("selector", "specificElements"), "attribute"),
+            title = "Usage",
+            description = "Defines where in the instance the controlled vocabulary which is identified is utilized. A controlled vocabulary may occur either in the content of an element or in an attribute on an element. The usage can either point to a collection of elements using an XPath via the selector element or point to a more specific collection of elements via their identifier using the specificElements element. If the controlled vocabulary occurs in an attribute within the element, the attribute element identifies the specific attribute. When specific elements are specified, an authorized code value may also be provided. If the current value of the element or attribute identified is not in the controlled vocabulary or is not identical to a code value, the authorized code value identifies a valid code value corresponding to the meaning of the content in the element or attribute.",
+            examples = c()
+        ),
+        useStmt = list(
+            type = "useStmtType",
+            optional = TRUE,
+            repeatable = TRUE,
+            recommended = FALSE,
+            deprecated = FALSE,
+            attributes = list(),
+            parents = c("dataAccs", "sampleFrame", "metadataAccs"),
+            children = list("confDec", "specPerm", "restrctn", "contact", "citReq", "deposReq", "conditions", "disclaimer"),
+            title = "Use Statement",
+            description = "Information on terms of use for the data collection. This element may be repeated only to support multiple language expressions of the content.",
+            examples = c()
         ),
         universe = list(
             type = "universeType",
@@ -7984,18 +8616,51 @@ assign(
                 "<universe clusion=\"E\">Individuals younger than 15 and older than 19 years of age.</universe>"
             )
         ),
-        useStmt = list(
-            type = "useStmtType",
+        unitType = list(
+            type = "unitTypeType",
+            optional = FALSE,
+            repeatable = FALSE,
+            recommended = FALSE,
+            deprecated = FALSE,
+            attributes = list(
+                numberOfUnits = list(
+                    type = "integer",
+                    description = "Number of units in the sampling frame.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
+            parents = "frameUnit",
+            children = list("concept", "txt"),
+            title = "Unit Type",
+            description = "Describes the type of sampling frame unit using a conceptualText structure supporting a description and the use of an external controlled Vocabulary. PLEASE NOTE A CHANGE IN USAGE INSTRUCTIONS: The string content of \"concept\" now contains the language specific label obtained from the controlled vocabulary. This allows for multiple languages through the repeated entry of the \"concept\" element. See the high level documentation for a complete description of usage.",
+            examples = "<unitType numberOfUnits=\"150000\"><concept vocab=\"SampleFrame_UnitType\" vocabInstanceCodeTerm=\"telephoneNumber\">Telephone Number</concept>Primary listed owners of published phone numbers in the City of St. Paul</unitType>"
+        ),
+        validPeriod = list(
+            type = "eventDateType",
             optional = TRUE,
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
-            parents = c("dataAccs", "sampleFrame", "metadataAccs"),
-            children = list("confDec", "specPerm", "restrctn", "contact", "citReq", "deposReq", "conditions", "disclaimer"),
-            title = "Use Statement",
-            description = "Information on terms of use for the data collection. This element may be repeated only to support multiple language expressions of the content.",
-            examples = c()
+            attributes = list(
+                event = list(
+                    type = "NMTOKEN",
+                    description = "",
+                    values = c("start", "end", "single"),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
+            parents = "sampleFrame",
+            children = list(),
+            title = "Valid Period",
+            description = "Defines a time period for the validity of the sampling frame. Enter dates in YYYY-MM-DD format.",
+            examples = "<sampleFrame><validPeriod event=\"start\">2009-07-01</validPeriod><validPeriod event=\"end\">2011-06-30</validPeriod></sampleFrame>"
         ),
         valrng = list(
             type = "valrngType",
@@ -8688,671 +9353,6 @@ assign(
             title = "West Bounding Longitude",
             description = "The westernmost coordinate delimiting the geographic extent of the dataset. A valid range of values, expressed in decimal degrees (positive east and positive north), is: -180,0 <=West Bounding Longitude Value <= 180,0",
             examples = "<westBL>4.789583</westBL>"
-        ),
-        typeOfAccess = list(
-            type = "conceptType",
-            optional = TRUE,
-            repeatable = TRUE,
-            recommended = FALSE,
-            deprecated = FALSE,
-            attributes = list(
-                vocab = list(
-                    type = "string",
-                    description = "Indicates the name of the controlled vocabulary, if any, used in the element, e.g., LCSH (Library of Congress Subject Headings), MeSH (Medical Subject Headings), etc.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                vocabURI = list(
-                    type = "string",
-                    description = "Specifies the location for the full controlled vocabulary.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                vocabInstanceURI = list(
-                    type = "string",
-                    description = "Specifies the identification URI of the term/code within the controlled vocabulary if available.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                vocabID = list(
-                    type = "string",
-                    description = "Another form of identification (do not use for URI).",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                vocabAgencyName = list(
-                    type = "string",
-                    description = "Agency managing the controlled vocabulary.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                vocabVersionID = list(
-                    type = "string",
-                    description = "Version of controlled vocabulary, if needed.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                otherValue = list(
-                    type = "string",
-                    description = "If the controlled vocabulary term is \"other\", provide a more specific value.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                vocabSchemeURN = list(
-                    type = "string",
-                    description = "The URN of the controlled vocabulary.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                vocabInstanceCodeTerm = list(
-                    type = "string",
-                    description = "Added to accommodate the code term as it appears in the controlled vocabulary.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                )
-            ),
-            parents = c("dataAccs", "metadataAccs"),
-            children = list(),
-            title = "Type of Access",
-            description = "The applied use of the element is found in the parent item. PLEASE NOTE A CHANGE IN USAGE INSTRUCTIONS: The string content of the element now contains the language specific label obtained from the controlled vocabulary. This allows for multiple languages through the repeated entry of the \"concept\" element. See the high level documentation for a complete description of usage.",
-            examples = c()
-        ),
-        typeOfCodingInstruction = list(
-            type = "conceptType",
-            optional = TRUE,
-            repeatable = TRUE,
-            recommended = FALSE,
-            deprecated = FALSE,
-            attributes = list(
-                vocab = list(
-                    type = "string",
-                    description = "Indicates the name of the controlled vocabulary, if any, used in the element, e.g., LCSH (Library of Congress Subject Headings), MeSH (Medical Subject Headings), etc.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                vocabURI = list(
-                    type = "string",
-                    description = "Specifies the location for the full controlled vocabulary.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                vocabInstanceURI = list(
-                    type = "string",
-                    description = "Specifies the identification URI of the term/code within the controlled vocabulary if available.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                vocabID = list(
-                    type = "string",
-                    description = "Another form of identification (do not use for URI).",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                vocabAgencyName = list(
-                    type = "string",
-                    description = "Agency managing the controlled vocabulary.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                vocabVersionID = list(
-                    type = "string",
-                    description = "Version of controlled vocabulary, if needed.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                otherValue = list(
-                    type = "string",
-                    description = "If the controlled vocabulary term is \"other\", provide a more specific value.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                vocabSchemeURN = list(
-                    type = "string",
-                    description = "The URN of the controlled vocabulary.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                vocabInstanceCodeTerm = list(
-                    type = "string",
-                    description = "Added to accommodate the code term as it appears in the controlled vocabulary.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                )
-            ),
-            parents = "codingInstructions",
-            children = list(),
-            title = "Type of Coding Instruction",
-            description = "The applied use of the element is found in the parent item. PLEASE NOTE A CHANGE IN USAGE INSTRUCTIONS: The string content of the element now contains the language specific label obtained from the controlled vocabulary. This allows for multiple languages through the repeated entry of the \"concept\" element. See the high level documentation for a complete description of usage.",
-            examples = c()
-        ),
-        typeOfOtherMaterial = list(
-            type = "conceptType",
-            optional = TRUE,
-            repeatable = TRUE,
-            recommended = FALSE,
-            deprecated = FALSE,
-            attributes = list(
-                vocab = list(
-                    type = "string",
-                    description = "Indicates the name of the controlled vocabulary, if any, used in the element, e.g., LCSH (Library of Congress Subject Headings), MeSH (Medical Subject Headings), etc.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                vocabURI = list(
-                    type = "string",
-                    description = "Specifies the location for the full controlled vocabulary.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                vocabInstanceURI = list(
-                    type = "string",
-                    description = "Specifies the identification URI of the term/code within the controlled vocabulary if available.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                vocabID = list(
-                    type = "string",
-                    description = "Another form of identification (do not use for URI).",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                vocabAgencyName = list(
-                    type = "string",
-                    description = "Agency managing the controlled vocabulary.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                vocabVersionID = list(
-                    type = "string",
-                    description = "Version of controlled vocabulary, if needed.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                otherValue = list(
-                    type = "string",
-                    description = "If the controlled vocabulary term is \"other\", provide a more specific value.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                vocabSchemeURN = list(
-                    type = "string",
-                    description = "The URN of the controlled vocabulary.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                vocabInstanceCodeTerm = list(
-                    type = "string",
-                    description = "Added to accommodate the code term as it appears in the controlled vocabulary.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                )
-            ),
-            parents = "otherMat",
-            children = list(),
-            title = "Type of Other Material",
-            description = "The applied use of the element is found in the parent item. PLEASE NOTE A CHANGE IN USAGE INSTRUCTIONS: The string content of the element now contains the language specific label obtained from the controlled vocabulary. This allows for multiple languages through the repeated entry of the \"concept\" element. See the high level documentation for a complete description of usage.",
-            examples = c()
-        ),
-        typeOfSetAvailability = list(
-            type = "conceptType",
-            optional = TRUE,
-            repeatable = TRUE,
-            recommended = FALSE,
-            deprecated = FALSE,
-            attributes = list(
-                vocab = list(
-                    type = "string",
-                    description = "Indicates the name of the controlled vocabulary, if any, used in the element, e.g., LCSH (Library of Congress Subject Headings), MeSH (Medical Subject Headings), etc.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                vocabURI = list(
-                    type = "string",
-                    description = "Specifies the location for the full controlled vocabulary.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                vocabInstanceURI = list(
-                    type = "string",
-                    description = "Specifies the identification URI of the term/code within the controlled vocabulary if available.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                vocabID = list(
-                    type = "string",
-                    description = "Another form of identification (do not use for URI).",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                vocabAgencyName = list(
-                    type = "string",
-                    description = "Agency managing the controlled vocabulary.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                vocabVersionID = list(
-                    type = "string",
-                    description = "Version of controlled vocabulary, if needed.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                otherValue = list(
-                    type = "string",
-                    description = "If the controlled vocabulary term is \"other\", provide a more specific value.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                vocabSchemeURN = list(
-                    type = "string",
-                    description = "The URN of the controlled vocabulary.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                vocabInstanceCodeTerm = list(
-                    type = "string",
-                    description = "Added to accommodate the code term as it appears in the controlled vocabulary.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                )
-            ),
-            parents = "setAvail",
-            children = list(),
-            title = "Type of Set Availability",
-            description = "The applied use of the element is found in the parent item. PLEASE NOTE A CHANGE IN USAGE INSTRUCTIONS: The string content of the element now contains the language specific label obtained from the controlled vocabulary. This allows for multiple languages through the repeated entry of the \"concept\" element. See the high level documentation for a complete description of usage.",
-            examples = c()
-        ),
-        typeOfDataSrc = list(
-            type = "conceptType",
-            optional = TRUE,
-            repeatable = TRUE,
-            recommended = FALSE,
-            deprecated = FALSE,
-            attributes = list(
-                vocab = list(
-                    type = "string",
-                    description = "Indicates the name of the controlled vocabulary, if any, used in the element, e.g., LCSH (Library of Congress Subject Headings), MeSH (Medical Subject Headings), etc.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                vocabURI = list(
-                    type = "string",
-                    description = "Specifies the location for the full controlled vocabulary.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                vocabInstanceURI = list(
-                    type = "string",
-                    description = "Specifies the identification URI of the term/code within the controlled vocabulary if available.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                vocabID = list(
-                    type = "string",
-                    description = "Another form of identification (do not use for URI).",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                vocabAgencyName = list(
-                    type = "string",
-                    description = "Agency managing the controlled vocabulary.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                vocabVersionID = list(
-                    type = "string",
-                    description = "Version of controlled vocabulary, if needed.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                otherValue = list(
-                    type = "string",
-                    description = "If the controlled vocabulary term is \"other\", provide a more specific value.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                vocabSchemeURN = list(
-                    type = "string",
-                    description = "The URN of the controlled vocabulary.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                vocabInstanceCodeTerm = list(
-                    type = "string",
-                    description = "Added to accommodate the code term as it appears in the controlled vocabulary.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                )
-            ),
-            parents = c("sources", "resource"),
-            children = list(),
-            title = "Type of Data Source",
-            description = "The applied use of the element is found in the parent item. PLEASE NOTE A CHANGE IN USAGE INSTRUCTIONS: The string content of the element now contains the language specific label obtained from the controlled vocabulary. This allows for multiple languages through the repeated entry of the \"concept\" element. See the high level documentation for a complete description of usage.",
-            examples = c()
-        ),
-        typeOfDevelopmentActivity = list(
-            type = "conceptType",
-            optional = TRUE,
-            repeatable = TRUE,
-            recommended = FALSE,
-            deprecated = FALSE,
-            attributes = list(
-                vocab = list(
-                    type = "string",
-                    description = "Indicates the name of the controlled vocabulary, if any, used in the element, e.g., LCSH (Library of Congress Subject Headings), MeSH (Medical Subject Headings), etc.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                vocabURI = list(
-                    type = "string",
-                    description = "Specifies the location for the full controlled vocabulary.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                vocabInstanceURI = list(
-                    type = "string",
-                    description = "Specifies the identification URI of the term/code within the controlled vocabulary if available.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                vocabID = list(
-                    type = "string",
-                    description = "Another form of identification (do not use for URI).",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                vocabAgencyName = list(
-                    type = "string",
-                    description = "Agency managing the controlled vocabulary.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                vocabVersionID = list(
-                    type = "string",
-                    description = "Version of controlled vocabulary, if needed.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                otherValue = list(
-                    type = "string",
-                    description = "If the controlled vocabulary term is \"other\", provide a more specific value.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                vocabSchemeURN = list(
-                    type = "string",
-                    description = "The URN of the controlled vocabulary.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                vocabInstanceCodeTerm = list(
-                    type = "string",
-                    description = "Added to accommodate the code term as it appears in the controlled vocabulary.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                )
-            ),
-            parents = "developmentActivity",
-            children = list(),
-            title = "Type of Development Activity",
-            description = "The applied use of the element is found in the parent item. PLEASE NOTE A CHANGE IN USAGE INSTRUCTIONS: The string content of the element now contains the language specific label obtained from the controlled vocabulary. This allows for multiple languages through the repeated entry of the \"concept\" element. See the high level documentation for a complete description of usage.",
-            examples = c()
-        ),
-        typeOfExPostEvaluation = list(
-            type = "conceptType",
-            optional = TRUE,
-            repeatable = TRUE,
-            recommended = FALSE,
-            deprecated = FALSE,
-            attributes = list(
-                vocab = list(
-                    type = "string",
-                    description = "Indicates the name of the controlled vocabulary, if any, used in the element, e.g., LCSH (Library of Congress Subject Headings), MeSH (Medical Subject Headings), etc.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                vocabURI = list(
-                    type = "string",
-                    description = "Specifies the location for the full controlled vocabulary.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                vocabInstanceURI = list(
-                    type = "string",
-                    description = "Specifies the identification URI of the term/code within the controlled vocabulary if available.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                vocabID = list(
-                    type = "string",
-                    description = "Another form of identification (do not use for URI).",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                vocabAgencyName = list(
-                    type = "string",
-                    description = "Agency managing the controlled vocabulary.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                vocabVersionID = list(
-                    type = "string",
-                    description = "Version of controlled vocabulary, if needed.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                otherValue = list(
-                    type = "string",
-                    description = "If the controlled vocabulary term is \"other\", provide a more specific value.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                vocabSchemeURN = list(
-                    type = "string",
-                    description = "The URN of the controlled vocabulary.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                ),
-                vocabInstanceCodeTerm = list(
-                    type = "string",
-                    description = "Added to accommodate the code term as it appears in the controlled vocabulary.",
-                    values = c(),
-                    default = c(),
-                    optional = TRUE,
-                    recommended = FALSE,
-                    deprecated = FALSE
-                )
-            ),
-            parents = "exPostEvaluation",
-            children = list(),
-            title = "Type of ExPost Evaluation",
-            description = "The applied use of the element is found in the parent item. PLEASE NOTE A CHANGE IN USAGE INSTRUCTIONS: The string content of the element now contains the language specific label obtained from the controlled vocabulary. This allows for multiple languages through the repeated entry of the \"concept\" element. See the high level documentation for a complete description of usage.",
-            examples = c()
         )
     ),
     envir = cacheEnv
