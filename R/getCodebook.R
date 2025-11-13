@@ -117,7 +117,28 @@
                 addChildren(list(fileName, fileType), to = fileTxt)
                 addChildren(fileTxt, to = fileDscr)
 
-                dataDscr <- collectMetadata(from, ... = ...)
+                # Recode extended missings (Stata/SAS style) to numeric codes
+                # for a codebook-friendly representation, similar to convert()
+                dots <- list(...)
+                recode <- !isFALSE(dots$recode)
+                data_input <- from
+                if (recode) {
+                    need_recode <- any(sapply(from, function(x) {
+                        inherits(x, "haven_labelled") && !inherits(x, "haven_labelled_spss")
+                    })) || any(sapply(from, function(x) {
+                        any(haven::is_tagged_na(c(unclass(x), attr(x, "labels", exact = TRUE))))
+                    }))
+
+                    if (isTRUE(need_recode)) {
+                        data_input <- recodeMissings(
+                            dataset = from,
+                            to = "SPSS",
+                            dictionary = dots$dictionary
+                        )
+                    }
+                }
+
+                dataDscr <- collectMetadata(data_input, ... = ...)
 
                 addChildren(list(dataDscr, fileDscr), to = codeBook)
 
@@ -218,6 +239,25 @@
             # else if (tp$fileext[ff] == "SAS7BDAT") {
             #     data <- haven::read_sas(file.path(tp$completePath, tp$files[ff]))
             # }
+
+            # Ensure codebook uses numeric missing codes for Stata/SAS-style
+            # tagged missings by recoding to SPSS style before metadata collection
+            recode <- !isFALSE(dots$recode)
+            if (recode) {
+                need_recode <- any(sapply(data, function(x) {
+                    inherits(x, "haven_labelled") && !inherits(x, "haven_labelled_spss")
+                })) || any(sapply(data, function(x) {
+                    any(haven::is_tagged_na(c(unclass(x), attr(x, "labels", exact = TRUE))))
+                }))
+
+                if (isTRUE(need_recode)) {
+                    data <- recodeMissings(
+                        dataset = data,
+                        to = "SPSS",
+                        dictionary = dots$dictionary
+                    )
+                }
+            }
 
             addChildren(
                 collectMetadata(data, ... = ...), # dataDscr

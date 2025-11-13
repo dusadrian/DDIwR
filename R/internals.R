@@ -1500,7 +1500,14 @@ NULL
             vals <- aN[[names(variables)[i]]]
 
             if (!is.null(lbls)) {
+                # account for Stata tagged missing values in labels
                 ismiss <- is.element(lbls, na_values)
+                if (any(haven::is_tagged_na(lbls))) {
+                    ismiss <- ismiss | (
+                        haven::is_tagged_na(lbls) &
+                        is.element(haven::na_tag(lbls), na_values)
+                    )
+                }
                 if (length(na_range) > 0) {
                     ismiss <- ismiss | (lbls >= na_range[1] & lbls <= na_range[2])
                 }
@@ -1635,11 +1642,24 @@ NULL
 
             nms <- names(lbls)
             for (v in seq(length(lbls))) {
-                ismiss <- is.element(lbls[v], na_values)
+                # Determine if current label value is a missing value
+                ismiss <- FALSE
+                if (!is.null(na_values)) {
+                    if (haven::is_tagged_na(lbls[v])) {
+                        # compare by tag when labels contain tagged missings
+                        ismiss <- is.element(haven::na_tag(lbls[v]), na_values) |
+                            is.element(paste0(".", haven::na_tag(lbls[v])), na_values)
+                    } else {
+                        ismiss <- is.element(lbls[v], na_values)
+                    }
+                }
                 if (length(na_range) > 0 & pN[i]) {
-                    ismiss <- ismiss | (
-                        lbls[v] >= na_range[1] & lbls[v] <= na_range[2]
-                    )
+                    suppressWarnings({
+                        # only compare numeric values to ranges
+                        if (!haven::is_tagged_na(lbls[v]) && is.numeric(lbls[v])) {
+                            ismiss <- ismiss | (lbls[v] >= na_range[1] & lbls[v] <= na_range[2])
+                        }
+                    })
                 }
 
                 cat(paste0(
