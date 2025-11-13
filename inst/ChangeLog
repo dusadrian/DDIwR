@@ -1,3 +1,6 @@
+Version 0.20
+  o bug fix in getCodebook() when a variable is completely missing (all empty NAs)
+
 Version 0.19
   o the internal DDI structure is now defined as an updateable cache
   o bug fix importing a DDI Codebook wih a separate CSV file

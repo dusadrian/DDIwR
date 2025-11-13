@@ -1627,8 +1627,11 @@ NULL
 
         if (!is.null(lbls)) {
 
-            tbl <- declared::w_table(data[[varnames[i]]])
-            # print(tbl)
+            allna <- all(is.na(data[[varnames[i]]]))
+
+            if (!allna) {
+                tbl <- declared::w_table(data[[varnames[i]]])
+            }
 
             nms <- names(lbls)
             for (v in seq(length(lbls))) {
@@ -1659,7 +1662,7 @@ NULL
                     enter
                 ))
 
-                if (!is.null(data)) {
+                if (!is.null(data) && !allna) {
                     freq <- tbl[match(nms[v], names(tbl))]
                     cat(paste0(
                         "<", ns, "catStat type=\"freq\">",
