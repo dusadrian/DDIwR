@@ -710,7 +710,7 @@ assign(
                 ),
                 sdatrefs = list(
                     type = "IDREFS",
-                    description = "Summary data description references that record the ID values of all elements within the summary data description section of the Study Description that might apply to this element.",
+                    description = "Summary data description references that record the ID values of all elements within the summary data description section of the Study Description that might apply to this element. These include: time period covered, date of collection, nation or country, geographic coverage, geographic unit, unit of analysis, universe, and kind of data.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -824,7 +824,7 @@ assign(
                 ),
                 sdatrefs = list(
                     type = "IDREFS",
-                    description = "Records the ID values of all elements within the summary data description that apply to this element.",
+                    description = "Summary data description references that record the ID values of all elements within the summary data description section of the Study Description that might apply to this element. These include: time period covered, date of collection, nation or country, geographic coverage, geographic unit, unit of analysis, universe, and kind of data.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -3258,7 +3258,7 @@ assign(
                 ),
                 sdatrefs = list(
                     type = "IDREFS",
-                    description = "Summary data description, references that record the ID values of all elements within the summary data description section of the Study Description that might apply to the file. These elements include: time period covered, date of collection, nation or country, geographic coverage, geographic unit, unit of analysis, universe, and kind of data.",
+                    description = "Summary data description references that record the ID values of all elements within the summary data description section of the Study Description that might apply to this element. These include: time period covered, date of collection, nation or country, geographic coverage, geographic unit, unit of analysis, universe, and kind of data.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -4450,7 +4450,7 @@ assign(
                 ),
                 sdatrefs = list(
                     type = "IDREFS",
-                    description = "ID values of all elements within the Summary Data Description section of the Study Description that might apply to the label. These elements include: time period covered, date of collection, nation or country, geographic coverage, geographic unit, unit of analysis, universe, and kind of data.",
+                    description = "Summary data description references that record the ID values of all elements within the summary data description section of the Study Description that might apply to this element. These include: time period covered, date of collection, nation or country, geographic coverage, geographic unit, unit of analysis, universe, and kind of data.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -4905,7 +4905,7 @@ assign(
                 ),
                 sdatrefs = list(
                     type = "IDREFS",
-                    description = "Summary data description references which record the ID values of all elements within the summary data description section of the Study Description which might apply to the nCube. These elements include: time period covered, date of collection, nation or country, geographic coverage, geographic unit, unit of analysis, universe, and kind of data.",
+                    description = "Summary data description references that record the ID values of all elements within the summary data description section of the Study Description that might apply to this element. These include: time period covered, date of collection, nation or country, geographic coverage, geographic unit, unit of analysis, universe, and kind of data.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -5027,7 +5027,7 @@ assign(
                 ),
                 sdatrefs = list(
                     type = "IDREFS",
-                    description = "Summary data description references that record the ID values of all elements within the summary data description section of the Study Description that might apply to the group. These elements include: time period covered, date of collection, nation or country, geographic coverage, geographic unit, unit of analysis, universe, and kind of data.",
+                    description = "Summary data description references that record the ID values of all elements within the summary data description section of the Study Description that might apply to this element. These include: time period covered, date of collection, nation or country, geographic coverage, geographic unit, unit of analysis, universe, and kind of data.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -5236,7 +5236,7 @@ assign(
                 ),
                 sdatrefs = list(
                     type = "IDREFS",
-                    description = "Summary data description references that record the ID values of all elements within the summary data description section of the Study Description that might apply to the group. These elements include: time period covered, date of collection, nation or country, geographic coverage, geographic unit, unit of analysis, universe, and kind of data.",
+                    description = "Summary data description references that record the ID values of all elements within the summary data description section of the Study Description that might apply to this element. These include: time period covered, date of collection, nation or country, geographic coverage, geographic unit, unit of analysis, universe, and kind of data.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -6023,7 +6023,7 @@ assign(
             attributes = list(
                 sdatrefs = list(
                     type = "IDREFS",
-                    description = "Summary data description references which record the ID values of all elements within the summary data description section of the Study Description which might apply to the nCube. These elements include: time period covered, date of collection, nation or country, geographic coverage, geographic unit, unit of analysis, universe, and kind of data.",
+                    description = "Summary data description references that record the ID values of all elements within the summary data description section of the Study Description that might apply to this element. These include: time period covered, date of collection, nation or country, geographic coverage, geographic unit, unit of analysis, universe, and kind of data.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -6100,7 +6100,7 @@ assign(
                 ),
                 sdatrefs = list(
                     type = "IDREFS",
-                    description = "References the elements in the summary data description section of the Study Description which might apply to this question.",
+                    description = "Summary data description references that record the ID values of all elements within the summary data description section of the Study Description that might apply to this element. These include: time period covered, date of collection, nation or country, geographic coverage, geographic unit, unit of analysis, universe, and kind of data.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -6153,7 +6153,7 @@ assign(
             attributes = list(
                 sdatrefs = list(
                     type = "IDREFS",
-                    description = "",
+                    description = "Summary data description references that record the ID values of all elements within the summary data description section of the Study Description that might apply to this element. These include: time period covered, date of collection, nation or country, geographic coverage, geographic unit, unit of analysis, universe, and kind of data.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -7840,7 +7840,7 @@ assign(
                 ),
                 sdatrefs = list(
                     type = "IDREFS",
-                    description = "Points  to information in the study description such as specific dates, universes, or other identifiable information in a space delimited array of IDs.",
+                    description = "Summary data description references that record the ID values of all elements within the summary data description section of the Study Description that might apply to this element. These include: time period covered, date of collection, nation or country, geographic coverage, geographic unit, unit of analysis, universe, and kind of data.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -8787,7 +8787,7 @@ assign(
                 ),
                 sdatrefs = list(
                     type = "IDREFS",
-                    description = "Summary data description references which record the ID values of all elements within the summary data description section of the Study Description which might apply to the variable. These elements include: time period covered, date of collection, nation or country, geographic coverage, geographic unit, unit of analysis, universe, and kind of data.",
+                    description = "Summary data description references that record the ID values of all elements within the summary data description section of the Study Description that might apply to this element. These include: time period covered, date of collection, nation or country, geographic coverage, geographic unit, unit of analysis, universe, and kind of data.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -9114,7 +9114,7 @@ assign(
                 ),
                 sdatrefs = list(
                     type = "IDREFS",
-                    description = "Summary data description references that record the ID values of all elements within the summary data description section of the Study Description that might apply to the group. These elements include: time period covered, date of collection, nation or country, geographic coverage, geographic unit, unit of analysis, universe, and kind of data.",
+                    description = "Summary data description references that record the ID values of all elements within the summary data description section of the Study Description that might apply to this element. These include: time period covered, date of collection, nation or country, geographic coverage, geographic unit, unit of analysis, universe, and kind of data.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
