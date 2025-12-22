@@ -90,6 +90,30 @@
 
     to_declared <- !isFALSE(dots$to_declared)
 
+    error <- TRUE
+    if (is.data.frame(dataset)) {
+        i <- 1
+        while (i <= ncol(dataset) & error) {
+            attrx <- attributes(dataset[[i]])
+            if (any(is.element(
+                c("label", "labels", "na_value", "na_range"),
+                names(attrx)
+            ))) {
+                error <- FALSE
+            }
+            i <- i + 1
+        }
+    }
+
+    if (error) {
+        admisc::stopError(
+            paste(
+                "The input does not seem to contain any",
+                "metadata about values and labels."
+            )
+        )
+    }
+
     dataDscr <- collectRMetadata(dataset, ... = ...)
     charvar <- unname(sapply(dataset, is.character))
 
@@ -268,7 +292,7 @@
     if (is.character(new)) {
         new <- tolower(new)
     }
-    
+
     for (variable in names(dataset)[spss | stata]) {
         x <- declared::undeclare(dataset[[variable]], drop = TRUE)
         attributes(x) <- NULL # for haven_labelled with tagged NAs
@@ -475,7 +499,7 @@
             }
         }
     }
-    
+
     if (tospss) {
         for (variable in names(dataset)[!spss & !stata]) {
             x <- getElement(dataset, variable)
@@ -484,9 +508,9 @@
                 extended <- haven::na_tag(x[na_index])
                 # check for unaccounted extended missing values
                 # (because they have no labels)
-                
+
                 emdiff <- setdiff(extended, old)
-                
+
                 if (length(emdiff) > 0) {
                     nrows <- nrow(dictionary)
                     newcodes <- mcodes[seq(nrows + 1, nrows + length(emdiff))]
@@ -499,22 +523,22 @@
                             new = newcodes
                         )
                     )
-                    
+
                 }
-                
+
                 x[na_index] <- NA
-                
+
                 na_values <- dictionary$new[match(extended, dictionary$old)]
                 names(na_index) <- na_values
                 attr(x, "na_values") <- intersect(mcodes, na_values)
                 attr(x, "na_index") <- na_index
-                
+
                 if (to_declared) {
                     xclass <- c("declared", class(x))
                 }
                 else {
                     xclass <- c("haven_labelled_spss", "haven_labelled")
-                    
+
                     if (
                         is.element("Date", class(x)) || isTRUE(attr(x, "date"))
                     ) {
@@ -524,7 +548,7 @@
                         xclass <- c(xclass, class(x))
                     }
                 }
-                
+
                 attr(x, "class") <- xclass
                 dataset[[variable]] <- x
             }

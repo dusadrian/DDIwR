@@ -170,7 +170,7 @@ NULL
     return(FALSE)
 }
 
-
+# possible values: "char", "catchar", "num", "numcat", "cat", "catnum"
 #' @description `checkType`: Determine the variable type: categorical, numerical or mixed
 #' @return `checkType`: A character scalar
 #' @rdname DDIwR_internal
@@ -192,6 +192,10 @@ NULL
         if (is.null(na_range)) {
             na_range <- attr(x, "na_range")
         }
+    }
+
+    if (length(labels) > 0) {
+        labels <- labels[!is.element(labels, names(labels))]
     }
 
     x <- declared::undeclare(x, drop = TRUE)
@@ -246,7 +250,7 @@ NULL
         # this should be a coding mistake, should it trigger an error or a warning?
     }
 
-    if (xnumeric) {
+    if (xnumeric && is.numeric(x)) {
         # pure numerical variable with no labels at all
         if (length(uniquevals) < 15) {
             return("numcat")
@@ -437,30 +441,7 @@ NULL
 `collectRMetadata` <- function(from, ...) {
     dots <- list(...)
 
-    if (is.data.frame(from)) {
-        error <- TRUE
-        i <- 1
-        while (i <= ncol(from) & error) {
-            attrx <- attributes(from[[i]])
-            if (any(is.element(
-                c("label", "labels", "na_value", "na_range"),
-                names(attrx)
-            ))) {
-                error <- FALSE
-            }
-            i <- i + 1
-        }
-
-        if (error && !isFALSE(dots$error_null)) {
-            admisc::stopError(
-                paste(
-                    "The input does not seem to contain any",
-                    "metadata about values and labels."
-                )
-            )
-        }
-    }
-    else {
+    if (!is.data.frame(from)) {
         admisc::stopError(
             "The input should be a dataframe containing labelled variables."
         )
