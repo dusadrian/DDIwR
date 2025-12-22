@@ -138,9 +138,14 @@
                     }
                 }
 
-                dataDscr <- collectMetadata(data_input, ... = ...)
+                addChildren(fileDscr, to = codeBook)
 
-                addChildren(list(dataDscr, fileDscr), to = codeBook)
+                if (!isFALSE(dots$dataDscr)) {
+                    addChildren(
+                        collectMetadata(data_input, ... = ...),
+                        to = codeBook
+                    )
+                }
 
                 return(codeBook)
             }
@@ -166,6 +171,8 @@
 
     result <- vector(mode = "list", length = length(tp$files))
 
+    fromPublisher <- identical(ignore, "dataDscr") & isTRUE(dots$dataset)
+
     for (ff in seq(length(result))) {
         if (print_processing & !fromsetupfile & !singlefile) {
             cat(tp$files[ff], "\n")
@@ -176,6 +183,119 @@
             xml <- getXML(file.path(tp$completePath, tp$files[ff]))
             monolang <- is.element("lang", names(xml2::xml_attrs(xml)))
 
+            if (fromPublisher) {
+                data <- extractData(xml)
+                dns <- getDNS(xml) # default name space
+
+                xpath <- sprintf("/%scodeBook/%sdataDscr/%svar", dns, dns, dns)
+                xmlvars <- xml2::xml_find_all(xml, xpath)
+
+                if (is.null(data)) {
+                    csv <- NULL
+                    csvexists <- FALSE
+                    files <- getFiles(tp$completePath, "*")
+                    csvfiles <- files$fileext == "CSV"
+
+                    if (any(csvfiles)) {
+                        csvexists <- is.element(
+                            toupper(tp$filenames),
+                            toupper(files$filenames[csvfiles])
+                        )
+
+                        csvfile <- files$files[csvfiles][
+                            match(
+                                toupper(tp$filenames),
+                                toupper(files$filenames[csvfiles])
+                            )
+                        ]
+                    }
+
+                    if (csvexists) {
+                        csv <- file.path(tp$completePath, csvfile)
+                        callist <- list(file = csv)
+                        for (f in names(formals(utils::read.csv))) {
+                            if (is.element(f, names(dots))) {
+                                callist[[f]] <- dots[[f]]
+                            }
+                        }
+
+                        header <- ifelse(isFALSE(callist$header), FALSE, TRUE)
+                        data <- do.call("read.csv", callist)
+
+                        variables <- lapply(xmlvars, XMLtoRmetadata, dns = dns)
+
+                        xpath <- sprintf("/%scodeBook/%sdataDscr/%svar/@name", dns, dns, dns)
+                        names(variables) <- admisc::trimstr(
+                            xml2::xml_text(xml2::xml_find_all(xml, xpath))
+                        )
+
+                        if (ncol(data) == length(variables)) {
+                            if (header) {
+                                if (!identical(names(data), names(variables))) {
+                                    data <- NULL
+                                }
+                            }
+                            else {
+                                names(data) <- names(variables)
+                            }
+                        }
+
+                        if (ncol(data) == length(variables) + 1) {
+                            if (header) {
+                                data <- NULL
+                            }
+                            else {
+                                names(data) <- c("row_names_csv_file", names(variables))
+                            }
+
+                            if (!is.null(data)) {
+                                rownames(data) <- data[, 1]
+                                data <- subset(
+                                    data,
+                                    select = seq(2, ncol(data))
+                                )
+                                # data <- data[, -1, drop = FALSE]
+                            }
+                        }
+
+                        if (!is.null(data)) {
+                            data <- makeLabelled(data, variables)
+                        }
+                    }
+                } else {
+                    hashes <- attr(data, "hashes")
+                    attr(data, "hashes") <- NULL
+
+                    if (!is.null(hashes)) {
+                        checkhashes <- getHashes(xmlvars)
+
+                        if (!identical(hashes, checkhashes)) {
+                            different <- which(hashes != checkhashes)
+
+                            for (i in different) {
+                                metadata <- XMLtoRmetadata(xmlvars[i], dns = dns)
+                                for (att in c("label", "labels", "na_values", "na_range")) {
+                                    attr(data[[i]], att) <- getElement(metadata, att)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (is.null(data)) {
+                    if (exists("dataset", envir = .GlobalEnv, inherits = FALSE)) {
+                        rm("dataset", envir = .GlobalEnv)
+                    }
+
+                    ignore <- setdiff(ignore, "dataDscr")
+
+                } else {
+                    data <- declared::as.declared(data)
+                    class(data) <- "data.frame"
+                    assign("dataset", data, envir = .GlobalEnv)
+                }
+            }
+
             if (!is.null(ignore)) {
                 if (
                     !is.atomic(ignore) || !is.character(ignore) ||
@@ -184,8 +304,8 @@
                     admisc::stopError("Argument 'ignore' should be a character vector of codeBook element names.")
                 }
 
-                children <- xml_children(xml)
-                childnames <- xml_name(children)
+                children <- xml2::xml_children(xml)
+                childnames <- xml2::xml_name(children)
 
                 todelete <- which(is.element(childnames, ignore))
 
@@ -202,8 +322,12 @@
             checkXMList(xmlist)
             codeBook <- coerceDDI(xmlist)
             codeBook$.extra$monolang <- monolang
+
+            if (fromPublisher & is.null(data)) {
+                codeBook$.extra$dataset_missing <- TRUE
+            }
         }
-        else {
+        else { # not an XML file, needs importing
             codeBook <- makeElement("codeBook")
             fileDscr <- makeElement("fileDscr")
 
@@ -230,6 +354,25 @@
                 arglist$file <- file.path(tp$completePath, tp$files[ff])
                 arglist$encoding <- encoding
                 data <- do.call(haven::read_dta, arglist)
+
+                # Ensure codebook uses numeric missing codes for Stata-style
+                # tagged missings by recoding to SPSS style before metadata collection
+                recode <- !isFALSE(dots$recode)
+                if (recode) {
+                    need_recode <- any(sapply(data, function(x) {
+                        inherits(x, "haven_labelled") && !inherits(x, "haven_labelled_spss")
+                    })) || any(sapply(data, function(x) {
+                        any(haven::is_tagged_na(c(unclass(x), attr(x, "labels", exact = TRUE))))
+                    }))
+
+                    if (isTRUE(need_recode)) {
+                        data <- recodeMissings(
+                            dataset = data,
+                            to = "SPSS",
+                            dictionary = dots$dictionary
+                        )
+                    }
+                }
             }
             else if (tp$fileext[ff] == "RDS") {
                 data <- readRDS(file.path(tp$completePath, tp$files[ff]))
@@ -240,29 +383,18 @@
             #     data <- haven::read_sas(file.path(tp$completePath, tp$files[ff]))
             # }
 
-            # Ensure codebook uses numeric missing codes for Stata/SAS-style
-            # tagged missings by recoding to SPSS style before metadata collection
-            recode <- !isFALSE(dots$recode)
-            if (recode) {
-                need_recode <- any(sapply(data, function(x) {
-                    inherits(x, "haven_labelled") && !inherits(x, "haven_labelled_spss")
-                })) || any(sapply(data, function(x) {
-                    any(haven::is_tagged_na(c(unclass(x), attr(x, "labels", exact = TRUE))))
-                }))
-
-                if (isTRUE(need_recode)) {
-                    data <- recodeMissings(
-                        dataset = data,
-                        to = "SPSS",
-                        dictionary = dots$dictionary
-                    )
-                }
+            if (!is.element("dataDscr", ignore)) {
+                addChildren(
+                    collectMetadata(data, ... = ...), # dataDscr
+                    to = codeBook
+                )
             }
 
-            addChildren(
-                collectMetadata(data, ... = ...), # dataDscr
-                to = codeBook
-            )
+            if (isTRUE(dots$dataset)) {
+                data <- declared::as.declared(data)
+                class(data) <- "data.frame"
+                assign("dataset", data, envir = .GlobalEnv)
+            }
 
             fileName <- makeElement(
                 "fileName",
