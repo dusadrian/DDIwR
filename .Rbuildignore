@@ -9,4 +9,5 @@
 ^\.travis\.yml$
 ^images$
 ^instructiuni\.txt$
+^TODO\.txt$
 ^\.github$
