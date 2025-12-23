@@ -1312,8 +1312,11 @@ NULL
         identical(x$varFormat, "date")
     })
 
+    wt <- dots$wt
+
     pN <- wN <- logical(length(variables))
     if (!is.null(data)) {
+
         pN <- sapply(data[names(variables)], function(x) {
             admisc::possibleNumeric(unclass(x))
         })
@@ -1326,6 +1329,21 @@ NULL
             subset(data, select = pN),
             function(x) admisc::asNumeric(unclass(x))
         )
+
+        if (!is.null(wt)) {
+            if (!is.character(wt) || length(wt) != 1) {
+                admisc::stopError("The weight variable 'wt' should be a character scalar.")
+            }
+
+            if (!is.element(wt, names(data))) {
+                admisc::stopError(
+                    sprintf(
+                        "The weight variable '%s' is not part of the dataset.",
+                        wt
+                    )
+                )
+            }
+        }
     }
 
 
@@ -1478,7 +1496,7 @@ NULL
         vals <- sumna <- NULL
         # even if the data is not present, pN is FALSE for all variables
         if (pN[i] & !dates[i]) {
-            vals <- aN[[names(variables)[i]]]
+            vals <- aN[[varnames[i]]]
 
             if (!is.null(lbls)) {
                 # account for Stata tagged missing values in labels
@@ -1493,6 +1511,16 @@ NULL
                     ismiss <- ismiss | (lbls >= na_range[1] & lbls <= na_range[2])
                 }
                 vals[is.element(vals, lbls[ismiss])] <- NA
+            }
+
+            wgtd <- !is.null(wt) && !identical(varnames[i], wt)
+            wgts <- NULL
+            if (wgtd) {
+                wgts <- admisc::asNumeric(unclass(data[[wt]]))
+                wgts <- wgts[!is.na(vals)]
+                if (anyNA(wgts) || all(wgts == 0)) {
+                    wgtd <- FALSE
+                }
             }
 
             sumna <- sum(is.na(vals))
@@ -1542,9 +1570,16 @@ NULL
                     ))
 
                     cat(paste0(
-                        "<", ns, "sumStat type=\"mean\">",
+                        "<", ns, "sumStat type=\"mean\"",
+                        sprintf(" wgtd=\"%swgtd\"", ifelse(wgtd, "", "not-")),
+                        ifelse (wgtd, sprintf(" wgt-var=\"%s\"", wt), ""),
+                        ">",
                         format(
-                            mean(vals, na.rm = TRUE),
+                            ifelse(
+                                wgtd,
+                                declared::wmean(vals, wgts),
+                                mean(vals, na.rm = TRUE)
+                            ),
                             scientific = FALSE
                         ),
                         "</", ns, "sumStat>",
@@ -1552,9 +1587,16 @@ NULL
                     ))
 
                     cat(paste0(
-                        "<", ns, "sumStat type=\"medn\">",
+                        "<", ns, "sumStat type=\"medn\"",
+                        sprintf(" wgtd=\"%swgtd\"", ifelse(wgtd, "", "not-")),
+                        ifelse (wgtd, sprintf(" wgt-var=\"%s\"", wt), ""),
+                        ">",
                         format(
-                            median(vals, na.rm = TRUE),
+                            ifelse(
+                                wgtd,
+                                declared::wmedian(vals, wgts),
+                                median(vals, na.rm = TRUE)
+                            ),
                             scientific = FALSE
                         ),
                         "</", ns, "sumStat>",
@@ -1563,9 +1605,16 @@ NULL
                     ))
 
                     cat(paste0(
-                        "<", ns, "sumStat type=\"stdev\">",
+                        "<", ns, "sumStat type=\"stdev\"",
+                        sprintf(" wgtd=\"%swgtd\"", ifelse(wgtd, "", "not-")),
+                        ifelse (wgtd, sprintf(" wgt-var=\"%s\"", wt), ""),
+                        ">",
                         format(
-                            sd(vals, na.rm = TRUE),
+                            ifelse(
+                                wgtd,
+                                declared::wsd(vals, wgts),
+                                sd(vals, na.rm = TRUE)
+                            ),
                             scientific = FALSE
                         ),
                         "</", ns, "sumStat>",
@@ -1618,7 +1667,7 @@ NULL
             allna <- all(is.na(data[[varnames[i]]]))
 
             if (!allna) {
-                tbl <- declared::w_table(data[[varnames[i]]])
+                tbl <- declared::wtable(data[[varnames[i]]], wt = data[[wt]])
             }
 
             nms <- names(lbls)
@@ -1666,7 +1715,10 @@ NULL
                 if (!is.null(data) && !allna) {
                     freq <- tbl[match(nms[v], names(tbl))]
                     cat(paste0(
-                        "<", ns, "catStat type=\"freq\">",
+                        "<", ns, "catStat type=\"freq\"",
+                        sprintf(" wgtd=\"%swgtd\"", ifelse(wgtd, "", "not-")),
+                        ifelse (wgtd, sprintf(" wgt-var=\"%s\"", wt), ""),
+                        ">",
                         ifelse(
                             is.na(freq),
                             0,
@@ -2320,6 +2372,84 @@ NULL
 
     return(result)
 }
+
+
+
+
+#' @description `import_excel`: Import from an Excel file (containing metadata)
+#' @return `import_excel`: An R data frame
+#' @rdname DDIwR_internal
+#' @keywords internal
+#' @export
+`import_excel` <- function(from, dots) {
+    data <- NULL
+
+    if (requireNamespace("readxl", quietly = TRUE)) {
+        callist <- list(path = from)
+        for (f in names(formals(readxl::read_excel))) {
+            if (is.element(f, names(dots))) {
+                callist[[f]] <- dots[[f]]
+            }
+        }
+
+        data <- do.call("read_excel", callist)
+        variables <- NULL
+        callist$sheet <- "variables"
+        admisc::tryCatchWEM(variables <- do.call("read_excel", callist))
+
+        values <- NULL
+        callist$sheet <- "values"
+        admisc::tryCatchWEM(values <- do.call("read_excel", callist))
+        if (is.null(values)) {
+            callist$sheet <- "codes"
+            admisc::tryCatchWEM(values <- do.call("read_excel", callist))
+        }
+
+        if (!is.null(variables) & !is.null(values)) {
+            for (v in colnames(data)) {
+                callist <- list(x = data[[v]])
+                label <- NULL
+                admisc::tryCatchWEM(label <- variables$label[variables$name == v])
+                if (length(label) == 1) {
+                    if (!identical(label, "") & !is.na(label)) {
+                        callist$label <- label
+                    }
+                }
+
+                labels <- NULL
+                admisc::tryCatchWEM(labels <- values$value[values$variable == v])
+                if (is.null(labels)) {
+                    admisc::tryCatchWEM(labels <- values$code[values$variable == v])
+                }
+
+                nms <- NULL
+                admisc::tryCatchWEM(nms <- values$label[values$variable == v])
+
+                vmissing <- NULL
+                admisc::tryCatchWEM(vmissing <- values$missing[values$variable == v])
+
+                if (length(labels) > 0 & length(nms) > 0 & length(vmissing) > 0) {
+                    if (admisc::possibleNumeric(labels)) {
+                        labels <- admisc::asNumeric(labels)
+                    }
+
+                    if (!all(is.na(vmissing)) && any(vmissing == "y")) {
+                        callist$na_values <- labels[which(vmissing == "y")]
+                    }
+
+                    names(labels) <- nms
+                    callist$labels <- labels
+                }
+
+                data[[v]] <- do.call("declared", callist)
+            }
+        }
+    }
+
+    return(data)
+}
+
+
 
 
 
