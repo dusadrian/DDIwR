@@ -57,8 +57,8 @@
 #' to save the data at all, by setting **`csv`** to `FALSE`.
 #'
 #' The DDI .xml file generates unique IDs for all variables, if not already
-#' present in the attributes. These IDs are useful for newer versions of the DDI
-#' Codebook, for referencing purposes.
+#' present in the attributes. These IDs are useful for referencing purposes, in
+#' newer versions of the DDI Codebook.
 #'
 #' The argument **`chartonum`** signals recoding character categorical
 #' variables, and employs the function \bold{\code{\link{recodeCharcat}()}}.
@@ -432,68 +432,7 @@
         }
     }
     else if (tp_from$fileext == "XLS" || tp_from$fileext == "XLSX") {
-        if (requireNamespace("readxl", quietly = TRUE)) {
-            callist <- list(path = from)
-            for (f in names(formals(readxl::read_excel))) {
-                if (is.element(f, names(dots))) {
-                    callist[[f]] <- dots[[f]]
-                }
-            }
-
-            data <- do.call("read_excel", callist)
-            variables <- NULL
-            callist$sheet <- "variables"
-            admisc::tryCatchWEM(variables <- do.call("read_excel", callist))
-
-            values <- NULL
-            callist$sheet <- "values"
-            admisc::tryCatchWEM(values <- do.call("read_excel", callist))
-            if (is.null(values)) {
-                callist$sheet <- "codes"
-                admisc::tryCatchWEM(values <- do.call("read_excel", callist))
-            }
-
-            if (!is.null(variables) & !is.null(values)) {
-                for (v in colnames(data)) {
-                    callist <- list(x = data[[v]])
-                    label <- NULL
-                    admisc::tryCatchWEM(label <- variables$label[variables$name == v])
-                    if (length(label) == 1) {
-                        if (!identical(label, "") & !is.na(label)) {
-                            callist$label <- label
-                        }
-                    }
-
-                    labels <- NULL
-                    admisc::tryCatchWEM(labels <- values$value[values$variable == v])
-                    if (is.null(labels)) {
-                        admisc::tryCatchWEM(labels <- values$code[values$variable == v])
-                    }
-
-                    nms <- NULL
-                    admisc::tryCatchWEM(nms <- values$label[values$variable == v])
-
-                    vmissing <- NULL
-                    admisc::tryCatchWEM(vmissing <- values$missing[values$variable == v])
-
-                    if (length(labels) > 0 & length(nms) > 0 & length(vmissing) > 0) {
-                        if (admisc::possibleNumeric(labels)) {
-                            labels <- admisc::asNumeric(labels)
-                        }
-
-                        if (!all(is.na(vmissing)) && any(vmissing == "y")) {
-                            callist$na_values <- labels[which(vmissing == "y")]
-                        }
-
-                        names(labels) <- nms
-                        callist$labels <- labels
-                    }
-
-                    data[[v]] <- do.call("declared", callist)
-
-                }
-            }
-        }
+        data <- import_excel(from, dots)
     }
     else if (tp_from$fileext == "SAV" || tp_from$fileext == "ZSAV") {
         fargs <- names(formals(read_sav))

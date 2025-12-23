@@ -92,8 +92,8 @@ have the option to save the data in a separate CSV file (the default) or not
 to save the data at all, by setting \strong{\code{csv}} to \code{FALSE}.
 
 The DDI .xml file generates unique IDs for all variables, if not already
-present in the attributes. These IDs are useful for newer versions of the DDI
-Codebook, for referencing purposes.
+present in the attributes. These IDs are useful for referencing purposes, in
+newer versions of the DDI Codebook.
 
 The argument \strong{\code{chartonum}} signals recoding character categorical
 variables, and employs the function \bold{\code{\link{recodeCharcat}()}}.
