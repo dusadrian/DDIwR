@@ -39,6 +39,7 @@
 \alias{treatPath}
 \alias{writeMetadata}
 \alias{XMLtoRmetadata}
+\alias{import_excel}
 \alias{makeNotes}
 \alias{getEnv}
 \alias{getMetadata}
@@ -120,6 +121,8 @@ writeMetadata(variables, OS = "", indent = 4)
 
 XMLtoRmetadata(xmlvar, dns)
 
+import_excel(from, dots)
+
 makeNotes(data)
 
 getEnv()
@@ -199,6 +202,8 @@ containing variable level metadata information
 files, the file names and the file extensions
 
 \code{XMLtoRmetadata}: An R list containing metadata
+
+\code{import_excel}: An R data frame
 }
 \description{
 Functions to be used internally, only by developers and
@@ -282,6 +287,8 @@ present in a certain directory.
 part in the setup file.
 
 \code{XMLtoRmetadata}: Extract metadata from a single XML variable
+
+\code{import_excel}: Import from an Excel file (containing metadata)
 
 \code{writeRlist}: Write an .R file containing a metadata specific list.
 }
