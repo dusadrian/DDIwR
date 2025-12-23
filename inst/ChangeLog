@@ -2,6 +2,7 @@ Version 0.20
   o improved getCodebook() capturing extended missing values from Stata/SAS
   o bug fix in getCodebook() when a variable is completely missing (all empty NAs)
   o function convert() now allows input files with no metadata at all
+  o implemented way to produce a DDI Codebook using weighted summaries
 
 Version 0.19
   o the internal DDI structure is now defined as an updateable cache
