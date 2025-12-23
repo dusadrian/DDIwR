@@ -79,6 +79,7 @@
     dots <- list(...)
     if (is.null(from) & !is.null(dots$x)) {
         from <- dots$x
+        dots$x <- NULL
     }
 
     data <- NULL
@@ -282,9 +283,11 @@
                     }
                 }
 
+                envPublisher <- as.environment("MetadataPublisher")
+
                 if (is.null(data)) {
-                    if (exists("dataset", envir = .GlobalEnv, inherits = FALSE)) {
-                        rm("dataset", envir = .GlobalEnv)
+                    if (exists("dataset", envir = envPublisher, inherits = FALSE)) {
+                        rm("dataset", envir = envPublisher)
                     }
 
                     ignore <- setdiff(ignore, "dataDscr")
@@ -292,7 +295,7 @@
                 } else {
                     data <- declared::as.declared(data)
                     class(data) <- "data.frame"
-                    assign("dataset", data, envir = .GlobalEnv)
+                    assign("dataset", data, envir = envPublisher)
                 }
             }
 
@@ -348,6 +351,9 @@
                     arglist
                 )
             }
+            else if (tp$fileext[ff] == "XLS" | tp$fileext[ff] == "XLSX") {
+                data <- import_excel(from, dots)
+            }
             else if (tp$fileext[ff] == "DTA") {
                 fargs <- names(formals(read_dta))
                 arglist <- dots[is.element(names(dots), fargs)]
@@ -391,9 +397,10 @@
             }
 
             if (isTRUE(dots$dataset)) {
+                envPublisher <- as.environment("MetadataPublisher")
                 data <- declared::as.declared(data)
                 class(data) <- "data.frame"
-                assign("dataset", data, envir = .GlobalEnv)
+                assign("dataset", data, envir = envPublisher)
             }
 
             fileName <- makeElement(
