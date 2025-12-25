@@ -440,7 +440,14 @@
         arglist$file <- from
         arglist$user_na <- !isFALSE(dots$user_na)
         arglist$encoding <- encoding
-        data <- do.call(haven::read_sav, arglist) # haven_labelled variables
+        tc <- admisc::tryCatchWEM(
+            data <- do.call(haven::read_sav, arglist) # haven_labelled variables
+        )
+        if (!is.null(tc$error) && grepl("Unable to convert string", tc$error)) {
+            admisc::stopError(
+                "This file contains non standard strings, check the encoding argument."
+            )
+        }
     }
     else if (tp_from$fileext == "POR") {
         fargs <- names(formals(read_por))
