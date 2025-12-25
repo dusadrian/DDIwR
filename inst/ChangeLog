@@ -1,6 +1,7 @@
 Version 0.20
   o improved getCodebook() capturing extended missing values from Stata/SAS
   o bug fix in getCodebook() when a variable is completely missing (all empty NAs)
+  o function getCodebook() now defaults to autodetect the file encoding
   o function convert() now allows input files with no metadata at all
   o implemented way to produce a DDI Codebook using weighted summaries
 
