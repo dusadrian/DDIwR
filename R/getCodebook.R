@@ -16,18 +16,25 @@
 #' (labels, missing values etc.). From a DDI XML file, it will import all
 #' metadata elements, the most expensive being the data description.
 #'
-# It additionally attempts to automatically detect a type for each variable:
-# \tabular{rl}{
-#   **`cat`**: \tab categorical variable using numeric values\cr
-#   **`catchar`**: \tab categorical variable using character values\cr
-#   **`catnum`**: \tab categorical variable for which numerical summaries\cr
-#   \tab can be calculated (ex. a 0...10 Likert response scale)\cr
-#   **`num`**: \tab numerical\cr
-#   **`numcat`**: \tab numerical variable with few enough values (ex. number of
-# children)\cr
-#   \tab for which a table of frequencies is possible in addition to
-# frequencies
-# }
+#' It additionally attempts to automatically detect a type for each variable:
+#' \tabular{rl}{
+#'   **`cat`**: \tab categorical variable using numeric values\cr
+#'   **`catchar`**: \tab categorical variable using character values\cr
+#'   **`catnum`**: \tab categorical variable for which numerical summaries\cr
+#'   \tab can be calculated (ex. a 0...10 Likert response scale)\cr
+#'   **`num`**: \tab numerical\cr
+#'   **`numcat`**: \tab numerical variable with few enough values (ex. number of
+#' children)\cr
+#'   \tab for which a table of frequencies is possible in addition to
+#' frequencies
+#' }
+#'
+#' Apart from `utf8`, other encodings might be necessary when reading from
+#' SPSS or DDI XML files, for instance `latin1` or `windows-1252`, and it also
+#' accepts `bytes` for multi-byte encodings. To use the one specified in the
+#' file, set `encoding = NULL`. The default is `encoding = "auto"`, which tries to
+#' detect the encoding automatically.
+#'
 #' For the moment, only DDI Codebook is supported, but DDI Lifecycle is planned
 #' to be implemented.
 #'
@@ -64,7 +71,7 @@
 #'
 #' @export
 
-`getCodebook` <- function(from = NULL, encoding = "UTF-8", ignore = NULL, ...) {
+`getCodebook` <- function(from = NULL, encoding = "auto", ignore = NULL, ...) {
 
     # TODO: detect DDI version or ask the version through a dedicated argument
     # http://www.ddialliance.org/Specification/DDI-Codebook/2.5/XMLSchema/field_level_documentation.html
@@ -340,16 +347,39 @@
                 arglist$file <- file.path(tp$completePath, tp$files[ff])
                 arglist$user_na <- user_na
                 if (tp$fileext[ff] == "SAV") {
-                    arglist$encoding <- encoding
+
+                    if (encoding == "auto") {
+                        error <- TRUE
+                        i <- 1
+                        encodings <- c("utf8", "latin1", "windows-1252", "bytes", "default")
+                        while (error & i <= length(encodings)) {
+                            if (encodings[i] == "default") {
+                                arglist$encoding <- NULL
+                            } else {
+                                arglist$encoding <- encodings[i]
+                            }
+
+                            i <- i + 1
+
+                            tc <- admisc::tryCatchWEM(
+                                data <- do.call(haven::read_sav, arglist)
+                            )
+
+                            error <- !is.null(tc$error)
+                        }
+
+                        if (error) {
+                            admisc::stopError(
+                                "Could not autodetect the file encoding."
+                            )
+                        }
+                    } else {
+                        arglist$encoding <- encoding
+                        data <- do.call(haven::read_sav, arglist)
+                    }
+                } else {
+                    data <- do.call(haven::read_por, arglist)
                 }
-                data <- do.call(
-                    ifelse (
-                        tp$fileext[ff] == "SAV",
-                        haven::read_sav,
-                        haven::read_por
-                    ),
-                    arglist
-                )
             }
             else if (tp$fileext[ff] == "XLS" | tp$fileext[ff] == "XLSX") {
                 data <- import_excel(from, dots)
@@ -358,8 +388,35 @@
                 fargs <- names(formals(read_dta))
                 arglist <- dots[is.element(names(dots), fargs)]
                 arglist$file <- file.path(tp$completePath, tp$files[ff])
-                arglist$encoding <- encoding
-                data <- do.call(haven::read_dta, arglist)
+                if (encoding == "auto") {
+                    error <- TRUE
+                    i <- 1
+                    encodings <- c("utf8", "latin1", "windows-1252", "bytes", "default")
+                    while (error & i <= length(encodings)) {
+                        if (encodings[i] == "default") {
+                            arglist$encoding <- NULL
+                        } else {
+                            arglist$encoding <- encodings[i]
+                        }
+
+                        i <- i + 1
+
+                        tc <- admisc::tryCatchWEM(
+                            data <- do.call(haven::read_dta, arglist)
+                        )
+
+                        error <- !is.null(tc$error)
+                    }
+
+                    if (error) {
+                        admisc::stopError(
+                            "Could not autodetect the file encoding."
+                        )
+                    }
+                } else {
+                    arglist$encoding <- encoding
+                    data <- do.call(haven::read_dta, arglist)
+                }
 
                 # Ensure codebook uses numeric missing codes for Stata-style
                 # tagged missings by recoding to SPSS style before metadata collection

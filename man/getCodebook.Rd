@@ -4,7 +4,7 @@
 \alias{getCodebook}
 \title{Extract metadata information}
 \usage{
-getCodebook(from = NULL, encoding = "UTF-8", ignore = NULL, ...)
+getCodebook(from = NULL, encoding = "auto", ignore = NULL, ...)
 }
 \arguments{
 \item{from}{A path to a file, or a data frame object}
@@ -33,6 +33,25 @@ labels and information about the missing values.
 If the input is a dataset, it will extract the variable level metadata
 (labels, missing values etc.). From a DDI XML file, it will import all
 metadata elements, the most expensive being the data description.
+
+It additionally attempts to automatically detect a type for each variable:
+\tabular{rl}{
+\strong{\code{cat}}: \tab categorical variable using numeric values\cr
+\strong{\code{catchar}}: \tab categorical variable using character values\cr
+\strong{\code{catnum}}: \tab categorical variable for which numerical summaries\cr
+\tab can be calculated (ex. a 0...10 Likert response scale)\cr
+\strong{\code{num}}: \tab numerical\cr
+\strong{\code{numcat}}: \tab numerical variable with few enough values (ex. number of
+children)\cr
+\tab for which a table of frequencies is possible in addition to
+frequencies
+}
+
+Apart from \code{utf8}, other encodings might be necessary when reading from
+SPSS or DDI XML files, for instance \code{latin1} or \code{windows-1252}, and it also
+accepts \code{bytes} for multi-byte encodings. To use the one specified in the
+file, set \code{encoding = NULL}. The default is \code{encoding = "auto"}, which tries to
+detect the encoding automatically.
 
 For the moment, only DDI Codebook is supported, but DDI Lifecycle is planned
 to be implemented.
