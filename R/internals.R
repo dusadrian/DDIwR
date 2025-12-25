@@ -1667,7 +1667,7 @@ NULL
             allna <- all(is.na(data[[varnames[i]]]))
 
             if (!allna) {
-                tbl <- declared::wtable(data[[varnames[i]]], wt = data[[wt]])
+                tbl <- declared::wtable(data[[varnames[i]]], wt = wgts)
             }
 
             nms <- names(lbls)
