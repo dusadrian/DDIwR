@@ -216,12 +216,34 @@
         return(from)
     }
 
-    if (!hasChildren(from, xpath[1])) {
+    parse_seg <- function(s) {
+        m <- regexec("^([^\\[]+)(\\[(\\d+)\\])?$", s)
+        r <- regmatches(s, m)[[1]]
+        if (length(r) == 0) return(NULL)
+        name <- r[2]
+        idx <- NA_integer_
+        if (length(r) >= 4 && nchar(r[4]) > 0) {
+            idx <- as.integer(r[4])
+        }
+        list(name = name, index = idx)
+    }
+
+    info0 <- parse_seg(xpath[1])
+    if (is.null(info0) || is.na(info0$name)) {
+        admisc::stopError("Invalid xpath segment.")
+    }
+
+    if (!hasChildren(from, info0$name)) {
         return(NULL)
     }
 
     if (length(xpath) >= 1) {
-        index <- indexChildren(from, xpath[1])
+        info <- info0
+        index <- indexChildren(from, info$name)
+        if (length(index) == 0) {
+            return(NULL)
+        }
+
         if (length(index) == 1) {
             return(getChildren(
                 paste(xpath, collapse = "/"),
@@ -230,15 +252,29 @@
         }
         else {
             if (length(xpath) == 1) {
+                if (!is.na(info$index)) {
+                    if (info$index < 1 || info$index > length(index)) {
+                        admisc::stopError("Index out of range for xpath segment.")
+                    }
+                    return(from[index[info$index]])
+                }
                 return(from[index])
             }
 
-            # e.g. codeBook/dataDscr/var/labl
-            # and there are certainly, multiple "var" elements in the dataDscr
+            if (is.na(info$index)) {
+                admisc::stopError(sprintf(
+                    "Multiple '%s' elements to subtract '%s' children from.",
+                    info$name, xpath[2]
+                ))
+            }
 
-            admisc::stopError(sprintf(
-                "Multiple '%s' elements to subtract '%s' children from.",
-                xpath[1], xpath[2]
+            if (info$index < 1 || info$index > length(index)) {
+                admisc::stopError("Index out of range for xpath segment.")
+            }
+
+            return(getChildren(
+                paste(xpath[-1], collapse = "/"),
+                from = from[[index[info$index]]]
             ))
         }
     }
