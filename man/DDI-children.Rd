@@ -9,6 +9,9 @@
 \alias{indexChildren}
 \alias{removeChildren}
 \alias{addContent}
+\alias{makePath}
+\alias{moveChild}
+\alias{replaceChild}
 \alias{changeContent}
 \alias{removeContent}
 \alias{addAttributes}
@@ -32,6 +35,12 @@ indexChildren(element, name)
 removeChildren(name, from, overwrite = TRUE, ...)
 
 addContent(content, to, overwrite = TRUE)
+
+makePath(path, from, overwrite = TRUE, ...)
+
+moveChild(path, from, to, overwrite = TRUE, ...)
+
+replaceChild(path, with, overwrite = TRUE, ...)
 
 changeContent(content, to, overwrite = TRUE)
 
