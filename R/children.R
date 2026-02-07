@@ -16,19 +16,16 @@
 #' Although an XML list generally allows for multiple contents, sometimes spread
 #' between the children elements, it is preferable to maintain a single content
 #' (eventually separated with carriage return characters for separate lines).
+#
+#' XPath resolution accepts indexed segments using `[n]`. When an index is
+#' missing, the first matching element is selected.
 #'
 #' Arguments are unique, and can be changed by simply referring to their names.
 #'
-#' Elements, however, can be repeated. For instance element `var` to describe
-#' variables, within the `dataDscr` (data description) sub-element in the
-#' `codeBook`. There are as many such `var` elements as the number of variables
-#' in the dataset, in which case it is not possible to change a specific `var`
-#' element by referring to its name. For this purpose, it is useful to extract
-#' the positions of all `var` elements to iterate through, which is the purpose
-#' of the function `indexChildren()`.
-#'
-#' Future versions will allow deep manipulations of child elements using the
-#' `xpath` argument.
+#' Elements can be repeated. For example, `dataDscr` contains one `var` element
+#' per dataset variable. When multiple `var` elements exist, referring only to
+#' the name is ambiguous. Use indexed xpaths like `var[3]` to target a specific
+#' instance, or use `indexChildren()` to list all positions for iteration.
 #'
 #' @return An invisible standard DDI element. Functions `any*()` and `has*()`
 #' return a logical (vector).
@@ -36,17 +33,25 @@
 #' @author Adrian Dusa
 #'
 #' @param children A standard element of class `"DDI"`, or a list of such elements.
-#' @param to A standard element of class `"DDI"`.
-#' @param from A standard element of class `"DDI"`.
+#' @param to A standard element of class `"DDI"`, or an xpath string pointing
+#' to a target element.
+#' @param from A standard element of class `"DDI"`, or an xpath string pointing
+#' to a target element.
 #' @param element A standard element of class `"DDI"`.
 #' @param content Character, the text content of a DDI element.
 #' @param attrs A list of specific attribute names and values.
 #' @param name Character, name(s) of specific child element / attribute.
 #' @param overwrite Logical, overwrite the original object in the parent frame.
-#' @param xpath Character, a path to a DDI Codebook element.
+#' @param xpath Character, an xpath to a DDI Codebook element. Indexed segments
+#' are supported using square brackets, e.g. `codeBook/dataDscr/var[3]`.
+#' Missing indexes default to the first matching element.
 #' @param ... Other arguments, mainly for internal use.
 #'
 #' @details If more than one children, they should be grouped into a list.
+#' Functions `addContent`, `changeContent`, `removeContent`, `addAttributes`,
+#' `changeAttributes`, and `removeAttributes` accept either a standard DDI element
+#' or a character `xpath`. When an xpath is provided, the target element is
+#' resolved and replaced in the root element.
 #'
 #' @export
 `addChildren` <- function(children, to, overwrite = TRUE, ...) {
@@ -262,9 +267,10 @@
             }
 
             if (is.na(info$index)) {
-                admisc::stopError(sprintf(
-                    "Multiple '%s' elements to subtract '%s' children from.",
-                    info$name, xpath[2]
+                # Default to the first element when index is missing
+                return(getChildren(
+                    paste(xpath[-1], collapse = "/"),
+                    from = from[[index[1]]]
                 ))
             }
 
@@ -372,6 +378,19 @@
         length(content) != 1
     ) {
         admisc::stopError("The content should be a vector of length 1.")
+    }
+
+    if (is.character(to) && length(to) == 1) {
+        res <- resolve_xpath_target(to, env = parent.frame())
+        node <- addContent(content, to = res$node, overwrite = FALSE)
+        if (identical(res$canonical, res$rootname)) {
+            if (overwrite) {
+                admisc::overwrite(res$rootname, node, parent.frame())
+            }
+        } else if (overwrite) {
+            replaceChild(res$canonical, with = node, overwrite = TRUE)
+        }
+        return(invisible(node))
     }
 
     if (missing(to) || !is.element(".extra", names(to))) {
@@ -552,9 +571,7 @@
             }
             idx <- info$index
             if (is.na(idx)) {
-                if (length(positions) > 1) {
-                    admisc::stopError("Ambiguous xpath segment; index required.")
-                }
+                # Default to the first element when index is missing
                 idx <- 1L
             }
             if (idx < 1 || idx > length(positions)) {
@@ -699,9 +716,7 @@
             }
             idx <- info$index
             if (is.na(idx)) {
-                if (length(positions) > 1) {
-                    admisc::stopError("Ambiguous xpath segment; index required.")
-                }
+                # Default to the first element when index is missing
                 idx <- 1L
             }
             if (idx < 1 || idx > length(positions)) {
@@ -781,6 +796,19 @@
         admisc::stopError("The content should be a vector of length 1.")
     }
 
+    if (is.character(to) && length(to) == 1) {
+        res <- resolve_xpath_target(to, env = parent.frame())
+        node <- changeContent(content, to = res$node, overwrite = FALSE)
+        if (identical(res$canonical, res$rootname)) {
+            if (overwrite) {
+                admisc::overwrite(res$rootname, node, parent.frame())
+            }
+        } else if (overwrite) {
+            replaceChild(res$canonical, with = node, overwrite = TRUE)
+        }
+        return(invisible(node))
+    }
+
     if (missing(to) || !is.element(".extra", names(to))) {
         admisc::stopError("The argument 'to' is not standard.")
     }
@@ -810,6 +838,19 @@
 `removeContent` <- function(from, overwrite = TRUE) {
     objname <- deparse1(substitute(from))
 
+    if (is.character(from) && length(from) == 1) {
+        res <- resolve_xpath_target(from, env = parent.frame())
+        node <- removeContent(from = res$node, overwrite = FALSE)
+        if (identical(res$canonical, res$rootname)) {
+            if (overwrite) {
+                admisc::overwrite(res$rootname, node, parent.frame())
+            }
+        } else if (overwrite) {
+            replaceChild(res$canonical, with = node, overwrite = TRUE)
+        }
+        return(invisible(node))
+    }
+
     if (missing(from) || !is.element(".extra", names(from))) {
         admisc::stopError("The argument 'from' is not standard.")
     }
@@ -838,6 +879,19 @@
 `addAttributes` <- function(attrs, to, overwrite = TRUE) {
     objname <- deparse1(substitute(to))
     attrnames <- names(attrs)
+
+    if (is.character(to) && length(to) == 1) {
+        res <- resolve_xpath_target(to, env = parent.frame())
+        node <- addAttributes(attrs, to = res$node, overwrite = FALSE)
+        if (identical(res$canonical, res$rootname)) {
+            if (overwrite) {
+                admisc::overwrite(res$rootname, node, parent.frame())
+            }
+        } else if (overwrite) {
+            replaceChild(res$canonical, with = node, overwrite = TRUE)
+        }
+        return(invisible(node))
+    }
 
     DDIC <- get("DDIC", envir = cacheEnv)
     DDIC_global_attributes <- get("DDIC_global_attributes", envir = cacheEnv)
@@ -873,7 +927,6 @@
         attrbs <- attrbs[corder]
     }
 
-
     attributes(to) <- attrbs
 
     if (overwrite) {
@@ -906,6 +959,19 @@
 `changeAttributes` <- function(attrs, from, overwrite = TRUE) {
     objname <- deparse1(substitute(from))
 
+    if (is.character(from) && length(from) == 1) {
+        res <- resolve_xpath_target(from, env = parent.frame())
+        node <- changeAttributes(attrs, from = res$node, overwrite = FALSE)
+        if (identical(res$canonical, res$rootname)) {
+            if (overwrite) {
+                admisc::overwrite(res$rootname, node, parent.frame())
+            }
+        } else if (overwrite) {
+            replaceChild(res$canonical, with = node, overwrite = TRUE)
+        }
+        return(invisible(node))
+    }
+
     DDIC <- get("DDIC", envir = cacheEnv)
     DDIC_global_attributes <- get("DDIC_global_attributes", envir = cacheEnv)
 
@@ -931,9 +997,7 @@
 
     attrbs <- attributes(from)
 
-    if (
-        !all(is.element(attrnames, names(attrbs)))
-    ) {
+    if (!all(is.element(attrnames, names(attrbs)))) {
         admisc::stopError("Inexisting attribute(s) to change.")
     }
 
@@ -973,6 +1037,19 @@
 #' @export
 `removeAttributes` <- function(name, from, overwrite = TRUE) {
     objname <- deparse1(substitute(from))
+
+    if (is.character(from) && length(from) == 1) {
+        res <- resolve_xpath_target(from, env = parent.frame())
+        node <- removeAttributes(name, from = res$node, overwrite = FALSE)
+        if (identical(res$canonical, res$rootname)) {
+            if (overwrite) {
+                admisc::overwrite(res$rootname, node, parent.frame())
+            }
+        } else if (overwrite) {
+            replaceChild(res$canonical, with = node, overwrite = TRUE)
+        }
+        return(invisible(node))
+    }
 
     DDIC <- get("DDIC", envir = cacheEnv)
     DDIC_global_attributes <- get("DDIC_global_attributes", envir = cacheEnv)
@@ -1014,4 +1091,94 @@
     }
 
     return(invisible(from))
+}
+
+
+
+# Internal helper: resolve xpath to target node and canonical indexed xpath
+resolve_xpath_target <- function(xpath, env = parent.frame()) {
+    if (missing(xpath) || is.null(xpath) || !is.atomic(xpath) || !is.character(xpath) || length(xpath) != 1) {
+        admisc::stopError("Argument 'xpath' should be a character scalar.")
+    }
+
+    segs <- unlist(strsplit(xpath, split = "/"))
+    segs <- segs[nzchar(segs)]
+    if (length(segs) == 0) {
+        admisc::stopError("Argument 'xpath' is empty.")
+    }
+
+    rootname <- segs[1]
+    if (!exists(rootname, envir = env)) {
+        admisc::stopError("Could not resolve root element from xpath.")
+    }
+
+    root <- get(rootname, envir = env)
+    if (!is.element(".extra", names(root))) {
+        admisc::stopError("The resolved root element is not standard.")
+    }
+
+    if (length(segs) == 1) {
+        return(list(rootname = rootname, root = root, node = root, canonical = rootname))
+    }
+
+    parse_seg <- function(s) {
+        m <- regexec("^([^\\[]+)(\\[(\\d+)\\])?$", s)
+        r <- regmatches(s, m)[[1]]
+        if (length(r) == 0) return(NULL)
+        name <- r[2]
+        idx <- NA_integer_
+        if (length(r) >= 4 && nchar(r[4]) > 0) {
+            idx <- as.integer(r[4])
+        }
+        list(name = name, index = idx)
+    }
+
+    last <- segs[length(segs)]
+    info <- parse_seg(last)
+    if (is.null(info) || is.na(info$name)) {
+        admisc::stopError("Invalid xpath segment.")
+    }
+
+    parent_parts <- segs[-length(segs)]
+    parent_path <- paste(parent_parts, collapse = "/")
+    parent <- if (nzchar(parent_path)) {
+        getChildren(parent_path, from = root)
+    } else {
+        root
+    }
+
+    if (is.null(parent) || !is.element(".extra", names(parent))) {
+        admisc::stopError("Could not resolve parent element from xpath.")
+    }
+
+    positions <- indexChildren(parent, info$name)
+    if (length(positions) == 0) {
+        admisc::stopError("No such child element in xpath.")
+    }
+
+    idx <- info$index
+    if (is.na(idx)) {
+        # Default to the first element when index is missing
+        idx <- 1L
+    }
+
+    if (idx < 1 || idx > length(positions)) {
+        admisc::stopError("Index out of range for xpath segment.")
+    }
+
+    node <- parent[[positions[idx]]]
+    canonical_last <- paste0(info$name, "[", idx, "]")
+
+    # Avoid duplicating the root in canonical path
+    if (length(parent_parts) > 0 && identical(parent_parts[1], rootname)) {
+        parent_parts <- parent_parts[-1]
+    }
+
+    canonical <- if (length(parent_parts) > 0) {
+        paste(rootname, paste(parent_parts, collapse = "/"), canonical_last, sep = "/")
+    } else {
+        paste(rootname, canonical_last, sep = "/")
+    }
+
+    list(rootname = rootname, root = root, node = node, canonical = canonical)
 }
