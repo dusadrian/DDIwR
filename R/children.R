@@ -212,7 +212,9 @@
     xpath <- gsub("\\$", "/", xpath)
     xpath <- unlist(strsplit(xpath, split = "/"))
 
-    wextra <- which(xpath == from$.extra$name)
+    base_segs <- sub("\\[(\\d+)\\]$", "", xpath, perl = TRUE)
+
+    wextra <- which(base_segs == from$.extra$name)
     if (length(wextra) > 0) {
         xpath <- xpath[-seq(wextra)]
     }
