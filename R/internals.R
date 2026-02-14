@@ -1301,11 +1301,16 @@ NULL
         return(NULL)
     }
 
-    # tcon <- textConnection("tmp", "w")
+    xml_lines <- character()
+    output_sink_depth <- sink.number()
+    tcon <- textConnection("xml_lines", "w", local = TRUE)
+    sink(tcon)
 
     on.exit({
-        suppressWarnings(sink())
-        # close(tcon)
+        while (sink.number() > output_sink_depth) {
+            suppressWarnings(sink())
+        }
+        suppressWarnings(try(close(tcon), silent = TRUE))
     })
 
     dates <- sapply(variables, function(x) {
@@ -1356,9 +1361,6 @@ NULL
 
     ns <- "" # namespace
     enter <- "\n"
-
-    tmp <- tempdir()
-    sink(file.path(tmp, "codeBook.xml"))
 
     cat(paste0("<?xml version=\"1.0\" encoding=\"UTF-8\"?>", enter))
     cat(paste0(
@@ -1457,42 +1459,6 @@ NULL
             ))
         }
 
-        if (length(na_range) > 0) {
-            cat(paste("<", ns, "invalrng>", enter, sep = ""))
-
-            if (any(is.element(na_range, c(-Inf, Inf)))) {
-                if (identical(na_range[1], -Inf)) {
-                    cat(paste0(
-                        sprintf(
-                            "<%srange UNITS=\"%s\" max=\"%s\"/>",
-                            ns, ifelse(wN[i], "INT", "REAL"), na_range[2]
-                        ),
-                        enter
-                    ))
-                }
-                else {
-                    cat(paste0(
-                        sprintf(
-                            "<%srange UNITS=\"%s\" min=\"%s\"/>",
-                            ns, ifelse(wN[i], "INT", "REAL"), na_range[1]
-                        ),
-                        enter
-                    ))
-                }
-            }
-            else {
-                cat(paste0(
-                    sprintf(
-                        "<%srange UNITS=\"%s\" min=\"%s\" max=\"%s\"/>",
-                        ns, ifelse(wN[i], "INT", "REAL"), na_range[1], na_range[2]
-                    ),
-                    enter
-                ))
-            }
-
-            cat(paste0("</", ns, "invalrng>", enter))
-        }
-
         vals <- sumna <- NULL
         # even if the data is not present, pN is FALSE for all variables
         if (pN[i] & !dates[i]) {
@@ -1547,6 +1513,42 @@ NULL
                     enter
                 ))
                 cat(paste0("</", ns, "valrng>", enter))
+
+                if (length(na_range) > 0) {
+                    cat(paste("<", ns, "invalrng>", enter, sep = ""))
+
+                    if (any(is.element(na_range, c(-Inf, Inf)))) {
+                        if (identical(na_range[1], -Inf)) {
+                            cat(paste0(
+                                sprintf(
+                                    "<%srange UNITS=\"%s\" max=\"%s\"/>",
+                                    ns, ifelse(wN[i], "INT", "REAL"), na_range[2]
+                                ),
+                                enter
+                            ))
+                        }
+                        else {
+                            cat(paste0(
+                                sprintf(
+                                    "<%srange UNITS=\"%s\" min=\"%s\"/>",
+                                    ns, ifelse(wN[i], "INT", "REAL"), na_range[1]
+                                ),
+                                enter
+                            ))
+                        }
+                    }
+                    else {
+                        cat(paste0(
+                            sprintf(
+                                "<%srange UNITS=\"%s\" min=\"%s\" max=\"%s\"/>",
+                                ns, ifelse(wN[i], "INT", "REAL"), na_range[1], na_range[2]
+                            ),
+                            enter
+                        ))
+                    }
+
+                    cat(paste0("</", ns, "invalrng>", enter))
+                }
 
                 if (printnum) { # numeric variable
                     cat(paste0(
@@ -1799,19 +1801,24 @@ NULL
     cat(paste0("</", ns, "dataDscr>", enter))
     cat(paste0("</codeBook>", enter))
 
-    sink()
+    while (sink.number() > output_sink_depth) {
+        suppressWarnings(sink())
+    }
+    suppressWarnings(try(close(tcon), silent = TRUE))
 
-    codeBook <- xml2::read_xml(file.path(tmp, "codeBook.xml"))
-    hashes <- getHashes(xml2::xml_find_all(codeBook, "/d1:codeBook/d1:dataDscr/d1:var"))
+    xml_text <- paste(xml_lines, collapse = enter)
 
     if (!isFALSE(dots$DDI)) {
+        codeBook <- xml2::read_xml(xml_text)
+        hashes <- getHashes(xml2::xml_find_all(codeBook, "/d1:codeBook/d1:dataDscr/d1:var"))
+
         return(list(
             coerceDDI(xml2::as_list(codeBook)),
             hashes
         ))
     }
 
-    return(list(codeBook, hashes, uuid))
+    return(list(xml_text, NULL, uuid))
 }
 
 
@@ -2705,4 +2712,69 @@ makedfm <- function() {
     ]
 
     return(dfm)
+}
+
+
+writeDDIXML <- function(data, to) {
+    variables <- collectRMetadata(data)
+
+    codeBook <- makeElement("codeBook")
+
+    fileName <- makeElement(
+        "fileName",
+        content = ifelse(
+            is.null(file_name),
+            tp_from$filenames,
+            file_name
+        )
+    )
+
+    if (is.null(file_extension)) {
+        file_extension <- tp_from$fileext
+    }
+
+    fileType <- makeElement(
+        "fileType",
+        content = filetypes[which(fileexts == file_extension)]
+    )
+
+    dimensns <- makeElement(
+        "dimensns",
+        children = list(
+            makeElement("caseQnty", content = nrow(data)),
+            makeElement("varQnty", content = ncol(data))
+        )
+    )
+
+    fileTxt <- makeElement("fileTxt", children = list(fileName, fileType, dimensns))
+    fileDscr <- makeElement("fileDscr", children = list(fileTxt))
+
+    if (!is.null(file_id)) {
+        if (!is.atomic(file_id) || !is.character(file_id) || length(file_id) != 1) {
+            admisc::stopError("The argument 'fileid' must be a single character string.")
+        }
+
+        names(file_id) <- "ID"
+        addAttributes(file_id, to = fileDscr)
+    }
+
+    data[] <- lapply(data, function(x) {
+        if (is.factor(x)) {
+            x <- as.numeric(x)
+        }
+        return(x)
+    })
+
+    addChildren(fileDscr, to = codeBook)
+
+    exportCodebook(
+        codeBook,
+        file = to,
+        data = data,
+        embed = TRUE,
+        dataDscr_directly_in_XML = TRUE,
+        variables = variables,
+        csv = csv,
+        ... = ...
+    )   
 }
