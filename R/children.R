@@ -37,6 +37,8 @@
 #' to a target element.
 #' @param from A standard element of class `"DDI"`, or an xpath string pointing
 #' to a target element.
+#' @param with A standard element of class `"DDI"`, or an xpath string pointing
+#' to a target element.
 #' @param element A standard element of class `"DDI"`.
 #' @param content Character, the text content of a DDI element.
 #' @param attrs A list of specific attribute names and values.

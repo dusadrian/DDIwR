@@ -79,6 +79,9 @@ to a target element.}
 
 \item{content}{Character, the text content of a DDI element.}
 
+\item{with}{A standard element of class \code{"DDI"}, or an xpath string pointing
+to a target element.}
+
 \item{attrs}{A list of specific attribute names and values.}
 }
 \value{
