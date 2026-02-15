@@ -424,11 +424,27 @@ NULL
         )
     }
 
+    var_info <- makeXMLvars(
+        data = from,
+        ... = ...
+    )
+    var_xml <- var_info$xml
+
+    dataDscr_xml <- paste0("  <dataDscr>\n", paste(var_xml, collapse = ""), "  </dataDscr>\n")
+    xml_text <- paste0(
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n",
+        "<codeBook xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" ",
+        "xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" ",
+        "xmlns=\"ddi:codebook:2_6\" version=\"2.6\" ",
+        "xsi:schemaLocation=\"ddi:codebook:2_6 codebook.xsd\">\n",
+        dataDscr_xml,
+        "</codeBook>\n"
+    )
+
     return(
-        makeXMLcodeBook(
-            data = from,
-            ... = ...
-        )[[1]]$dataDscr
+        coerceDDI(
+            xml2::as_list(xml2::read_xml(xml_text))
+        )$dataDscr
     )
 }
 
@@ -1274,7 +1290,7 @@ NULL
 
 
 # completely internal function, not designed for general use
-`makeXMLcodeBook` <- function(variables = NULL, data = NULL, indent = 2, ...) {
+`makeXMLvars` <- function(variables = NULL, data = NULL, indent = 2, ...) {
     dots <- list(...)
 
     if (is.null(variables)) {
@@ -1300,18 +1316,6 @@ NULL
     if (is.null(variables)) {
         return(NULL)
     }
-
-    xml_lines <- character()
-    output_sink_depth <- sink.number()
-    tcon <- textConnection("xml_lines", "w", local = TRUE)
-    sink(tcon)
-
-    on.exit({
-        while (sink.number() > output_sink_depth) {
-            suppressWarnings(sink())
-        }
-        suppressWarnings(try(close(tcon), silent = TRUE))
-    })
 
     dates <- sapply(variables, function(x) {
         identical(x$varFormat, "date")
@@ -1359,6 +1363,272 @@ NULL
     varuuid <- unlist(lapply(variables, function(x) x$ID))
     uuid[match(names(varuuid), varnames)] <- varuuid
 
+    ns <- getElement(dots, "ns")
+    if (is.null(ns)) {
+        ns <- ""
+    }
+    if (nzchar(ns) && !grepl(":$", ns)) {
+        ns <- paste0(ns, ":")
+    }
+
+    var_labels <- rep("", length(variables))
+    var_type <- rep(NA_character_, length(variables))
+    var_measurement <- rep(NA_character_, length(variables))
+    var_dcml <- rep(NA_real_, length(variables))
+    var_width <- rep(NA_real_, length(variables))
+    range_units <- rep("REAL", length(variables))
+    val_min <- val_max <- inval_min <- inval_max <- rep(NA_real_, length(variables))
+    stat_min <- stat_max <- stat_mean <- stat_medn <- stat_stdev <- rep(NA_real_, length(variables))
+    sum_valid <- sum_invalid <- rep(NA_real_, length(variables))
+    varformat_type <- rep("", length(variables))
+    varformat_value <- rep("", length(variables))
+    cat_counts <- integer(length(variables))
+    cat_values <- character(0)
+    cat_labels <- character(0)
+    cat_missing <- logical(0)
+    cat_freq <- numeric(0)
+
+    for (i in seq_along(variables)) {
+        metadata <- variables[[i]]
+
+        label <- getElement(metadata, "label")
+        if (!is.null(label) && length(label) > 0 && !is.na(label[1])) {
+            var_labels[i] <- as.character(label[1])
+        }
+
+        na_range <- getElement(metadata, "na_range")
+        if (length(na_range) > 0) {
+            inval_min[i] <- na_range[1]
+            inval_max[i] <- na_range[2]
+        }
+
+        type <- getElement(metadata, "type")
+        measurement <- getElement(metadata, "measurement")
+        if (!is.null(type) && length(type) > 0) {
+            var_type[i] <- as.character(type[1])
+        }
+        if (!is.null(measurement) && length(measurement) > 0) {
+            mtxt <- tolower(trimws(as.character(measurement[1])))
+            mtxt <- gsub("categorical|quantitative|continuous|discrete|,", "", mtxt)
+            mtxt <- trimws(gsub("\\s+", " ", mtxt))
+            if (nzchar(mtxt) && mtxt %in% c("nominal", "ordinal", "interval", "ratio", "percent", "other")) {
+                var_measurement[i] <- mtxt
+            }
+        }
+
+        varFormat <- getElement(metadata, "varFormat")
+        if (!is.null(varFormat)) {
+            varFormat <- varFormat[1]
+        }
+
+        if (!is.null(type) || !is.null(varFormat)) {
+            vartype <- ifelse(
+                !is.null(type) && grepl("char", type),
+                "character",
+                "numeric"
+            )
+            if (identical(varFormat, "date")) {
+                vartype <- "numeric"
+                varFormat <- "ISO dates"
+            }
+            if (!is.null(varFormat) && !is.na(varFormat)) {
+                varformat_type[i] <- vartype
+                varformat_value[i] <- as.character(varFormat)
+                if (is.na(var_width[i]) && identical(vartype, "character")) {
+                    mA <- regexec("^[Aa]([0-9]+)$", as.character(varFormat), perl = TRUE)
+                    rA <- regmatches(as.character(varFormat), mA)[[1]]
+                    if (length(rA) >= 2) var_width[i] <- suppressWarnings(as.numeric(rA[2]))
+                }
+                if (is.na(var_width[i]) && grepl("^[Ff][0-9]+", as.character(varFormat))) {
+                    mF <- regexec("^[Ff]([0-9]+)(?:\\.([0-9]+))?$", as.character(varFormat), perl = TRUE)
+                    rF <- regmatches(as.character(varFormat), mF)[[1]]
+                    if (length(rF) >= 2) var_width[i] <- suppressWarnings(as.numeric(rF[2]))
+                    if (length(rF) >= 3 && nzchar(rF[3])) var_dcml[i] <- suppressWarnings(as.numeric(rF[3]))
+                }
+            }
+        }
+
+        if (!is.null(data)) {
+            vals <- data[[varnames[i]]]
+
+            lbls <- getElement(metadata, "labels")
+            na_values <- getElement(metadata, "na_values")
+            if (!is.null(lbls)) {
+                ismiss <- is.element(lbls, na_values)
+                if (length(na_range) > 0 && isTRUE(pN[i])) {
+                    suppressWarnings({
+                        ismiss <- ismiss | (lbls >= na_range[1] & lbls <= na_range[2])
+                    })
+                }
+                vals[is.element(vals, lbls[ismiss])] <- NA
+            }
+
+            sum_invalid[i] <- sum(is.na(vals))
+            vals_nonmiss <- na.omit(vals)
+            sum_valid[i] <- length(vals_nonmiss)
+
+            if (isTRUE(pN[i])) {
+                range_units[i] <- ifelse(isTRUE(wN[i]), "INT", "REAL")
+                vals_num <- suppressWarnings(admisc::asNumeric(unclass(vals)))
+                vals_num <- na.omit(vals_num)
+
+                if (length(vals_num) > 0) {
+                    var_dcml[i] <- admisc::numdec(vals_num)
+                    var_width[i] <- max(nchar(as.character(floor(abs(vals_num)))), na.rm = TRUE)
+                }
+
+                if (!isTRUE(dates[i]) && length(unique(vals_num)) > 1) {
+                    vr <- range(vals_num)
+                    val_min[i] <- vr[1]
+                    val_max[i] <- vr[2]
+
+                    lbls_num <- suppressWarnings(admisc::asNumeric(lbls))
+                    printnum <- length(setdiff(vals_num, lbls_num)) > 4
+                    if (!is.null(type)) {
+                        printnum <- printnum | (length(vals_num) > 2 & grepl("num", type))
+                    }
+
+                    if (isTRUE(printnum)) {
+                        stat_min[i] <- min(vals_num, na.rm = TRUE)
+                        stat_max[i] <- max(vals_num, na.rm = TRUE)
+                        stat_mean[i] <- mean(vals_num, na.rm = TRUE)
+                        stat_medn[i] <- median(vals_num, na.rm = TRUE)
+                        if (length(vals_num) > 1) {
+                            stat_stdev[i] <- sd(vals_num, na.rm = TRUE)
+                        }
+                    }
+                }
+            }
+
+            if (!is.null(lbls) && length(lbls) > 0) {
+                allna <- all(is.na(data[[varnames[i]]]))
+                tbl <- NULL
+                if (!allna) {
+                    tbl <- declared::wtable(data[[varnames[i]]])
+                }
+
+                nms <- names(lbls)
+                if (is.null(nms)) {
+                    next
+                }
+
+                has_label <- !is.na(nms) & nzchar(nms)
+                if (!any(has_label)) {
+                    next
+                }
+
+                lbls <- lbls[has_label]
+                nms <- nms[has_label]
+
+                missv <- logical(length(lbls))
+                freqv <- rep(NA_real_, length(lbls))
+                for (v in seq_along(lbls)) {
+                    ismiss <- FALSE
+                    if (!is.null(na_values)) {
+                        if (haven::is_tagged_na(lbls[v])) {
+                            ismiss <- is.element(haven::na_tag(lbls[v]), na_values) |
+                                is.element(paste0(".", haven::na_tag(lbls[v])), na_values)
+                        } else {
+                            ismiss <- is.element(lbls[v], na_values)
+                        }
+                    }
+
+                    if (length(na_range) > 0 && isTRUE(pN[i])) {
+                        suppressWarnings({
+                            if (!haven::is_tagged_na(lbls[v]) && is.numeric(lbls[v])) {
+                                ismiss <- ismiss | (lbls[v] >= na_range[1] & lbls[v] <= na_range[2])
+                            }
+                        })
+                    }
+
+                    missv[v] <- ismiss
+                    if (!is.null(tbl) && !allna) {
+                        freq <- tbl[match(nms[v], names(tbl))]
+                        freqv[v] <- ifelse(is.na(freq), 0, as.numeric(freq))
+                    }
+                }
+                cat_counts[i] <- length(lbls)
+                cat_values <- c(cat_values, as.character(lbls))
+                cat_labels <- c(cat_labels, as.character(nms))
+                cat_missing <- c(cat_missing, missv)
+                cat_freq <- c(cat_freq, freqv)
+            }
+        }
+    }
+
+    var_xml <- makeDataDscrXMLC(
+        ns_prefix = ns,
+        indent_width = as.integer(indent),
+        base_level = 1L,
+        var_names = varnames,
+        var_ids = uuid,
+        var_labels = var_labels,
+        var_dcml = var_dcml,
+        range_units = range_units,
+        val_min = val_min,
+        val_max = val_max,
+        inval_min = inval_min,
+        inval_max = inval_max,
+        stat_min = stat_min,
+        stat_max = stat_max,
+        stat_mean = stat_mean,
+        stat_medn = stat_medn,
+        stat_stdev = stat_stdev,
+        sum_valid = sum_valid,
+        sum_invalid = sum_invalid,
+        varformat_type = varformat_type,
+        varformat_value = varformat_value,
+        cat_counts = cat_counts,
+        cat_values = cat_values,
+        cat_labels = cat_labels,
+        cat_missing = cat_missing,
+        cat_freq = cat_freq
+    )
+
+    stats <- data.frame(
+        variable = varnames,
+        id = uuid,
+        label = var_labels,
+        type = var_type,
+        measurement = var_measurement,
+        width = var_width,
+        dcml = var_dcml,
+        varformat_type = varformat_type,
+        varformat_value = varformat_value,
+        range_units = range_units,
+        val_min = val_min,
+        val_max = val_max,
+        inval_min = inval_min,
+        inval_max = inval_max,
+        stat_min = stat_min,
+        stat_max = stat_max,
+        stat_mean = stat_mean,
+        stat_medn = stat_medn,
+        stat_stdev = stat_stdev,
+        sum_valid = sum_valid,
+        sum_invalid = sum_invalid,
+        stringsAsFactors = FALSE
+    )
+
+    if (isTRUE(dots$MetadataPublisher)) {
+        return(list(
+            xml = var_xml,
+            stats = stats,
+            cat_counts = cat_counts,
+            cat_values = cat_values,
+            cat_labels = cat_labels,
+            cat_missing = cat_missing,
+            cat_freq = cat_freq
+        ))
+    }
+
+    return(list(
+        xml = var_xml,
+        stats = stats
+    ))
+
+    # disabled legacy R XML construction block (replaced by C generator)
+    if (FALSE) {
     ns <- "" # namespace
     enter <- "\n"
 
@@ -1807,6 +2077,7 @@ NULL
     suppressWarnings(try(close(tcon), silent = TRUE))
 
     xml_text <- paste(xml_lines, collapse = enter)
+    }
 
     if (!isFALSE(dots$DDI)) {
         codeBook <- xml2::read_xml(xml_text)
@@ -2714,67 +2985,67 @@ makedfm <- function() {
     return(dfm)
 }
 
+#' @keywords internal
+`writeTextFileC` <- function(path, text) {
+    invisible(.Call("ddiwr_write_text_file", path, text))
+}
 
-writeDDIXML <- function(data, to) {
-    variables <- collectRMetadata(data)
-
-    codeBook <- makeElement("codeBook")
-
-    fileName <- makeElement(
-        "fileName",
-        content = ifelse(
-            is.null(file_name),
-            tp_from$filenames,
-            file_name
-        )
+#' @keywords internal
+`makeDataDscrXMLC` <- function(
+    ns_prefix = "",
+    indent_width = 2L,
+    base_level = 1L,
+    var_names,
+    var_ids,
+    var_labels,
+    var_dcml,
+    range_units,
+    val_min,
+    val_max,
+    inval_min,
+    inval_max,
+    stat_min,
+    stat_max,
+    stat_mean,
+    stat_medn,
+    stat_stdev,
+    sum_valid,
+    sum_invalid,
+    varformat_type,
+    varformat_value,
+    cat_counts,
+    cat_values,
+    cat_labels,
+    cat_missing,
+    cat_freq
+) {
+    .Call(
+        "ddiwr_make_datadscr_xml",
+        ns_prefix,
+        as.integer(indent_width),
+        as.integer(base_level),
+        var_names,
+        var_ids,
+        var_labels,
+        var_dcml,
+        range_units,
+        val_min,
+        val_max,
+        inval_min,
+        inval_max,
+        stat_min,
+        stat_max,
+        stat_mean,
+        stat_medn,
+        stat_stdev,
+        sum_valid,
+        sum_invalid,
+        varformat_type,
+        varformat_value,
+        as.integer(cat_counts),
+        cat_values,
+        cat_labels,
+        as.logical(cat_missing),
+        as.numeric(cat_freq)
     )
-
-    if (is.null(file_extension)) {
-        file_extension <- tp_from$fileext
-    }
-
-    fileType <- makeElement(
-        "fileType",
-        content = filetypes[which(fileexts == file_extension)]
-    )
-
-    dimensns <- makeElement(
-        "dimensns",
-        children = list(
-            makeElement("caseQnty", content = nrow(data)),
-            makeElement("varQnty", content = ncol(data))
-        )
-    )
-
-    fileTxt <- makeElement("fileTxt", children = list(fileName, fileType, dimensns))
-    fileDscr <- makeElement("fileDscr", children = list(fileTxt))
-
-    if (!is.null(file_id)) {
-        if (!is.atomic(file_id) || !is.character(file_id) || length(file_id) != 1) {
-            admisc::stopError("The argument 'fileid' must be a single character string.")
-        }
-
-        names(file_id) <- "ID"
-        addAttributes(file_id, to = fileDscr)
-    }
-
-    data[] <- lapply(data, function(x) {
-        if (is.factor(x)) {
-            x <- as.numeric(x)
-        }
-        return(x)
-    })
-
-    addChildren(fileDscr, to = codeBook)
-
-    exportCodebook(
-        codeBook,
-        file = to,
-        data = data,
-        embed = TRUE,
-        dataDscr_directly_in_XML = TRUE,
-        variables = variables,
-        csv = csv,
-        ... = ...
-    )   
 }

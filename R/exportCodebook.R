@@ -157,12 +157,41 @@
 
         addChildren(makeElement("dataDscr"), to = codeBook)
 
-        XMLhashes <- makeXMLcodeBook(DDI = FALSE, ... = ...)
+        var_info <- makeXMLvars(DDI = FALSE, ... = ...)
+        var_xml <- var_info$xml
+        ns <- getElement(dots, "ns")
 
-        attr(data, "hashes") <- XMLhashes[[2]]
+        if (is.null(ns)) {
+            ns <- ""
+        }
+
+        if (nzchar(ns) && !grepl(":$", ns)) {
+            ns <- paste0(ns, ":")
+        }
+
+        dataDscr_xml <- paste0(
+            "  <", ns, "dataDscr>\n",
+            paste(var_xml, collapse = ""),
+            "  </", ns, "dataDscr>\n"
+        )
+
+        XMLtext <- paste0(
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n",
+            "<codeBook xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" ",
+            "xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" ",
+            "xmlns=\"ddi:codebook:2_6\" version=\"2.6\" ",
+            "xsi:schemaLocation=\"ddi:codebook:2_6 codebook.xsd\">\n",
+            dataDscr_xml,
+            "</codeBook>\n"
+        )
+
+        XMLdoc <- xml2::read_xml(XMLtext)
+        XMLvars <- xml2::xml_find_all(XMLdoc, "/d1:codeBook/d1:dataDscr/d1:var")
+
+        attr(data, "hashes") <- getHashes(XMLvars)
 
         if (embed) {
-            uuid <- XMLhashes[[3]]
+            uuid <- xml2::xml_attr(XMLvars, "ID")
             for (i in seq(length(uuid))) {
                 attr(data[[i]], "ID") <- uuid[i]
             }
@@ -185,36 +214,56 @@
             list(codeBook = removeExtra(codeBook))
         )
 
-        xml2::xml_replace(
-            xml2::xml_find_first(codeBook, "/d1:codeBook/dataDscr"),
-            xml2::xml_find_first(XMLhashes[[1]], "/d1:codeBook/d1:dataDscr")
+        codeBook_xml <- as.character(codeBook)
+        xmlfile <- sub(
+            "<dataDscr\\s*/>",
+            dataDscr_xml,
+            codeBook_xml,
+            perl = TRUE
         )
 
-        xml2::xml_set_attr(
-            xml2::xml_find_first(codeBook, "/d1:codeBook/d1:dataDscr"),
-            "xmlns",
-            NULL
-        )
+        if (!identical(indent, 2) || !identical(OS, "")) {
+            defaultOS <- Sys.info()[["sysname"]]
+            checkArgument(indent, default = 2)
+            checkArgument(OS, default = defaultOS)
+
+            enter <- getEnter(OS = ifelse(OS == "", defaultOS, OS))
+            xml_lines <- unlist(strsplit(xmlfile, "\n", fixed = TRUE))
+            xmlfile <- paste(
+                prespace(xml_lines, indent),
+                collapse = enter
+            )
+        }
+
+        if (is.character(to) && length(to) == 1 && nzchar(to)) {
+            writeTextFileC(to, xmlfile)
+        } else {
+            writeLines(xmlfile, con = to, useBytes = TRUE)
+        }
+
     } else {
         codeBook <- xml2::as_xml_document(
             list(codeBook = removeExtra(codeBook))
         )
-    }
 
-    xml2::write_xml(codeBook, file = to)
+        xml2::write_xml(codeBook, file = to)
 
-    if (!identical(indent, 2) || !identical(OS, "")) {
-        xmlfile <- readLines(to)
+        if (!identical(indent, 2) || !identical(OS, "")) {
+            xmlfile <- readLines(to)
 
-        defaultOS <- Sys.info()[["sysname"]]
-        checkArgument(indent, default = 2)
-        checkArgument(OS, default = defaultOS)
+            defaultOS <- Sys.info()[["sysname"]]
+            checkArgument(indent, default = 2)
+            checkArgument(OS, default = defaultOS)
 
-        enter <- getEnter(OS = ifelse(OS == "", defaultOS, OS))
+            enter <- getEnter(OS = ifelse(OS == "", defaultOS, OS))
 
-        xmlfile <- paste(
-            prespace(xmlfile, indent),
-            collapse = enter
-        )
+            xmlfile <- paste(
+                prespace(xmlfile, indent),
+                collapse = enter
+            )
+
+            writeLines(xmlfile, con = to, useBytes = TRUE)
+
+        }
     }
 }
