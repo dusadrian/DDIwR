@@ -1,0 +1,617 @@
+#include <R.h>
+#include <Rinternals.h>
+#include <R_ext/RS.h>
+
+#include <ctype.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "readstat.h"
+#include "declared_types.h"
+#include "tagged_na.h"
+
+typedef struct {
+    char *value;
+    readstat_string_ref_t *ref;
+} StringRefEntry;
+
+typedef struct {
+    FileExt ext;
+    FileVendor vendor;
+    int version;
+    int strl_threshold;
+    SEXP data;
+    FILE *out;
+    readstat_writer_t *writer;
+    StringRefEntry *string_refs;
+    size_t string_ref_n;
+    size_t string_ref_cap;
+} WriterCtx;
+
+static const char *string_utf8_elt(SEXP x, R_xlen_t i) {
+    return Rf_translateCharUTF8(STRING_ELT(x, i));
+}
+
+static int string_is_missing(SEXP x, R_xlen_t i) {
+    return STRING_ELT(x, i) == NA_STRING;
+}
+
+static int string_len_missing(SEXP x, R_xlen_t i) {
+    if (string_is_missing(x, i)) {
+        return 0;
+    }
+    return (int) strlen(string_utf8_elt(x, i));
+}
+
+static const char *na_index_code(SEXP x, R_xlen_t row) {
+    SEXP na_index = Rf_getAttrib(x, Rf_install("na_index"));
+    SEXP names;
+    R_xlen_t i;
+
+    if (TYPEOF(na_index) != INTSXP || Rf_length(na_index) == 0) {
+        return NULL;
+    }
+
+    names = Rf_getAttrib(na_index, R_NamesSymbol);
+    if (TYPEOF(names) != STRSXP || Rf_length(names) != Rf_length(na_index)) {
+        return NULL;
+    }
+
+    for (i = 0; i < Rf_xlength(na_index); ++i) {
+        if (INTEGER(na_index)[i] == (int) (row + 1)) {
+            if (STRING_ELT(names, i) == NA_STRING) {
+                return NULL;
+            }
+            return CHAR(STRING_ELT(names, i));
+        }
+    }
+
+    return NULL;
+}
+
+static int parse_code_int(const char *code, int *value) {
+    char *endptr = NULL;
+    long parsed;
+
+    if (code == NULL || code[0] == '\0') {
+        return 0;
+    }
+
+    parsed = strtol(code, &endptr, 10);
+    if (endptr == code || *endptr != '\0') {
+        return 0;
+    }
+
+    *value = (int) parsed;
+    return 1;
+}
+
+static int parse_code_double(const char *code, double *value) {
+    char *endptr = NULL;
+    double parsed;
+
+    if (code == NULL || code[0] == '\0') {
+        return 0;
+    }
+
+    parsed = strtod(code, &endptr);
+    if (endptr == code || *endptr != '\0') {
+        return 0;
+    }
+
+    *value = parsed;
+    return 1;
+}
+
+static enum readstat_measure_e measureType(SEXP x) {
+    if (Rf_inherits(x, "ordered")) {
+        return READSTAT_MEASURE_ORDINAL;
+    }
+    if (Rf_inherits(x, "factor")) {
+        return READSTAT_MEASURE_NOMINAL;
+    }
+    switch (TYPEOF(x)) {
+        case INTSXP:
+        case REALSXP:
+            return READSTAT_MEASURE_SCALE;
+        case LGLSXP:
+        case STRSXP:
+            return READSTAT_MEASURE_NOMINAL;
+        default:
+            return READSTAT_MEASURE_UNKNOWN;
+    }
+}
+
+static int scalar_int_attr(SEXP x, const char *name) {
+    SEXP obj = Rf_getAttrib(x, Rf_install(name));
+    if (TYPEOF(obj) == INTSXP && Rf_length(obj) > 0) {
+        return INTEGER(obj)[0];
+    }
+    if (TYPEOF(obj) == REALSXP && Rf_length(obj) > 0) {
+        return (int) REAL(obj)[0];
+    }
+    return 0;
+}
+
+static const char *var_label(SEXP x) {
+    SEXP label = Rf_getAttrib(x, Rf_install("label"));
+    if (TYPEOF(label) == STRSXP && Rf_length(label) > 0) {
+        return string_utf8_elt(label, 0);
+    }
+    return NULL;
+}
+
+static const char *var_format(SEXP x, FileVendor vendor) {
+    SEXP format = Rf_getAttrib(x, Rf_install(formatAttribute(vendor)));
+    VarType type;
+
+    if (TYPEOF(format) == STRSXP && Rf_length(format) > 0) {
+        return string_utf8_elt(format, 0);
+    }
+
+    type = numTypeFromSEXP(x);
+    switch (type) {
+        case DECLARED_DATETIME:
+            switch (vendor) {
+                case DECLARED_SAS: return "DATETIME";
+                case DECLARED_SPSS: return "DATETIME";
+                case DECLARED_STATA: return "%tc";
+            }
+            break;
+        case DECLARED_DATE:
+            switch (vendor) {
+                case DECLARED_SAS: return "DATE";
+                case DECLARED_SPSS: return "DATE";
+                case DECLARED_STATA: return "%td";
+            }
+            break;
+        case DECLARED_TIME:
+            switch (vendor) {
+                case DECLARED_SAS: return "TIME";
+                case DECLARED_SPSS: return "TIME";
+                case DECLARED_STATA: return NULL;
+            }
+            break;
+        default:
+            break;
+    }
+
+    return NULL;
+}
+
+static void ensure_string_ref_capacity(WriterCtx *ctx) {
+    if (ctx->string_ref_n >= ctx->string_ref_cap) {
+        ctx->string_ref_cap = ctx->string_ref_cap == 0 ? 16 : ctx->string_ref_cap * 2;
+        ctx->string_refs = (StringRefEntry *) R_Realloc(ctx->string_refs, ctx->string_ref_cap, StringRefEntry);
+    }
+}
+
+static readstat_string_ref_t *get_or_create_string_ref(WriterCtx *ctx, const char *value) {
+    size_t i;
+    for (i = 0; i < ctx->string_ref_n; ++i) {
+        if (strcmp(ctx->string_refs[i].value, value) == 0) {
+            return ctx->string_refs[i].ref;
+        }
+    }
+    ensure_string_ref_capacity(ctx);
+    ctx->string_refs[ctx->string_ref_n].value = (char *) R_Calloc(strlen(value) + 1, char);
+    strcpy(ctx->string_refs[ctx->string_ref_n].value, value);
+    ctx->string_refs[ctx->string_ref_n].ref = readstat_add_string_ref(ctx->writer, value);
+    ctx->string_ref_n++;
+    return ctx->string_refs[ctx->string_ref_n - 1].ref;
+}
+
+static void writer_ctx_free(WriterCtx *ctx) {
+    size_t i;
+    if (ctx->out != NULL) {
+        fclose(ctx->out);
+    }
+    if (ctx->writer != NULL) {
+        readstat_writer_free(ctx->writer);
+    }
+    for (i = 0; i < ctx->string_ref_n; ++i) {
+        R_Free(ctx->string_refs[i].value);
+    }
+    if (ctx->string_refs != NULL) {
+        R_Free(ctx->string_refs);
+    }
+}
+
+static void check_status(readstat_error_t err, const char *context) {
+    if (err != READSTAT_OK) {
+        Rf_error("%s: %s", context, readstat_error_message(err));
+    }
+}
+
+static ssize_t data_writer(const void *data, size_t len, void *ctx_) {
+    WriterCtx *ctx = (WriterCtx *) ctx_;
+    return fwrite(data, sizeof(char), len, ctx->out);
+}
+
+static void writer_ctx_init(WriterCtx *ctx, FileExt ext, SEXP data, SEXP path) {
+    const char *path_c;
+    memset(ctx, 0, sizeof(*ctx));
+    ctx->ext = ext;
+    ctx->vendor = extVendor(ext);
+    ctx->version = 0;
+    ctx->strl_threshold = 2045;
+    ctx->data = data;
+    path_c = CHAR(STRING_ELT(path, 0));
+    ctx->out = fopen(path_c, "wb");
+    if (ctx->out == NULL) {
+        Rf_error("Failed to open '%s' for writing.", path_c);
+    }
+    ctx->writer = readstat_writer_init();
+    check_status(readstat_set_data_writer(ctx->writer, data_writer), "Failed to initialize writer");
+}
+
+static void set_compression(WriterCtx *ctx, const char *compress) {
+    if (strcmp(compress, "zsav") == 0) {
+        readstat_writer_set_compression(ctx->writer, READSTAT_COMPRESS_BINARY);
+    } else if (strcmp(compress, "none") == 0) {
+        readstat_writer_set_compression(ctx->writer, READSTAT_COMPRESS_NONE);
+    } else {
+        readstat_writer_set_compression(ctx->writer, READSTAT_COMPRESS_ROWS);
+    }
+}
+
+static void set_file_label(WriterCtx *ctx, SEXP label) {
+    if (TYPEOF(label) == STRSXP && Rf_length(label) > 0 && STRING_ELT(label, 0) != NA_STRING) {
+        readstat_writer_set_file_label(ctx->writer, string_utf8_elt(label, 0));
+    }
+}
+
+static readstat_label_set_t *build_numeric_label_set(WriterCtx *ctx, SEXP x, const char *name, int as_int) {
+    SEXP labels = Rf_getAttrib(x, Rf_install("labels"));
+    SEXP nms;
+    readstat_label_set_t *set;
+    R_xlen_t i;
+    if (TYPEOF(labels) == NILSXP || Rf_length(labels) == 0) {
+        return NULL;
+    }
+    nms = Rf_getAttrib(labels, R_NamesSymbol);
+    set = readstat_add_label_set(ctx->writer, as_int ? READSTAT_TYPE_INT32 : READSTAT_TYPE_DOUBLE, name);
+    if (TYPEOF(labels) == INTSXP) {
+        for (i = 0; i < Rf_xlength(labels); ++i) {
+            if (as_int) {
+                readstat_label_int32_value(set, INTEGER(labels)[i], string_utf8_elt(nms, i));
+            } else {
+                readstat_label_double_value(set, (double) INTEGER(labels)[i], string_utf8_elt(nms, i));
+            }
+        }
+    } else if (TYPEOF(labels) == REALSXP) {
+        for (i = 0; i < Rf_xlength(labels); ++i) {
+            char tag = tagged_na_value(REAL(labels)[i]);
+            if (!ISNAN(REAL(labels)[i]) || tag == '\0') {
+                if (as_int) {
+                    readstat_label_int32_value(set, (int) REAL(labels)[i], string_utf8_elt(nms, i));
+                } else {
+                    readstat_label_double_value(set, REAL(labels)[i], string_utf8_elt(nms, i));
+                }
+            } else {
+                if (ctx->ext == DECLARED_XPT || ctx->ext == DECLARED_SAS7BDAT || ctx->ext == DECLARED_SAS7BCAT) {
+                    tag = (char) toupper((unsigned char) tag);
+                }
+                readstat_label_tagged_value(set, tag, string_utf8_elt(nms, i));
+            }
+        }
+    } else if (TYPEOF(labels) == STRSXP) {
+        char *endptr = NULL;
+        for (i = 0; i < Rf_xlength(labels); ++i) {
+            const char *value = string_utf8_elt(labels, i);
+            if (strlen(value) == 1 && isalpha((unsigned char) value[0]) && !as_int) {
+                char tag = (char) tolower((unsigned char) value[0]);
+                if (ctx->ext == DECLARED_XPT || ctx->ext == DECLARED_SAS7BDAT || ctx->ext == DECLARED_SAS7BCAT) {
+                    tag = (char) toupper((unsigned char) tag);
+                }
+                readstat_label_tagged_value(set, tag, string_utf8_elt(nms, i));
+            } else if (as_int) {
+                long iv = strtol(value, &endptr, 10);
+                if (endptr != NULL && *endptr == '\0') {
+                    readstat_label_int32_value(set, (int) iv, string_utf8_elt(nms, i));
+                }
+            } else {
+                double dv = strtod(value, &endptr);
+                if (endptr != NULL && *endptr == '\0') {
+                    readstat_label_double_value(set, dv, string_utf8_elt(nms, i));
+                }
+            }
+        }
+    }
+    return set;
+}
+
+static readstat_label_set_t *build_string_label_set(WriterCtx *ctx, SEXP x, const char *name) {
+    SEXP labels = Rf_getAttrib(x, Rf_install("labels"));
+    SEXP nms;
+    readstat_label_set_t *set;
+    R_xlen_t i;
+    if (TYPEOF(labels) != STRSXP || Rf_length(labels) == 0) {
+        return NULL;
+    }
+    nms = Rf_getAttrib(labels, R_NamesSymbol);
+    set = readstat_add_label_set(ctx->writer, READSTAT_TYPE_STRING, name);
+    for (i = 0; i < Rf_xlength(labels); ++i) {
+        readstat_label_string_value(set, string_utf8_elt(labels, i), string_utf8_elt(nms, i));
+    }
+    return set;
+}
+
+static void add_missing_definition(readstat_variable_t *var, SEXP x) {
+    SEXP na_range = Rf_getAttrib(x, Rf_install("na_range"));
+    SEXP na_values = Rf_getAttrib(x, Rf_install("na_values"));
+    R_xlen_t i;
+
+    if (TYPEOF(na_range) == REALSXP && Rf_length(na_range) == 2) {
+        readstat_variable_add_missing_double_range(var, REAL(na_range)[0], REAL(na_range)[1]);
+    } else if (TYPEOF(na_range) == INTSXP && Rf_length(na_range) == 2) {
+        readstat_variable_add_missing_double_range(var, INTEGER(na_range)[0], INTEGER(na_range)[1]);
+    } else if (TYPEOF(na_range) == STRSXP && Rf_length(na_range) == 2) {
+        readstat_variable_add_missing_string_range(var, CHAR(STRING_ELT(na_range, 0)), CHAR(STRING_ELT(na_range, 1)));
+    }
+
+    if (TYPEOF(na_values) == REALSXP) {
+        for (i = 0; i < Rf_xlength(na_values); ++i) {
+            readstat_variable_add_missing_double_value(var, REAL(na_values)[i]);
+        }
+    } else if (TYPEOF(na_values) == INTSXP) {
+        for (i = 0; i < Rf_xlength(na_values); ++i) {
+            readstat_variable_add_missing_double_value(var, INTEGER(na_values)[i]);
+        }
+    } else if (TYPEOF(na_values) == STRSXP) {
+        for (i = 0; i < Rf_xlength(na_values); ++i) {
+            readstat_variable_add_missing_string_value(var, CHAR(STRING_ELT(na_values, i)));
+        }
+    }
+}
+
+static readstat_error_t define_variable_int(WriterCtx *ctx, SEXP x, const char *name) {
+    readstat_label_set_t *label_set = NULL;
+    readstat_variable_t *var;
+    const char *format = var_format(x, ctx->vendor);
+
+    if (Rf_inherits(x, "factor")) {
+        SEXP levels = Rf_getAttrib(x, Rf_install("levels"));
+        R_xlen_t i;
+        label_set = readstat_add_label_set(ctx->writer, READSTAT_TYPE_INT32, name);
+        for (i = 0; i < Rf_xlength(levels); ++i) {
+            readstat_label_int32_value(label_set, (int) i + 1, string_utf8_elt(levels, i));
+        }
+    } else {
+        label_set = build_numeric_label_set(ctx, x, name, 1);
+    }
+
+    var = readstat_add_variable(ctx->writer, name, READSTAT_TYPE_INT32, scalar_int_attr(x, "width"));
+    readstat_variable_set_format(var, format);
+    readstat_variable_set_label(var, var_label(x));
+    readstat_variable_set_label_set(var, label_set);
+    readstat_variable_set_measure(var, measureType(x));
+    readstat_variable_set_display_width(var, scalar_int_attr(x, "display_width"));
+    add_missing_definition(var, x);
+    return readstat_validate_variable(ctx->writer, var);
+}
+
+static readstat_error_t define_variable_double(WriterCtx *ctx, SEXP x, const char *name) {
+    readstat_label_set_t *label_set = build_numeric_label_set(ctx, x, name, 0);
+    readstat_variable_t *var = readstat_add_variable(ctx->writer, name, READSTAT_TYPE_DOUBLE, scalar_int_attr(x, "width"));
+    readstat_variable_set_format(var, var_format(x, ctx->vendor));
+    readstat_variable_set_label(var, var_label(x));
+    readstat_variable_set_label_set(var, label_set);
+    readstat_variable_set_measure(var, measureType(x));
+    readstat_variable_set_display_width(var, scalar_int_attr(x, "display_width"));
+    add_missing_definition(var, x);
+    return readstat_validate_variable(ctx->writer, var);
+}
+
+static readstat_error_t define_variable_string(WriterCtx *ctx, SEXP x, const char *name) {
+    readstat_label_set_t *label_set = build_string_label_set(ctx, x, name);
+    int user_width = scalar_int_attr(x, "width");
+    int max_length = 1;
+    readstat_variable_t *var;
+    R_xlen_t i;
+
+    for (i = 0; i < Rf_xlength(x); ++i) {
+        int length = string_len_missing(x, i);
+        if (length > max_length) {
+            max_length = length;
+        }
+    }
+    if (user_width < max_length) {
+        user_width = max_length;
+    }
+
+    if (ctx->ext == DECLARED_DTA && ctx->version >= 117 && user_width > ctx->strl_threshold) {
+        var = readstat_add_variable(ctx->writer, name, READSTAT_TYPE_STRING_REF, user_width);
+    } else {
+        var = readstat_add_variable(ctx->writer, name, READSTAT_TYPE_STRING, user_width);
+    }
+
+    readstat_variable_set_format(var, var_format(x, ctx->vendor));
+    readstat_variable_set_label(var, var_label(x));
+    readstat_variable_set_label_set(var, label_set);
+    readstat_variable_set_measure(var, measureType(x));
+    readstat_variable_set_display_width(var, scalar_int_attr(x, "display_width"));
+    add_missing_definition(var, x);
+    return readstat_validate_variable(ctx->writer, var);
+}
+
+static readstat_error_t insert_int_value(WriterCtx *ctx, readstat_variable_t *var, int value, int missing) {
+    if (missing) {
+        return readstat_insert_missing_value(ctx->writer, var);
+    }
+    return readstat_insert_int32_value(ctx->writer, var, value);
+}
+
+static readstat_error_t insert_double_value(WriterCtx *ctx, readstat_variable_t *var, double value, int missing) {
+    if (missing) {
+        char tag = tagged_na_value(value);
+        if (tag != '\0') {
+            if (ctx->ext == DECLARED_XPT || ctx->ext == DECLARED_SAS7BDAT || ctx->ext == DECLARED_SAS7BCAT) {
+                tag = (char) toupper((unsigned char) tag);
+            }
+            return readstat_insert_tagged_missing_value(ctx->writer, var, tag);
+        }
+        return readstat_insert_missing_value(ctx->writer, var);
+    }
+    return readstat_insert_double_value(ctx->writer, var, value);
+}
+
+static readstat_error_t writer_insert_string_value(WriterCtx *ctx, readstat_variable_t *var, const char *value, int missing) {
+    if (missing) {
+        return readstat_insert_missing_value(ctx->writer, var);
+    }
+    if (var->type == READSTAT_TYPE_STRING_REF) {
+        return readstat_insert_string_ref(ctx->writer, var, get_or_create_string_ref(ctx, value));
+    }
+    return readstat_insert_string_value(ctx->writer, var, value);
+}
+
+static void writer_write(WriterCtx *ctx) {
+    readstat_error_t status = READSTAT_OK;
+    int p = Rf_length(ctx->data);
+    int n = p > 0 ? Rf_length(VECTOR_ELT(ctx->data, 0)) : 0;
+    SEXP names = Rf_getAttrib(ctx->data, R_NamesSymbol);
+    int j;
+    int i;
+
+    switch (ctx->ext) {
+        case DECLARED_SAV:
+            status = readstat_begin_writing_sav(ctx->writer, ctx, n);
+            break;
+        case DECLARED_DTA:
+            status = readstat_begin_writing_dta(ctx->writer, ctx, n);
+            break;
+        case DECLARED_SAS7BDAT:
+            status = readstat_begin_writing_sas7bdat(ctx->writer, ctx, n);
+            break;
+        case DECLARED_XPT:
+            status = readstat_begin_writing_xport(ctx->writer, ctx, n);
+            break;
+        default:
+            break;
+    }
+    check_status(status, "Failed to create file");
+
+    for (j = 0; j < p; ++j) {
+        SEXP col = VECTOR_ELT(ctx->data, j);
+        const char *name = string_utf8_elt(names, j);
+        switch (TYPEOF(col)) {
+            case LGLSXP:
+            case INTSXP:
+                check_status(define_variable_int(ctx, col, name), "Failed to create integer column");
+                break;
+            case REALSXP:
+                check_status(define_variable_double(ctx, col, name), "Failed to create numeric column");
+                break;
+            case STRSXP:
+                check_status(define_variable_string(ctx, col, name), "Failed to create string column");
+                break;
+            default:
+                Rf_error("Unsupported column type: %s", Rf_type2char(TYPEOF(col)));
+        }
+    }
+
+    check_status(readstat_validate_metadata(ctx->writer), "Failed to validate metadata");
+
+    for (i = 0; i < n; ++i) {
+        check_status(readstat_begin_row(ctx->writer), "Failed to begin row");
+        for (j = 0; j < p; ++j) {
+            SEXP col = VECTOR_ELT(ctx->data, j);
+            readstat_variable_t *var = readstat_get_variable(ctx->writer, j);
+            const char *code = na_index_code(col, i);
+            switch (TYPEOF(col)) {
+                case LGLSXP: {
+                    int value = LOGICAL(col)[i];
+                    int missing = value == NA_LOGICAL;
+                    int code_int;
+                    if (missing && parse_code_int(code, &code_int)) {
+                        check_status(insert_int_value(ctx, var, code_int, 0), "Failed to insert logical value");
+                    } else {
+                        check_status(insert_int_value(ctx, var, value, missing), "Failed to insert logical value");
+                    }
+                    break;
+                }
+                case INTSXP: {
+                    int value = INTEGER(col)[i];
+                    int missing = value == NA_INTEGER;
+                    int code_int;
+                    if (missing && parse_code_int(code, &code_int)) {
+                        check_status(insert_int_value(ctx, var, code_int, 0), "Failed to insert integer value");
+                    } else {
+                        check_status(insert_int_value(ctx, var, (int) adjustDatetimeFromR(ctx->vendor, col, value), missing), "Failed to insert integer value");
+                    }
+                    break;
+                }
+                case REALSXP: {
+                    double value = REAL(col)[i];
+                    double code_double;
+                    if (!R_finite(value) && parse_code_double(code, &code_double)) {
+                        check_status(insert_double_value(ctx, var, code_double, 0), "Failed to insert numeric value");
+                    } else if (!R_finite(value) && code != NULL && strlen(code) == 1 && isalpha((unsigned char) code[0])) {
+                        check_status(insert_double_value(ctx, var, make_tagged_na((char) tolower((unsigned char) code[0])), 1), "Failed to insert numeric value");
+                    } else {
+                        check_status(insert_double_value(ctx, var, adjustDatetimeFromR(ctx->vendor, col, value), !R_finite(value)), "Failed to insert numeric value");
+                    }
+                    break;
+                }
+                case STRSXP:
+                    if (string_is_missing(col, i) && code != NULL) {
+                        check_status(writer_insert_string_value(ctx, var, code, 0), "Failed to insert string value");
+                    } else {
+                        check_status(writer_insert_string_value(ctx, var, string_utf8_elt(col, i), string_is_missing(col, i)), "Failed to insert string value");
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }
+        check_status(readstat_end_row(ctx->writer), "Failed to end row");
+    }
+
+    check_status(readstat_end_writing(ctx->writer), "Failed to finalize writing");
+}
+
+SEXP declared_write_sav_(SEXP data, SEXP path, SEXP compress) {
+    WriterCtx ctx;
+    writer_ctx_init(&ctx, DECLARED_SAV, data, path);
+    set_compression(&ctx, CHAR(STRING_ELT(compress, 0)));
+    writer_write(&ctx);
+    writer_ctx_free(&ctx);
+    return R_NilValue;
+}
+
+SEXP declared_write_dta_(SEXP data, SEXP path, SEXP version, SEXP label, SEXP strl_threshold) {
+    WriterCtx ctx;
+    writer_ctx_init(&ctx, DECLARED_DTA, data, path);
+    ctx.version = Rf_asInteger(version);
+    ctx.strl_threshold = Rf_asInteger(strl_threshold);
+    readstat_writer_set_file_format_version(ctx.writer, ctx.version);
+    set_file_label(&ctx, label);
+    writer_write(&ctx);
+    writer_ctx_free(&ctx);
+    return R_NilValue;
+}
+
+SEXP declared_write_sas_(SEXP data, SEXP path) {
+    WriterCtx ctx;
+    writer_ctx_init(&ctx, DECLARED_SAS7BDAT, data, path);
+    writer_write(&ctx);
+    writer_ctx_free(&ctx);
+    return R_NilValue;
+}
+
+SEXP declared_write_xpt_(SEXP data, SEXP path, SEXP version, SEXP name, SEXP label) {
+    WriterCtx ctx;
+    writer_ctx_init(&ctx, DECLARED_XPT, data, path);
+    ctx.version = Rf_asInteger(version);
+    readstat_writer_set_file_format_version(ctx.writer, ctx.version);
+    if (TYPEOF(name) == STRSXP && Rf_length(name) > 0) {
+        readstat_writer_set_table_name(ctx.writer, string_utf8_elt(name, 0));
+    }
+    set_file_label(&ctx, label);
+    writer_write(&ctx);
+    writer_ctx_free(&ctx);
+    return R_NilValue;
+}

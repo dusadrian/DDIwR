@@ -179,7 +179,7 @@ NULL
 `checkType` <- function(x, labels = NULL, na_values = NULL, na_range = NULL) {
 
     xnumeric <- admisc::possibleNumeric(x)
-    metadata <- inherits(x, "declared") | inherits(x, "haven_labelled_spss")
+    metadata <- inherits(x, "declared")
     if (metadata) {
         if (is.null(labels)) {
             labels <- attr(x, "labels", exact = TRUE)
@@ -478,14 +478,8 @@ NULL
             result[["measurement"]] <- cleanup(measurement)
         }
 
-        tagged <- FALSE
         labels <- lbls <- attr(x, "labels", exact = TRUE)
         if (!is.null(labels)) {
-            tagged <- haven::is_tagged_na(labels)
-            # if (any(tagged)) {
-            #     labels[tagged] <- haven::na_tag(labels[tagged])
-            # }
-
             nms <- names(labels)
             if (is.character(labels)) {
                 labels <- cleanup(labels)
@@ -503,17 +497,7 @@ NULL
         }
 
         na_values <- attr(x, "na_values", exact = TRUE)
-        if (is.null(na_values)) {
-            xtagged <- haven::is_tagged_na(x)
-            if (any(tagged) | any(xtagged)) {
-                natags <- unique(haven::na_tag(c(unclass(x), unclass(lbls))))
-                natags <- natags[!is.na(natags)]
-                if (length(natags) > 0) {
-                    result$na_values <- sort(natags)
-                }
-            }
-        }
-        else {
+        if (!is.null(na_values)) {
             # it should't have (tagged) NA values, but just in case
             na_values <- na_values[!is.na(na_values)]
             if (length(na_values) > 0) {
@@ -1003,8 +987,20 @@ NULL
     dots <- list(...)
     type <- toupper(match.arg(type))
 
+    if (inherits(x, "POSIXct")) {
+        return(if (type == "SPSS") "DATETIME" else "%tc")
+    }
+
+    if (inherits(x, "Date")) {
+        return(if (type == "SPSS") "DATE" else "%td")
+    }
+
+    if (inherits(x, "hms")) {
+        return(if (type == "SPSS") "TIME" else "%tc")
+    }
+
     labels <- getElement(dots, "labels")
-    if (is.null(labels) && (haven::is.labelled(x) | declared::is.declared(x))) {
+    if (is.null(labels) && declared::is.declared(x)) {
         labels <- attr(x, "labels", exact = TRUE)
     }
 
@@ -1197,12 +1193,16 @@ NULL
 }
 
 
-#' @description `makeLabelled`: Coerce variables to labelled objects
+#' @description `makeLabelled`: Coerce variables to declared objects
 #' @return `makeLabelled`: A modified data frame.
 #' @rdname DDIwR_internal
 #' @keywords internal
 #' @export
 `makeLabelled` <- function(x, variables, declared = TRUE) {
+
+    if (!isTRUE(declared)) {
+        declared <- TRUE
+    }
 
     for (i in names(x)) {
         #------------------------------------------------------------------
@@ -1254,15 +1254,53 @@ NULL
             }
         }
 
-        if (all(sapply(list(labels, na_values, na_range, label), is.null))) {
+        na_index <- NULL
+        na_positions <- integer(0)
+        na_codes <- character(0)
+
+        if (!is.null(na_values)) {
+            w_values <- which(is.element(v, na_values))
+            if (length(w_values) > 0) {
+                codes <- v[w_values]
+                v[w_values] <- NA
+                na_positions <- c(na_positions, w_values)
+                na_codes <- c(na_codes, as.character(codes))
+            }
+        }
+
+        if (!is.null(na_range) && length(na_range) == 2 && pN) {
+            w_range <- which(!is.na(v) & v >= na_range[1] & v <= na_range[2])
+            if (length(w_range) > 0) {
+                codes <- v[w_range]
+                v[w_range] <- NA
+                na_positions <- c(na_positions, w_range)
+                na_codes <- c(na_codes, as.character(codes))
+            }
+        }
+
+        if (length(na_positions) > 0) {
+            ord <- order(na_positions)
+            na_index <- na_positions[ord]
+            names(na_index) <- na_codes[ord]
+        }
+
+        if (!is.null(na_index) && length(na_index) > 0) {
+            ord <- order(na_index)
+            na_index <- na_index[ord]
+        }
+
+        if (all(sapply(list(labels, na_values, na_range, label, measurement, na_index), is.null))) {
             x[[i]] <- v
         } else {
-            if (declared) {
-                x[[i]] <- declared::declared(v, labels, na_values, na_range, label, measurement)
-            }
-            else {
-                x[[i]] <- haven::labelled_spss(v, labels, na_values, na_range, label)
-            }
+            x[[i]] <- declared::direct_declared(
+                x = v,
+                na_index = na_index,
+                na_values = na_values,
+                na_range = na_range,
+                labels = labels,
+                label = label,
+                measurement = measurement
+            )
         }
 
 
@@ -1280,10 +1318,6 @@ NULL
         }
         return(x)
     })
-
-    if (!declared) {
-        class(x) <- c("tbl_df", "tbl", "data.frame")
-    }
 
     return(x)
 }
@@ -1525,17 +1559,12 @@ NULL
                 for (v in seq_along(lbls)) {
                     ismiss <- FALSE
                     if (!is.null(na_values)) {
-                        if (haven::is_tagged_na(lbls[v])) {
-                            ismiss <- is.element(haven::na_tag(lbls[v]), na_values) |
-                                is.element(paste0(".", haven::na_tag(lbls[v])), na_values)
-                        } else {
-                            ismiss <- is.element(lbls[v], na_values)
-                        }
+                        ismiss <- is.element(lbls[v], na_values)
                     }
 
                     if (length(na_range) > 0 && isTRUE(pN[i])) {
                         suppressWarnings({
-                            if (!haven::is_tagged_na(lbls[v]) && is.numeric(lbls[v])) {
+                            if (is.numeric(lbls[v])) {
                                 ismiss <- ismiss | (lbls[v] >= na_range[1] & lbls[v] <= na_range[2])
                             }
                         })
@@ -1737,12 +1766,6 @@ NULL
             if (!is.null(lbls)) {
                 # account for Stata tagged missing values in labels
                 ismiss <- is.element(lbls, na_values)
-                if (any(haven::is_tagged_na(lbls))) {
-                    ismiss <- ismiss | (
-                        haven::is_tagged_na(lbls) &
-                        is.element(haven::na_tag(lbls), na_values)
-                    )
-                }
                 if (length(na_range) > 0) {
                     ismiss <- ismiss | (lbls >= na_range[1] & lbls <= na_range[2])
                 }
@@ -1947,18 +1970,12 @@ NULL
                 # Determine if current label value is a missing value
                 ismiss <- FALSE
                 if (!is.null(na_values)) {
-                    if (haven::is_tagged_na(lbls[v])) {
-                        # compare by tag when labels contain tagged missings
-                        ismiss <- is.element(haven::na_tag(lbls[v]), na_values) |
-                            is.element(paste0(".", haven::na_tag(lbls[v])), na_values)
-                    } else {
-                        ismiss <- is.element(lbls[v], na_values)
-                    }
+                    ismiss <- is.element(lbls[v], na_values)
                 }
                 if (length(na_range) > 0 & pN[i]) {
                     suppressWarnings({
                         # only compare numeric values to ranges
-                        if (!haven::is_tagged_na(lbls[v]) && is.numeric(lbls[v])) {
+                        if (is.numeric(lbls[v])) {
                             ismiss <- ismiss | (lbls[v] >= na_range[1] & lbls[v] <= na_range[2])
                         }
                     })

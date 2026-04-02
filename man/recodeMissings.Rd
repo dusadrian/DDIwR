@@ -59,8 +59,8 @@ x <- data.frame(
         na_values = -92
     ),
     B = labelled(
-        c(1:5, haven::tagged_na('a')),
-        labels = c(DK = haven::tagged_na('a'))
+        c(1:5, tagged_na('a')),
+        labels = c(DK = tagged_na('a'))
     ),
     C = declared(
         c(1, -91, 3:5, -92),

@@ -1,0 +1,8 @@
+CFILES = $(wildcard *.c readstat/*.c readstat/sas/*.c readstat/spss/*.c readstat/stata/*.c)
+
+SOURCES = $(CFILES)
+
+OBJECTS = $(CFILES:.c=.o)
+
+PKG_CFLAGS = @cflags@ -Ireadstat -DHAVE_ZLIB
+PKG_LIBS = @libs@

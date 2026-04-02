@@ -10,11 +10,7 @@ test_that("collectMetadata() works", {
   expect_true(is.list(collectMetadata(
     cbind(
       dfm,
-      x = factor(sample(letters[1:5], nrow(dfm), replace = TRUE)),
-      y = labelled(
-        sample(c(1:5, tagged_na("a")), nrow(dfm), replace = TRUE),
-        labels = c(Good = 1, Bad = 5, DK = tagged_na("a"))
-      )
+      x = factor(sample(letters[1:5], nrow(dfm), replace = TRUE))
     )
   )))
 

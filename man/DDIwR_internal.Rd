@@ -264,7 +264,7 @@ specification
 
 \code{hasMissingLabels}: Check if variables have missing labels
 
-\code{makeLabelled}: Coerce variables to labelled objects
+\code{makeLabelled}: Coerce variables to declared objects
 
 \code{missingValuesSPSS}: Prepares the missing values for the SPSS export syntax.
 

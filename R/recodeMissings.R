@@ -35,8 +35,8 @@
 #'         na_values = -92
 #'     ),
 #'     B = labelled(
-#'         c(1:5, haven::tagged_na('a')),
-#'         labels = c(DK = haven::tagged_na('a'))
+#'         c(1:5, tagged_na('a')),
+#'         labels = c(DK = tagged_na('a'))
 #'     ),
 #'     C = declared(
 #'         c(1, -91, 3:5, -92),
@@ -114,39 +114,38 @@
         )
     }
 
-    dataDscr <- collectRMetadata(dataset, ... = ...)
     charvar <- unname(sapply(dataset, is.character))
 
     spss <- unname(sapply(dataset, function(x) {
-        !is.null(attr(x, "labels", exact = TRUE)) &&
+        inherits(x, "declared") && !.ddiwr_is_stata_declared(x) &&
         (
-            inherits(x, "haven_labelled_spss") || inherits(x, "declared")
+            !is.null(attr(x, "labels", exact = TRUE)) ||
+            !is.null(attr(x, "na_values", exact = TRUE)) ||
+            !is.null(attr(x, "na_range", exact = TRUE))
         )
     }))
 
     stata <- unname(sapply(dataset, function(x) {
-        is.double(x) &&
-        !is.null(attr(x, "labels", exact = TRUE)) &&
-        (
-            inherits(x, "haven_labelled") & !inherits(x, "haven_labelled_spss")
-        )
+        inherits(x, "declared") && .ddiwr_is_stata_declared(x)
     }))
 
     allMissing <- list()
 
     for (variable in names(dataset[, spss | stata, drop = FALSE])) {
-        x <- declared::undeclare(getElement(dataset, variable), drop = TRUE)
-        attributes(x) <- NULL
-        metadata <- getElement(dataDscr, variable)
-        labels <- getElement(metadata, "labels")
-        missing <- getElement(metadata, "na_values")
-        na_range <- getElement(metadata, "na_range")
+        template <- getElement(dataset, variable)
+        x <- .ddiwr_plain_values(template)
+        metadata <- .ddiwr_var_metadata(template)
+        labels <- metadata$labels
+        missing <- metadata$na_values
+        na_range <- metadata$na_range
+        na_index <- metadata$na_index
 
-        if (is.null(labels) & is.null(na_range) & is.null(missing)) {
-            temp <- getValues(metadata)
-            labels <- temp$labels
-            na_range <- temp$na_range
-            missing <- temp$na_values
+        if (!is.null(na_index) && length(na_index) > 0) {
+            idx_values <- names(na_index)
+            if (is.numeric(idx_values) || .Call("ddiwr_all_numeric_chars_", idx_values, PACKAGE = "DDIwR")) {
+                idx_values <- admisc::asNumeric(idx_values)
+            }
+            missing <- c(missing, idx_values)
         }
 
         if (!is.null(na_range)) {
@@ -154,7 +153,7 @@
             missing <- c(missing, misvals[!is.na(misvals)])
 
             if (!is.null(labels)) {
-                if (admisc::possibleNumeric(labels)) {
+                if (is.numeric(labels) || .Call("ddiwr_all_numeric_chars_", labels, PACKAGE = "DDIwR")) {
                     lbls <- admisc::asNumeric(labels)
                     missing <- c(
                         missing,
@@ -166,9 +165,8 @@
 
         missing <- sort(unique(missing))
 
-        tagged <- haven::is_tagged_na(labels)
-        if (any(tagged)) {
-            labels[tagged] <- haven::na_tag(labels[tagged])
+        if (length(missing) == 0) {
+            missing <- NULL
         }
 
         if (!is.null(missing)) {
@@ -286,7 +284,8 @@
     # now recode the respective variables according to the dictionary
     old <- dictionary$old
     new <- dictionary$new
-    pnold <- admisc::possibleNumeric(old, each = TRUE)
+    pnold <- if (is.numeric(old)) rep(TRUE, length(old)) else admisc::possibleNumeric(old, each = TRUE)
+    old_keys <- .ddiwr_match_keys(old)
 
     old <- tolower(old)
     if (is.character(new)) {
@@ -294,85 +293,45 @@
     }
 
     for (variable in names(dataset)[spss | stata]) {
-        x <- declared::undeclare(dataset[[variable]], drop = TRUE)
-        attributes(x) <- NULL # for haven_labelled with tagged NAs
-
-        metadata <- getElement(dataDscr, variable)
-        labels_x <- getElement(metadata, "labels")
-        na_values_x <- getElement(metadata, "na_values")
-        na_range_x <- getElement(metadata, "na_range")
-
-        if (is.null(labels_x) & is.null(na_values_x) & is.null(na_range_x)) {
-            temp <- getValues(metadata)
-            labels_x <- temp$labels
-            na_values_x <- temp$na_values
-            na_range_x <- temp$na_range
-        }
+        template <- dataset[[variable]]
+        x <- .ddiwr_plain_values(template)
+        metadata <- .ddiwr_var_metadata(template)
+        labels_x <- metadata$labels
+        na_values_x <- metadata$na_values
+        na_range_x <- metadata$na_range
+        na_index_x <- metadata$na_index
 
         if (!is.null(na_values_x) | !is.null(na_range_x)) {
             if (tospss) {
-                selection <- logical(length(old))
+                recoded <- .ddiwr_recode_to_spss_full_native(
+                    x = x,
+                    labels = labels_x,
+                    na_values = na_values_x,
+                    na_index = na_index_x,
+                    old = old,
+                    new = new
+                )
+                x <- recoded$x
+                labels_x <- recoded$labels
+                na_values_x <- recoded$na_values
+                na_index_x <- recoded$na_index
 
-                if (!is.null(na_values_x)) {
-                    selection <- is.element(old, na_values_x)
+                if (is.numeric(na_values_x) || .Call("ddiwr_all_numeric_chars_", na_values_x, PACKAGE = "DDIwR")) {
+                    na_values_x <- unique(as.numeric(na_values_x))
+                    na_values_x <- sort(na_values_x, decreasing = all(na_values_x < 0))
                 }
-                else if (!is.null(na_range_x)) {
-                    na_range_x <- range(as.numeric(na_range_x))
-
-                    if (any(pnold)) {
-                        selection[pnold] <-
-                            as.numeric(old[pnold]) >= min(na_range_x) &
-                            as.numeric(old[pnold]) <= max(na_range_x)
-                    }
+                labels_numeric <- !is.null(labels_x) &&
+                    (is.numeric(labels_x) || .Call("ddiwr_all_numeric_chars_", labels_x, PACKAGE = "DDIwR"))
+                if (labels_numeric) {
+                    label_names <- names(labels_x)
+                    labels_x <- as.numeric(labels_x)
+                    names(labels_x) <- label_names
                 }
-
-                if (any(selection)) {
-                    old_x <- old[selection]
-                    new_x <- new[selection]
-                    # spss_x <- dictionary$spss[selection]
-
-                    for (d in seq(length(old_x))) {
-
-                        if (!is.null(na_values_x)) {
-                            na_values_x[is.element(na_values_x, old_x[d])] <- new_x[d]
-                        }
-
-                        # if (spss_x[d]) {
-                            x[is.element(x, old_x[d])] <- new_x[d]
-
-                            labels_x[is.element(labels_x, old_x[d])] <- new_x[d]
-                        # }
-                        # else {
-                        if (is.element(old_x[d], letters)) {
-                            x[
-                                haven::is_tagged_na(x, old_x[d])
-                            ] <- new_x[d]
-
-                            labels_x[
-                                haven::is_tagged_na(labels_x, old_x[d])
-                            ] <- new_x[d]
-                        }
-                    }
-                }
-
-                if (admisc::possibleNumeric(na_values_x)) {
-                    na_values_x <- as.numeric(na_values_x)
-                }
-                if (!is.null(labels_x) && !admisc::possibleNumeric(labels_x)) {
+                if (!is.null(labels_x) && !labels_numeric) {
                     x <- as.character(x)
                     if (length(na_values_x) > 0) {
                         na_values_x <- as.character(na_values_x)
                     }
-                }
-
-                callist <- list(
-                    x = x,
-                    labels = labels_x,
-                    label = getElement(metadata, "label")
-                )
-
-                if (length(na_values_x) > 0) {
-                    callist$na_values <- na_values_x
                 }
 
                 if (length(na_range_x) > 0) {
@@ -415,8 +374,6 @@
 
                     if (!all(updated)) {
                         difference <- diff(copy_range)
-                        # two scenarios, something like:
-                        # 1. range c(-99, -95) and only one of them is in the dictionary
 
                         if (updated[1]) {
                             na_range_x[2] <- na_range_x[1] + difference
@@ -425,21 +382,20 @@
                             na_range_x[1] <- na_range_x[2] - difference
                         }
                         else {
-                            # 2. range is c(-99, -95), with say a value of -97 missing
-                            # and none of them are in the dictionary
                             na_range_x <- range(new)
                         }
                     }
-
-                    callist$na_range <- na_range_x
                 }
 
-                if (to_declared) {
-                    dataset[[variable]] <- do.call(declared::declared, callist)
-                }
-                else {
-                    dataset[[variable]] <- do.call(haven::labelled_spss, callist)
-                }
+                dataset[[variable]] <- .ddiwr_make_declared(
+                    x = x,
+                    labels = labels_x,
+                    na_values = if (length(na_values_x) > 0) na_values_x else NULL,
+                    na_range = if (length(na_range_x) > 0) na_range_x else NULL,
+                    label = metadata$label,
+                    na_index = if (length(na_index_x) > 0) na_index_x else NULL,
+                    template = template
+                )
             }
             else if (is.numeric(x)) {
                 # it makes sense to check for character variables, since neither
@@ -452,11 +408,9 @@
                 selection <- logical(length(old))
 
                 if (!is.null(na_values_x)) {
-                    selection <- is.element(old, na_values_x)
+                    selection <- !is.na(match(old_keys, .ddiwr_match_keys(na_values_x)))
                 }
                 else if (!is.null(na_range_x)) {
-                    pnold <- admisc::possibleNumeric(old, each = TRUE)
-
                     if (any(pnold)) {
                         selection[pnold] <-
                             as.numeric(old[pnold]) >= min(na_range_x) &
@@ -467,90 +421,48 @@
                 if (any(selection)) {
                     old_x <- old[selection]
                     new_x <- new[selection]
+                    na_index_x <- integer(0)
+                    template_na_index <- attr(template, "na_index", exact = TRUE)
 
-                    if (admisc::possibleNumeric(old_x)) {
-                        old_x <- admisc::asNumeric(old_x)
+                    index <- match(.ddiwr_match_keys(x), .ddiwr_match_keys(old_x))
+                    wh <- which(!is.na(index))
+
+                    if (length(wh) > 0) {
+                        x[wh] <- NA
+                        na_index_x <- wh
+                        names(na_index_x) <- new_x[index[wh]]
                     }
 
-                    for (d in seq(length(old_x))) {
-                        x[is.element(x, old_x[d])] <- haven::tagged_na(new_x[d])
+                    if (!is.null(template_na_index) && length(template_na_index) > 0) {
+                        idx_codes <- .ddiwr_match_keys(names(template_na_index))
+                        map_codes <- .ddiwr_match_keys(old_x)
+                        idx_match <- match(idx_codes, map_codes)
+                        use_idx <- which(!is.na(idx_match))
 
-                        labels_x[
-                            is.element(labels_x, old_x[d])
-                        ] <- haven::tagged_na(new_x[d])
+                        if (length(use_idx) > 0) {
+                            extra_pos <- unname(template_na_index[use_idx])
+                            extra_tag <- new_x[idx_match[use_idx]]
+                            keep <- !(extra_pos %in% na_index_x)
 
-                        if (is.element(tolower(old_x[d]), letters)) {
-                            x[
-                                haven::is_tagged_na(x, old_x[d])
-                            ] <- haven::tagged_na(new_x[d])
-
-                            labels_x[
-                                haven::is_tagged_na(labels_x, old_x[d])
-                            ] <- haven::tagged_na(new_x[d])
+                            if (any(keep)) {
+                                extra_pos <- extra_pos[keep]
+                                names(extra_pos) <- extra_tag[keep]
+                                na_index_x <- c(na_index_x, extra_pos)
+                            }
                         }
                     }
 
-                    dataset[[variable]] <- haven::labelled(
+                    labels_x <- .ddiwr_recode_vector(labels_x, old_x, new_x)
+
+                    dataset[[variable]] <- .ddiwr_make_declared(
                         x,
                         labels = labels_x,
-                        label = getElement(metadata, "label")
+                        na_values = unique(new_x),
+                        label = metadata$label,
+                        na_index = na_index_x,
+                        template = template
                     )
                 }
-            }
-        }
-    }
-
-    if (tospss) {
-        for (variable in names(dataset)[!spss & !stata]) {
-            x <- getElement(dataset, variable)
-            na_index <- which(haven::is_tagged_na(x))
-            if (length(na_index) > 0) {
-                extended <- haven::na_tag(x[na_index])
-                # check for unaccounted extended missing values
-                # (because they have no labels)
-
-                emdiff <- setdiff(extended, old)
-
-                if (length(emdiff) > 0) {
-                    nrows <- nrow(dictionary)
-                    newcodes <- mcodes[seq(nrows + 1, nrows + length(emdiff))]
-                    dictionary <- rbind(
-                        dictionary,
-                        data.frame(
-                            spss = TRUE,
-                            label = "",
-                            old = emdiff,
-                            new = newcodes
-                        )
-                    )
-
-                }
-
-                x[na_index] <- NA
-
-                na_values <- dictionary$new[match(extended, dictionary$old)]
-                names(na_index) <- na_values
-                attr(x, "na_values") <- intersect(mcodes, na_values)
-                attr(x, "na_index") <- na_index
-
-                if (to_declared) {
-                    xclass <- c("declared", class(x))
-                }
-                else {
-                    xclass <- c("haven_labelled_spss", "haven_labelled")
-
-                    if (
-                        is.element("Date", class(x)) || isTRUE(attr(x, "date"))
-                    ) {
-                        xclass <- c(xclass, "Date")
-                    }
-                    else {
-                        xclass <- c(xclass, class(x))
-                    }
-                }
-
-                attr(x, "class") <- xclass
-                dataset[[variable]] <- x
             }
         }
     }

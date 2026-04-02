@@ -8,9 +8,8 @@
 #'
 #' @details
 #' For this function, a categorical variable is something else than a base
-#' factor. It should be an object of class `"declared"`, or an object of class
-#' `"haven_labelled_spss"`, with a specific attribute called `"labels"` that
-#' stores the value labels.
+#' factor. It should be an object of class `"declared"` with a specific
+#' attribute called `"labels"` that stores the value labels.
 #'
 #' @return
 #' A numeric categorical variable of the same class as the input.
@@ -50,9 +49,7 @@
     # only character _categorical_ variables should be recoded
     if (
         is.null(labels) &
-        !(
-            xdeclared | inherits(x, "haven_labelled_spss")
-        )
+        !xdeclared
     ) {
         # nothing to recode, no information about categories
         return(x)
@@ -117,7 +114,7 @@
         ))
     }
 
-    return(haven::labelled_spss(
+    return(declared::declared(
         x,
         label = label,
         labels = labels,

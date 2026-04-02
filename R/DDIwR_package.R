@@ -14,10 +14,9 @@
 #'
 #' It can also generate a DDI metadata file out of an R information object,
 #' which can be used to export directly to the standard statistical packages
-#' files (such as SPSS, Stata and SAS, or even Excel), using the versatile
-#' package \bold{\pkg{haven}}. For R, the default object to store data and
-#' metadata is a \bold{\code{data.frame}}, and labelled data are automatically
-#' coerced to class `declared`.
+#' files (such as SPSS, Stata and SAS, or even Excel). For R, the default
+#' object to store data and metadata is a \bold{\code{data.frame}}, and labelled
+#' data are automatically coerced to class `declared`.
 #'
 #' The research leading to the initial functions in this package has received
 #' funding from the European Union's Seventh Framework Program (FP7/2007-2013)
@@ -32,18 +31,15 @@
 #' \tabular{ll}{
 #'   Package: \tab DDIwR\cr
 #'   Type: \tab Package\cr
-#'   Version: \tab 0.19.10\cr
-#'   Date: \tab 2026-02-15\cr
+#'   Version: \tab 0.19.11\cr
+#'   Date: \tab 2026-04-02\cr
 #'   License: \tab GPL-v3\cr
 #' }
 #'
 #' @importFrom admisc anyTagged asNumeric getName numdec possibleNumeric
 #' stopError trimstr tryCatchWEM wholeNumeric
 #' @importFrom base64enc base64encode base64decode
-#' @importFrom haven is_tagged_na is.labelled labelled labelled_spss na_tag
-#' read_dta read_por read_sas read_sav read_xpt tagged_na write_dta write_sas
-#' write_sav write_xpt
-#' @importFrom declared as.declared as.haven declared is.declared undeclare
+#' @importFrom declared as.declared declared is.declared undeclare
 #' @importFrom digest digest
 #' @importFrom tools file_ext
 #' @importFrom xml2 as_list as_xml_document read_xml xml_attr xml_children xml_find_all

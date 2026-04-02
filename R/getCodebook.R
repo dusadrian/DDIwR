@@ -130,20 +130,12 @@
                 dots <- list(...)
                 recode <- !isFALSE(dots$recode)
                 data_input <- from
-                if (recode) {
-                    need_recode <- any(sapply(from, function(x) {
-                        inherits(x, "haven_labelled") && !inherits(x, "haven_labelled_spss")
-                    })) || any(sapply(from, function(x) {
-                        any(haven::is_tagged_na(c(unclass(x), attr(x, "labels", exact = TRUE))))
-                    }))
-
-                    if (isTRUE(need_recode)) {
-                        data_input <- recodeMissings(
-                            dataset = from,
-                            to = "SPSS",
-                            dictionary = dots$dictionary
-                        )
-                    }
+                if (recode && .ddiwr_needs_spss_recode(from)) {
+                    data_input <- recodeMissings(
+                        dataset = from,
+                        to = "SPSS",
+                        dictionary = dots$dictionary
+                    )
                 }
 
                 addChildren(fileDscr, to = codeBook)
@@ -362,7 +354,7 @@
                             i <- i + 1
 
                             tc <- admisc::tryCatchWEM(
-                                data <- do.call(haven::read_sav, arglist)
+                                data <- do.call(read_sav, arglist)
                             )
 
                             error <- !is.null(tc$error)
@@ -375,10 +367,10 @@
                         }
                     } else {
                         arglist$encoding <- encoding
-                        data <- do.call(haven::read_sav, arglist)
+                        data <- do.call(read_sav, arglist)
                     }
                 } else {
-                    data <- do.call(haven::read_por, arglist)
+                    data <- do.call(read_por, arglist)
                 }
             }
             else if (tp$fileext[ff] == "XLS" | tp$fileext[ff] == "XLSX") {
@@ -402,7 +394,7 @@
                         i <- i + 1
 
                         tc <- admisc::tryCatchWEM(
-                            data <- do.call(haven::read_dta, arglist)
+                            data <- do.call(read_dta, arglist)
                         )
 
                         error <- !is.null(tc$error)
@@ -415,26 +407,18 @@
                     }
                 } else {
                     arglist$encoding <- encoding
-                    data <- do.call(haven::read_dta, arglist)
+                    data <- do.call(read_dta, arglist)
                 }
 
                 # Ensure codebook uses numeric missing codes for Stata-style
                 # tagged missings by recoding to SPSS style before metadata collection
                 recode <- !isFALSE(dots$recode)
-                if (recode) {
-                    need_recode <- any(sapply(data, function(x) {
-                        inherits(x, "haven_labelled") && !inherits(x, "haven_labelled_spss")
-                    })) || any(sapply(data, function(x) {
-                        any(haven::is_tagged_na(c(unclass(x), attr(x, "labels", exact = TRUE))))
-                    }))
-
-                    if (isTRUE(need_recode)) {
-                        data <- recodeMissings(
-                            dataset = data,
-                            to = "SPSS",
-                            dictionary = dots$dictionary
-                        )
-                    }
+                if (recode && .ddiwr_needs_spss_recode(data)) {
+                    data <- recodeMissings(
+                        dataset = data,
+                        to = "SPSS",
+                        dictionary = dots$dictionary
+                    )
                 }
             }
             else if (tp$fileext[ff] == "RDS") {
@@ -443,7 +427,7 @@
             # not sure about SAS, as far as I understand the metadata is not
             # embedded in the datafile but it sits into a separate, catalog file
             # else if (tp$fileext[ff] == "SAS7BDAT") {
-            #     data <- haven::read_sas(file.path(tp$completePath, tp$files[ff]))
+            #     data <- read_sas(file.path(tp$completePath, tp$files[ff]))
             # }
 
             if (!is.element("dataDscr", ignore)) {

@@ -441,7 +441,7 @@
         arglist$user_na <- !isFALSE(dots$user_na)
         arglist$encoding <- encoding
         tc <- admisc::tryCatchWEM(
-            data <- do.call(haven::read_sav, arglist) # haven_labelled variables
+            data <- do.call(read_sav, arglist)
         )
         if (!is.null(tc$error) && grepl("Unable to convert string", tc$error)) {
             admisc::stopError(
@@ -454,14 +454,14 @@
         arglist <- dots[is.element(names(dots), fargs)]
         arglist$file <- from
         arglist$user_na <- !isFALSE(dots$user_na)
-        data <- do.call(haven::read_por, arglist)
+        data <- do.call(read_por, arglist)
     }
     else if (tp_from$fileext == "DTA") {
         fargs <- names(formals(read_dta))
         arglist <- dots[is.element(names(dots), fargs)]
         arglist$file <- from
         arglist$encoding <- encoding
-        data <- do.call(haven::read_dta, arglist)
+        data <- do.call(read_dta, arglist)
 
         # return(list(data = data, to = to, dictionary = dictionary, chartonum = chartonum, to_declared = FALSE, error_null = FALSE))
         if (recode) {
@@ -491,7 +491,7 @@
             }
         }
 
-        data <- do.call(haven::read_sas, arglist)
+        data <- do.call(read_sas, arglist)
         if (recode) {
             data <- recodeMissings(
                 dataset = data,
@@ -505,11 +505,11 @@
 
     }
     else if (tp_from$fileext == "XPT") {
-        fargs <- names(formals(haven::read_xpt))
+        fargs <- names(formals(read_xpt))
         arglist <- dots[is.element(names(dots), fargs)]
         arglist$file <- from
         # arglist$encoding <- encoding
-        data <- do.call(haven::read_xpt, arglist)
+        data <- do.call(read_xpt, arglist)
 
         if (recode) {
             data <- recodeMissings(
@@ -652,12 +652,9 @@
             admisc::stopError("SPSS does not support extended missing codes")
         }
 
-        # return(data)
-        haven::write_sav(declared::as.haven(data), to)
+        write_sav(data, to)
     }
     else if (identical(tp_to$fileext, "DTA")) {
-        data <- declared::as.haven(data)
-
         colnms <- colnames(data)
         arglist <- list(data = data)
 
@@ -745,7 +742,7 @@
         # else {
             arglist$path <- to
 
-            do.call(haven::write_dta, arglist)
+            do.call(write_dta, arglist)
             # return(invisible(arglist$data))
         # }
     }
@@ -830,26 +827,26 @@
     }
     else {
         # if (identical(tp_to$fileext, "SAS7BDAT")) {
-        #     fargs <- names(formals(haven::write_sas))
+        #     fargs <- names(formals(write_sas))
         #     arglist <- dots[is.element(names(dots), fargs)]
-        #     arglist$data <- declared::as.haven(data)
+        #     arglist$data <- data
         #     arglist$path <- to
-        #     do.call(haven::write_sas, arglist)
+        #     do.call(write_sas, arglist)
         # }
         # else if (identical(tp_to$fileext, "XPT")) {
             lnms <- nchar(colnames(data))
             if (any(lnms > 8)) {
                 admisc::stopError("SAS .xpt files do not allow more than 8 characters for column names.")
             }
-            fargs <- names(formals(haven::write_xpt))
+            fargs <- names(formals(write_xpt))
             arglist <- dots[is.element(names(dots), fargs)]
-            arglist$data <- declared::as.haven(data)
+            arglist$data <- data
             arglist$path <- to
             if (is.null(arglist$version)) {
                 # hardcode XPT version 5, since 8 doesn't work
                 arglist$version <- 5
             }
-            do.call(haven::write_xpt, arglist)
+            do.call(write_xpt, arglist)
         # }
 
         to <- file.path(

@@ -1,6 +1,6 @@
 .onAttach <- function(...) {
 
-    core <- c("admisc", "declared", "haven")
+    core <- c("admisc", "declared")
 
     # code borrowed from package tidyverse
 

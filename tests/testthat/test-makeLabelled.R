@@ -143,5 +143,4 @@ testdf <- data.frame(
 
 test_that("makeLabelled() works", {
     expect_true(is.data.frame(makeLabelled(testdf, dataDscr)))
-    expect_true(is.data.frame(makeLabelled(testdf, dataDscr, declared = FALSE)))
 })

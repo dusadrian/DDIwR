@@ -1,6 +1,6 @@
 Package: DDIwR
 Title: DDI with R
-Version: 0.19.10
+Version: 0.19.11
 Authors@R: person(
     "Adrian", "Dusa",
     email = "dusa.adrian@unibuc.ro",
@@ -12,26 +12,20 @@ Description: Useful functions for various DDI (Data Documentation Initiative)
     related inputs and outputs. Converts data files to and from DDI, SPSS,
     Stata, SAS, R and Excel, including user declared missing values.
 License: GPL (>= 3)
-Depends: R (>= 3.5.0)
+Depends: R (>= 4.1.0)
 Imports:
     admisc (> 0.36),
     base64enc,
-    declared (> 0.24),
+    declared (> 0.25),
     digest,
     tools,
     xml2,
-    haven,
     readxl,
     writexl
 Suggests:
-    knitr,
-    labelled,
-    rmarkdown,
-    spelling,
-    testthat (>= 3.0.0),
-    tibble
+    testthat (>= 3.0.0)
 Language: en-US
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.2
+RoxygenNote: 7.3.3
 Config/testthat/edition: 3

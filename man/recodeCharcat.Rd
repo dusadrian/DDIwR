@@ -20,9 +20,8 @@ variable.
 }
 \details{
 For this function, a categorical variable is something else than a base
-factor. It should be an object of class \code{"declared"}, or an object of class
-\code{"haven_labelled_spss"}, with a specific attribute called \code{"labels"} that
-stores the value labels.
+factor. It should be an object of class \code{"declared"} with a specific
+attribute called \code{"labels"} that stores the value labels.
 }
 \examples{
 x <- declared(

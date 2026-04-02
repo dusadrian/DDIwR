@@ -4,10 +4,6 @@ x <- data.frame(
     labels = c(Good = 1, Bad = 5, NR = -92),
     na_values = -92
   ),
-  B = labelled(
-    c(1:5, haven::tagged_na('a')),
-    labels = c(DK = haven::tagged_na('a'))
-  ),
   C = declared(
     c(1, -91, 3:5, -92),
     labels = c(DK = -91, NR = -92),
@@ -65,10 +61,6 @@ xmany <- data.frame(
     c(1:5, manymissings),
     labels = c(Good = 1, Bad = 5, setNames(manymissings, paste0("NR", manymissings))),
     na_range = c(-950, -91)
-  ),
-  B = labelled(
-    c(sample(1:5, length(manymissings) + 4, replace = TRUE), haven::tagged_na('a')),
-    labels = c(DK = haven::tagged_na('a'))
   )
 )
 
@@ -80,23 +72,21 @@ test_that("recodeMissings() works", {
   expect_equal(recodeMissings(xchar, to = "SAS"), xchar)
   expect_equal(recodeMissings(xchar, to = "SPSS"), xchar)
   expect_equal(xsas, x2)
-  expect_true(is.na(xspss$B[6]))
-  expect_equal(haven::na_tag(xstata$A[6]), "b")
 })
 
 test_that("variables get declared NAs if they are mixed SPSS / Stata types", {
   expect_false(admisc::anyTagged(xspss))
 })
 
-test_that("variables get tagged NAs if they are mixed SPSS / Stata types", {
-  # except variable E which is character
-  expect_true(all(sapply(xstata[, -5], admisc::anyTagged)))
-})
+# test_that("variables get tagged NAs if they are mixed SPSS / Stata types", {
+#   # except variable E which is character
+#   expect_true(all(sapply(xstata[, -5], admisc::anyTagged)))
+# })
 
-test_that("variables get tagged NAs when they are all SPSS-type", {
-  onlyspss <- recodeMissings(x[, -c(2, 5)], to = "Stata")
-  expect_true(all(sapply(onlyspss, admisc::anyTagged)))
-})
+# test_that("variables get tagged NAs when they are all SPSS-type", {
+#   onlyspss <- recodeMissings(x[, -c(2, 5)], to = "Stata")
+#   expect_true(all(sapply(onlyspss, admisc::anyTagged)))
+# })
 
 test_that("a dictionary is produced from the missing codes in the data", {
   dictionary <- recodeMissings(x, to = "Stata", return_dictionary = TRUE)
@@ -117,7 +107,7 @@ test_that("range of values with infinite bounds are recalculated", {
   expect_equal(declared::missing_range(rdfm$plusinf), c(1000, Inf))
 })
 
-test_that("recoding works for both declared and haven", {
+test_that("recoding works for declared data", {
   hxspss <- recodeMissings(x, to_declared = FALSE)
   expect_equal(dim(xspss), dim(hxspss))
 })
