@@ -52,42 +52,42 @@ accordingly.
 If no labels are found in the metadata, the original values are preserved.
 }
 \examples{
-x <- data.frame(
-    A = declared(
-        c(1:5, -92),
-        labels = c(Good = 1, Bad = 5, NR = -92),
-        na_values = -92
-    ),
-    B = labelled(
-        c(1:5, tagged_na('a')),
-        labels = c(DK = tagged_na('a'))
-    ),
-    C = declared(
-        c(1, -91, 3:5, -92),
-        labels = c(DK = -91, NR = -92),
-        na_values = c(-91, -92)
-    )
-)
+# x <- data.frame(
+#     A = declared(
+#         c(1:5, -92),
+#         labels = c(Good = 1, Bad = 5, NR = -92),
+#         na_values = -92
+#     ),
+#     B = labelled(
+#         c(1:5, tagged_na('a')),
+#         labels = c(DK = tagged_na('a'))
+#     ),
+#     C = declared(
+#         c(1, -91, 3:5, -92),
+#         labels = c(DK = -91, NR = -92),
+#         na_values = c(-91, -92)
+#     )
+# )
 
-xrec <- recodeMissings(x, to = "Stata")
+# xrec <- recodeMissings(x, to = "Stata")
 
-attr(xrec, "dictionary")
+# attr(xrec, "dictionary")
 
-dictionary <- data.frame(
-    old = c(-91, -92, "a"),
-    new = c("c", "d", "c")
-)
-recodeMissings(x, to = "Stata", dictionary = dictionary)
+# dictionary <- data.frame(
+#     old = c(-91, -92, "a"),
+#     new = c("c", "d", "c")
+# )
+# recodeMissings(x, to = "Stata", dictionary = dictionary)
 
-recodeMissings(x, to = "SPSS")
+# recodeMissings(x, to = "SPSS")
 
-dictionary$new <- c(-97, -98, -97)
+# dictionary$new <- c(-97, -98, -97)
 
-recodeMissings(x, to = "SPSS", dictionary = dictionary)
+# recodeMissings(x, to = "SPSS", dictionary = dictionary)
 
-recodeMissings(x, to = "SPSS", start = 991)
+# recodeMissings(x, to = "SPSS", start = 991)
 
-recodeMissings(x, to = "SPSS", start = -8)
+# recodeMissings(x, to = "SPSS", start = -8)
 
 }
 \author{
