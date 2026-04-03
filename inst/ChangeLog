@@ -8,6 +8,8 @@ Version 0.20
   o new functions makePath(), moveChild() and replaceChild() that accept
     xpath (path renamed)
   o change/add/remove content and attributes accept xpath or element targets
+  o now directly using the ReadStat C library, for faster (parallel) reads
+  o added support for importing huge .xml files
 
 Version 0.19
   o the internal DDI structure is now defined as an updateable cache
