@@ -185,7 +185,7 @@
             "</codeBook>\n"
         )
 
-        XMLdoc <- xml2::read_xml(XMLtext)
+        XMLdoc <- xml2::read_xml(XMLtext, options = c("HUGE", "NOBLANKS"))
         XMLvars <- xml2::xml_find_all(XMLdoc, "/d1:codeBook/d1:dataDscr/d1:var")
 
         attr(data, "hashes") <- getHashes(XMLvars)

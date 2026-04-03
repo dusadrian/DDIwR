@@ -443,7 +443,7 @@ NULL
 
     return(
         coerceDDI(
-            xml2::as_list(xml2::read_xml(xml_text))
+            xml2::as_list(xml2::read_xml(xml_text, options = c("HUGE", "NOBLANKS")))
         )$dataDscr
     )
 }
@@ -1124,7 +1124,7 @@ NULL
 #' @export
 `getXML` <- function(path, encoding = "UTF-8") {
     tc <- admisc::tryCatchWEM(
-        xml <- xml2::read_xml(path, encoding = encoding)
+        xml <- xml2::read_xml(path, encoding = encoding, options = c("HUGE", "NOBLANKS"))
     )
 
     if (is.null(tc$error)) {
@@ -2097,7 +2097,7 @@ NULL
     }
 
     if (!isFALSE(dots$DDI)) {
-        codeBook <- xml2::read_xml(xml_text)
+        codeBook <- xml2::read_xml(xml_text, options = c("HUGE", "NOBLANKS"))
         hashes <- getHashes(xml2::xml_find_all(codeBook, "/d1:codeBook/d1:dataDscr/d1:var"))
 
         return(list(
