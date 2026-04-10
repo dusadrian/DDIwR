@@ -1,7 +1,6 @@
 name: package binaries
 
 on:
-  push:
   workflow_dispatch:
 
 permissions:
