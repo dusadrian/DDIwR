@@ -55,6 +55,19 @@ xchar <- data.frame(
   )
 )
 
+xexport <- data.frame(
+  A = declared(
+    c(1, -91, -92),
+    labels = c(Yes = 1, DK = -91, NR = -92),
+    na_values = c(-91, -92)
+  ),
+  B = declared(
+    c(1, -92, -93),
+    labels = c(Yes = 1, DK = -92, REF = -93),
+    na_values = c(-92, -93)
+  )
+)
+
 manymissings <- seq(-950, -91)
 xmany <- data.frame(
   A = declared(
@@ -91,6 +104,27 @@ test_that("variables get declared NAs if they are mixed SPSS / Stata types", {
 test_that("a dictionary is produced from the missing codes in the data", {
   dictionary <- recodeMissings(x, to = "Stata", return_dictionary = TRUE)
   expect_true(is.data.frame(dictionary))
+})
+
+test_that("foreign export recoding is per variable by default", {
+  export_fun <- get("prepare_foreign_export_missings", envir = asNamespace("DDIwR"))
+  xvar <- export_fun(xexport, to = "Stata")
+
+  expect_equal(names(attr(xvar$A, "na_index", exact = TRUE)), c("a", "b"))
+  expect_equal(names(attr(xvar$B, "na_index", exact = TRUE)), c("a", "b"))
+  expect_equal(unname(attr(xvar$A, "labels", exact = TRUE)), c("1", "a", "b"))
+  expect_equal(unname(attr(xvar$B, "labels", exact = TRUE)), c("1", "a", "b"))
+})
+
+test_that("foreign export recoding is harmonized when a dictionary is supplied", {
+  export_fun <- get("prepare_foreign_export_missings", envir = asNamespace("DDIwR"))
+  dictionary <- recodeMissings(xexport, to = "Stata", return_dictionary = TRUE)
+  xharm <- export_fun(xexport, to = "Stata", dictionary = dictionary)
+
+  expect_equal(names(attr(xharm$A, "na_index", exact = TRUE)), c("a", "b"))
+  expect_equal(names(attr(xharm$B, "na_index", exact = TRUE)), c("b", "c"))
+  expect_equal(unname(attr(xharm$A, "labels", exact = TRUE)), c("1", "a", "b"))
+  expect_equal(unname(attr(xharm$B, "labels", exact = TRUE)), c("1", "b", "c"))
 })
 
 test_that("missing values in the data, not present in a dictionary, trigget error", {

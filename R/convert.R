@@ -703,12 +703,10 @@
         }
 
         if (recode) {
-            data <- recodeMissings(
-                dataset = data,
+            data <- prepare_foreign_export_missings(
+                data = data,
                 to = "Stata",
-                dictionary = dictionary,
-                to_declared = FALSE,
-                error_null = FALSE
+                dictionary = dictionary
             )
         }
 
@@ -847,6 +845,13 @@
             if (is.null(arglist$version)) {
                 # hardcode XPT version 5, since 8 doesn't work
                 arglist$version <- 5
+            }
+            if (recode) {
+                arglist$data <- prepare_foreign_export_missings(
+                    data = arglist$data,
+                    to = "SAS",
+                    dictionary = dictionary
+                )
             }
             do.call(write_xpt, arglist)
         # }

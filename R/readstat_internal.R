@@ -57,26 +57,6 @@ as_declared <- function(data) {
     data
 }
 
-is_tag_code <- function(x) {
-    is.character(x) && length(x) > 0 && all(grepl("^[a-z]$", tolower(x)))
-}
-
-is_stata_declared <- function(x) {
-    if (!inherits(x, "declared")) {
-        return(FALSE)
-    }
-
-    na_values <- attr(x, "na_values", exact = TRUE)
-    na_index <- attr(x, "na_index", exact = TRUE)
-
-    is_tag_code(na_values) ||
-        is_tag_code(names(na_index))
-}
-
-needs_spss_recode <- function(data) {
-    any(vapply(data, is_stata_declared, logical(1)))
-}
-
 make_declared <- function(
     x, labels = NULL, na_values = NULL, na_range = NULL, label = NULL,
     na_index = NULL, template = NULL
@@ -189,6 +169,36 @@ recode_to_spss_full_native <- function(
         new,
         PACKAGE = "DDIwR"
     )
+}
+
+prepare_foreign_export_missings <- function(
+    data, to = c("Stata", "SAS"), dictionary = NULL
+) {
+    to <- match.arg(to)
+
+    if (!is.null(dictionary)) {
+        return(recodeMissings(dataset = data, to = to, dictionary = dictionary))
+    }
+
+    for (name in names(data)) {
+        column <- data[[name]]
+        attrs <- attributes(column)
+
+        if (is.null(attrs) || !any(is.element(
+            c("label", "labels", "na_values", "na_range", "na_index"),
+            names(attrs)
+        ))) {
+            next
+        }
+
+        recoded <- recodeMissings(
+            dataset = data[name],
+            to = to
+        )
+        data[[name]] <- recoded[[1]]
+    }
+
+    data
 }
 
 read_sav <- function(file, encoding = NULL, user_na = FALSE) {
@@ -402,7 +412,12 @@ materialize_na_index <- function(x, vendor) {
     positions <- unname(na_index)
     codes <- names(na_index)
 
-    if (identical(vendor, "STATA") && any(is_tag_code(codes))) {
+    if (
+        identical(vendor, "STATA") &&
+        is.character(codes) &&
+        length(codes) > 0 &&
+        all(grepl("^[a-z]$", tolower(codes)))
+    ) {
         return(x)
     }
 

@@ -7,6 +7,17 @@
 #' uniformly (re)using the same codes across all variables.
 #'
 #' @details
+#' Package \bold{DDIwR} uses numeric declared missing codes as its internal R
+#' representation. Recoding to `"Stata"` or `"SAS"` is therefore best viewed as
+#' an export-oriented temporary representation, not as a preferred internal
+#' storage strategy for declared vectors in R.
+#'
+#' When no dictionary is provided, export-oriented recoding can be performed
+#' either by scanning the entire dataset for a harmonized mapping, or by
+#' recoding each variable independently. The package now defaults to the faster
+#' per-variable strategy in export preparation. Supplying a dictionary keeps the
+#' harmonized cross-dataset behavior.
+#'
 #' When a dictionary is not provided, it is automatically constructed from the
 #' available data and metadata, using negative numbers starting from -91 and up
 #' to 27 letters starting with "a".
@@ -49,6 +60,7 @@
 #'
 #' # attr(xrec, "dictionary")
 #'
+#' # Supply a dictionary to harmonize missing meanings across variables
 #' # dictionary <- data.frame(
 #' #     old = c(-91, -92, "a"),
 #' #     new = c("c", "d", "c")
@@ -84,11 +96,24 @@
     dataset, to = c("SPSS", "Stata", "SAS"), dictionary = NULL, start = -91, ...
 ) {
 
+    has_foreign_missing_codes <- function(x) {
+        if (!inherits(x, "declared")) {
+            return(FALSE)
+        }
+
+        na_values <- attr(x, "na_values", exact = TRUE)
+        na_index <- attr(x, "na_index", exact = TRUE)
+        na_index_names <- names(na_index)
+
+        (is.character(na_values) && length(na_values) > 0 &&
+             all(grepl("^[a-z]$", tolower(na_values)))) ||
+            (is.character(na_index_names) && length(na_index_names) > 0 &&
+                 all(grepl("^[a-z]$", tolower(na_index_names))))
+    }
+
     dots <- list(...)
     to <- toupper(match.arg(to))
     tospss <- to == "SPSS"
-
-    to_declared <- !isFALSE(dots$to_declared)
 
     error <- TRUE
     if (is.data.frame(dataset)) {
@@ -114,10 +139,8 @@
         )
     }
 
-    charvar <- unname(sapply(dataset, is.character))
-
     spss <- unname(sapply(dataset, function(x) {
-        inherits(x, "declared") && !is_stata_declared(x) &&
+        inherits(x, "declared") && !has_foreign_missing_codes(x) &&
         (
             !is.null(attr(x, "labels", exact = TRUE)) ||
             !is.null(attr(x, "na_values", exact = TRUE)) ||
@@ -126,7 +149,7 @@
     }))
 
     stata <- unname(sapply(dataset, function(x) {
-        inherits(x, "declared") && is_stata_declared(x)
+        inherits(x, "declared") && has_foreign_missing_codes(x)
     }))
 
     allMissing <- list()
