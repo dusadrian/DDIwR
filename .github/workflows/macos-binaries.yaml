@@ -8,19 +8,9 @@ permissions:
   contents: read
 
 jobs:
-  build-macos-binaries:
-    name: ${{ matrix.label }}
-    runs-on: ${{ matrix.runner }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - label: macOS Apple Silicon binary
-            runner: macos-15
-            artifact_suffix: arm64
-          - label: macOS Intel binary
-            runner: macos-15-intel
-            artifact_suffix: x86_64
+  build-macos-intel-binary:
+    name: macOS Intel binary
+    runs-on: macos-15-intel
 
     steps:
       - name: Checkout repository
@@ -47,10 +37,11 @@ jobs:
           R CMD INSTALL --build "$PKG"
 
       - name: Upload macOS binary artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
-          name: DDIwR-macos-${{ matrix.artifact_suffix }}
+          name: DDIwR-macos-x86_64
           path: "*.tgz"
+          archive: false
           if-no-files-found: error
           retention-days: 7
 
@@ -83,9 +74,10 @@ jobs:
           R CMD INSTALL --build "$PKG"
 
       - name: Upload Windows binary artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: DDIwR-windows-x86_64
           path: "*.zip"
+          archive: false
           if-no-files-found: error
           retention-days: 7
