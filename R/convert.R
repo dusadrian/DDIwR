@@ -624,9 +624,7 @@
     }
     else if (identical(tp_to$fileext, "SAV")) {
         data[] <- lapply(data, function(x) {
-            if (!is.element("format.spss", names(attributes(x)))) {
-                attr(x, "format.spss") <- getFormat(x, type = "SPSS")
-            }
+            x <- ensure_format(x, type = "SPSS")
 
             na_values <- attr(x, "na_values")
             na_range <- attr(x, "na_range")
@@ -704,9 +702,7 @@
 
         data[] <- lapply(data, function(x) {
             attr(x, "format.spss") <- NULL
-            if (is.null(attr(x, "format.stata"))) {
-                attr(x, "format.stata") <- getFormat(x, type = "Stata")
-            }
+            x <- ensure_format(x, type = "Stata")
             return(x)
         })
 

@@ -518,15 +518,10 @@ NULL
             result[["varFormat"]] <- "date"
         }
         else {
+            x <- ensure_format(x, type = "SPSS")
+            x <- ensure_format(x, type = "Stata")
             format.spss <- attr(x, "format.spss", exact = TRUE)
-            if (is.null(format.spss)) {
-                format.spss <- getFormat(x, type = "SPSS")
-            }
-
             format.stata <- attr(x, "format.stata", exact = TRUE)
-            if (is.null(format.stata)) {
-                format.stata <- getFormat(x, type = "Stata")
-            }
 
             result[["varFormat"]] <- c(format.spss, format.stata)
         }
@@ -1313,10 +1308,7 @@ NULL
     }
 
     x[] <- lapply(x, function(x) {
-        if (is.null(attr(x, "format.spss"))) {
-            attr(x, "format.spss") <- getFormat(x, type = "SPSS")
-        }
-        return(x)
+        ensure_format(x, type = "SPSS")
     })
 
     return(x)

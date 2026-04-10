@@ -128,6 +128,24 @@ plain_values <- function(x) {
     x
 }
 
+ensure_format <- function(x, type = c("SPSS", "Stata", "SAS")) {
+    type <- match.arg(type)
+    attr_name <- switch(
+        type,
+        SPSS = "format.spss",
+        Stata = "format.stata",
+        SAS = "format.sas"
+    )
+
+    format_value <- attr(x, attr_name, exact = TRUE)
+    if (is.null(format_value)) {
+        format_value <- getFormat(x, type = type)
+        attr(x, attr_name) <- format_value
+    }
+
+    x
+}
+
 recode_vector <- function(x, old, new) {
     if (is.null(x) || length(x) == 0 || length(old) == 0) {
         return(x)
@@ -490,7 +508,25 @@ materialize_na_index <- function(x, vendor) {
 }
 
 prepare_export <- function(data, vendor) {
-    data[] <- lapply(data, materialize_na_index, vendor = vendor)
+    needs_materialization <- vapply(data, function(x) {
+        inherits(x, "Date") ||
+            inherits(x, "POSIXct") ||
+            {
+                na_index <- attr(x, "na_index", exact = TRUE)
+                !is.null(na_index) && length(na_index) > 0
+            }
+    }, logical(1))
+
+    if (!any(needs_materialization)) {
+        class(data) <- "data.frame"
+        return(data)
+    }
+
+    data[needs_materialization] <- lapply(
+        data[needs_materialization],
+        materialize_na_index,
+        vendor = vendor
+    )
     class(data) <- "data.frame"
     data
 }
