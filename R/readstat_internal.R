@@ -189,6 +189,20 @@ recode_to_spss_full_native <- function(
     )
 }
 
+#' Build a dictionary of missing-value recodes
+#'
+#' @description
+#' Build a dataset-level dictionary of missing values and their recoded targets
+#' for internal SPSS-style normalization or export-oriented Stata/SAS mapping.
+#'
+#' @param dataset A data frame.
+#' @param to Target software for the recoding dictionary.
+#' @param start Starting code for generated SPSS-style numeric missings.
+#'
+#' @return A data frame with columns such as `label`, `old`, `new`, `count`,
+#' and `n_variables`.
+#'
+#' @export
 buildDictionary <- function(dataset, to = c("SPSS", "Stata", "SAS"), start = -91) {
     to <- toupper(to[1])
     if (!to %in% c("SPSS", "STATA", "SAS")) {

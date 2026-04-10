@@ -36,6 +36,7 @@ extern SEXP make_datadscr_xml(
     SEXP cat_missing,
     SEXP cat_freq
 );
+extern SEXP collect_datadscr_stats(SEXP data, SEXP variables, SEXP dates);
 extern SEXP declared_df_parse_dta_file(SEXP spec, SEXP encoding, SEXP cols_skip, SEXP n_max, SEXP rows_skip);
 extern SEXP declared_df_parse_dta_file_parallel(SEXP spec, SEXP encoding, SEXP cols_skip, SEXP n_max, SEXP rows_skip, SEXP num_threads);
 extern SEXP declared_sav_parallel_prototype(SEXP spec, SEXP num_threads);
@@ -57,6 +58,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"recode_to_spss_", (DL_FUNC) &recode_to_spss_, 5},
     {"recode_to_spss_full_", (DL_FUNC) &recode_to_spss_full_, 6},
     {"make_datadscr_xml", (DL_FUNC) &make_datadscr_xml, 26},
+    {"collect_datadscr_stats", (DL_FUNC) &collect_datadscr_stats, 3},
     {"declared_df_parse_dta_file", (DL_FUNC) &declared_df_parse_dta_file, 5},
     {"declared_df_parse_dta_file_parallel", (DL_FUNC) &declared_df_parse_dta_file_parallel, 6},
     {"declared_sav_parallel_prototype", (DL_FUNC) &declared_sav_parallel_prototype, 2},

@@ -69,7 +69,7 @@ coerceDDI(element, name = NULL)
 
 collectMetadata(from, ...)
 
-collectRMetadata(from, ...)
+collectRMetadata(from, infer_type = TRUE, ...)
 
 extractData(xml)
 

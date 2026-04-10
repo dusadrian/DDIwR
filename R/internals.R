@@ -454,7 +454,7 @@ NULL
 #' @rdname DDIwR_internal
 #' @keywords internal
 #' @export
-`collectRMetadata` <- function(from, ...) {
+`collectRMetadata` <- function(from, infer_type = TRUE, ...) {
     dots <- list(...)
 
     if (!is.data.frame(from)) {
@@ -506,12 +506,14 @@ NULL
         }
 
         result$na_range <- attr(x, "na_range", exact = TRUE)
-        result$type <- checkType(
-            x,
-            labels,
-            na_values,
-            result$na_range
-        )
+        if (isTRUE(infer_type)) {
+            result$type <- checkType(
+                x,
+                labels,
+                na_values,
+                result$na_range
+            )
+        }
 
 
         if (is.element("Date", getElement(result, "classes"))) {
@@ -1323,7 +1325,7 @@ NULL
         if (is.null(data)) {
             admisc::stopError("Both variables and dataset are NULL.")
         }
-        variables <- collectRMetadata(data)
+        variables <- collectRMetadata(data, infer_type = FALSE)
     }
 
     varxmlang <- any(sapply(variables, function(x) {
@@ -1429,6 +1431,7 @@ NULL
         }
 
         type <- getElement(metadata, "type")
+        classes <- getElement(metadata, "classes")
         measurement <- getElement(metadata, "measurement")
         if (!is.null(type) && length(type) > 0) {
             var_type[i] <- as.character(type[1])
@@ -1449,7 +1452,8 @@ NULL
 
         if (!is.null(type) || !is.null(varFormat)) {
             vartype <- ifelse(
-                !is.null(type) && grepl("char", type),
+                (!is.null(type) && grepl("char", type)) ||
+                (is.null(type) && any(c("character", "factor") %in% classes)),
                 "character",
                 "numeric"
             )
@@ -1474,7 +1478,7 @@ NULL
             }
         }
 
-        if (!is.null(data)) {
+        if (!is.null(data) && !is.null(wt)) {
             vals <- data[[varnames[i]]]
 
             lbls <- getElement(metadata, "labels")
@@ -1575,6 +1579,36 @@ NULL
                 cat_freq <- c(cat_freq, freqv)
             }
         }
+    }
+
+    if (!is.null(data) && is.null(wt)) {
+        fast_stats <- collectDataDscrStatsC(
+            data = data[varnames],
+            variables = variables,
+            dates = dates
+        )
+
+        w <- !is.na(fast_stats$var_dcml)
+        var_dcml[w] <- fast_stats$var_dcml[w]
+
+        w <- !is.na(fast_stats$var_width)
+        var_width[w] <- fast_stats$var_width[w]
+
+        range_units <- fast_stats$range_units
+        val_min <- fast_stats$val_min
+        val_max <- fast_stats$val_max
+        stat_min <- fast_stats$stat_min
+        stat_max <- fast_stats$stat_max
+        stat_mean <- fast_stats$stat_mean
+        stat_medn <- fast_stats$stat_medn
+        stat_stdev <- fast_stats$stat_stdev
+        sum_valid <- fast_stats$sum_valid
+        sum_invalid <- fast_stats$sum_invalid
+        cat_counts <- fast_stats$cat_counts
+        cat_values <- fast_stats$cat_values
+        cat_labels <- fast_stats$cat_labels
+        cat_missing <- fast_stats$cat_missing
+        cat_freq <- fast_stats$cat_freq
     }
 
     var_xml <- makeDataDscrXMLC(
@@ -3056,5 +3090,15 @@ makedfm <- function() {
         cat_labels,
         as.logical(cat_missing),
         as.numeric(cat_freq)
+    )
+}
+
+#' @keywords internal
+`collectDataDscrStatsC` <- function(data, variables, dates) {
+    .Call(
+        "collect_datadscr_stats",
+        data,
+        variables,
+        as.logical(dates)
     )
 }

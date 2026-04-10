@@ -11,3 +11,8 @@
 ^instructiuni\.txt$
 ^TODO\.txt$
 ^\.github$
+^src/Makevars$
+^src/.+\.o$
+^src/.+\.so$
+^DDIwR\.Rcheck$
+^\.\.Rcheck$

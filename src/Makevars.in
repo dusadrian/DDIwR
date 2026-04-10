@@ -1,5 +1,5 @@
 SOURCES = \
-	ddiwr.c \
+	xmlvars.c \
 	declared_types.c \
 	init.c \
 	readstat/CKHashTable.c \
@@ -58,7 +58,7 @@ SOURCES = \
 	tagged_na.c
 
 OBJECTS = \
-	ddiwr.o \
+	xmlvars.o \
 	declared_types.o \
 	init.o \
 	readstat/CKHashTable.o \

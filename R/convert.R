@@ -556,7 +556,7 @@
     variables <- NULL
 
     if (tp_to$fileext == "XML") {
-        variables <- collectRMetadata(data)
+        variables <- collectRMetadata(data, infer_type = FALSE)
 
         if (admisc::anyTagged(data)) {
             admisc::stopError("DDI does not support extended missing codes")
@@ -654,7 +654,6 @@
         write_sav(data, to)
     }
     else if (identical(tp_to$fileext, "DTA")) {
-        variables <- collectRMetadata(data)
         colnms <- colnames(data)
         arglist <- list(data = data)
 
@@ -666,11 +665,11 @@
 
         for (i in seq(ncol(data))) {
             x <- data[[colnms[i]]]
-            metadata <- getElement(variables, colnms[i])
-            labels <- getElement(metadata, "labels")
+            labels <- attr(x, "labels", exact = TRUE)
 
-            if (is.null(labels)) {
-                labels <- attr(x, "labels", exact = TRUE)
+            if (is.null(labels) && is.factor(x)) {
+                xlevels <- levels(x)
+                labels <- setNames(seq_along(xlevels), xlevels)
             }
 
             if (!is.null(labels)) {
@@ -684,6 +683,11 @@
                     rechars <- c(rechars, i)
                     # Stata does not allow labels for character variables
                     if (chartonum && !is.null(labels)) {
+                        metadata <- list(
+                            label = attr(x, "label", exact = TRUE),
+                            labels = labels,
+                            na_values = attr(x, "na_values", exact = TRUE)
+                        )
                         x <- recodeCharcat(
                             declared::as.declared(x),
                             metadata = metadata
@@ -747,7 +751,7 @@
         saveRDS(data, to)
     }
     else if (identical(tp_to$fileext, "XLSX")) {
-        variables <- collectRMetadata(data)
+        variables <- collectRMetadata(data, infer_type = FALSE)
         var_labels <- sapply(variables, function(x) {
             lbl <- getElement(x, "label")
             if (is.null(lbl)) {

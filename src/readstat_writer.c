@@ -3,6 +3,7 @@
 #include <R_ext/RS.h>
 
 #include <ctype.h>
+#include <float.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,6 +12,12 @@
 #include "readstat.h"
 #include "declared_types.h"
 #include "tagged_na.h"
+
+#define DTA_113_MAX_INT16 0x7fe4
+#define DTA_113_MAX_INT32 0x7fffffe4
+#define DTA_113_MISSING_INT8 0x65
+#define DTA_OLD_MAX_INT16 0x7ffe
+#define DTA_OLD_MAX_INT32 0x7ffffffe
 
 typedef struct {
     char *value;
@@ -682,7 +689,7 @@ static readstat_label_set_t *build_numeric_label_set(WriterCtx *ctx, SEXP x, con
             char export_tag;
             char code_buf[32];
             snprintf(code_buf, sizeof(code_buf), "%d", INTEGER(labels)[i]);
-            if (!as_int && foreign_tag_from_code(ctx, column, code_buf, &export_tag, 0)) {
+            if (foreign_tag_from_code(ctx, column, code_buf, &export_tag, 0)) {
                 readstat_label_tagged_value(set, export_tag, string_utf8_elt(nms, i));
             } else
             if (as_int) {
@@ -698,7 +705,7 @@ static readstat_label_set_t *build_numeric_label_set(WriterCtx *ctx, SEXP x, con
                 char export_tag;
                 char code_buf[64];
                 snprintf(code_buf, sizeof(code_buf), "%.15g", REAL(labels)[i]);
-                if (!as_int && foreign_tag_from_code(ctx, column, code_buf, &export_tag, 0)) {
+                if (foreign_tag_from_code(ctx, column, code_buf, &export_tag, 0)) {
                     readstat_label_tagged_value(set, export_tag, string_utf8_elt(nms, i));
                 } else
                 if (as_int) {
@@ -737,6 +744,60 @@ static readstat_label_set_t *build_numeric_label_set(WriterCtx *ctx, SEXP x, con
         }
     }
     return set;
+}
+
+static int double_is_intish(double value) {
+    return R_finite(value) && fabs(value - round(value)) < sqrt(DBL_EPSILON);
+}
+
+static readstat_type_t dta_numeric_type_for_double_column(WriterCtx *ctx, SEXP x) {
+    R_xlen_t i;
+    double min_value = 0.0;
+    double max_value = 0.0;
+    int seen = 0;
+    int all_intish = 1;
+    double int8_max = ctx->version >= 113 ? (double) (DTA_113_MISSING_INT8 - 1) : 126.0;
+    double int16_max = ctx->version >= 113 ? (double) DTA_113_MAX_INT16 : (double) DTA_OLD_MAX_INT16;
+    double int32_max = ctx->version >= 113 ? (double) DTA_113_MAX_INT32 : (double) DTA_OLD_MAX_INT32;
+
+    for (i = 0; i < Rf_xlength(x); ++i) {
+        double value = REAL(x)[i];
+        if (!R_finite(value)) {
+            continue;
+        }
+        if (!double_is_intish(value)) {
+            all_intish = 0;
+            break;
+        }
+        if (!seen) {
+            min_value = max_value = value;
+            seen = 1;
+        } else {
+            if (value < min_value) {
+                min_value = value;
+            }
+            if (value > max_value) {
+                max_value = value;
+            }
+        }
+    }
+
+    if (!all_intish) {
+        return READSTAT_TYPE_DOUBLE;
+    }
+    if (!seen) {
+        return READSTAT_TYPE_INT8;
+    }
+    if (min_value >= -127.0 && max_value <= int8_max) {
+        return READSTAT_TYPE_INT8;
+    }
+    if (min_value >= -32767.0 && max_value <= int16_max) {
+        return READSTAT_TYPE_INT16;
+    }
+    if (min_value >= -2147483647.0 && max_value <= int32_max) {
+        return READSTAT_TYPE_INT32;
+    }
+    return READSTAT_TYPE_DOUBLE;
 }
 
 static readstat_label_set_t *build_string_label_set(WriterCtx *ctx, SEXP x, const char *name) {
@@ -814,8 +875,20 @@ static readstat_error_t define_variable_int(WriterCtx *ctx, SEXP x, const char *
 }
 
 static readstat_error_t define_variable_double(WriterCtx *ctx, SEXP x, const char *name, int column) {
-    readstat_label_set_t *label_set = build_numeric_label_set(ctx, x, name, 0, column);
-    readstat_variable_t *var = readstat_add_variable(ctx->writer, name, READSTAT_TYPE_DOUBLE, scalar_int_attr(x, "width"));
+    readstat_type_t variable_type = READSTAT_TYPE_DOUBLE;
+    int as_int = 0;
+    readstat_label_set_t *label_set;
+    readstat_variable_t *var;
+
+    if (ctx->ext == DECLARED_DTA) {
+        variable_type = dta_numeric_type_for_double_column(ctx, x);
+        as_int = variable_type == READSTAT_TYPE_INT8 ||
+            variable_type == READSTAT_TYPE_INT16 ||
+            variable_type == READSTAT_TYPE_INT32;
+    }
+
+    label_set = build_numeric_label_set(ctx, x, name, as_int, column);
+    var = readstat_add_variable(ctx->writer, name, variable_type, scalar_int_attr(x, "width"));
     readstat_variable_set_format(var, var_format(x, ctx->vendor));
     readstat_variable_set_label(var, var_label(x));
     readstat_variable_set_label_set(var, label_set);
@@ -863,7 +936,13 @@ static readstat_error_t insert_int_value(WriterCtx *ctx, readstat_variable_t *va
     if (missing) {
         return readstat_insert_missing_value(ctx->writer, var);
     }
-    return readstat_insert_int32_value(ctx->writer, var, value);
+    if (var->type == READSTAT_TYPE_INT8) {
+        return readstat_insert_int8_value(ctx->writer, var, (int8_t) value);
+    }
+    if (var->type == READSTAT_TYPE_INT16) {
+        return readstat_insert_int16_value(ctx->writer, var, (int16_t) value);
+    }
+    return readstat_insert_int32_value(ctx->writer, var, (int32_t) value);
 }
 
 static readstat_error_t insert_double_value(WriterCtx *ctx, readstat_variable_t *var, double value, int missing) {
@@ -973,9 +1052,16 @@ static void writer_write(WriterCtx *ctx, SEXP dictionary) {
                 case REALSXP: {
                     double value = REAL(col)[i];
                     double code_double;
+                    int code_int;
                     char export_tag;
                     if (!R_finite(value) && foreign_tag_from_code(ctx, j, code, &export_tag, 1)) {
                         check_status(insert_double_value(ctx, var, make_tagged_na((char) tolower((unsigned char) export_tag)), 1), "Failed to insert numeric value");
+                    } else if ((var->type == READSTAT_TYPE_INT8 || var->type == READSTAT_TYPE_INT16 || var->type == READSTAT_TYPE_INT32) &&
+                               !R_finite(value) && parse_code_int(code, &code_int)) {
+                        check_status(insert_int_value(ctx, var, code_int, 0), "Failed to insert numeric value");
+                    } else if ((var->type == READSTAT_TYPE_INT8 || var->type == READSTAT_TYPE_INT16 || var->type == READSTAT_TYPE_INT32) &&
+                               R_finite(value)) {
+                        check_status(insert_int_value(ctx, var, (int) llround(value), 0), "Failed to insert numeric value");
                     } else if (!R_finite(value) && parse_code_double(code, &code_double)) {
                         check_status(insert_double_value(ctx, var, code_double, 0), "Failed to insert numeric value");
                     } else if (!R_finite(value) && code != NULL && strlen(code) == 1 && isalpha((unsigned char) code[0])) {
