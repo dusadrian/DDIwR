@@ -832,14 +832,16 @@ static readstat_error_t define_variable_string(WriterCtx *ctx, SEXP x, const cha
     readstat_variable_t *var;
     R_xlen_t i;
 
-    for (i = 0; i < Rf_xlength(x); ++i) {
-        int length = string_len_missing(x, i);
-        if (length > max_length) {
-            max_length = length;
+    if (user_width <= 0) {
+        for (i = 0; i < Rf_xlength(x); ++i) {
+            int length = string_len_missing(x, i);
+            if (length > max_length) {
+                max_length = length;
+            }
         }
-    }
-    if (user_width < max_length) {
-        user_width = max_length;
+        if (user_width < max_length) {
+            user_width = max_length;
+        }
     }
 
     if (ctx->ext == DECLARED_DTA && ctx->version >= 117 && user_width > ctx->strl_threshold) {

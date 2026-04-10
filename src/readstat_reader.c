@@ -412,6 +412,12 @@ static int reader_variable(int index, readstat_variable_t *variable, const char 
         Rf_setAttrib(col, Rf_install(formatAttribute(ctx->vendor)), Rf_mkString(var_format));
     }
 
+    if ((readstat_variable_get_type(variable) == READSTAT_TYPE_STRING ||
+         readstat_variable_get_type(variable) == READSTAT_TYPE_STRING_REF) &&
+        readstat_variable_get_storage_width(variable) > 0) {
+        Rf_setAttrib(col, Rf_install("width"), Rf_ScalarInteger((int) readstat_variable_get_storage_width(variable)));
+    }
+
     if (ctx->vendor == DECLARED_SPSS && readstat_variable_get_display_width(variable) != 8) {
         Rf_setAttrib(col, Rf_install("display_width"), Rf_ScalarInteger(readstat_variable_get_display_width(variable)));
     }

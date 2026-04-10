@@ -1457,6 +1457,10 @@ static SEXP sc_build_r_output(const SCSchema *schema, const SCMergedTable *merge
         if (col_schema->format != NULL) {
             Rf_setAttrib(col, Rf_install(formatAttribute(schema->vendor)), Rf_mkString(col_schema->format));
         }
+        if (col_schema->readstat_type == READSTAT_TYPE_STRING ||
+            col_schema->readstat_type == READSTAT_TYPE_STRING_REF) {
+            Rf_setAttrib(col, Rf_install("width"), Rf_ScalarInteger((int) col_schema->storage_width));
+        }
         if (col_schema->has_display_width) {
             Rf_setAttrib(col, Rf_install("display_width"), Rf_ScalarInteger(col_schema->display_width));
         }
