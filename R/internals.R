@@ -1785,6 +1785,17 @@ NULL
         }
 
         vals <- sumna <- NULL
+        wgtd <- !is.null(wt) && !identical(varnames[i], wt)
+        wgts <- NULL
+        wgts_full <- NULL
+        if (wgtd) {
+            wgts_full <- suppressWarnings(admisc::asNumeric(unclass(data[[wt]])))
+            if (anyNA(wgts_full) || all(wgts_full == 0)) {
+                wgtd <- FALSE
+                wgts_full <- NULL
+            }
+        }
+
         # even if the data is not present, pN is FALSE for all variables
         if (pN[i] & !dates[i]) {
             vals <- aN[[varnames[i]]]
@@ -1798,14 +1809,8 @@ NULL
                 vals[is.element(vals, lbls[ismiss])] <- NA
             }
 
-            wgtd <- !is.null(wt) && !identical(varnames[i], wt)
-            wgts <- NULL
             if (wgtd) {
-                wgts <- admisc::asNumeric(unclass(data[[wt]]))
-                wgts <- wgts[!is.na(vals)]
-                if (anyNA(wgts) || all(wgts == 0)) {
-                    wgtd <- FALSE
-                }
+                wgts <- wgts_full[!is.na(vals)]
             }
 
             sumna <- sum(is.na(vals))
@@ -1987,8 +1992,13 @@ NULL
 
             allna <- all(is.na(data[[varnames[i]]]))
 
+            freqv <- rep(NA_real_, length(lbls))
             if (!allna) {
-                tbl <- declared::wtable(data[[varnames[i]]], wt = wgts)
+                freqv <- labelFreqsC(
+                    data[[varnames[i]]],
+                    lbls,
+                    if (wgtd) wgts_full else NULL
+                )
             }
 
             nms <- names(lbls)
@@ -2028,16 +2038,15 @@ NULL
                 ))
 
                 if (!is.null(data) && !allna) {
-                    freq <- tbl[match(nms[v], names(tbl))]
                     cat(paste0(
                         "<", ns, "catStat type=\"freq\"",
                         sprintf(" wgtd=\"%swgtd\"", ifelse(wgtd, "", "not-")),
                         ifelse (wgtd, sprintf(" wgt-var=\"%s\"", wt), ""),
                         ">",
                         ifelse(
-                            is.na(freq),
+                            is.na(freqv[v]),
                             0,
-                            format(freq, scientific = FALSE)
+                            format(freqv[v], scientific = FALSE)
                         ),
                         "</", ns, "catStat>",
                         enter
@@ -3101,4 +3110,12 @@ makedfm <- function() {
         variables,
         as.logical(dates)
     )
+}
+
+#' @keywords internal
+`labelFreqsC` <- function(x, labels, wt = NULL) {
+    if (is.null(wt)) {
+        wt <- NULL
+    }
+    .Call("label_freqs", x, labels, wt)
 }

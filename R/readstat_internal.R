@@ -468,67 +468,12 @@ materialize_na_index <- function(x, vendor) {
         return(out)
     }
 
-    na_index <- attr(x, "na_index", exact = TRUE)
-
-    if (is.null(na_index) || length(na_index) == 0) {
-        return(x)
-    }
-
-    positions <- unname(na_index)
-    codes <- names(na_index)
-
-    if (
-        identical(vendor, "STATA") &&
-        is.character(codes) &&
-        length(codes) > 0 &&
-        all(grepl("^[a-z]$", tolower(codes)))
-    ) {
-        return(x)
-    }
-
-    out <- x
-    xclass <- class(out)
-    if (!is.null(xclass)) {
-        xclass <- setdiff(xclass, "declared")
-        if (length(xclass) == 0) {
-            attr(out, "class") <- NULL
-        } else {
-            class(out) <- xclass
-        }
-    }
-
-    out <- if (inherits(x, "Date") || inherits(x, "POSIXct")) {
-        adjust_datetime_from_r(out, vendor)
-    } else {
-        out
-    }
-
-    if (is.character(out)) {
-        out[positions] <- codes
-    } else {
-        out[positions] <- type.convert(codes, as.is = TRUE)
-    }
-
-    attr(out, "na_index") <- NULL
-
-    if (inherits(x, "Date")) {
-        class(out) <- setdiff(class(x), "Date")
-    } else if (inherits(x, "POSIXct")) {
-        class(out) <- setdiff(class(x), c("POSIXct", "POSIXt"))
-        attr(out, "tzone") <- NULL
-    }
-
-    out
+    x
 }
 
 prepare_export <- function(data, vendor) {
     needs_materialization <- vapply(data, function(x) {
-        inherits(x, "Date") ||
-            inherits(x, "POSIXct") ||
-            {
-                na_index <- attr(x, "na_index", exact = TRUE)
-                !is.null(na_index) && length(na_index) > 0
-            }
+        inherits(x, "Date") || inherits(x, "POSIXct")
     }, logical(1))
 
     if (!any(needs_materialization)) {

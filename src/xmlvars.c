@@ -212,6 +212,23 @@ static int value_matches_label(SEXP x, R_xlen_t i, SEXP labels, R_xlen_t j) {
     return xnum == lnum;
 }
 
+static int double_matches_label_value(double value, SEXP labels) {
+    R_xlen_t j = 0;
+    double lnum = 0.0;
+
+    if (labels == R_NilValue) {
+        return 0;
+    }
+
+    for (j = 0; j < XLENGTH(labels); j++) {
+        if (sexp_as_double(labels, j, &lnum) && value == lnum) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
 SEXP collect_datadscr_stats(SEXP data, SEXP variables, SEXP dates) {
     R_xlen_t n = 0;
     R_xlen_t i = 0;
@@ -322,6 +339,9 @@ SEXP collect_datadscr_stats(SEXP data, SEXP variables, SEXP dates) {
         int date_var = LOGICAL(dates)[i] == TRUE;
         int has_labels = labels != R_NilValue && TYPEOF(label_names) == STRSXP;
         int cat_count = 0;
+        R_xlen_t *cat_label_idx = NULL;
+        double *distinct_nonlabel = NULL;
+        int distinct_nonlabel_n = 0;
 
         if (!(TYPEOF(x) == REALSXP || TYPEOF(x) == INTSXP || TYPEOF(x) == LGLSXP || TYPEOF(x) == STRSXP)) {
             numericish = 0;
@@ -336,11 +356,35 @@ SEXP collect_datadscr_stats(SEXP data, SEXP variables, SEXP dates) {
 
         if (numericish) {
             vals = (double *)R_alloc((size_t)len, sizeof(double));
+            distinct_nonlabel = (double *)R_alloc(5, sizeof(double));
         }
 
         if (has_labels) {
+            cat_label_idx = (R_xlen_t *)R_alloc((size_t)XLENGTH(labels), sizeof(R_xlen_t));
             for (j = 0; j < XLENGTH(labels); j++) {
                 if (STRING_ELT(label_names, j) != NA_STRING && strlen(CHAR(STRING_ELT(label_names, j))) > 0) {
+                    R_xlen_t pos = cat_offset + cat_count;
+
+                    cat_label_idx[cat_count] = j;
+                    if (TYPEOF(labels) == STRSXP) {
+                        if (STRING_ELT(labels, j) == NA_STRING) {
+                            SET_STRING_ELT(cat_values, pos, NA_STRING);
+                        } else {
+                            SET_STRING_ELT(cat_values, pos, STRING_ELT(labels, j));
+                        }
+                    } else {
+                        char buf[128];
+                        double lnum = 0.0;
+                        if (sexp_as_double(labels, j, &lnum)) {
+                            snprintf(buf, sizeof(buf), "%.15g", lnum);
+                            SET_STRING_ELT(cat_values, pos, mkChar(buf));
+                        } else {
+                            SET_STRING_ELT(cat_values, pos, NA_STRING);
+                        }
+                    }
+                    SET_STRING_ELT(cat_labels, pos, STRING_ELT(label_names, j));
+                    LOGICAL(cat_missing)[pos] = label_is_missing(labels, j, na_values, na_range);
+                    REAL(cat_freq)[pos] = 0.0;
                     cat_count++;
                 }
             }
@@ -350,20 +394,31 @@ SEXP collect_datadscr_stats(SEXP data, SEXP variables, SEXP dates) {
         for (j = 0; j < len; j++) {
             int is_invalid = 0;
             double val = 0.0;
+            R_xlen_t row = j;
 
             if (TYPEOF(x) == STRSXP) {
-                is_invalid = (STRING_ELT(x, j) == NA_STRING);
+                is_invalid = (STRING_ELT(x, row) == NA_STRING);
             } else if (TYPEOF(x) == REALSXP) {
-                is_invalid = ISNAN(REAL(x)[j]);
+                is_invalid = ISNAN(REAL(x)[row]);
             } else if (TYPEOF(x) == INTSXP) {
-                is_invalid = INTEGER(x)[j] == NA_INTEGER;
+                is_invalid = INTEGER(x)[row] == NA_INTEGER;
             } else if (TYPEOF(x) == LGLSXP) {
-                is_invalid = LOGICAL(x)[j] == NA_LOGICAL;
+                is_invalid = LOGICAL(x)[row] == NA_LOGICAL;
             } else {
                 is_invalid = 1;
             }
 
-            if (!is_invalid && (value_in_na_values(x, j, na_values) || value_in_na_range(x, j, na_range))) {
+            if (has_labels) {
+                R_xlen_t cat_i = 0;
+                for (cat_i = 0; cat_i < cat_count; cat_i++) {
+                    if (value_matches_label(x, row, labels, cat_label_idx[cat_i])) {
+                        REAL(cat_freq)[cat_offset + cat_i] += 1.0;
+                        break;
+                    }
+                }
+            }
+
+            if (!is_invalid && (value_in_na_values(x, row, na_values) || value_in_na_range(x, row, na_range))) {
                 is_invalid = 1;
             }
 
@@ -374,7 +429,7 @@ SEXP collect_datadscr_stats(SEXP data, SEXP variables, SEXP dates) {
 
             valid_obs++;
 
-            if (!numericish || !sexp_as_double(x, j, &val)) {
+            if (!numericish || !sexp_as_double(x, row, &val)) {
                 numericish = 0;
                 continue;
             }
@@ -397,6 +452,20 @@ SEXP collect_datadscr_stats(SEXP data, SEXP variables, SEXP dates) {
                 max_width = digit_count_floor_abs(val);
             }
 
+            if (!double_matches_label_value(val, labels) && distinct_nonlabel_n < 5) {
+                int seen = 0;
+                int d = 0;
+                for (d = 0; d < distinct_nonlabel_n; d++) {
+                    if (distinct_nonlabel[d] == val) {
+                        seen = 1;
+                        break;
+                    }
+                }
+                if (!seen) {
+                    distinct_nonlabel[distinct_nonlabel_n++] = val;
+                }
+            }
+
             valid_n++;
         }
 
@@ -404,65 +473,38 @@ SEXP collect_datadscr_stats(SEXP data, SEXP variables, SEXP dates) {
         REAL(sum_invalid)[i] = (double)invalid_n;
 
         if (numericish && valid_n > 0) {
-            size_t k = 0;
-            double *sorted = (double *)R_alloc((size_t)valid_n, sizeof(double));
-            memcpy(sorted, vals, (size_t)valid_n * sizeof(double));
-            R_rsort(sorted, (int)valid_n);
-
             REAL(var_dcml)[i] = (double)max_dcml;
             REAL(var_width)[i] = (double)max_width;
             SET_STRING_ELT(range_units, i, mkChar(whole ? "INT" : "REAL"));
 
             if (!date_var && valid_n > 1) {
-                R_xlen_t distinct_nonlabel = 0;
-                double last = NA_REAL;
-                int have_last = 0;
-
                 REAL(val_min)[i] = minv;
                 REAL(val_max)[i] = maxv;
 
-                for (k = 0; k < (size_t)valid_n; k++) {
-                    double cur = sorted[k];
-                    int is_new = (!have_last || cur != last);
-                    if (is_new) {
-                        int is_label = 0;
-                        R_xlen_t lj = 0;
-                        if (labels != R_NilValue) {
-                            for (lj = 0; lj < XLENGTH(labels); lj++) {
-                                double lnum = 0.0;
-                                if (sexp_as_double(labels, lj, &lnum) && cur == lnum) {
-                                    is_label = 1;
-                                    break;
-                                }
-                            }
-                        }
-                        if (!is_label) {
-                            distinct_nonlabel++;
-                        }
-                        last = cur;
-                        have_last = 1;
-                    }
-                }
-
-                printnum = distinct_nonlabel > 4 || (valid_n > 2 && has_type_num);
+                printnum = distinct_nonlabel_n > 4 || (valid_n > 2 && has_type_num);
                 if (printnum) {
-                    double nobs = 0.0;
+                    double *median_work = (double *)R_alloc((size_t)valid_n, sizeof(double));
                     double median = NA_REAL;
-
-                    for (k = 0; k < (size_t)valid_n; k++) {
-                        double xk = vals[k];
-                        nobs += 1.0;
-                        {
-                            double delta = xk - mean;
-                            mean += delta / nobs;
-                            m2 += delta * (xk - mean);
-                        }
-                    }
+                    memcpy(median_work, vals, (size_t)valid_n * sizeof(double));
 
                     if ((valid_n % 2) == 1) {
-                        median = sorted[(size_t)(valid_n / 2)];
+                        int mid = (int)(valid_n / 2);
+                        rPsort(median_work, (int)valid_n, mid);
+                        median = median_work[mid];
                     } else {
-                        median = (sorted[(size_t)(valid_n / 2) - 1] + sorted[(size_t)(valid_n / 2)]) / 2.0;
+                        int upper_idx = (int)(valid_n / 2);
+                        double lower = median_work[0];
+                        double upper = NA_REAL;
+                        int k = 0;
+
+                        rPsort(median_work, (int)valid_n, upper_idx);
+                        upper = median_work[upper_idx];
+                        for (k = 1; k < upper_idx; k++) {
+                            if (median_work[k] > lower) {
+                                lower = median_work[k];
+                            }
+                        }
+                        median = (lower + upper) / 2.0;
                     }
 
                     REAL(stat_min)[i] = minv;
@@ -475,51 +517,7 @@ SEXP collect_datadscr_stats(SEXP data, SEXP variables, SEXP dates) {
                 }
             }
         }
-
-        if (has_labels) {
-            R_xlen_t pos = cat_offset;
-            for (j = 0; j < XLENGTH(labels); j++) {
-                const char *lnm = NULL;
-                double freq = 0.0;
-                R_xlen_t r = 0;
-
-                if (STRING_ELT(label_names, j) == NA_STRING) {
-                    continue;
-                }
-                lnm = CHAR(STRING_ELT(label_names, j));
-                if (*lnm == '\0') {
-                    continue;
-                }
-
-                if (TYPEOF(labels) == STRSXP) {
-                    if (STRING_ELT(labels, j) == NA_STRING) {
-                        SET_STRING_ELT(cat_values, pos, NA_STRING);
-                    } else {
-                        SET_STRING_ELT(cat_values, pos, STRING_ELT(labels, j));
-                    }
-                } else {
-                    char buf[128];
-                    double lnum = 0.0;
-                    if (sexp_as_double(labels, j, &lnum)) {
-                        snprintf(buf, sizeof(buf), "%.15g", lnum);
-                        SET_STRING_ELT(cat_values, pos, mkChar(buf));
-                    } else {
-                        SET_STRING_ELT(cat_values, pos, NA_STRING);
-                    }
-                }
-                SET_STRING_ELT(cat_labels, pos, STRING_ELT(label_names, j));
-                LOGICAL(cat_missing)[pos] = label_is_missing(labels, j, na_values, na_range);
-
-                for (r = 0; r < len; r++) {
-                    if (value_matches_label(x, r, labels, j)) {
-                        freq += 1.0;
-                    }
-                }
-                REAL(cat_freq)[pos] = freq;
-                pos++;
-            }
-            cat_offset += (R_xlen_t)cat_count;
-        }
+        cat_offset += (R_xlen_t)cat_count;
     }
 
     SET_VECTOR_ELT(out, 0, var_dcml);
@@ -559,6 +557,84 @@ SEXP collect_datadscr_stats(SEXP data, SEXP variables, SEXP dates) {
     setAttrib(out, R_NamesSymbol, names);
 
     UNPROTECT(19);
+    return out;
+}
+
+SEXP label_freqs(SEXP x, SEXP labels, SEXP wt) {
+    R_xlen_t n = XLENGTH(x);
+    R_xlen_t k = XLENGTH(labels);
+    R_xlen_t i = 0;
+    R_xlen_t j = 0;
+    SEXP out = R_NilValue;
+    int weighted = wt != R_NilValue && wt != R_NilValue && TYPEOF(wt) != NILSXP;
+
+    if (!(TYPEOF(x) == REALSXP || TYPEOF(x) == INTSXP || TYPEOF(x) == LGLSXP || TYPEOF(x) == STRSXP)) {
+        Rf_error("Argument 'x' must be an atomic vector.");
+    }
+    if (!(TYPEOF(labels) == REALSXP || TYPEOF(labels) == INTSXP || TYPEOF(labels) == LGLSXP || TYPEOF(labels) == STRSXP)) {
+        Rf_error("Argument 'labels' must be an atomic vector.");
+    }
+    if (weighted && XLENGTH(wt) != n) {
+        Rf_error("Argument 'wt' must have same length as 'x'.");
+    }
+
+    PROTECT(out = allocVector(REALSXP, k));
+    for (j = 0; j < k; j++) {
+        REAL(out)[j] = 0.0;
+    }
+
+    for (i = 0; i < n; i++) {
+        int is_missing = 0;
+        double w = 1.0;
+
+        if (TYPEOF(x) == STRSXP) {
+            is_missing = (STRING_ELT(x, i) == NA_STRING);
+        } else if (TYPEOF(x) == REALSXP) {
+            is_missing = ISNAN(REAL(x)[i]);
+        } else if (TYPEOF(x) == INTSXP) {
+            is_missing = INTEGER(x)[i] == NA_INTEGER;
+        } else if (TYPEOF(x) == LGLSXP) {
+            is_missing = LOGICAL(x)[i] == NA_LOGICAL;
+        }
+
+        if (is_missing) {
+            continue;
+        }
+
+        if (weighted) {
+            if (TYPEOF(wt) == REALSXP) {
+                if (ISNAN(REAL(wt)[i])) {
+                    continue;
+                }
+                w = REAL(wt)[i];
+            } else if (TYPEOF(wt) == INTSXP) {
+                if (INTEGER(wt)[i] == NA_INTEGER) {
+                    continue;
+                }
+                w = (double)INTEGER(wt)[i];
+            } else if (TYPEOF(wt) == LGLSXP) {
+                if (LOGICAL(wt)[i] == NA_LOGICAL) {
+                    continue;
+                }
+                w = (double)LOGICAL(wt)[i];
+            } else {
+                double tmp = 0.0;
+                if (!sexp_as_double(wt, i, &tmp)) {
+                    continue;
+                }
+                w = tmp;
+            }
+        }
+
+        for (j = 0; j < k; j++) {
+            if (value_matches_label(x, i, labels, j)) {
+                REAL(out)[j] += w;
+                break;
+            }
+        }
+    }
+
+    UNPROTECT(1);
     return out;
 }
 
