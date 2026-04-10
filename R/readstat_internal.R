@@ -1,8 +1,8 @@
-.ddiwr_source_file <- function(file) {
+source_file <- function(file) {
     list(normalizePath(file, mustWork = FALSE))
 }
 
-.ddiwr_as_declared <- function(data) {
+as_declared <- function(data) {
     data[] <- lapply(data, function(x) {
         labels <- attr(x, "labels", exact = TRUE)
         na_values <- attr(x, "na_values", exact = TRUE)
@@ -18,7 +18,7 @@
         }
 
         if (is.null(na_index) && (!is.null(na_values) || !is.null(na_range))) {
-            x_plain <- .ddiwr_plain_values(x)
+            x_plain <- plain_values(x)
             missing_codes <- na_values
 
             if (!is.null(na_range) && length(na_range) == 2) {
@@ -57,11 +57,11 @@
     data
 }
 
-.ddiwr_is_tag_code <- function(x) {
+is_tag_code <- function(x) {
     is.character(x) && length(x) > 0 && all(grepl("^[a-z]$", tolower(x)))
 }
 
-.ddiwr_is_stata_declared <- function(x) {
+is_stata_declared <- function(x) {
     if (!inherits(x, "declared")) {
         return(FALSE)
     }
@@ -69,15 +69,15 @@
     na_values <- attr(x, "na_values", exact = TRUE)
     na_index <- attr(x, "na_index", exact = TRUE)
 
-    .ddiwr_is_tag_code(na_values) ||
-        .ddiwr_is_tag_code(names(na_index))
+    is_tag_code(na_values) ||
+        is_tag_code(names(na_index))
 }
 
-.ddiwr_needs_spss_recode <- function(data) {
-    any(vapply(data, .ddiwr_is_stata_declared, logical(1)))
+needs_spss_recode <- function(data) {
+    any(vapply(data, is_stata_declared, logical(1)))
 }
 
-.ddiwr_make_declared <- function(
+make_declared <- function(
     x, labels = NULL, na_values = NULL, na_range = NULL, label = NULL,
     na_index = NULL, template = NULL
 ) {
@@ -103,7 +103,7 @@
     x
 }
 
-.ddiwr_var_metadata <- function(x) {
+var_metadata <- function(x) {
     labels <- attr(x, "labels", exact = TRUE)
 
     if (is.null(labels) && is.factor(x)) {
@@ -120,7 +120,7 @@
     )
 }
 
-.ddiwr_plain_values <- function(x) {
+plain_values <- function(x) {
     attrs <- attributes(x)
 
     if (is.null(attrs)) {
@@ -148,28 +148,12 @@
     x
 }
 
-.ddiwr_match_keys <- function(x) {
-    if (is.null(x)) {
-        return(character(0))
-    }
-
-    if (is.factor(x)) {
-        x <- as.character(x)
-    }
-
-    if (is.character(x)) {
-        return(tolower(x))
-    }
-
-    as.character(x)
-}
-
-.ddiwr_recode_vector <- function(x, old, new) {
+recode_vector <- function(x, old, new) {
     if (is.null(x) || length(x) == 0 || length(old) == 0) {
         return(x)
     }
 
-    index <- match(.ddiwr_match_keys(x), .ddiwr_match_keys(old))
+    index <- match(x, old)
     w <- which(!is.na(index))
 
     if (length(w) == 0) {
@@ -180,7 +164,7 @@
     x
 }
 
-.ddiwr_recode_to_spss_native <- function(x, labels = NULL, na_values = NULL, old, new) {
+recode_to_spss_native <- function(x, labels = NULL, na_values = NULL, old, new) {
     .Call(
         "ddiwr_recode_to_spss_",
         x,
@@ -192,7 +176,7 @@
     )
 }
 
-.ddiwr_recode_to_spss_full_native <- function(
+recode_to_spss_full_native <- function(
     x, labels = NULL, na_values = NULL, na_index = NULL, old, new
 ) {
     .Call(
@@ -221,7 +205,7 @@ read_sav <- function(file, encoding = NULL, user_na = FALSE) {
         data <- tryCatch(
             .Call(
                 "declared_df_parse_sav_file_parallel_prototype",
-                .ddiwr_source_file(file),
+                source_file(file),
                 encoding,
                 user_na,
                 as.integer(num_threads),
@@ -234,7 +218,7 @@ read_sav <- function(file, encoding = NULL, user_na = FALSE) {
     if (is.null(data)) {
         data <- .Call(
             "declared_df_parse_sav_file",
-            .ddiwr_source_file(file),
+            source_file(file),
             encoding,
             user_na,
             integer(),
@@ -244,37 +228,37 @@ read_sav <- function(file, encoding = NULL, user_na = FALSE) {
         )
     }
 
-    .ddiwr_as_declared(data)
+    as_declared(data)
 }
 
-.ddiwr_sav_parallel_prototype <- function(file, num_threads = getOption("DDIwR.readstat_threads", 0L)) {
+sav_parallel_prototype <- function(file, num_threads = getOption("DDIwR.readstat_threads", 0L)) {
     .Call(
         "declared_sav_parallel_prototype",
-        .ddiwr_source_file(file),
+        source_file(file),
         as.integer(num_threads),
         PACKAGE = "DDIwR"
     )
 }
 
-.ddiwr_read_sav_parallel_prototype <- function(file, encoding = NULL, user_na = FALSE, num_threads = getOption("DDIwR.readstat_threads", 0L)) {
+read_sav_parallel_prototype <- function(file, encoding = NULL, user_na = FALSE, num_threads = getOption("DDIwR.readstat_threads", 0L)) {
     if (is.null(encoding)) {
         encoding <- ""
     }
     .Call(
         "declared_df_parse_sav_file_parallel_prototype",
-        .ddiwr_source_file(file),
+        source_file(file),
         encoding,
         user_na,
         as.integer(num_threads),
         PACKAGE = "DDIwR"
     ) |>
-        .ddiwr_as_declared()
+        as_declared()
 }
 
 read_por <- function(file, user_na = FALSE) {
     data <- .Call(
         "declared_df_parse_por_file",
-        .ddiwr_source_file(file),
+        source_file(file),
         "",
         user_na,
         integer(),
@@ -283,7 +267,7 @@ read_por <- function(file, user_na = FALSE) {
         PACKAGE = "DDIwR"
     )
 
-    .ddiwr_as_declared(data)
+    as_declared(data)
 }
 
 read_dta <- function(file, encoding = NULL, num_threads = getOption("DDIwR.readstat_threads", NULL)) {
@@ -296,7 +280,7 @@ read_dta <- function(file, encoding = NULL, num_threads = getOption("DDIwR.reads
 
     data <- .Call(
         "declared_df_parse_dta_file_parallel",
-        .ddiwr_source_file(file),
+        source_file(file),
         encoding,
         integer(),
         -1L,
@@ -305,7 +289,7 @@ read_dta <- function(file, encoding = NULL, num_threads = getOption("DDIwR.reads
         PACKAGE = "DDIwR"
     )
 
-    .ddiwr_as_declared(data)
+    as_declared(data)
 }
 
 read_sas <- function(data_file, catalog_file = NULL, encoding = NULL, catalog_encoding = encoding) {
@@ -316,11 +300,11 @@ read_sas <- function(data_file, catalog_file = NULL, encoding = NULL, catalog_en
         catalog_encoding <- ""
     }
 
-    spec_cat <- if (is.null(catalog_file)) list() else .ddiwr_source_file(catalog_file)
+    spec_cat <- if (is.null(catalog_file)) list() else source_file(catalog_file)
 
     data <- .Call(
         "declared_df_parse_sas_file",
-        .ddiwr_source_file(data_file),
+        source_file(data_file),
         spec_cat,
         encoding,
         catalog_encoding,
@@ -330,23 +314,23 @@ read_sas <- function(data_file, catalog_file = NULL, encoding = NULL, catalog_en
         PACKAGE = "DDIwR"
     )
 
-    .ddiwr_as_declared(data)
+    as_declared(data)
 }
 
 read_xpt <- function(file) {
     data <- .Call(
         "declared_df_parse_xpt_file",
-        .ddiwr_source_file(file),
+        source_file(file),
         integer(),
         -1L,
         0L,
         PACKAGE = "DDIwR"
     )
 
-    .ddiwr_as_declared(data)
+    as_declared(data)
 }
 
-.ddiwr_adjust_tz <- function(df) {
+adjust_tz <- function(df) {
     datetime <- vapply(df, inherits, "POSIXt", FUN.VALUE = logical(1))
     df[datetime] <- lapply(df[datetime], function(x) {
         if (identical(attr(x, "tzone"), "UTC")) {
@@ -363,7 +347,7 @@ read_xpt <- function(file) {
     df
 }
 
-.ddiwr_days_offset <- function(vendor) {
+days_offset <- function(vendor) {
     switch(
         vendor,
         SPSS = 141428,
@@ -373,10 +357,10 @@ read_xpt <- function(file) {
     )
 }
 
-.ddiwr_adjust_datetime_from_r <- function(x, vendor) {
+adjust_datetime_from_r <- function(x, vendor) {
     if (inherits(x, "POSIXct")) {
         value <- unclass(x)
-        value[!is.na(value)] <- value[!is.na(value)] + .ddiwr_days_offset(vendor) * 86400
+        value[!is.na(value)] <- value[!is.na(value)] + days_offset(vendor) * 86400
         if (identical(vendor, "STATA")) {
             value[!is.na(value)] <- value[!is.na(value)] * 1000
         }
@@ -385,7 +369,7 @@ read_xpt <- function(file) {
 
     if (inherits(x, "Date")) {
         value <- unclass(x)
-        value[!is.na(value)] <- value[!is.na(value)] + .ddiwr_days_offset(vendor)
+        value[!is.na(value)] <- value[!is.na(value)] + days_offset(vendor)
         if (identical(vendor, "SPSS")) {
             value[!is.na(value)] <- value[!is.na(value)] * 86400
         }
@@ -395,7 +379,7 @@ read_xpt <- function(file) {
     x
 }
 
-.ddiwr_materialize_na_index <- function(x, vendor) {
+materialize_na_index <- function(x, vendor) {
     if (inherits(x, "Date") || inherits(x, "POSIXct")) {
         out <- x
         attr(out, "labels") <- NULL
@@ -418,7 +402,7 @@ read_xpt <- function(file) {
     positions <- unname(na_index)
     codes <- names(na_index)
 
-    if (identical(vendor, "STATA") && any(.ddiwr_is_tag_code(codes))) {
+    if (identical(vendor, "STATA") && any(is_tag_code(codes))) {
         return(x)
     }
 
@@ -434,7 +418,7 @@ read_xpt <- function(file) {
     }
 
     out <- if (inherits(x, "Date") || inherits(x, "POSIXct")) {
-        .ddiwr_adjust_datetime_from_r(out, vendor)
+        adjust_datetime_from_r(out, vendor)
     } else {
         out
     }
@@ -457,13 +441,13 @@ read_xpt <- function(file) {
     out
 }
 
-.ddiwr_prepare_export <- function(data, vendor) {
-    data[] <- lapply(data, .ddiwr_materialize_na_index, vendor = vendor)
+prepare_export <- function(data, vendor) {
+    data[] <- lapply(data, materialize_na_index, vendor = vendor)
     class(data) <- "data.frame"
     data
 }
 
-.ddiwr_stata_file_format <- function(version) {
+stata_file_format <- function(version) {
     version <- as.integer(version)
 
     if (version == 15L) {
@@ -490,8 +474,8 @@ write_sav <- function(data, path, compress = "byte", adjust_tz = TRUE) {
         compress <- "none"
     }
 
-    data_out <- if (isTRUE(adjust_tz)) .ddiwr_adjust_tz(data) else data
-    data_out <- .ddiwr_prepare_export(data_out, vendor = "SPSS")
+    data_out <- if (isTRUE(adjust_tz)) adjust_tz(data) else data
+    data_out <- prepare_export(data_out, vendor = "SPSS")
     invisible(.Call(
         "declared_write_sav_",
         data_out,
@@ -506,13 +490,13 @@ write_dta <- function(
     data, path, version = 14, label = attr(data, "label"), strl_threshold = 2045,
     adjust_tz = TRUE
 ) {
-    data_out <- if (isTRUE(adjust_tz)) .ddiwr_adjust_tz(data) else data
-    data_out <- .ddiwr_prepare_export(data_out, vendor = "STATA")
+    data_out <- if (isTRUE(adjust_tz)) adjust_tz(data) else data
+    data_out <- prepare_export(data_out, vendor = "STATA")
     invisible(.Call(
         "declared_write_dta_",
         data_out,
         normalizePath(path, mustWork = FALSE),
-        .ddiwr_stata_file_format(version),
+        stata_file_format(version),
         label,
         as.integer(strl_threshold),
         PACKAGE = "DDIwR"
@@ -521,7 +505,7 @@ write_dta <- function(
 }
 
 write_sas <- function(data, path) {
-    data <- .ddiwr_prepare_export(data, vendor = "SAS")
+    data <- prepare_export(data, vendor = "SAS")
     invisible(.Call(
         "declared_write_sas_",
         data,
@@ -539,8 +523,8 @@ write_xpt <- function(
         name <- tools::file_path_sans_ext(basename(path))
     }
 
-    data_out <- if (isTRUE(adjust_tz)) .ddiwr_adjust_tz(data) else data
-    data_out <- .ddiwr_prepare_export(data_out, vendor = "SAS")
+    data_out <- if (isTRUE(adjust_tz)) adjust_tz(data) else data
+    data_out <- prepare_export(data_out, vendor = "SAS")
     invisible(.Call(
         "declared_write_xpt_",
         data_out,

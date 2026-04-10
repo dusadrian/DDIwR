@@ -233,6 +233,24 @@ static int sc_is_intish(double x) {
     return !ISNAN(x) && x == ix;
 }
 
+static double sc_tag_code_value(char tag) {
+    char lower = (char) tolower((unsigned char) tag);
+    if (lower < 'a' || lower > 'z') {
+        return NA_REAL;
+    }
+    return -91.0 - (double) (lower - 'a');
+}
+
+static SEXP sc_tag_code_name(char tag) {
+    char buffer[32];
+    double code = sc_tag_code_value(tag);
+    if (ISNAN(code)) {
+        return NA_STRING;
+    }
+    snprintf(buffer, sizeof(buffer), "%.15g", code);
+    return Rf_mkCharCE(buffer, CE_UTF8);
+}
+
 static int sc_cols_skip_contains(const int *cols_skip, int cols_skip_n, int index) {
     int i;
     for (i = 0; i < cols_skip_n; ++i) {
@@ -1315,7 +1333,6 @@ static readstat_error_t sc_merge_chunk_results(const SCSchema *schema, const SCC
 
 static SEXP sc_labelset_to_sexp(const SCLabelSet *set) {
     size_t i;
-    size_t tagged = 0;
     SEXP out;
     SEXP names;
 
@@ -1333,33 +1350,12 @@ static SEXP sc_labelset_to_sexp(const SCLabelSet *set) {
         return out;
     }
 
+    PROTECT(out = Rf_allocVector(REALSXP, (R_xlen_t) set->n));
     for (i = 0; i < set->n; ++i) {
-        if (ISNAN(set->dvalues[i]) && tagged_na_value(set->dvalues[i]) != '\0') {
-            tagged++;
-        }
-    }
-
-    if (tagged > 0) {
-        char buffer[128];
-        PROTECT(out = Rf_allocVector(STRSXP, (R_xlen_t) set->n));
-        for (i = 0; i < set->n; ++i) {
-            char tag = tagged_na_value(set->dvalues[i]);
-            if (ISNAN(set->dvalues[i]) && tag != '\0') {
-                char temp[2];
-                temp[0] = tag;
-                temp[1] = '\0';
-                SET_STRING_ELT(out, i, Rf_mkCharCE(temp, CE_UTF8));
-            } else if (sc_is_intish(set->dvalues[i])) {
-                snprintf(buffer, sizeof(buffer), "%d", (int) set->dvalues[i]);
-                SET_STRING_ELT(out, i, Rf_mkCharCE(buffer, CE_UTF8));
-            } else {
-                snprintf(buffer, sizeof(buffer), "%.15g", set->dvalues[i]);
-                SET_STRING_ELT(out, i, Rf_mkCharCE(buffer, CE_UTF8));
-            }
-        }
-    } else {
-        PROTECT(out = Rf_allocVector(REALSXP, (R_xlen_t) set->n));
-        for (i = 0; i < set->n; ++i) {
+        char tag = tagged_na_value(set->dvalues[i]);
+        if (ISNAN(set->dvalues[i]) && tag != '\0') {
+            REAL(out)[i] = sc_tag_code_value(tag);
+        } else {
             REAL(out)[i] = set->dvalues[i];
         }
     }
@@ -1378,7 +1374,7 @@ static void sc_finalize_tagged_missing_attrs(const SCMergedColumn *col_info, SEX
     SEXP na_index;
     SEXP na_names;
     SEXP na_values;
-    int *used;
+    int seen[26];
     int unique_n = 0;
 
     if (col_info->na_index_n == 0) {
@@ -1387,46 +1383,38 @@ static void sc_finalize_tagged_missing_attrs(const SCMergedColumn *col_info, SEX
 
     PROTECT(na_index = Rf_allocVector(INTSXP, (R_xlen_t) col_info->na_index_n));
     PROTECT(na_names = Rf_allocVector(STRSXP, (R_xlen_t) col_info->na_index_n));
+    memset(seen, 0, sizeof(seen));
     for (i = 0; i < col_info->na_index_n; ++i) {
+        char tag = col_info->na_index_names[i][0];
+        char lower = (char) tolower((unsigned char) tag);
         INTEGER(na_index)[i] = col_info->na_index_pos[i];
-        SET_STRING_ELT(na_names, i, Rf_mkCharCE(col_info->na_index_names[i], CE_UTF8));
+        SET_STRING_ELT(na_names, i, sc_tag_code_name(tag));
+        if (lower >= 'a' && lower <= 'z' && !seen[lower - 'a']) {
+            seen[lower - 'a'] = 1;
+            unique_n++;
+        }
     }
     Rf_setAttrib(na_index, R_NamesSymbol, na_names);
     Rf_setAttrib(col, Rf_install("na_index"), na_index);
 
-    used = (int *) R_Calloc(col_info->na_index_n, int);
-    for (i = 0; i < col_info->na_index_n; ++i) {
-        size_t j;
-        if (used[i]) {
-            continue;
-        }
-        used[i] = 1;
-        unique_n++;
-        for (j = i + 1; j < col_info->na_index_n; ++j) {
-            if (strcmp(col_info->na_index_names[i], col_info->na_index_names[j]) == 0) {
-                used[j] = 1;
-            }
-        }
-    }
-
-    PROTECT(na_values = Rf_allocVector(STRSXP, unique_n));
+    PROTECT(na_values = Rf_allocVector(REALSXP, unique_n));
     unique_n = 0;
-    memset(used, 0, col_info->na_index_n * sizeof(int));
+    memset(seen, 0, sizeof(seen));
     for (i = 0; i < col_info->na_index_n; ++i) {
-        size_t j;
-        if (used[i]) {
-            continue;
-        }
-        used[i] = 1;
-        SET_STRING_ELT(na_values, unique_n++, Rf_mkCharCE(col_info->na_index_names[i], CE_UTF8));
-        for (j = i + 1; j < col_info->na_index_n; ++j) {
-            if (strcmp(col_info->na_index_names[i], col_info->na_index_names[j]) == 0) {
-                used[j] = 1;
-            }
+        char tag = col_info->na_index_names[i][0];
+        char lower = (char) tolower((unsigned char) tag);
+        if (lower >= 'a' && lower <= 'z' && !seen[lower - 'a']) {
+            REAL(na_values)[unique_n++] = sc_tag_code_value(lower);
+            seen[lower - 'a'] = 1;
         }
     }
-    Rf_setAttrib(col, Rf_install("na_values"), na_values);
-    R_Free(used);
+    if (unique_n < Rf_length(na_values)) {
+        SEXP shrunk = PROTECT(Rf_lengthgets(na_values, unique_n));
+        Rf_setAttrib(col, Rf_install("na_values"), shrunk);
+        UNPROTECT(1);
+    } else {
+        Rf_setAttrib(col, Rf_install("na_values"), na_values);
+    }
     UNPROTECT(3);
 }
 

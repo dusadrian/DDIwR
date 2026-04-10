@@ -125,24 +125,11 @@
                 addChildren(list(fileName, fileType), to = fileTxt)
                 addChildren(fileTxt, to = fileDscr)
 
-                # Recode extended missings (Stata/SAS style) to numeric codes
-                # for a codebook-friendly representation, similar to convert()
-                dots <- list(...)
-                recode <- !isFALSE(dots$recode)
-                data_input <- from
-                if (recode && .ddiwr_needs_spss_recode(from)) {
-                    data_input <- recodeMissings(
-                        dataset = from,
-                        to = "SPSS",
-                        dictionary = dots$dictionary
-                    )
-                }
-
                 addChildren(fileDscr, to = codeBook)
 
                 if (!isFALSE(dots$dataDscr)) {
                     addChildren(
-                        collectMetadata(data_input, ... = ...),
+                        collectMetadata(from, ... = ...),
                         to = codeBook
                     )
                 }
@@ -408,17 +395,6 @@
                 } else {
                     arglist$encoding <- encoding
                     data <- do.call(read_dta, arglist)
-                }
-
-                # Ensure codebook uses numeric missing codes for Stata-style
-                # tagged missings by recoding to SPSS style before metadata collection
-                recode <- !isFALSE(dots$recode)
-                if (recode && .ddiwr_needs_spss_recode(data)) {
-                    data <- recodeMissings(
-                        dataset = data,
-                        to = "SPSS",
-                        dictionary = dots$dictionary
-                    )
                 }
             }
             else if (tp$fileext[ff] == "RDS") {

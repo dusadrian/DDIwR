@@ -18,6 +18,17 @@ typedef struct {
 } StringRefEntry;
 
 typedef struct {
+    int row;
+    const char *code;
+} MissingEntry;
+
+typedef struct {
+    MissingEntry *entries;
+    R_xlen_t length;
+    R_xlen_t cursor;
+} MissingMap;
+
+typedef struct {
     FileExt ext;
     FileVendor vendor;
     int version;
@@ -28,6 +39,8 @@ typedef struct {
     StringRefEntry *string_refs;
     size_t string_ref_n;
     size_t string_ref_cap;
+    MissingMap *missing_maps;
+    R_xlen_t missing_map_n;
 } WriterCtx;
 
 static const char *string_utf8_elt(SEXP x, R_xlen_t i) {
@@ -45,27 +58,90 @@ static int string_len_missing(SEXP x, R_xlen_t i) {
     return (int) strlen(string_utf8_elt(x, i));
 }
 
-static const char *na_index_code(SEXP x, R_xlen_t row) {
+static int missing_entry_cmp(const void *a, const void *b) {
+    const MissingEntry *ea = (const MissingEntry *) a;
+    const MissingEntry *eb = (const MissingEntry *) b;
+
+    if (ea->row < eb->row) {
+        return -1;
+    }
+    if (ea->row > eb->row) {
+        return 1;
+    }
+    return 0;
+}
+
+static void init_missing_map(MissingMap *map, SEXP x) {
     SEXP na_index = Rf_getAttrib(x, Rf_install("na_index"));
     SEXP names;
     R_xlen_t i;
+    R_xlen_t valid = 0;
 
-    if (TYPEOF(na_index) != INTSXP || Rf_length(na_index) == 0) {
-        return NULL;
+    memset(map, 0, sizeof(*map));
+
+    if (TYPEOF(na_index) != INTSXP || Rf_xlength(na_index) == 0) {
+        return;
     }
 
     names = Rf_getAttrib(na_index, R_NamesSymbol);
-    if (TYPEOF(names) != STRSXP || Rf_length(names) != Rf_length(na_index)) {
-        return NULL;
+    if (TYPEOF(names) != STRSXP || Rf_xlength(names) != Rf_xlength(na_index)) {
+        return;
     }
 
     for (i = 0; i < Rf_xlength(na_index); ++i) {
-        if (INTEGER(na_index)[i] == (int) (row + 1)) {
-            if (STRING_ELT(names, i) == NA_STRING) {
-                return NULL;
-            }
-            return CHAR(STRING_ELT(names, i));
+        if (INTEGER(na_index)[i] > 0 && STRING_ELT(names, i) != NA_STRING) {
+            valid++;
         }
+    }
+
+    if (valid == 0) {
+        return;
+    }
+
+    map->entries = (MissingEntry *) R_Calloc((size_t) valid, MissingEntry);
+    map->length = valid;
+
+    valid = 0;
+    for (i = 0; i < Rf_xlength(na_index); ++i) {
+        if (INTEGER(na_index)[i] > 0 && STRING_ELT(names, i) != NA_STRING) {
+            map->entries[valid].row = INTEGER(na_index)[i];
+            map->entries[valid].code = CHAR(STRING_ELT(names, i));
+            valid++;
+        }
+    }
+
+    qsort(map->entries, (size_t) map->length, sizeof(MissingEntry), missing_entry_cmp);
+}
+
+static void init_missing_maps(WriterCtx *ctx) {
+    R_xlen_t j;
+
+    ctx->missing_map_n = (R_xlen_t) Rf_length(ctx->data);
+    if (ctx->missing_map_n == 0) {
+        return;
+    }
+
+    ctx->missing_maps = (MissingMap *) R_Calloc((size_t) ctx->missing_map_n, MissingMap);
+    for (j = 0; j < ctx->missing_map_n; ++j) {
+        init_missing_map(&ctx->missing_maps[j], VECTOR_ELT(ctx->data, j));
+    }
+}
+
+static const char *na_index_code(WriterCtx *ctx, int column, R_xlen_t row) {
+    MissingMap *map;
+    int target_row = (int) (row + 1);
+
+    if (ctx->missing_maps == NULL || column < 0 || column >= ctx->missing_map_n) {
+        return NULL;
+    }
+
+    map = &ctx->missing_maps[column];
+    while (map->cursor < map->length && map->entries[map->cursor].row < target_row) {
+        map->cursor++;
+    }
+
+    if (map->cursor < map->length && map->entries[map->cursor].row == target_row) {
+        return map->entries[map->cursor].code;
     }
 
     return NULL;
@@ -205,6 +281,7 @@ static readstat_string_ref_t *get_or_create_string_ref(WriterCtx *ctx, const cha
 
 static void writer_ctx_free(WriterCtx *ctx) {
     size_t i;
+    R_xlen_t j;
     if (ctx->out != NULL) {
         fclose(ctx->out);
     }
@@ -216,6 +293,14 @@ static void writer_ctx_free(WriterCtx *ctx) {
     }
     if (ctx->string_refs != NULL) {
         R_Free(ctx->string_refs);
+    }
+    if (ctx->missing_maps != NULL) {
+        for (j = 0; j < ctx->missing_map_n; ++j) {
+            if (ctx->missing_maps[j].entries != NULL) {
+                R_Free(ctx->missing_maps[j].entries);
+            }
+        }
+        R_Free(ctx->missing_maps);
     }
 }
 
@@ -494,6 +579,8 @@ static void writer_write(WriterCtx *ctx) {
     }
     check_status(status, "Failed to create file");
 
+    init_missing_maps(ctx);
+
     for (j = 0; j < p; ++j) {
         SEXP col = VECTOR_ELT(ctx->data, j);
         const char *name = string_utf8_elt(names, j);
@@ -520,7 +607,7 @@ static void writer_write(WriterCtx *ctx) {
         for (j = 0; j < p; ++j) {
             SEXP col = VECTOR_ELT(ctx->data, j);
             readstat_variable_t *var = readstat_get_variable(ctx->writer, j);
-            const char *code = na_index_code(col, i);
+            const char *code = na_index_code(ctx, j, i);
             switch (TYPEOF(col)) {
                 case LGLSXP: {
                     int value = LOGICAL(col)[i];

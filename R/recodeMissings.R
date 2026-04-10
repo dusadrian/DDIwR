@@ -117,7 +117,7 @@
     charvar <- unname(sapply(dataset, is.character))
 
     spss <- unname(sapply(dataset, function(x) {
-        inherits(x, "declared") && !.ddiwr_is_stata_declared(x) &&
+        inherits(x, "declared") && !is_stata_declared(x) &&
         (
             !is.null(attr(x, "labels", exact = TRUE)) ||
             !is.null(attr(x, "na_values", exact = TRUE)) ||
@@ -126,15 +126,15 @@
     }))
 
     stata <- unname(sapply(dataset, function(x) {
-        inherits(x, "declared") && .ddiwr_is_stata_declared(x)
+        inherits(x, "declared") && is_stata_declared(x)
     }))
 
     allMissing <- list()
 
     for (variable in names(dataset[, spss | stata, drop = FALSE])) {
         template <- getElement(dataset, variable)
-        x <- .ddiwr_plain_values(template)
-        metadata <- .ddiwr_var_metadata(template)
+        x <- plain_values(template)
+        metadata <- var_metadata(template)
         labels <- metadata$labels
         missing <- metadata$na_values
         na_range <- metadata$na_range
@@ -285,7 +285,6 @@
     old <- dictionary$old
     new <- dictionary$new
     pnold <- if (is.numeric(old)) rep(TRUE, length(old)) else admisc::possibleNumeric(old, each = TRUE)
-    old_keys <- .ddiwr_match_keys(old)
 
     old <- tolower(old)
     if (is.character(new)) {
@@ -294,8 +293,8 @@
 
     for (variable in names(dataset)[spss | stata]) {
         template <- dataset[[variable]]
-        x <- .ddiwr_plain_values(template)
-        metadata <- .ddiwr_var_metadata(template)
+        x <- plain_values(template)
+        metadata <- var_metadata(template)
         labels_x <- metadata$labels
         na_values_x <- metadata$na_values
         na_range_x <- metadata$na_range
@@ -303,7 +302,7 @@
 
         if (!is.null(na_values_x) | !is.null(na_range_x)) {
             if (tospss) {
-                recoded <- .ddiwr_recode_to_spss_full_native(
+                recoded <- recode_to_spss_full_native(
                     x = x,
                     labels = labels_x,
                     na_values = na_values_x,
@@ -387,7 +386,7 @@
                     }
                 }
 
-                dataset[[variable]] <- .ddiwr_make_declared(
+                dataset[[variable]] <- make_declared(
                     x = x,
                     labels = labels_x,
                     na_values = if (length(na_values_x) > 0) na_values_x else NULL,
@@ -408,7 +407,7 @@
                 selection <- logical(length(old))
 
                 if (!is.null(na_values_x)) {
-                    selection <- !is.na(match(old_keys, .ddiwr_match_keys(na_values_x)))
+                    selection <- !is.na(match(old, na_values_x))
                 }
                 else if (!is.null(na_range_x)) {
                     if (any(pnold)) {
@@ -424,7 +423,7 @@
                     na_index_x <- integer(0)
                     template_na_index <- attr(template, "na_index", exact = TRUE)
 
-                    index <- match(.ddiwr_match_keys(x), .ddiwr_match_keys(old_x))
+                    index <- match(x, old_x)
                     wh <- which(!is.na(index))
 
                     if (length(wh) > 0) {
@@ -434,9 +433,7 @@
                     }
 
                     if (!is.null(template_na_index) && length(template_na_index) > 0) {
-                        idx_codes <- .ddiwr_match_keys(names(template_na_index))
-                        map_codes <- .ddiwr_match_keys(old_x)
-                        idx_match <- match(idx_codes, map_codes)
+                        idx_match <- match(names(template_na_index), old_x)
                         use_idx <- which(!is.na(idx_match))
 
                         if (length(use_idx) > 0) {
@@ -452,9 +449,9 @@
                         }
                     }
 
-                    labels_x <- .ddiwr_recode_vector(labels_x, old_x, new_x)
+                    labels_x <- recode_vector(labels_x, old_x, new_x)
 
-                    dataset[[variable]] <- .ddiwr_make_declared(
+                    dataset[[variable]] <- make_declared(
                         x,
                         labels = labels_x,
                         na_values = unique(new_x),
