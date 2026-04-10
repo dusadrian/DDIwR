@@ -1,0 +1,91 @@
+name: package binaries
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-macos-binaries:
+    name: ${{ matrix.label }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: macOS Apple Silicon binary
+            runner: macos-15
+            artifact_suffix: arm64
+          - label: macOS Intel binary
+            runner: macos-15-intel
+            artifact_suffix: x86_64
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - name: Install package dependencies
+        uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          dependencies: '"hard"'
+
+      - name: Build source package
+        shell: bash
+        run: R CMD build .
+
+      - name: Build macOS binary package
+        shell: bash
+        run: |
+          PKG=$(ls -1t *.tar.gz | head -n 1)
+          R CMD INSTALL --build "$PKG"
+
+      - name: Upload macOS binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DDIwR-macos-${{ matrix.artifact_suffix }}
+          path: "*.tgz"
+          if-no-files-found: error
+          retention-days: 7
+
+  build-windows-binary:
+    name: Windows binary
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - name: Install package dependencies
+        uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          dependencies: '"hard"'
+
+      - name: Build source package
+        shell: bash
+        run: R CMD build .
+
+      - name: Build Windows binary package
+        shell: bash
+        run: |
+          PKG=$(ls -1t *.tar.gz | head -n 1)
+          R CMD INSTALL --build "$PKG"
+
+      - name: Upload Windows binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DDIwR-windows-x86_64
+          path: "*.zip"
+          if-no-files-found: error
+          retention-days: 7
