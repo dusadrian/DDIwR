@@ -1638,7 +1638,7 @@ static SEXP sc_read_parallel(SEXP spec, SEXP encoding, SEXP cols_skip_sexp, SEXP
         return sc_read_single_fallback(spec, encoding, cols_skip_sexp, n_max, rows_skip);
     }
 
-    err = ddiwr_dta_prepare(path, encoding_c, &prepared);
+    err = dta_prepare(path, encoding_c, &prepared);
     if (err != READSTAT_OK) {
         sc_free_schema(&schema);
         if (cols_skip != NULL) {
@@ -1709,7 +1709,7 @@ static SEXP sc_read_parallel(SEXP spec, SEXP encoding, SEXP cols_skip_sexp, SEXP
             }
             R_Free(workers);
             R_Free(chunks);
-            ddiwr_dta_prepared_free(&prepared);
+            dta_prepared_free(&prepared);
             sc_free_schema(&schema);
             if (cols_skip != NULL) {
                 R_Free(cols_skip);
@@ -1726,7 +1726,7 @@ static SEXP sc_read_parallel(SEXP spec, SEXP encoding, SEXP cols_skip_sexp, SEXP
         }
         R_Free(workers);
         R_Free(chunks);
-        ddiwr_dta_prepared_free(&prepared);
+        dta_prepared_free(&prepared);
         sc_free_schema(&schema);
         if (cols_skip != NULL) {
             R_Free(cols_skip);
@@ -1741,7 +1741,7 @@ static SEXP sc_read_parallel(SEXP spec, SEXP encoding, SEXP cols_skip_sexp, SEXP
     }
     R_Free(workers);
     R_Free(chunks);
-    ddiwr_dta_prepared_free(&prepared);
+    dta_prepared_free(&prepared);
     sc_free_merged_table(&merged);
     sc_free_schema(&schema);
     if (cols_skip != NULL) {
@@ -2388,7 +2388,7 @@ SEXP declared_sav_parallel_prototype(SEXP spec, SEXP num_threads) {
     if (!sc_spec_path_cstr(spec, &path)) {
         Rf_error("Invalid file spec.");
     }
-    if (ddiwr_sav_row_stream_info(path, NULL, &info) != READSTAT_OK) {
+    if (sav_row_stream_info(path, NULL, &info) != READSTAT_OK) {
         Rf_error("Failed to prepare SAV stream.");
     }
     if (info.compression != READSTAT_COMPRESS_ROWS) {
@@ -2538,16 +2538,16 @@ SEXP declared_df_parse_sav_file_parallel_prototype(SEXP spec, SEXP encoding, SEX
     if (sc_probe_readstat_metadata(DECLARED_SAV, path, encoding_c, NULL, 0, &schema) != READSTAT_OK) {
         Rf_error("Failed to probe SAV schema.");
     }
-    if (ddiwr_sav_row_stream_info(path, encoding_c, &info) != READSTAT_OK) {
+    if (sav_row_stream_info(path, encoding_c, &info) != READSTAT_OK) {
         sc_free_schema(&schema);
         Rf_error("Failed to probe SAV stream.");
     }
-    if (ddiwr_sav_prepare(path, encoding_c, &prepared) != READSTAT_OK) {
+    if (sav_prepare(path, encoding_c, &prepared) != READSTAT_OK) {
         sc_free_schema(&schema);
         Rf_error("Failed to prepare SAV decoder.");
     }
     if (info.compression != READSTAT_COMPRESS_ROWS) {
-        ddiwr_sav_prepared_free(&prepared);
+        sav_prepared_free(&prepared);
         sc_free_schema(&schema);
         Rf_error("This prototype currently supports only row-compressed SAV files.");
     }
@@ -2568,7 +2568,7 @@ SEXP declared_df_parse_sav_file_parallel_prototype(SEXP spec, SEXP encoding, SEX
 
     checkpoints = (SCSavCheckpoint *) R_Calloc((size_t) nchunks, SCSavCheckpoint);
     if (!sc_sav_collect_checkpoints(path, &info, chunks, nchunks, checkpoints)) {
-        ddiwr_sav_prepared_free(&prepared);
+        sav_prepared_free(&prepared);
         sc_free_schema(&schema);
         R_Free(checkpoints);
         R_Free(chunks);
@@ -2616,7 +2616,7 @@ SEXP declared_df_parse_sav_file_parallel_prototype(SEXP spec, SEXP encoding, SEX
             R_Free(workers);
             R_Free(checkpoints);
             R_Free(chunks);
-            ddiwr_sav_prepared_free(&prepared);
+            sav_prepared_free(&prepared);
             sc_free_schema(&schema);
             Rf_error("Failed to decode SAV chunk in full prototype.");
         }
@@ -2630,7 +2630,7 @@ SEXP declared_df_parse_sav_file_parallel_prototype(SEXP spec, SEXP encoding, SEX
         R_Free(workers);
         R_Free(checkpoints);
         R_Free(chunks);
-        ddiwr_sav_prepared_free(&prepared);
+        sav_prepared_free(&prepared);
         sc_free_schema(&schema);
         Rf_error("Failed to merge SAV decoded chunks.");
     }
@@ -2644,7 +2644,7 @@ SEXP declared_df_parse_sav_file_parallel_prototype(SEXP spec, SEXP encoding, SEX
     R_Free(workers);
     R_Free(checkpoints);
     R_Free(chunks);
-    ddiwr_sav_prepared_free(&prepared);
+    sav_prepared_free(&prepared);
     sc_free_schema(&schema);
     return out;
 }

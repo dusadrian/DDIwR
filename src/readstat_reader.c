@@ -61,7 +61,7 @@ typedef struct {
     size_t notes_cap;
 } ReaderCtx;
 
-static char *ddiwr_strdup(const char *x) {
+static char *str_dup(const char *x) {
     size_t n;
     char *out;
     if (x == NULL) {
@@ -73,12 +73,12 @@ static char *ddiwr_strdup(const char *x) {
     return out;
 }
 
-static int ddiwr_is_intish(double x) {
+static int is_intish(double x) {
     double ix = (double) ((int) x);
     return !ISNAN(x) && x == ix;
 }
 
-static double ddiwr_tag_code_value(char tag) {
+static double tag_code_value(char tag) {
     char lower = (char) tolower((unsigned char) tag);
     if (lower < 'a' || lower > 'z') {
         return NA_REAL;
@@ -86,9 +86,9 @@ static double ddiwr_tag_code_value(char tag) {
     return -91.0 - (double) (lower - 'a');
 }
 
-static SEXP ddiwr_tag_code_name(char tag) {
+static SEXP tag_code_name(char tag) {
     char buffer[32];
-    double code = ddiwr_tag_code_value(tag);
+    double code = tag_code_value(tag);
     if (ISNAN(code)) {
         return NA_STRING;
     }
@@ -142,7 +142,7 @@ static LabelSet *find_or_create_labelset(ReaderCtx *ctx, const char *name, Label
 
     set = &ctx->label_sets[ctx->label_set_n++];
     memset(set, 0, sizeof(*set));
-    set->name = ddiwr_strdup(name);
+    set->name = str_dup(name);
     set->type = type;
     return set;
 }
@@ -359,7 +359,7 @@ static int reader_note(int note_index, const char *note, void *ctx_) {
         return READSTAT_HANDLER_OK;
     }
     ensure_notes_capacity(ctx);
-    ctx->notes[ctx->notes_n++] = ddiwr_strdup(note);
+    ctx->notes[ctx->notes_n++] = str_dup(note);
     return READSTAT_HANDLER_OK;
 }
 
@@ -399,7 +399,7 @@ static int reader_variable(int index, readstat_variable_t *variable, const char 
     ctx->cols[var_index].readstat_type = readstat_variable_get_type(variable);
     ctx->cols[var_index].var_type = numTypeFromFormat(ctx->vendor, readstat_variable_get_format(variable));
     if (val_labels != NULL) {
-        ctx->cols[var_index].val_labels_name = ddiwr_strdup(val_labels);
+        ctx->cols[var_index].val_labels_name = str_dup(val_labels);
     }
 
     var_label = readstat_variable_get_label(variable);
@@ -550,14 +550,14 @@ static int reader_value_label(const char *val_labels, readstat_value_t value, co
         case READSTAT_TYPE_STRING:
             set = find_or_create_labelset(ctx, val_labels, LABELSET_STRING);
             ensure_labelset_capacity(set);
-            set->labels[set->n] = ddiwr_strdup(label);
-            set->svalues[set->n] = ddiwr_strdup(readstat_string_value(value));
+            set->labels[set->n] = str_dup(label);
+            set->svalues[set->n] = str_dup(readstat_string_value(value));
             set->n++;
             break;
         default:
             set = find_or_create_labelset(ctx, val_labels, LABELSET_DOUBLE);
             ensure_labelset_capacity(set);
-            set->labels[set->n] = ddiwr_strdup(label);
+            set->labels[set->n] = str_dup(label);
             if (readstat_value_is_tagged_missing(value)) {
                 set->dvalues[set->n] = make_tagged_na((char) tolower((unsigned char) readstat_value_tag(value)));
             } else {
@@ -602,7 +602,7 @@ static SEXP labelset_to_sexp(LabelSet *set) {
     for (i = 0; i < set->n; ++i) {
         char tag = tagged_na_value(set->dvalues[i]);
         if (ISNAN(set->dvalues[i]) && tag != '\0') {
-            REAL(out)[i] = ddiwr_tag_code_value(tag);
+            REAL(out)[i] = tag_code_value(tag);
         } else {
             REAL(out)[i] = set->dvalues[i];
         }
@@ -636,7 +636,7 @@ static void finalize_tagged_missing_attrs(ColumnInfo *col_info, SEXP col) {
         char tag = col_info->na_index_names[i][0];
         char lower = (char) tolower((unsigned char) tag);
         INTEGER(na_index)[i] = col_info->na_index_pos[i];
-        SET_STRING_ELT(na_names, i, ddiwr_tag_code_name(tag));
+        SET_STRING_ELT(na_names, i, tag_code_name(tag));
         if (lower >= 'a' && lower <= 'z' && !seen[lower - 'a']) {
             seen[lower - 'a'] = 1;
             unique_n++;
@@ -652,7 +652,7 @@ static void finalize_tagged_missing_attrs(ColumnInfo *col_info, SEXP col) {
         char tag = col_info->na_index_names[i][0];
         char lower = (char) tolower((unsigned char) tag);
         if (lower >= 'a' && lower <= 'z' && !seen[lower - 'a']) {
-            REAL(na_values)[unique_n++] = ddiwr_tag_code_value(lower);
+            REAL(na_values)[unique_n++] = tag_code_value(lower);
             seen[lower - 'a'] = 1;
         }
     }

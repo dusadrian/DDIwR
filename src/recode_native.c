@@ -6,6 +6,7 @@
 #include <ctype.h>
 #include <string.h>
 #include <stdlib.h>
+#include <math.h>
 
 static int is_string_like(SEXP x) {
     return TYPEOF(x) == STRSXP || TYPEOF(x) == CHARSXP;
@@ -95,7 +96,486 @@ static const char *string_elt_or_null(SEXP x, R_xlen_t i) {
     return CHAR(elt);
 }
 
-SEXP ddiwr_all_numeric_chars_(SEXP x) {
+typedef struct {
+    double old;
+    char *label;
+    int count;
+    int n_variables;
+    int last_variable;
+} MissingDictionaryEntry;
+
+typedef struct {
+    char **keys;
+    R_xlen_t n_keys;
+    R_xlen_t cap_keys;
+} MissingGroupSet;
+
+static int is_numeric_missing_vector(SEXP x) {
+    return TYPEOF(x) == REALSXP || TYPEOF(x) == INTSXP || TYPEOF(x) == STRSXP;
+}
+
+static int parse_numeric_sexp_value(SEXP x, R_xlen_t i, double *out) {
+    if (TYPEOF(x) == REALSXP) {
+        if (ISNA(REAL(x)[i]) || ISNAN(REAL(x)[i])) {
+            return 0;
+        }
+        *out = REAL(x)[i];
+        return R_FINITE(*out);
+    }
+
+    if (TYPEOF(x) == INTSXP) {
+        if (INTEGER(x)[i] == NA_INTEGER) {
+            return 0;
+        }
+        *out = INTEGER(x)[i];
+        return 1;
+    }
+
+    if (TYPEOF(x) == STRSXP) {
+        return parse_double_value(string_elt_or_null(x, i), out);
+    }
+
+    return 0;
+}
+
+static char *dup_c_string(const char *text) {
+    size_t n;
+    char *out;
+
+    if (text == NULL) {
+        return NULL;
+    }
+
+    n = strlen(text);
+    out = (char *) R_Calloc(n + 1, char);
+    memcpy(out, text, n + 1);
+    return out;
+}
+
+static void free_group_set(MissingGroupSet *set) {
+    R_xlen_t i;
+    if (set->keys != NULL) {
+        for (i = 0; i < set->n_keys; ++i) {
+            if (set->keys[i] != NULL) {
+                R_Free(set->keys[i]);
+            }
+        }
+        R_Free(set->keys);
+    }
+}
+
+static int group_set_add(MissingGroupSet *set, const char *key, R_xlen_t limit) {
+    R_xlen_t i;
+
+    if (key == NULL || key[0] == '\0') {
+        return 1;
+    }
+
+    for (i = 0; i < set->n_keys; ++i) {
+        if (strcmp(set->keys[i], key) == 0) {
+            return 1;
+        }
+    }
+
+    if (set->n_keys >= limit) {
+        return 0;
+    }
+
+    if (set->n_keys >= set->cap_keys) {
+        set->cap_keys = set->cap_keys == 0 ? 16 : (set->cap_keys * 2);
+        set->keys = (char **) R_Realloc(set->keys, (size_t) set->cap_keys, char *);
+    }
+
+    set->keys[set->n_keys] = dup_c_string(key);
+    set->n_keys++;
+    return 1;
+}
+
+static const char *label_for_code(SEXP labels, double code) {
+    SEXP names;
+    R_xlen_t i;
+
+    if (labels == R_NilValue || XLENGTH(labels) == 0) {
+        return NULL;
+    }
+
+    names = Rf_getAttrib(labels, R_NamesSymbol);
+    if (TYPEOF(names) != STRSXP || XLENGTH(names) != XLENGTH(labels)) {
+        return NULL;
+    }
+
+    for (i = 0; i < XLENGTH(labels); ++i) {
+        double value;
+        if (parse_numeric_sexp_value(labels, i, &value) && value == code) {
+            return string_elt_or_null(names, i);
+        }
+    }
+
+    return NULL;
+}
+
+static int add_group_key_for_code(MissingGroupSet *set, SEXP labels, double code, R_xlen_t limit) {
+    const char *label = label_for_code(labels, code);
+    char code_buf[64];
+
+    if (label != NULL && label[0] != '\0') {
+        return group_set_add(set, label, limit);
+    }
+
+    snprintf(code_buf, sizeof(code_buf), "%.15g", code);
+    return group_set_add(set, code_buf, limit);
+}
+
+static void add_dictionary_entry(
+    MissingDictionaryEntry **entries,
+    R_xlen_t *n_entries,
+    R_xlen_t *cap_entries,
+    double old,
+    const char *label,
+    int variable_index
+) {
+    R_xlen_t i;
+
+    for (i = 0; i < *n_entries; ++i) {
+        if ((*entries)[i].old == old) {
+            if (((*entries)[i].label == NULL || (*entries)[i].label[0] == '\0') &&
+                label != NULL && label[0] != '\0') {
+                if ((*entries)[i].label != NULL) {
+                    R_Free((*entries)[i].label);
+                }
+                (*entries)[i].label = dup_c_string(label);
+            }
+            (*entries)[i].count++;
+            if ((*entries)[i].last_variable != variable_index) {
+                (*entries)[i].n_variables++;
+                (*entries)[i].last_variable = variable_index;
+            }
+            return;
+        }
+    }
+
+    if (*n_entries >= *cap_entries) {
+        *cap_entries = *cap_entries == 0 ? 16 : (*cap_entries * 2);
+        *entries = (MissingDictionaryEntry *) R_Realloc(*entries, (size_t) *cap_entries, MissingDictionaryEntry);
+    }
+
+    (*entries)[*n_entries].old = old;
+    (*entries)[*n_entries].label = dup_c_string(label != NULL ? label : "");
+    (*entries)[*n_entries].count = 1;
+    (*entries)[*n_entries].n_variables = 1;
+    (*entries)[*n_entries].last_variable = variable_index;
+    (*n_entries)++;
+}
+
+static int dictionary_entry_cmp_old(const void *a, const void *b) {
+    const MissingDictionaryEntry *ea = (const MissingDictionaryEntry *) a;
+    const MissingDictionaryEntry *eb = (const MissingDictionaryEntry *) b;
+
+    if (ea->old < eb->old) {
+        return -1;
+    }
+    if (ea->old > eb->old) {
+        return 1;
+    }
+    return 0;
+}
+
+static void reverse_dictionary_entries(MissingDictionaryEntry *entries, R_xlen_t n_entries) {
+    R_xlen_t i;
+    for (i = 0; i < n_entries / 2; ++i) {
+        MissingDictionaryEntry tmp = entries[i];
+        entries[i] = entries[n_entries - 1 - i];
+        entries[n_entries - 1 - i] = tmp;
+    }
+}
+
+static void collect_missing_codes_from_variable(
+    SEXP x,
+    MissingDictionaryEntry **entries,
+    R_xlen_t *n_entries,
+    R_xlen_t *cap_entries,
+    int variable_index
+) {
+    SEXP labels = Rf_getAttrib(x, Rf_install("labels"));
+    SEXP na_values = Rf_getAttrib(x, Rf_install("na_values"));
+    SEXP na_range = Rf_getAttrib(x, Rf_install("na_range"));
+    SEXP na_index = Rf_getAttrib(x, Rf_install("na_index"));
+    SEXP na_index_names = R_NilValue;
+    R_xlen_t i;
+
+    if (is_numeric_missing_vector(na_values) && XLENGTH(na_values) > 0) {
+        for (i = 0; i < XLENGTH(na_values); ++i) {
+            double value;
+            if (parse_numeric_sexp_value(na_values, i, &value)) {
+                add_dictionary_entry(entries, n_entries, cap_entries, value, label_for_code(labels, value), variable_index);
+            }
+        }
+    }
+
+    if (TYPEOF(na_index) == INTSXP && XLENGTH(na_index) > 0) {
+        na_index_names = Rf_getAttrib(na_index, R_NamesSymbol);
+        if (TYPEOF(na_index_names) == STRSXP && XLENGTH(na_index_names) == XLENGTH(na_index)) {
+            for (i = 0; i < XLENGTH(na_index_names); ++i) {
+                double value;
+                if (parse_numeric_sexp_value(na_index_names, i, &value)) {
+                    add_dictionary_entry(entries, n_entries, cap_entries, value, label_for_code(labels, value), variable_index);
+                }
+            }
+        }
+    }
+
+    if (is_numeric_missing_vector(na_range) && XLENGTH(na_range) == 2 && (TYPEOF(x) == INTSXP || TYPEOF(x) == REALSXP)) {
+        double low;
+        double high;
+
+        if (parse_numeric_sexp_value(na_range, 0, &low) && parse_numeric_sexp_value(na_range, 1, &high)) {
+            if (TYPEOF(x) == REALSXP) {
+                for (i = 0; i < XLENGTH(x); ++i) {
+                    double value = REAL(x)[i];
+                    if (!ISNA(value) && !ISNAN(value) && value >= low && value <= high) {
+                        add_dictionary_entry(entries, n_entries, cap_entries, value, label_for_code(labels, value), variable_index);
+                    }
+                }
+            } else {
+                for (i = 0; i < XLENGTH(x); ++i) {
+                    int value = INTEGER(x)[i];
+                    if (value != NA_INTEGER && value >= low && value <= high) {
+                        add_dictionary_entry(entries, n_entries, cap_entries, value, label_for_code(labels, value), variable_index);
+                    }
+                }
+            }
+
+            if (is_numeric_missing_vector(labels) && XLENGTH(labels) > 0) {
+                for (i = 0; i < XLENGTH(labels); ++i) {
+                    double value;
+                    if (parse_numeric_sexp_value(labels, i, &value) && value >= low && value <= high) {
+                        add_dictionary_entry(entries, n_entries, cap_entries, value, label_for_code(labels, value), variable_index);
+                    }
+                }
+            }
+        }
+    }
+}
+
+static int count_missing_groups_with_limit(SEXP dataset, R_xlen_t limit) {
+    MissingGroupSet set;
+    R_xlen_t col;
+
+    memset(&set, 0, sizeof(set));
+
+    for (col = 0; col < XLENGTH(dataset); ++col) {
+        SEXP x = VECTOR_ELT(dataset, col);
+        SEXP labels = Rf_getAttrib(x, Rf_install("labels"));
+        SEXP na_values = Rf_getAttrib(x, Rf_install("na_values"));
+        SEXP na_range = Rf_getAttrib(x, Rf_install("na_range"));
+        SEXP na_index = Rf_getAttrib(x, Rf_install("na_index"));
+        SEXP na_index_names = R_NilValue;
+        R_xlen_t i;
+
+        if (is_numeric_missing_vector(na_values) && XLENGTH(na_values) > 0) {
+            for (i = 0; i < XLENGTH(na_values); ++i) {
+                double value;
+                if (parse_numeric_sexp_value(na_values, i, &value) &&
+                    !add_group_key_for_code(&set, labels, value, limit)) {
+                    free_group_set(&set);
+                    return (int) (limit + 1);
+                }
+            }
+        }
+
+        if (TYPEOF(na_index) == INTSXP && XLENGTH(na_index) > 0) {
+            na_index_names = Rf_getAttrib(na_index, R_NamesSymbol);
+            if (TYPEOF(na_index_names) == STRSXP && XLENGTH(na_index_names) == XLENGTH(na_index)) {
+                for (i = 0; i < XLENGTH(na_index_names); ++i) {
+                    double value;
+                    if (parse_numeric_sexp_value(na_index_names, i, &value) &&
+                        !add_group_key_for_code(&set, labels, value, limit)) {
+                        free_group_set(&set);
+                        return (int) (limit + 1);
+                    }
+                }
+            }
+        }
+
+        if (is_numeric_missing_vector(na_range) && XLENGTH(na_range) == 2 && (TYPEOF(x) == INTSXP || TYPEOF(x) == REALSXP)) {
+            double low;
+            double high;
+
+            if (parse_numeric_sexp_value(na_range, 0, &low) && parse_numeric_sexp_value(na_range, 1, &high)) {
+                if (TYPEOF(x) == REALSXP) {
+                    for (i = 0; i < XLENGTH(x); ++i) {
+                        double value = REAL(x)[i];
+                        if (!ISNA(value) && !ISNAN(value) && value >= low && value <= high &&
+                            !add_group_key_for_code(&set, labels, value, limit)) {
+                            free_group_set(&set);
+                            return (int) (limit + 1);
+                        }
+                    }
+                } else {
+                    for (i = 0; i < XLENGTH(x); ++i) {
+                        int value = INTEGER(x)[i];
+                        if (value != NA_INTEGER && value >= low && value <= high &&
+                            !add_group_key_for_code(&set, labels, value, limit)) {
+                            free_group_set(&set);
+                            return (int) (limit + 1);
+                        }
+                    }
+                }
+
+                if (is_numeric_missing_vector(labels) && XLENGTH(labels) > 0) {
+                    for (i = 0; i < XLENGTH(labels); ++i) {
+                        double value;
+                        if (parse_numeric_sexp_value(labels, i, &value) && value >= low && value <= high &&
+                            !add_group_key_for_code(&set, labels, value, limit)) {
+                            free_group_set(&set);
+                            return (int) (limit + 1);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    free_group_set(&set);
+    return (int) set.n_keys;
+}
+
+SEXP can_build_dictionary_(SEXP dataset, SEXP to, SEXP limit) {
+    const char *target;
+    int n_groups;
+    int max_groups = Rf_asInteger(limit);
+
+    if (TYPEOF(dataset) != VECSXP) {
+        Rf_error("The input must be a data frame.");
+    }
+
+    if (TYPEOF(to) != STRSXP || XLENGTH(to) == 0) {
+        Rf_error("Argument 'to' must be a character scalar.");
+    }
+
+    target = CHAR(STRING_ELT(to, 0));
+    if (strcmp(target, "STATA") != 0 && strcmp(target, "SAS") != 0) {
+        return Rf_ScalarLogical(1);
+    }
+
+    n_groups = count_missing_groups_with_limit(dataset, max_groups);
+    return Rf_ScalarLogical(n_groups <= max_groups);
+}
+
+SEXP build_dictionary_(SEXP dataset, SEXP to, SEXP start) {
+    const char *target;
+    int tospss;
+    int start_value;
+    MissingDictionaryEntry *entries = NULL;
+    R_xlen_t n_entries = 0;
+    R_xlen_t cap_entries = 0;
+    R_xlen_t i;
+    SEXP out = R_NilValue;
+    SEXP names = R_NilValue;
+    SEXP row_names = R_NilValue;
+
+    if (TYPEOF(dataset) != VECSXP) {
+        Rf_error("The input must be a data frame.");
+    }
+
+    if (TYPEOF(to) != STRSXP || XLENGTH(to) == 0) {
+        Rf_error("Argument 'to' must be a character scalar.");
+    }
+
+    target = CHAR(STRING_ELT(to, 0));
+    tospss = strcmp(target, "SPSS") == 0;
+    start_value = Rf_asInteger(start);
+
+    for (i = 0; i < XLENGTH(dataset); ++i) {
+        collect_missing_codes_from_variable(VECTOR_ELT(dataset, i), &entries, &n_entries, &cap_entries, (int) i);
+    }
+
+    qsort(entries, (size_t) n_entries, sizeof(MissingDictionaryEntry), dictionary_entry_cmp_old);
+    if (n_entries > 0) {
+        int all_negative = 1;
+        for (i = 0; i < n_entries; ++i) {
+            if (!(entries[i].old < 0)) {
+                all_negative = 0;
+                break;
+            }
+        }
+        if (all_negative) {
+            reverse_dictionary_entries(entries, n_entries);
+        }
+    }
+
+    PROTECT(out = Rf_allocVector(VECSXP, 5));
+    PROTECT(names = Rf_allocVector(STRSXP, 5));
+    PROTECT(row_names = Rf_allocVector(INTSXP, 2));
+
+    if (n_entries == 0) {
+        SET_VECTOR_ELT(out, 0, Rf_allocVector(STRSXP, 0));
+        SET_VECTOR_ELT(out, 1, Rf_allocVector(REALSXP, 0));
+        SET_VECTOR_ELT(out, 2, tospss ? Rf_allocVector(INTSXP, 0) : Rf_allocVector(STRSXP, 0));
+        SET_VECTOR_ELT(out, 3, Rf_allocVector(INTSXP, 0));
+        SET_VECTOR_ELT(out, 4, Rf_allocVector(INTSXP, 0));
+    } else {
+        SEXP label = PROTECT(Rf_allocVector(STRSXP, n_entries));
+        SEXP old = PROTECT(Rf_allocVector(REALSXP, n_entries));
+        SEXP new_values = PROTECT(tospss ? Rf_allocVector(INTSXP, n_entries) : Rf_allocVector(STRSXP, n_entries));
+        SEXP count = PROTECT(Rf_allocVector(INTSXP, n_entries));
+        SEXP n_variables = PROTECT(Rf_allocVector(INTSXP, n_entries));
+
+        if (!tospss && n_entries > (R_xlen_t) strlen("abcdefghijklmnopqrstuvwxyz")) {
+            Rf_error("Too many overall missing values.");
+        }
+
+        for (i = 0; i < n_entries; ++i) {
+            SET_STRING_ELT(label, i, Rf_mkChar(entries[i].label != NULL ? entries[i].label : ""));
+            REAL(old)[i] = entries[i].old;
+            INTEGER(count)[i] = entries[i].count;
+            INTEGER(n_variables)[i] = entries[i].n_variables;
+            if (tospss) {
+                int base_code = 5000 > ((int) n_entries + 1) ? 5000 : ((int) n_entries + 1);
+                int code = (int) (base_code + abs(start_value) - 1 + i);
+                INTEGER(new_values)[i] = start_value < 0 ? -code : code;
+            } else {
+                char tag[2];
+                tag[0] = (char) ('a' + i);
+                tag[1] = '\0';
+                SET_STRING_ELT(new_values, i, Rf_mkChar(tag));
+            }
+        }
+
+        SET_VECTOR_ELT(out, 0, label);
+        SET_VECTOR_ELT(out, 1, old);
+        SET_VECTOR_ELT(out, 2, new_values);
+        SET_VECTOR_ELT(out, 3, count);
+        SET_VECTOR_ELT(out, 4, n_variables);
+        UNPROTECT(5);
+    }
+
+    SET_STRING_ELT(names, 0, Rf_mkChar("label"));
+    SET_STRING_ELT(names, 1, Rf_mkChar("old"));
+    SET_STRING_ELT(names, 2, Rf_mkChar("new"));
+    SET_STRING_ELT(names, 3, Rf_mkChar("count"));
+    SET_STRING_ELT(names, 4, Rf_mkChar("n_variables"));
+    Rf_setAttrib(out, R_NamesSymbol, names);
+
+    INTEGER(row_names)[0] = NA_INTEGER;
+    INTEGER(row_names)[1] = -(int) n_entries;
+    Rf_setAttrib(out, R_RowNamesSymbol, row_names);
+    Rf_setAttrib(out, R_ClassSymbol, Rf_mkString("data.frame"));
+
+    if (entries != NULL) {
+        for (i = 0; i < n_entries; ++i) {
+            if (entries[i].label != NULL) {
+                R_Free(entries[i].label);
+            }
+        }
+        R_Free(entries);
+    }
+
+    UNPROTECT(3);
+    return out;
+}
+
+SEXP all_numeric_chars_(SEXP x) {
     R_xlen_t i, n;
 
     if (x == R_NilValue) {
@@ -407,7 +887,7 @@ static SEXP recode_vector(SEXP x, SEXP new_chr, const char **old_keys, R_xlen_t 
     return out;
 }
 
-SEXP ddiwr_recode_to_spss_(SEXP x, SEXP labels, SEXP na_values, SEXP old, SEXP new_values) {
+SEXP recode_to_spss_(SEXP x, SEXP labels, SEXP na_values, SEXP old, SEXP new_values) {
     SEXP out;
     SEXP names;
     SEXP x_new;
@@ -462,7 +942,7 @@ SEXP ddiwr_recode_to_spss_(SEXP x, SEXP labels, SEXP na_values, SEXP old, SEXP n
     return out;
 }
 
-SEXP ddiwr_recode_to_spss_full_(SEXP x, SEXP labels, SEXP na_values, SEXP na_index, SEXP old, SEXP new_values) {
+SEXP recode_to_spss_full_(SEXP x, SEXP labels, SEXP na_values, SEXP na_index, SEXP old, SEXP new_values) {
     SEXP out;
     SEXP names;
     SEXP x_new;

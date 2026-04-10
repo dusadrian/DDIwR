@@ -1284,7 +1284,7 @@ cleanup:
     return retval;
 }
 
-readstat_error_t ddiwr_dta_prepare(const char *path, const char *input_encoding, ddiwr_dta_prepared_t *out) {
+readstat_error_t dta_prepare(const char *path, const char *input_encoding, ddiwr_dta_prepared_t *out) {
     readstat_error_t retval = READSTAT_OK;
     readstat_parser_t *parser = NULL;
     readstat_io_t *io = NULL;
@@ -1428,7 +1428,7 @@ cleanup:
     return retval;
 }
 
-void ddiwr_dta_prepared_free(ddiwr_dta_prepared_t *prepared) {
+void dta_prepared_free(ddiwr_dta_prepared_t *prepared) {
     if (prepared == NULL) {
         return;
     }

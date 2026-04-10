@@ -31,6 +31,17 @@ A function to recode all missing values to either SPSS or Stata types,
 uniformly (re)using the same codes across all variables.
 }
 \details{
+Package \bold{DDIwR} uses numeric declared missing codes as its internal R
+representation. Recoding to \code{"Stata"} or \code{"SAS"} is therefore best viewed as
+an export-oriented temporary representation, not as a preferred internal
+storage strategy for declared vectors in R.
+
+When no dictionary is provided, export-oriented recoding can be performed
+either by scanning the entire dataset for a harmonized mapping, or by
+recoding each variable independently. The package now defaults to the faster
+per-variable strategy in export preparation. Supplying a dictionary keeps the
+harmonized cross-dataset behavior.
+
 When a dictionary is not provided, it is automatically constructed from the
 available data and metadata, using negative numbers starting from -91 and up
 to 27 letters starting with "a".
@@ -73,6 +84,7 @@ If no labels are found in the metadata, the original values are preserved.
 
 # attr(xrec, "dictionary")
 
+# Supply a dictionary to harmonize missing meanings across variables
 # dictionary <- data.frame(
 #     old = c(-91, -92, "a"),
 #     new = c("c", "d", "c")

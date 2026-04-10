@@ -146,7 +146,7 @@ recode_vector <- function(x, old, new) {
 
 recode_to_spss_native <- function(x, labels = NULL, na_values = NULL, old, new) {
     .Call(
-        "ddiwr_recode_to_spss_",
+        "recode_to_spss_",
         x,
         if (is.null(labels)) NULL else labels,
         if (is.null(na_values)) NULL else na_values,
@@ -160,7 +160,7 @@ recode_to_spss_full_native <- function(
     x, labels = NULL, na_values = NULL, na_index = NULL, old, new
 ) {
     .Call(
-        "ddiwr_recode_to_spss_full_",
+        "recode_to_spss_full_",
         x,
         if (is.null(labels)) NULL else labels,
         if (is.null(na_values)) NULL else na_values,
@@ -169,6 +169,39 @@ recode_to_spss_full_native <- function(
         new,
         PACKAGE = "DDIwR"
     )
+}
+
+buildDictionary <- function(dataset, to = c("SPSS", "Stata", "SAS"), start = -91) {
+    to <- toupper(to[1])
+    if (!to %in% c("SPSS", "STATA", "SAS")) {
+        stop("Argument 'to' must be one of 'SPSS', 'Stata', or 'SAS'.", call. = FALSE)
+    }
+    if (to %in% c("STATA", "SAS") && !can_build_dictionary(dataset, to = to)) {
+        stop("Too many overall missing values.", call. = FALSE)
+    }
+    .Call(
+        "build_dictionary_",
+        dataset,
+        to,
+        as.integer(start),
+        PACKAGE = "DDIwR"
+    )
+}
+
+build_dictionary <- buildDictionary
+
+can_build_dictionary <- function(dataset, to = c("Stata", "SAS"), limit = 26L) {
+    to <- toupper(to[1])
+    if (!to %in% c("STATA", "SAS")) {
+        return(TRUE)
+    }
+    isTRUE(.Call(
+        "can_build_dictionary_",
+        dataset,
+        to,
+        as.integer(limit),
+        PACKAGE = "DDIwR"
+    ))
 }
 
 prepare_foreign_export_missings <- function(
@@ -503,10 +536,10 @@ write_sav <- function(data, path, compress = "byte", adjust_tz = TRUE) {
 
 write_dta <- function(
     data, path, version = 14, label = attr(data, "label"), strl_threshold = 2045,
-    adjust_tz = TRUE
+    adjust_tz = TRUE, dictionary = NULL
 ) {
     data_out <- if (isTRUE(adjust_tz)) adjust_tz(data) else data
-    data_out <- prepare_export(data_out, vendor = "STATA")
+    data_out <- as_declared(data_out)
     invisible(.Call(
         "declared_write_dta_",
         data_out,
@@ -514,17 +547,19 @@ write_dta <- function(
         stata_file_format(version),
         label,
         as.integer(strl_threshold),
+        dictionary,
         PACKAGE = "DDIwR"
     ))
     invisible(data)
 }
 
-write_sas <- function(data, path) {
-    data <- prepare_export(data, vendor = "SAS")
+write_sas <- function(data, path, dictionary = NULL) {
+    data <- as_declared(data)
     invisible(.Call(
         "declared_write_sas_",
         data,
         normalizePath(path, mustWork = FALSE),
+        dictionary,
         PACKAGE = "DDIwR"
     ))
     invisible(data)
@@ -532,14 +567,14 @@ write_sas <- function(data, path) {
 
 write_xpt <- function(
     data, path, version = 8, name = NULL, label = attr(data, "label"),
-    adjust_tz = TRUE
+    adjust_tz = TRUE, dictionary = NULL
 ) {
     if (is.null(name)) {
         name <- tools::file_path_sans_ext(basename(path))
     }
 
     data_out <- if (isTRUE(adjust_tz)) adjust_tz(data) else data
-    data_out <- prepare_export(data_out, vendor = "SAS")
+    data_out <- as_declared(data_out)
     invisible(.Call(
         "declared_write_xpt_",
         data_out,
@@ -547,6 +582,7 @@ write_xpt <- function(
         as.integer(version),
         name,
         label,
+        dictionary,
         PACKAGE = "DDIwR"
     ))
     invisible(data)

@@ -3004,7 +3004,7 @@ makedfm <- function() {
 
 #' @keywords internal
 `writeTextFileC` <- function(path, text) {
-    invisible(.Call("ddiwr_write_text_file", path, text))
+    invisible(.Call("write_text_file", path, text))
 }
 
 #' @keywords internal
@@ -3037,7 +3037,7 @@ makedfm <- function() {
     cat_freq
 ) {
     .Call(
-        "ddiwr_make_datadscr_xml",
+        "make_datadscr_xml",
         ns_prefix,
         as.integer(indent_width),
         as.integer(base_level),

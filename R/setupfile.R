@@ -757,11 +757,20 @@
             type <- "Stata"
         }
 
-        dictionary <- recodeMissings(
-            dataset = makeLabelled(csv, dataDscr_vars),
-            to = type,
-            return_dictionary = TRUE
-        )
+        dataset <- makeLabelled(csv, dataDscr_vars)
+
+        if (toupper(type) %in% c("STATA", "SAS") && !can_build_dictionary(dataset, to = type)) {
+            message(
+                "Too many overall missing values for harmonized ", toupper(type),
+                " recoding; using per-variable recoding instead."
+            )
+        }
+        else {
+            dictionary <- buildDictionary(
+                dataset = dataset,
+                to = type
+            )
+        }
     }
 
     `checkvarlab` <- function(variables) {

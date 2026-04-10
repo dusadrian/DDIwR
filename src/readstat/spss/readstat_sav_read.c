@@ -1769,7 +1769,7 @@ cleanup:
     return retval;
 }
 
-readstat_error_t ddiwr_sav_row_stream_info(const char *path, const char *input_encoding, ddiwr_sav_row_stream_info_t *out) {
+readstat_error_t sav_row_stream_info(const char *path, const char *input_encoding, ddiwr_sav_row_stream_info_t *out) {
     readstat_error_t retval = READSTAT_OK;
     readstat_parser_t *parser = NULL;
     readstat_io_t *io = NULL;
@@ -1867,7 +1867,7 @@ cleanup:
     return retval;
 }
 
-readstat_error_t ddiwr_sav_prepare(const char *path, const char *input_encoding, ddiwr_sav_prepared_t *out) {
+readstat_error_t sav_prepare(const char *path, const char *input_encoding, ddiwr_sav_prepared_t *out) {
     readstat_error_t retval = READSTAT_OK;
     readstat_parser_t *parser = NULL;
     readstat_io_t *io = NULL;
@@ -1967,7 +1967,7 @@ cleanup:
     return retval;
 }
 
-void ddiwr_sav_prepared_free(ddiwr_sav_prepared_t *prepared) {
+void sav_prepared_free(ddiwr_sav_prepared_t *prepared) {
     if (prepared == NULL) {
         return;
     }

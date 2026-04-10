@@ -140,7 +140,7 @@ static const char *find_placeholder(const char *xml, const char **matched, size_
     return NULL;
 }
 
-SEXP ddiwr_write_text_file(SEXP path, SEXP text) {
+SEXP write_text_file(SEXP path, SEXP text) {
     FILE *fp = NULL;
     const char *cpath = NULL;
     const char *ctext = NULL;
@@ -179,7 +179,7 @@ SEXP ddiwr_write_text_file(SEXP path, SEXP text) {
     return R_NilValue;
 }
 
-SEXP ddiwr_make_datadscr_xml(
+SEXP make_datadscr_xml(
     SEXP ns_prefix,
     SEXP indent_width,
     SEXP base_level,

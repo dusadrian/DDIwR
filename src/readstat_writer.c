@@ -23,10 +23,20 @@ typedef struct {
 } MissingEntry;
 
 typedef struct {
+    double code;
+    char tag;
+} ForeignMissingCode;
+
+typedef struct {
     MissingEntry *entries;
     R_xlen_t length;
     R_xlen_t cursor;
 } MissingMap;
+
+typedef struct {
+    ForeignMissingCode *entries;
+    R_xlen_t length;
+} ForeignMissingMap;
 
 typedef struct {
     FileExt ext;
@@ -41,6 +51,10 @@ typedef struct {
     size_t string_ref_cap;
     MissingMap *missing_maps;
     R_xlen_t missing_map_n;
+    ForeignMissingMap *foreign_maps;
+    R_xlen_t foreign_map_n;
+    ForeignMissingMap foreign_dictionary;
+    int has_foreign_dictionary;
 } WriterCtx;
 
 static const char *string_utf8_elt(SEXP x, R_xlen_t i) {
@@ -56,6 +70,13 @@ static int string_len_missing(SEXP x, R_xlen_t i) {
         return 0;
     }
     return (int) strlen(string_utf8_elt(x, i));
+}
+
+static const char *string_elt_or_null(SEXP x, R_xlen_t i) {
+    if (TYPEOF(x) != STRSXP || i < 0 || i >= XLENGTH(x) || STRING_ELT(x, i) == NA_STRING) {
+        return NULL;
+    }
+    return CHAR(STRING_ELT(x, i));
 }
 
 static int missing_entry_cmp(const void *a, const void *b) {
@@ -181,6 +202,293 @@ static int parse_code_double(const char *code, double *value) {
     return 1;
 }
 
+static int foreign_map_entry_cmp_desc(const void *a, const void *b) {
+    const double da = *(const double *) a;
+    const double db = *(const double *) b;
+    if (da < db) {
+        return 1;
+    }
+    if (da > db) {
+        return -1;
+    }
+    return 0;
+}
+
+static int foreign_missing_code_cmp(const void *a, const void *b) {
+    const ForeignMissingCode *ea = (const ForeignMissingCode *) a;
+    const ForeignMissingCode *eb = (const ForeignMissingCode *) b;
+
+    if (ea->code < eb->code) {
+        return -1;
+    }
+    if (ea->code > eb->code) {
+        return 1;
+    }
+    return 0;
+}
+
+static int vendor_uses_tagged_missing(FileVendor vendor) {
+    return vendor == DECLARED_STATA || vendor == DECLARED_SAS;
+}
+
+static char vendor_missing_tag(FileVendor vendor, char tag) {
+    if (vendor == DECLARED_SAS) {
+        return (char) toupper((unsigned char) tag);
+    }
+    return (char) tolower((unsigned char) tag);
+}
+
+static int foreign_tag_from_code(WriterCtx *ctx, int column, const char *code, char *tag_out, int strict) {
+    ForeignMissingMap *map;
+    double code_value;
+    R_xlen_t i;
+
+    if (!vendor_uses_tagged_missing(ctx->vendor) ||
+        ctx->foreign_maps == NULL ||
+        column < 0 || column >= ctx->foreign_map_n ||
+        code == NULL || code[0] == '\0') {
+        return 0;
+    }
+
+    if (strlen(code) == 1 && isalpha((unsigned char) code[0])) {
+        *tag_out = vendor_missing_tag(ctx->vendor, code[0]);
+        return 1;
+    }
+
+    if (!parse_code_double(code, &code_value)) {
+        return 0;
+    }
+
+    if (ctx->has_foreign_dictionary && ctx->foreign_dictionary.length > 0) {
+        map = &ctx->foreign_dictionary;
+        for (i = 0; i < map->length; ++i) {
+            if (map->entries[i].code == code_value) {
+                *tag_out = vendor_missing_tag(ctx->vendor, map->entries[i].tag);
+                return 1;
+            }
+        }
+        if (strict) {
+            Rf_error("Missing value code '%s' is not present in the export dictionary.", code);
+        }
+        return 0;
+    }
+
+    map = &ctx->foreign_maps[column];
+    for (i = 0; i < map->length; ++i) {
+        if (map->entries[i].code == code_value) {
+            *tag_out = vendor_missing_tag(ctx->vendor, map->entries[i].tag);
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+static void foreign_map_add_code(double *codes, R_xlen_t *n_codes, R_xlen_t cap, double value) {
+    R_xlen_t i;
+    for (i = 0; i < *n_codes; ++i) {
+        if (codes[i] == value) {
+            return;
+        }
+    }
+    if (*n_codes < cap) {
+        codes[*n_codes] = value;
+        (*n_codes)++;
+    }
+}
+
+static void init_foreign_missing_map(ForeignMissingMap *map, SEXP x) {
+    SEXP na_index = Rf_getAttrib(x, Rf_install("na_index"));
+    SEXP na_values = Rf_getAttrib(x, Rf_install("na_values"));
+    SEXP names;
+    R_xlen_t cap;
+    R_xlen_t n_codes = 0;
+    double *codes;
+    R_xlen_t i;
+
+    memset(map, 0, sizeof(*map));
+
+    cap = 0;
+    if (TYPEOF(na_index) == INTSXP && XLENGTH(na_index) > 0) {
+        cap += XLENGTH(na_index);
+    }
+    if ((TYPEOF(na_values) == REALSXP || TYPEOF(na_values) == INTSXP || TYPEOF(na_values) == STRSXP) &&
+        XLENGTH(na_values) > 0) {
+        cap += XLENGTH(na_values);
+    }
+    if (cap == 0) {
+        return;
+    }
+
+    codes = (double *) R_alloc((size_t) cap, sizeof(double));
+
+    if (TYPEOF(na_index) == INTSXP && XLENGTH(na_index) > 0) {
+        names = Rf_getAttrib(na_index, R_NamesSymbol);
+        if (TYPEOF(names) == STRSXP && XLENGTH(names) == XLENGTH(na_index)) {
+            for (i = 0; i < XLENGTH(names); ++i) {
+                double value;
+                const char *code = string_elt_or_null(names, i);
+                if (parse_code_double(code, &value)) {
+                    foreign_map_add_code(codes, &n_codes, cap, value);
+                }
+            }
+        }
+    }
+
+    if (TYPEOF(na_values) == REALSXP) {
+        for (i = 0; i < XLENGTH(na_values); ++i) {
+            if (!ISNA(REAL(na_values)[i]) && !ISNAN(REAL(na_values)[i])) {
+                foreign_map_add_code(codes, &n_codes, cap, REAL(na_values)[i]);
+            }
+        }
+    } else if (TYPEOF(na_values) == INTSXP) {
+        for (i = 0; i < XLENGTH(na_values); ++i) {
+            if (INTEGER(na_values)[i] != NA_INTEGER) {
+                foreign_map_add_code(codes, &n_codes, cap, INTEGER(na_values)[i]);
+            }
+        }
+    } else if (TYPEOF(na_values) == STRSXP) {
+        for (i = 0; i < XLENGTH(na_values); ++i) {
+            double value;
+            const char *code = string_elt_or_null(na_values, i);
+            if (parse_code_double(code, &value)) {
+                foreign_map_add_code(codes, &n_codes, cap, value);
+            }
+        }
+    }
+
+    if (n_codes == 0) {
+        return;
+    }
+
+    qsort(codes, (size_t) n_codes, sizeof(double), foreign_map_entry_cmp_desc);
+
+    map->entries = (ForeignMissingCode *) R_Calloc((size_t) n_codes, ForeignMissingCode);
+    map->length = n_codes;
+    for (i = 0; i < n_codes; ++i) {
+        map->entries[i].code = codes[i];
+        map->entries[i].tag = (char) ('a' + i);
+    }
+}
+
+static void init_foreign_missing_maps(WriterCtx *ctx) {
+    R_xlen_t j;
+
+    if (!vendor_uses_tagged_missing(ctx->vendor)) {
+        return;
+    }
+
+    ctx->foreign_map_n = (R_xlen_t) Rf_length(ctx->data);
+    if (ctx->foreign_map_n == 0) {
+        return;
+    }
+
+    ctx->foreign_maps = (ForeignMissingMap *) R_Calloc((size_t) ctx->foreign_map_n, ForeignMissingMap);
+    for (j = 0; j < ctx->foreign_map_n; ++j) {
+        init_foreign_missing_map(&ctx->foreign_maps[j], VECTOR_ELT(ctx->data, j));
+    }
+}
+
+static SEXP data_frame_column(SEXP df, const char *name) {
+    SEXP names = Rf_getAttrib(df, R_NamesSymbol);
+    R_xlen_t i;
+
+    if (TYPEOF(df) != VECSXP || TYPEOF(names) != STRSXP) {
+        return R_NilValue;
+    }
+
+    for (i = 0; i < XLENGTH(df); ++i) {
+        if (STRING_ELT(names, i) != NA_STRING && strcmp(CHAR(STRING_ELT(names, i)), name) == 0) {
+            return VECTOR_ELT(df, i);
+        }
+    }
+
+    return R_NilValue;
+}
+
+static void init_foreign_dictionary(WriterCtx *ctx, SEXP dictionary) {
+    SEXP old;
+    SEXP new;
+    R_xlen_t i;
+    R_xlen_t n;
+
+    memset(&ctx->foreign_dictionary, 0, sizeof(ctx->foreign_dictionary));
+    ctx->has_foreign_dictionary = 0;
+
+    if (!vendor_uses_tagged_missing(ctx->vendor) || dictionary == R_NilValue || TYPEOF(dictionary) == NILSXP) {
+        return;
+    }
+
+    old = data_frame_column(dictionary, "old");
+    new = data_frame_column(dictionary, "new");
+
+    if (old == R_NilValue || new == R_NilValue) {
+        Rf_error("Export dictionary must contain 'old' and 'new' columns.");
+    }
+
+    n = XLENGTH(old);
+    if (XLENGTH(new) != n) {
+        Rf_error("Export dictionary columns 'old' and 'new' must have the same length.");
+    }
+    if (n == 0) {
+        ctx->has_foreign_dictionary = 1;
+        return;
+    }
+
+    ctx->foreign_dictionary.entries = (ForeignMissingCode *) R_Calloc((size_t) n, ForeignMissingCode);
+    ctx->foreign_dictionary.length = n;
+    ctx->has_foreign_dictionary = 1;
+
+    for (i = 0; i < n; ++i) {
+        double code_value;
+        char tag_value;
+
+        if (TYPEOF(old) == REALSXP) {
+            code_value = REAL(old)[i];
+        } else if (TYPEOF(old) == INTSXP) {
+            code_value = INTEGER(old)[i];
+        } else if (TYPEOF(old) == STRSXP) {
+            const char *code = string_elt_or_null(old, i);
+            if (!parse_code_double(code, &code_value)) {
+                Rf_error("Export dictionary 'old' values must be numeric codes.");
+            }
+        } else {
+            Rf_error("Export dictionary 'old' column must be numeric or character.");
+        }
+
+        if (!R_FINITE(code_value)) {
+            Rf_error("Export dictionary 'old' values must be finite.");
+        }
+
+        if (TYPEOF(new) == STRSXP) {
+            const char *tag = string_elt_or_null(new, i);
+            if (tag == NULL || strlen(tag) != 1 || !isalpha((unsigned char) tag[0])) {
+                Rf_error("Export dictionary 'new' values must be single letters.");
+            }
+            tag_value = (char) tolower((unsigned char) tag[0]);
+        } else {
+            Rf_error("Export dictionary 'new' column must be character.");
+        }
+
+        ctx->foreign_dictionary.entries[i].code = code_value;
+        ctx->foreign_dictionary.entries[i].tag = tag_value;
+    }
+
+    qsort(
+        ctx->foreign_dictionary.entries,
+        (size_t) ctx->foreign_dictionary.length,
+        sizeof(ForeignMissingCode),
+        foreign_missing_code_cmp
+    );
+
+    for (i = 1; i < ctx->foreign_dictionary.length; ++i) {
+        if (ctx->foreign_dictionary.entries[i - 1].code == ctx->foreign_dictionary.entries[i].code &&
+            ctx->foreign_dictionary.entries[i - 1].tag != ctx->foreign_dictionary.entries[i].tag) {
+            Rf_error("Export dictionary maps the same missing code to multiple tags.");
+        }
+    }
+}
+
 static enum readstat_measure_e measureType(SEXP x) {
     if (Rf_inherits(x, "ordered")) {
         return READSTAT_MEASURE_ORDINAL;
@@ -302,6 +610,17 @@ static void writer_ctx_free(WriterCtx *ctx) {
         }
         R_Free(ctx->missing_maps);
     }
+    if (ctx->foreign_maps != NULL) {
+        for (j = 0; j < ctx->foreign_map_n; ++j) {
+            if (ctx->foreign_maps[j].entries != NULL) {
+                R_Free(ctx->foreign_maps[j].entries);
+            }
+        }
+        R_Free(ctx->foreign_maps);
+    }
+    if (ctx->foreign_dictionary.entries != NULL) {
+        R_Free(ctx->foreign_dictionary.entries);
+    }
 }
 
 static void check_status(readstat_error_t err, const char *context) {
@@ -348,7 +667,7 @@ static void set_file_label(WriterCtx *ctx, SEXP label) {
     }
 }
 
-static readstat_label_set_t *build_numeric_label_set(WriterCtx *ctx, SEXP x, const char *name, int as_int) {
+static readstat_label_set_t *build_numeric_label_set(WriterCtx *ctx, SEXP x, const char *name, int as_int, int column) {
     SEXP labels = Rf_getAttrib(x, Rf_install("labels"));
     SEXP nms;
     readstat_label_set_t *set;
@@ -360,6 +679,12 @@ static readstat_label_set_t *build_numeric_label_set(WriterCtx *ctx, SEXP x, con
     set = readstat_add_label_set(ctx->writer, as_int ? READSTAT_TYPE_INT32 : READSTAT_TYPE_DOUBLE, name);
     if (TYPEOF(labels) == INTSXP) {
         for (i = 0; i < Rf_xlength(labels); ++i) {
+            char export_tag;
+            char code_buf[32];
+            snprintf(code_buf, sizeof(code_buf), "%d", INTEGER(labels)[i]);
+            if (!as_int && foreign_tag_from_code(ctx, column, code_buf, &export_tag, 0)) {
+                readstat_label_tagged_value(set, export_tag, string_utf8_elt(nms, i));
+            } else
             if (as_int) {
                 readstat_label_int32_value(set, INTEGER(labels)[i], string_utf8_elt(nms, i));
             } else {
@@ -370,6 +695,12 @@ static readstat_label_set_t *build_numeric_label_set(WriterCtx *ctx, SEXP x, con
         for (i = 0; i < Rf_xlength(labels); ++i) {
             char tag = tagged_na_value(REAL(labels)[i]);
             if (!ISNAN(REAL(labels)[i]) || tag == '\0') {
+                char export_tag;
+                char code_buf[64];
+                snprintf(code_buf, sizeof(code_buf), "%.15g", REAL(labels)[i]);
+                if (!as_int && foreign_tag_from_code(ctx, column, code_buf, &export_tag, 0)) {
+                    readstat_label_tagged_value(set, export_tag, string_utf8_elt(nms, i));
+                } else
                 if (as_int) {
                     readstat_label_int32_value(set, (int) REAL(labels)[i], string_utf8_elt(nms, i));
                 } else {
@@ -424,10 +755,14 @@ static readstat_label_set_t *build_string_label_set(WriterCtx *ctx, SEXP x, cons
     return set;
 }
 
-static void add_missing_definition(readstat_variable_t *var, SEXP x) {
+static void add_missing_definition(WriterCtx *ctx, readstat_variable_t *var, SEXP x) {
     SEXP na_range = Rf_getAttrib(x, Rf_install("na_range"));
     SEXP na_values = Rf_getAttrib(x, Rf_install("na_values"));
     R_xlen_t i;
+
+    if (ctx->vendor != DECLARED_SPSS) {
+        return;
+    }
 
     if (TYPEOF(na_range) == REALSXP && Rf_length(na_range) == 2) {
         readstat_variable_add_missing_double_range(var, REAL(na_range)[0], REAL(na_range)[1]);
@@ -452,7 +787,7 @@ static void add_missing_definition(readstat_variable_t *var, SEXP x) {
     }
 }
 
-static readstat_error_t define_variable_int(WriterCtx *ctx, SEXP x, const char *name) {
+static readstat_error_t define_variable_int(WriterCtx *ctx, SEXP x, const char *name, int column) {
     readstat_label_set_t *label_set = NULL;
     readstat_variable_t *var;
     const char *format = var_format(x, ctx->vendor);
@@ -465,7 +800,7 @@ static readstat_error_t define_variable_int(WriterCtx *ctx, SEXP x, const char *
             readstat_label_int32_value(label_set, (int) i + 1, string_utf8_elt(levels, i));
         }
     } else {
-        label_set = build_numeric_label_set(ctx, x, name, 1);
+        label_set = build_numeric_label_set(ctx, x, name, 1, column);
     }
 
     var = readstat_add_variable(ctx->writer, name, READSTAT_TYPE_INT32, scalar_int_attr(x, "width"));
@@ -474,19 +809,19 @@ static readstat_error_t define_variable_int(WriterCtx *ctx, SEXP x, const char *
     readstat_variable_set_label_set(var, label_set);
     readstat_variable_set_measure(var, measureType(x));
     readstat_variable_set_display_width(var, scalar_int_attr(x, "display_width"));
-    add_missing_definition(var, x);
+    add_missing_definition(ctx, var, x);
     return readstat_validate_variable(ctx->writer, var);
 }
 
-static readstat_error_t define_variable_double(WriterCtx *ctx, SEXP x, const char *name) {
-    readstat_label_set_t *label_set = build_numeric_label_set(ctx, x, name, 0);
+static readstat_error_t define_variable_double(WriterCtx *ctx, SEXP x, const char *name, int column) {
+    readstat_label_set_t *label_set = build_numeric_label_set(ctx, x, name, 0, column);
     readstat_variable_t *var = readstat_add_variable(ctx->writer, name, READSTAT_TYPE_DOUBLE, scalar_int_attr(x, "width"));
     readstat_variable_set_format(var, var_format(x, ctx->vendor));
     readstat_variable_set_label(var, var_label(x));
     readstat_variable_set_label_set(var, label_set);
     readstat_variable_set_measure(var, measureType(x));
     readstat_variable_set_display_width(var, scalar_int_attr(x, "display_width"));
-    add_missing_definition(var, x);
+    add_missing_definition(ctx, var, x);
     return readstat_validate_variable(ctx->writer, var);
 }
 
@@ -518,7 +853,7 @@ static readstat_error_t define_variable_string(WriterCtx *ctx, SEXP x, const cha
     readstat_variable_set_label_set(var, label_set);
     readstat_variable_set_measure(var, measureType(x));
     readstat_variable_set_display_width(var, scalar_int_attr(x, "display_width"));
-    add_missing_definition(var, x);
+    add_missing_definition(ctx, var, x);
     return readstat_validate_variable(ctx->writer, var);
 }
 
@@ -553,7 +888,7 @@ static readstat_error_t writer_insert_string_value(WriterCtx *ctx, readstat_vari
     return readstat_insert_string_value(ctx->writer, var, value);
 }
 
-static void writer_write(WriterCtx *ctx) {
+static void writer_write(WriterCtx *ctx, SEXP dictionary) {
     readstat_error_t status = READSTAT_OK;
     int p = Rf_length(ctx->data);
     int n = p > 0 ? Rf_length(VECTOR_ELT(ctx->data, 0)) : 0;
@@ -580,6 +915,8 @@ static void writer_write(WriterCtx *ctx) {
     check_status(status, "Failed to create file");
 
     init_missing_maps(ctx);
+    init_foreign_dictionary(ctx, dictionary);
+    init_foreign_missing_maps(ctx);
 
     for (j = 0; j < p; ++j) {
         SEXP col = VECTOR_ELT(ctx->data, j);
@@ -587,10 +924,10 @@ static void writer_write(WriterCtx *ctx) {
         switch (TYPEOF(col)) {
             case LGLSXP:
             case INTSXP:
-                check_status(define_variable_int(ctx, col, name), "Failed to create integer column");
+                check_status(define_variable_int(ctx, col, name, j), "Failed to create integer column");
                 break;
             case REALSXP:
-                check_status(define_variable_double(ctx, col, name), "Failed to create numeric column");
+                check_status(define_variable_double(ctx, col, name, j), "Failed to create numeric column");
                 break;
             case STRSXP:
                 check_status(define_variable_string(ctx, col, name), "Failed to create string column");
@@ -634,7 +971,10 @@ static void writer_write(WriterCtx *ctx) {
                 case REALSXP: {
                     double value = REAL(col)[i];
                     double code_double;
-                    if (!R_finite(value) && parse_code_double(code, &code_double)) {
+                    char export_tag;
+                    if (!R_finite(value) && foreign_tag_from_code(ctx, j, code, &export_tag, 1)) {
+                        check_status(insert_double_value(ctx, var, make_tagged_na((char) tolower((unsigned char) export_tag)), 1), "Failed to insert numeric value");
+                    } else if (!R_finite(value) && parse_code_double(code, &code_double)) {
                         check_status(insert_double_value(ctx, var, code_double, 0), "Failed to insert numeric value");
                     } else if (!R_finite(value) && code != NULL && strlen(code) == 1 && isalpha((unsigned char) code[0])) {
                         check_status(insert_double_value(ctx, var, make_tagged_na((char) tolower((unsigned char) code[0])), 1), "Failed to insert numeric value");
@@ -664,32 +1004,32 @@ SEXP declared_write_sav_(SEXP data, SEXP path, SEXP compress) {
     WriterCtx ctx;
     writer_ctx_init(&ctx, DECLARED_SAV, data, path);
     set_compression(&ctx, CHAR(STRING_ELT(compress, 0)));
-    writer_write(&ctx);
+    writer_write(&ctx, R_NilValue);
     writer_ctx_free(&ctx);
     return R_NilValue;
 }
 
-SEXP declared_write_dta_(SEXP data, SEXP path, SEXP version, SEXP label, SEXP strl_threshold) {
+SEXP declared_write_dta_(SEXP data, SEXP path, SEXP version, SEXP label, SEXP strl_threshold, SEXP dictionary) {
     WriterCtx ctx;
     writer_ctx_init(&ctx, DECLARED_DTA, data, path);
     ctx.version = Rf_asInteger(version);
     ctx.strl_threshold = Rf_asInteger(strl_threshold);
     readstat_writer_set_file_format_version(ctx.writer, ctx.version);
     set_file_label(&ctx, label);
-    writer_write(&ctx);
+    writer_write(&ctx, dictionary);
     writer_ctx_free(&ctx);
     return R_NilValue;
 }
 
-SEXP declared_write_sas_(SEXP data, SEXP path) {
+SEXP declared_write_sas_(SEXP data, SEXP path, SEXP dictionary) {
     WriterCtx ctx;
     writer_ctx_init(&ctx, DECLARED_SAS7BDAT, data, path);
-    writer_write(&ctx);
+    writer_write(&ctx, dictionary);
     writer_ctx_free(&ctx);
     return R_NilValue;
 }
 
-SEXP declared_write_xpt_(SEXP data, SEXP path, SEXP version, SEXP name, SEXP label) {
+SEXP declared_write_xpt_(SEXP data, SEXP path, SEXP version, SEXP name, SEXP label, SEXP dictionary) {
     WriterCtx ctx;
     writer_ctx_init(&ctx, DECLARED_XPT, data, path);
     ctx.version = Rf_asInteger(version);
@@ -698,7 +1038,7 @@ SEXP declared_write_xpt_(SEXP data, SEXP path, SEXP version, SEXP name, SEXP lab
         readstat_writer_set_table_name(ctx.writer, string_utf8_elt(name, 0));
     }
     set_file_label(&ctx, label);
-    writer_write(&ctx);
+    writer_write(&ctx, dictionary);
     writer_ctx_free(&ctx);
     return R_NilValue;
 }

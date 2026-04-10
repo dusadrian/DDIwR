@@ -106,6 +106,31 @@ test_that("a dictionary is produced from the missing codes in the data", {
   expect_true(is.data.frame(dictionary))
 })
 
+test_that("buildDictionary() builds a harmonized export dictionary", {
+  dictionary <- buildDictionary(xexport, to = "Stata")
+
+  expect_true(is.data.frame(dictionary))
+  expect_equal(names(dictionary), c("label", "old", "new", "count", "n_variables"))
+  expect_equal(dictionary$old, c(-91, -92, -93))
+  expect_equal(dictionary$new, c("a", "b", "c"))
+  expect_true(all(dictionary$count >= 1L))
+  expect_true(all(dictionary$n_variables >= 1L))
+})
+
+test_that("buildDictionary() builds SPSS-style numeric recodes", {
+  dictionary <- buildDictionary(xexport, to = "SPSS")
+
+  expect_equal(dictionary$old, c(-91, -92, -93))
+  expect_true(is.numeric(dictionary$new) || is.integer(dictionary$new))
+  expect_equal(as.integer(dictionary$new), c(-5090L, -5091L, -5092L))
+})
+
+test_that("can_build_dictionary() detects foreign tag overflow", {
+  expect_true(can_build_dictionary(xexport, to = "Stata"))
+  expect_false(can_build_dictionary(xmany, to = "Stata"))
+  expect_error(buildDictionary(xmany, to = "Stata"), "Too many overall missing values")
+})
+
 test_that("foreign export recoding is per variable by default", {
   export_fun <- get("prepare_foreign_export_missings", envir = asNamespace("DDIwR"))
   xvar <- export_fun(xexport, to = "Stata")

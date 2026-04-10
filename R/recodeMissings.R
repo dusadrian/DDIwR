@@ -111,6 +111,48 @@
                  all(grepl("^[a-z]$", tolower(na_index_names))))
     }
 
+    collect_missing_codes <- function(dataset, selected) {
+        codes <- unlist(lapply(names(dataset)[selected], function(variable) {
+            template <- getElement(dataset, variable)
+            x <- plain_values(template)
+            metadata <- var_metadata(template)
+            labels <- metadata$labels
+            missing <- metadata$na_values
+            na_range <- metadata$na_range
+            na_index <- metadata$na_index
+
+            if (!is.null(na_index) && length(na_index) > 0) {
+                idx_values <- names(na_index)
+                if (is.numeric(idx_values) || .Call("all_numeric_chars_", idx_values, PACKAGE = "DDIwR")) {
+                    idx_values <- admisc::asNumeric(idx_values)
+                }
+                missing <- c(missing, idx_values)
+            }
+
+            if (!is.null(na_range)) {
+                misvals <- x[x >= na_range[1] & x <= na_range[2]]
+                missing <- c(missing, misvals[!is.na(misvals)])
+
+                if (!is.null(labels) &&
+                    (is.numeric(labels) || .Call("all_numeric_chars_", labels, PACKAGE = "DDIwR"))) {
+                    lbls <- admisc::asNumeric(labels)
+                    missing <- c(
+                        missing,
+                        lbls[lbls >= na_range[1] & lbls <= na_range[2]]
+                    )
+                }
+            }
+
+            sort(unique(missing))
+        }), use.names = FALSE)
+
+        if (length(codes) == 0) {
+            return(NULL)
+        }
+
+        sort(unique(codes))
+    }
+
     dots <- list(...)
     to <- toupper(match.arg(to))
     tospss <- to == "SPSS"
@@ -152,155 +194,29 @@
         inherits(x, "declared") && has_foreign_missing_codes(x)
     }))
 
-    allMissing <- list()
-
-    for (variable in names(dataset[, spss | stata, drop = FALSE])) {
-        template <- getElement(dataset, variable)
-        x <- plain_values(template)
-        metadata <- var_metadata(template)
-        labels <- metadata$labels
-        missing <- metadata$na_values
-        na_range <- metadata$na_range
-        na_index <- metadata$na_index
-
-        if (!is.null(na_index) && length(na_index) > 0) {
-            idx_values <- names(na_index)
-            if (is.numeric(idx_values) || .Call("ddiwr_all_numeric_chars_", idx_values, PACKAGE = "DDIwR")) {
-                idx_values <- admisc::asNumeric(idx_values)
-            }
-            missing <- c(missing, idx_values)
-        }
-
-        if (!is.null(na_range)) {
-            misvals <- x[x >= na_range[1] & x <= na_range[2]]
-            missing <- c(missing, misvals[!is.na(misvals)])
-
-            if (!is.null(labels)) {
-                if (is.numeric(labels) || .Call("ddiwr_all_numeric_chars_", labels, PACKAGE = "DDIwR")) {
-                    lbls <- admisc::asNumeric(labels)
-                    missing <- c(
-                        missing,
-                        lbls[lbls >= na_range[1] & lbls <= na_range[2]]
-                    )
-                }
-            }
-        }
-
-        missing <- sort(unique(missing))
-
-        if (length(missing) == 0) {
-            missing <- NULL
-        }
-
-        if (!is.null(missing)) {
-            names(missing) <- ""
-        }
-
-        if (
-            is.element("labels", names(metadata)) &&
-            any(is.element(missing, labels))
-        ) {
-            wel <- which(is.element(missing, labels))
-            names(missing)[wel] <- names(labels)[
-                match(missing[wel], labels)
-            ]
-
-        }
-
-        allMissing[[variable]] <- missing
-    }
-
-    umispss <- unlist(unname(allMissing[spss[spss | stata]]))
-    umistata <- unlist(unname(allMissing[stata[spss | stata]]))
-
-    if (!is.null(umispss)) {
-        umispss[order(names(umispss), decreasing = TRUE)]
-        umispss <- umispss[!duplicated(umispss)]
-    }
-
-    if (!is.null(umistata)) {
-        umistata[order(names(umistata), decreasing = TRUE)]
-        umistata <- umistata[!duplicated(umistata)]
-    }
-
-    torecode <- data.frame(
-        spss = c(rep(TRUE, length(umispss)), rep(FALSE, length(umistata))),
-        label = c(names(umispss), names(umistata)),
-        old = c(unname(umispss), unname(umistata))
-    )
-
-    if (nrow(torecode) == 0) {
-        # There is no information about missing values
-        return(dataset)
-    }
-
-    torecode <- torecode[order(torecode$label, decreasing = TRUE), ]
-    torecode <- torecode[order(torecode$spss, decreasing = tospss), ]
-    torecode$new <- torecode$old
-    wi <- which(torecode$spss != tospss)
-
-    if (length(wi) > 0) {
-        for (i in wi) {
-            if (nzchar(torecode$label[i])) {
-                wl <- which(torecode$label == torecode$label[i])
-                if (length(wl) > 1) {
-                    torecode$new[i] <- torecode$old[wl[1]]
-                }
-            }
-        }
-    }
-
-    torecode <- torecode[order(torecode$old), ]
-    torecode <- torecode[order(torecode$spss, decreasing = tospss), ]
-
-
-    nchars <- nchar(torecode$new)
-    torecode$new <- sapply(
-        strsplit(as.character(torecode$new), split = ""),
-        function(x) {
-            if (x[1] != "-") {
-                x <- unique(x)
-            }
-            paste(x, collapse = "")
-        }
-    )
-
-    torecode <- torecode[order(torecode$new, nchars), ]
-    torecode <- torecode[order(torecode$spss, decreasing = tospss), ]
-
-
-    torecode$new <- match(torecode$new, unique(torecode$new))
-    if (tospss) {
-        mcodes <- seq(max(5000, nrow(torecode) + 1)) + abs(start) - 1
-        if (start < 0) {
-            mcodes <- -1 * mcodes
-        }
-
-        torecode$new <- mcodes[torecode$new]
-    }
-    else {
-        toomany <- max(torecode$new) > length(letters)
-        if (toomany) {
-            # TODO: recode variable by variable...?
-            admisc::stopError("Too many overall missing values.")
-        }
-        torecode$new <- letters[torecode$new]
-    }
-
-    torecode$label[is.na(torecode$label)] <- ""
-
     if (is.null(dictionary)) {
         if (isTRUE(dots$return_dictionary)) {
-            return(torecode[, -1])
+            return(buildDictionary(dataset, to = to, start = start))
         }
-        dictionary <- torecode
+        dictionary <- buildDictionary(dataset, to = to, start = start)
+        if (tospss && nrow(dictionary) > 0) {
+            dictionary$new <- seq_len(nrow(dictionary)) + abs(start) - 1
+            if (start < 0) {
+                dictionary$new <- -dictionary$new
+            }
+        }
     }
     else {
-        if (length(setdiff(torecode$old, dictionary$old)) > 0) {
+        present_codes <- collect_missing_codes(dataset, spss | stata)
+        if (!is.null(present_codes) && length(setdiff(present_codes, dictionary$old)) > 0) {
             admisc::stopError(
                 "Missing values in the data not present in the dictionary."
             )
         }
+    }
+
+    if (nrow(dictionary) == 0) {
+        return(dataset)
     }
 
 
@@ -338,12 +254,12 @@
                 na_values_x <- recoded$na_values
                 na_index_x <- recoded$na_index
 
-                if (is.numeric(na_values_x) || .Call("ddiwr_all_numeric_chars_", na_values_x, PACKAGE = "DDIwR")) {
+                if (is.numeric(na_values_x) || .Call("all_numeric_chars_", na_values_x, PACKAGE = "DDIwR")) {
                     na_values_x <- unique(as.numeric(na_values_x))
                     na_values_x <- sort(na_values_x, decreasing = all(na_values_x < 0))
                 }
                 labels_numeric <- !is.null(labels_x) &&
-                    (is.numeric(labels_x) || .Call("ddiwr_all_numeric_chars_", labels_x, PACKAGE = "DDIwR"))
+                    (is.numeric(labels_x) || .Call("all_numeric_chars_", labels_x, PACKAGE = "DDIwR"))
                 if (labels_numeric) {
                     label_names <- names(labels_x)
                     labels_x <- as.numeric(labels_x)

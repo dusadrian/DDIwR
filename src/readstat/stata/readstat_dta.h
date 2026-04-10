@@ -196,5 +196,5 @@ typedef struct ddiwr_dta_prepared_s {
     int64_t rows_offset;
 } ddiwr_dta_prepared_t;
 
-readstat_error_t ddiwr_dta_prepare(const char *path, const char *input_encoding, ddiwr_dta_prepared_t *out);
-void ddiwr_dta_prepared_free(ddiwr_dta_prepared_t *prepared);
+readstat_error_t dta_prepare(const char *path, const char *input_encoding, ddiwr_dta_prepared_t *out);
+void dta_prepared_free(ddiwr_dta_prepared_t *prepared);

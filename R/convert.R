@@ -702,14 +702,6 @@
             }
         }
 
-        if (recode) {
-            data <- prepare_foreign_export_missings(
-                data = data,
-                to = "Stata",
-                dictionary = dictionary
-            )
-        }
-
         data[] <- lapply(data, function(x) {
             attr(x, "format.spss") <- NULL
             if (is.null(attr(x, "format.stata"))) {
@@ -722,6 +714,9 @@
 
         if (is.element("version", names(dots))) {
             arglist$version <- dots$version
+        }
+        if (!is.null(dictionary)) {
+            arglist$dictionary <- dictionary
         }
 
 
@@ -847,11 +842,9 @@
                 arglist$version <- 5
             }
             if (recode) {
-                arglist$data <- prepare_foreign_export_missings(
-                    data = arglist$data,
-                    to = "SAS",
-                    dictionary = dictionary
-                )
+                if (!is.null(dictionary)) {
+                    arglist$dictionary <- dictionary
+                }
             }
             do.call(write_xpt, arglist)
         # }
@@ -862,11 +855,18 @@
         )
 
         if (is.null(dictionary) & recode) {
-            dictionary <- recodeMissings(
-                dataset = arglist$data,
-                to = "SAS",
-                return_dictionary = TRUE
-            )
+            if (can_build_dictionary(arglist$data, to = "SAS")) {
+                dictionary <- buildDictionary(
+                    dataset = arglist$data,
+                    to = "SAS"
+                )
+            }
+            else {
+                message(
+                    "Too many overall missing values for harmonized SAS recoding; ",
+                    "using per-variable recoding instead."
+                )
+            }
         }
 
         setupfile(

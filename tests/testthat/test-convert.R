@@ -94,3 +94,29 @@ test_that("Stata tagged missings are normalized to numeric declared missings on 
   expect_equal(names(attr(imported$tagged, "na_index", exact = TRUE)), c("-91", "-92"))
   expect_equal(unname(attr(imported$tagged, "labels", exact = TRUE)), c(1, 2, -91, -92))
 })
+
+test_that("Stata export dictionary is applied natively", {
+  exported <- data.frame(
+    A = declared(
+      c(1, -91, -92),
+      labels = c(Yes = 1, DK = -91, NR = -92),
+      na_values = c(-91, -92)
+    ),
+    B = declared(
+      c(1, -92, -93),
+      labels = c(Yes = 1, DK = -92, REF = -93),
+      na_values = c(-92, -93)
+    )
+  )
+  dictionary <- recodeMissings(exported, to = "Stata", return_dictionary = TRUE)
+  dta_file <- tempfile(fileext = ".dta")
+  on.exit(unlink(dta_file), add = TRUE)
+
+  write_dta(exported, dta_file, dictionary = dictionary)
+  imported <- read_dta(dta_file)
+
+  expect_equal(names(attr(imported$A, "na_index", exact = TRUE)), c("-91", "-92"))
+  expect_equal(names(attr(imported$B, "na_index", exact = TRUE)), c("-92", "-93"))
+  expect_equal(unname(attr(imported$A, "labels", exact = TRUE)), c(1, -91, -92))
+  expect_equal(unname(attr(imported$B, "labels", exact = TRUE)), c(1, -92, -93))
+})

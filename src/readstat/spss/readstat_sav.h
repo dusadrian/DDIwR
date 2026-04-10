@@ -161,6 +161,6 @@ typedef struct ddiwr_sav_prepared_s {
 
 sav_ctx_t *sav_ctx_init(sav_file_header_record_t *header, readstat_io_t *io);
 void sav_ctx_free(sav_ctx_t *ctx);
-readstat_error_t ddiwr_sav_row_stream_info(const char *path, const char *input_encoding, ddiwr_sav_row_stream_info_t *out);
-readstat_error_t ddiwr_sav_prepare(const char *path, const char *input_encoding, ddiwr_sav_prepared_t *out);
-void ddiwr_sav_prepared_free(ddiwr_sav_prepared_t *prepared);
+readstat_error_t sav_row_stream_info(const char *path, const char *input_encoding, ddiwr_sav_row_stream_info_t *out);
+readstat_error_t sav_prepare(const char *path, const char *input_encoding, ddiwr_sav_prepared_t *out);
+void sav_prepared_free(ddiwr_sav_prepared_t *prepared);
