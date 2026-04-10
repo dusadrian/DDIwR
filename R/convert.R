@@ -553,9 +553,10 @@
         }
     }
 
-    variables <- collectRMetadata(data)
+    variables <- NULL
 
     if (tp_to$fileext == "XML") {
+        variables <- collectRMetadata(data)
 
         if (admisc::anyTagged(data)) {
             admisc::stopError("DDI does not support extended missing codes")
@@ -655,6 +656,7 @@
         write_sav(data, to)
     }
     else if (identical(tp_to$fileext, "DTA")) {
+        variables <- collectRMetadata(data)
         colnms <- colnames(data)
         arglist <- list(data = data)
 
@@ -748,15 +750,15 @@
     }
     else if (identical(tp_to$fileext, "RDS")) {
         if (declared) {
-            data <- declared::as.declared(data)
-            class(data) <- "data.frame"
-            saveRDS(data, to)
+            if (!all(vapply(data, declared::is.declared, logical(1)))) {
+                data <- declared::as.declared(data)
+                class(data) <- "data.frame"
+            }
         }
-        else {
-            saveRDS(data, to)
-        }
+        saveRDS(data, to)
     }
     else if (identical(tp_to$fileext, "XLSX")) {
+        variables <- collectRMetadata(data)
         var_labels <- sapply(variables, function(x) {
             lbl <- getElement(x, "label")
             if (is.null(lbl)) {
