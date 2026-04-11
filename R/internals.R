@@ -483,23 +483,24 @@ NULL
         )
     }
 
-    output <- lapply(from, function(x) {
-        result <- list(
-            classes = class(x)
-        )
+    output <- collectRMetadataC(from)
 
-        label <- attr(x, "label", exact = TRUE)
+    output <- lapply(seq_along(output), function(i) {
+        result <- output[[i]]
+        x <- from[[i]]
+        labels <- getElement(result, "labels")
+
+        label <- getElement(result, "label")
         if (!is.null(label)) {
             result[["label"]] <- cleanup(label)
         }
 
-        measurement <- attr(x, "measurement", exact = TRUE)
+        measurement <- getElement(result, "measurement")
         if (!is.null(measurement)) {
             result[["measurement"]] <- cleanup(measurement)
         }
 
-        labels <- lbls <- attr(x, "labels", exact = TRUE)
-        if (!is.null(labels)) {
+        if (!is.null(labels) && !(is.factor(x) && is.null(attr(x, "labels", exact = TRUE)))) {
             nms <- names(labels)
             if (is.character(labels)) {
                 labels <- cleanup(labels)
@@ -507,62 +508,20 @@ NULL
             names(labels) <- cleanup(nms)
             result[["labels"]] <- labels
         }
-        else if (is.factor(x)) {
-            xlevels <- levels(x)
-            # labels <- seq(length(xlevels))
-            # names(labels) <- xlevels
-            # result[["labels"]] <- labels
-            result[["labels"]] <- setNames(seq(length(xlevels)), xlevels)
-            x <- as.numeric(x)
-        }
 
-        na_values <- attr(x, "na_values", exact = TRUE)
-        if (!is.null(na_values)) {
-            # it should't have (tagged) NA values, but just in case
-            na_values <- na_values[!is.na(na_values)]
-            if (length(na_values) > 0) {
-                result$na_values <- na_values
-            }
-        }
-
-        result$na_range <- attr(x, "na_range", exact = TRUE)
         if (isTRUE(infer_type)) {
             result$type <- checkType(
                 x,
                 labels,
-                na_values,
-                result$na_range
+                getElement(result, "na_values"),
+                getElement(result, "na_range")
             )
         }
 
-
-        if (is.element("Date", getElement(result, "classes"))) {
-            result[["varFormat"]] <- "date"
-        }
-        else {
-            x <- ensure_format(x, type = "Stata")
-            format.stata <- attr(x, "format.stata", exact = TRUE)
-            format.spss <- attr(x, "format.spss", exact = TRUE)
-
-            if (is.null(format.spss)) {
-                format.spss <- stataToSPSSFormat(format.stata)
-                if (is.null(format.spss)) {
-                    x <- ensure_format(x, type = "SPSS")
-                    format.spss <- attr(x, "format.spss", exact = TRUE)
-                }
-                else {
-                    attr(x, "format.spss") <- format.spss
-                }
-            }
-
-            result[["varFormat"]] <- c(format.spss, format.stata)
-        }
-
-        result[["xmlang"]] <- attr(x, "xmlang", exact = TRUE)
-        result[["ID"]] <- attr(x, "ID", exact = TRUE)
-
-        return(result)
+        result
     })
+
+    names(output) <- names(from)
 
     return(output)
 }
@@ -3189,6 +3148,11 @@ makedfm <- function() {
         variables,
         as.logical(dates)
     )
+}
+
+#' @keywords internal
+`collectRMetadataC` <- function(from) {
+    .Call("collect_xml_metadata", from)
 }
 
 #' @keywords internal

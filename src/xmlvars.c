@@ -18,6 +18,23 @@ typedef struct {
     size_t cap;
 } ddiwr_strbuf;
 
+typedef struct {
+    SEXP x;
+    SEXP classes_attr;
+    SEXP label;
+    SEXP measurement;
+    SEXP labels;
+    SEXP levels;
+    SEXP na_values;
+    SEXP na_range;
+    SEXP xmlang;
+    SEXP id;
+    int factor_fallback;
+    int is_date;
+    char format_spss[32];
+    char format_stata[32];
+} xmlmeta_result;
+
 #ifndef _WIN32
 typedef struct {
     SEXP data;
@@ -43,6 +60,14 @@ typedef struct {
     int *cat_counts_arr;
     pthread_mutex_t mutex;
 } xmlstats_thread_ctx;
+
+typedef struct {
+    SEXP data;
+    xmlmeta_result *results;
+    R_xlen_t n;
+    R_xlen_t next_index;
+    pthread_mutex_t mutex;
+} xmlmeta_thread_ctx;
 #endif
 
 static SEXP getListElement(SEXP list, const char *name) {
@@ -64,6 +89,23 @@ static int is_whole_double(double x) {
         return 0;
     }
     return fabs(x - nearbyint(x)) < 1e-12;
+}
+
+static int class_has(SEXP classes, const char *target) {
+    R_xlen_t i = 0;
+
+    if (TYPEOF(classes) != STRSXP) {
+        return 0;
+    }
+
+    for (i = 0; i < XLENGTH(classes); i++) {
+        if (STRING_ELT(classes, i) != NA_STRING &&
+            strcmp(CHAR(STRING_ELT(classes, i)), target) == 0) {
+            return 1;
+        }
+    }
+
+    return 0;
 }
 
 static int digit_count_floor_abs(double x) {
@@ -118,6 +160,34 @@ static int parse_string_double(SEXP x, R_xlen_t i, double *out) {
     return 1;
 }
 
+static int vector_possible_numeric(SEXP x) {
+    R_xlen_t i = 0;
+    double tmp = 0.0;
+
+    if (x == R_NilValue) {
+        return 1;
+    }
+
+    switch(TYPEOF(x)) {
+        case REALSXP:
+        case INTSXP:
+        case LGLSXP:
+            return 1;
+        case STRSXP:
+            for (i = 0; i < XLENGTH(x); i++) {
+                if (STRING_ELT(x, i) == NA_STRING) {
+                    continue;
+                }
+                if (!parse_string_double(x, i, &tmp)) {
+                    return 0;
+                }
+            }
+            return 1;
+        default:
+            return 0;
+    }
+}
+
 static int sexp_as_double(SEXP x, R_xlen_t i, double *out) {
     switch(TYPEOF(x)) {
         case REALSXP:
@@ -141,6 +211,274 @@ static int sexp_as_double(SEXP x, R_xlen_t i, double *out) {
             return 0;
     }
 }
+
+static int string_width_sexp(SEXP x, R_xlen_t i) {
+    if (TYPEOF(x) != STRSXP || STRING_ELT(x, i) == NA_STRING) {
+        return 0;
+    }
+
+    return (int)strlen(CHAR(STRING_ELT(x, i)));
+}
+
+static int display_width_sexp(SEXP x, R_xlen_t i) {
+    char buf[128];
+
+    switch(TYPEOF(x)) {
+        case REALSXP:
+            if (ISNAN(REAL(x)[i])) {
+                return 0;
+            }
+            snprintf(buf, sizeof(buf), "%.15g", REAL(x)[i]);
+            return (int)strlen(buf);
+        case INTSXP:
+            if (INTEGER(x)[i] == NA_INTEGER) {
+                return 0;
+            }
+            snprintf(buf, sizeof(buf), "%d", INTEGER(x)[i]);
+            return (int)strlen(buf);
+        case LGLSXP:
+            if (LOGICAL(x)[i] == NA_LOGICAL) {
+                return 0;
+            }
+            return LOGICAL(x)[i] ? 4 : 5;
+        case STRSXP:
+            return string_width_sexp(x, i);
+        default:
+            return 0;
+    }
+}
+
+static void infer_formats(SEXP x, SEXP classes, SEXP labels, char *spss, size_t spss_sz, char *stata, size_t stata_sz, int *is_date) {
+    int pN = 0;
+    int allnax = 1;
+    int nullabels = labels == R_NilValue;
+    int decimals = 0;
+    int numeric_width = 1;
+    int maxvarchar = 0;
+    R_xlen_t i = 0;
+
+    *is_date = 0;
+
+    if (class_has(classes, "POSIXct")) {
+        snprintf(spss, spss_sz, "DATETIME");
+        snprintf(stata, stata_sz, "%%tc");
+        return;
+    }
+
+    if (class_has(classes, "Date")) {
+        *is_date = 1;
+        spss[0] = '\0';
+        stata[0] = '\0';
+        return;
+    }
+
+    if (class_has(classes, "hms")) {
+        snprintf(spss, spss_sz, "TIME");
+        snprintf(stata, stata_sz, "%%tc");
+        return;
+    }
+
+    pN = (TYPEOF(x) != STRSXP) && vector_possible_numeric(x);
+    if (!nullabels) {
+        pN = pN && vector_possible_numeric(labels);
+    }
+
+    for (i = 0; i < XLENGTH(x); i++) {
+        if (TYPEOF(x) == STRSXP) {
+            if (STRING_ELT(x, i) != NA_STRING) {
+                allnax = 0;
+                break;
+            }
+        }
+        else {
+            double tmp = 0.0;
+            if (sexp_as_double(x, i, &tmp)) {
+                allnax = 0;
+                break;
+            }
+        }
+    }
+
+    if (pN && !allnax) {
+        for (i = 0; i < XLENGTH(x); i++) {
+            double val = 0.0;
+            int width = 0;
+
+            if (!sexp_as_double(x, i, &val)) {
+                continue;
+            }
+
+            width = display_width_sexp(x, i);
+            if (width > numeric_width) {
+                numeric_width = width;
+            }
+
+            if (decimals < 3) {
+                int d = decimal_count(val);
+                if (d > decimals) {
+                    decimals = d > 3 ? 3 : d;
+                }
+            }
+        }
+    }
+
+    if (!pN && !allnax) {
+        for (i = 0; i < XLENGTH(x); i++) {
+            int width = string_width_sexp(x, i);
+            if (width > maxvarchar) {
+                maxvarchar = width;
+            }
+        }
+    }
+
+    if (!nullabels && !pN) {
+        for (i = 0; i < XLENGTH(labels); i++) {
+            int width = string_width_sexp(labels, i);
+            if (width > maxvarchar) {
+                maxvarchar = width;
+            }
+        }
+    }
+
+    if (pN) {
+        snprintf(spss, spss_sz, "F%d.%d", numeric_width, decimals);
+        snprintf(stata, stata_sz, "%%%d.%dg", numeric_width, decimals);
+    }
+    else {
+        int width = maxvarchar > 0 ? maxvarchar : 1;
+        snprintf(spss, spss_sz, "A%d", width);
+        snprintf(stata, stata_sz, "%%%ds", width);
+    }
+}
+
+static SEXP sanitize_na_values(SEXP na_values) {
+    SEXP out = R_NilValue;
+    R_xlen_t i = 0;
+    R_xlen_t n = 0;
+
+    if (na_values == R_NilValue) {
+        return R_NilValue;
+    }
+
+    switch(TYPEOF(na_values)) {
+        case REALSXP:
+            for (i = 0; i < XLENGTH(na_values); i++) {
+                if (!ISNAN(REAL(na_values)[i])) {
+                    n++;
+                }
+            }
+            if (n == 0) {
+                return R_NilValue;
+            }
+            PROTECT(out = allocVector(REALSXP, n));
+            n = 0;
+            for (i = 0; i < XLENGTH(na_values); i++) {
+                if (!ISNAN(REAL(na_values)[i])) {
+                    REAL(out)[n++] = REAL(na_values)[i];
+                }
+            }
+            UNPROTECT(1);
+            return out;
+        case INTSXP:
+        case LGLSXP:
+            for (i = 0; i < XLENGTH(na_values); i++) {
+                int val = INTEGER(na_values)[i];
+                if (val != NA_INTEGER) {
+                    n++;
+                }
+            }
+            if (n == 0) {
+                return R_NilValue;
+            }
+            PROTECT(out = allocVector(TYPEOF(na_values), n));
+            n = 0;
+            for (i = 0; i < XLENGTH(na_values); i++) {
+                int val = INTEGER(na_values)[i];
+                if (val != NA_INTEGER) {
+                    INTEGER(out)[n++] = val;
+                }
+            }
+            UNPROTECT(1);
+            return out;
+        case STRSXP:
+            for (i = 0; i < XLENGTH(na_values); i++) {
+                if (STRING_ELT(na_values, i) != NA_STRING) {
+                    n++;
+                }
+            }
+            if (n == 0) {
+                return R_NilValue;
+            }
+            PROTECT(out = allocVector(STRSXP, n));
+            n = 0;
+            for (i = 0; i < XLENGTH(na_values); i++) {
+                if (STRING_ELT(na_values, i) != NA_STRING) {
+                    SET_STRING_ELT(out, n++, STRING_ELT(na_values, i));
+                }
+            }
+            UNPROTECT(1);
+            return out;
+        default:
+            return na_values;
+    }
+}
+
+static void xmlmeta_process_variable(SEXP data, xmlmeta_result *results, R_xlen_t i) {
+    SEXP x = VECTOR_ELT(data, i);
+    SEXP classes = getAttrib(x, R_ClassSymbol);
+    SEXP labels = getAttrib(x, Rf_install("labels"));
+    SEXP levels = getAttrib(x, R_LevelsSymbol);
+
+    results[i].x = x;
+    results[i].classes_attr = classes;
+    results[i].label = getAttrib(x, Rf_install("label"));
+    results[i].measurement = getAttrib(x, Rf_install("measurement"));
+    results[i].labels = labels;
+    results[i].levels = R_NilValue;
+    results[i].na_values = getAttrib(x, Rf_install("na_values"));
+    results[i].na_range = getAttrib(x, Rf_install("na_range"));
+    results[i].xmlang = getAttrib(x, Rf_install("xmlang"));
+    results[i].id = getAttrib(x, Rf_install("ID"));
+    results[i].factor_fallback = 0;
+
+    if (labels == R_NilValue && class_has(classes, "factor") && TYPEOF(levels) == STRSXP) {
+        results[i].factor_fallback = 1;
+        results[i].levels = levels;
+    }
+
+    infer_formats(
+        x,
+        classes,
+        labels,
+        results[i].format_spss,
+        sizeof(results[i].format_spss),
+        results[i].format_stata,
+        sizeof(results[i].format_stata),
+        &results[i].is_date
+    );
+}
+
+#ifndef _WIN32
+static void *xmlmeta_worker_main(void *arg) {
+    xmlmeta_thread_ctx *ctx = (xmlmeta_thread_ctx *)arg;
+
+    for (;;) {
+        R_xlen_t i = 0;
+
+        pthread_mutex_lock(&ctx->mutex);
+        if (ctx->next_index >= ctx->n) {
+            pthread_mutex_unlock(&ctx->mutex);
+            break;
+        }
+        i = ctx->next_index++;
+        pthread_mutex_unlock(&ctx->mutex);
+
+        xmlmeta_process_variable(ctx->data, ctx->results, i);
+    }
+
+    return NULL;
+}
+#endif
 
 static int char_equal_sexp(SEXP x, R_xlen_t i, SEXP labels, R_xlen_t j) {
     if (TYPEOF(x) != STRSXP || TYPEOF(labels) != STRSXP) {
@@ -800,6 +1138,174 @@ SEXP collect_datadscr_stats(SEXP data, SEXP variables, SEXP dates) {
     return out;
 }
 
+SEXP collect_xml_metadata(SEXP data) {
+    R_xlen_t i = 0;
+    R_xlen_t n = 0;
+    SEXP out = R_NilValue;
+    SEXP out_names = R_NilValue;
+    xmlmeta_result *results = NULL;
+
+    if (!Rf_isNewList(data)) {
+        Rf_error("Argument 'data' must be a list.");
+    }
+
+    n = XLENGTH(data);
+    results = (xmlmeta_result *)calloc((size_t)n, sizeof(xmlmeta_result));
+    if (results == NULL) {
+        Rf_error("Failed to allocate metadata buffers.");
+    }
+
+#ifndef _WIN32
+    {
+        int nworkers = xmlstats_available_threads();
+        if (nworkers > 1 && n > 1) {
+            pthread_t *threads = (pthread_t *)calloc((size_t)nworkers, sizeof(pthread_t));
+            xmlmeta_thread_ctx ctx;
+            int t = 0;
+
+            if (threads == NULL) {
+                free(results);
+                Rf_error("Failed to allocate metadata worker threads.");
+            }
+
+            memset(&ctx, 0, sizeof(ctx));
+            ctx.data = data;
+            ctx.results = results;
+            ctx.n = n;
+            ctx.next_index = 0;
+            pthread_mutex_init(&ctx.mutex, NULL);
+
+            for (t = 0; t < nworkers; ++t) {
+                pthread_create(&threads[t], NULL, xmlmeta_worker_main, &ctx);
+            }
+            for (t = 0; t < nworkers; ++t) {
+                pthread_join(threads[t], NULL);
+            }
+            pthread_mutex_destroy(&ctx.mutex);
+            free(threads);
+        }
+        else {
+            for (i = 0; i < n; i++) {
+                xmlmeta_process_variable(data, results, i);
+            }
+        }
+    }
+#else
+    for (i = 0; i < n; i++) {
+        xmlmeta_process_variable(data, results, i);
+    }
+#endif
+
+    PROTECT(out = allocVector(VECSXP, n));
+    PROTECT(out_names = getAttrib(data, R_NamesSymbol));
+
+    for (i = 0; i < n; i++) {
+        SEXP item = R_NilValue;
+        SEXP item_names = R_NilValue;
+        SEXP classes = results[i].classes_attr;
+        int idx = 0;
+        int fields = 5; /* classes, na_range, varFormat, xmlang, ID */
+        int has_label = results[i].label != R_NilValue;
+        int has_measurement = results[i].measurement != R_NilValue;
+        int has_labels = results[i].labels != R_NilValue || results[i].factor_fallback;
+        int has_na_values = results[i].na_values != R_NilValue;
+
+        if (has_label) fields++;
+        if (has_measurement) fields++;
+        if (has_labels) fields++;
+        if (has_na_values) fields++;
+
+        PROTECT(item = allocVector(VECSXP, fields));
+        PROTECT(item_names = allocVector(STRSXP, fields));
+
+        if (classes == R_NilValue) {
+            PROTECT(classes = allocVector(STRSXP, 1));
+            SET_STRING_ELT(classes, 0, mkChar(type2char(TYPEOF(results[i].x))));
+        }
+        else {
+            PROTECT(classes);
+        }
+        SET_VECTOR_ELT(item, idx, classes);
+        SET_STRING_ELT(item_names, idx++, mkChar("classes"));
+
+        if (has_label) {
+            SET_VECTOR_ELT(item, idx, results[i].label);
+            SET_STRING_ELT(item_names, idx++, mkChar("label"));
+        }
+
+        if (has_measurement) {
+            SET_VECTOR_ELT(item, idx, results[i].measurement);
+            SET_STRING_ELT(item_names, idx++, mkChar("measurement"));
+        }
+
+        if (has_labels) {
+            SEXP labels = results[i].labels;
+            if (results[i].factor_fallback) {
+                R_xlen_t k = XLENGTH(results[i].levels);
+                SEXP fac_labels = PROTECT(allocVector(INTSXP, k));
+                SEXP fac_names = PROTECT(allocVector(STRSXP, k));
+                R_xlen_t j = 0;
+
+                for (j = 0; j < k; j++) {
+                    INTEGER(fac_labels)[j] = (int)(j + 1);
+                    SET_STRING_ELT(fac_names, j, STRING_ELT(results[i].levels, j));
+                }
+                setAttrib(fac_labels, R_NamesSymbol, fac_names);
+                labels = fac_labels;
+            }
+            SET_VECTOR_ELT(item, idx, labels);
+            SET_STRING_ELT(item_names, idx++, mkChar("labels"));
+            if (results[i].factor_fallback) {
+                UNPROTECT(2);
+            }
+        }
+
+        if (has_na_values) {
+            SEXP na_values = PROTECT(sanitize_na_values(results[i].na_values));
+            if (na_values != R_NilValue) {
+                SET_VECTOR_ELT(item, idx, na_values);
+                SET_STRING_ELT(item_names, idx++, mkChar("na_values"));
+            }
+            UNPROTECT(1);
+        }
+
+        SET_VECTOR_ELT(item, idx, results[i].na_range);
+        SET_STRING_ELT(item_names, idx++, mkChar("na_range"));
+
+        if (results[i].is_date) {
+            SEXP fmt = PROTECT(mkString("date"));
+            SET_VECTOR_ELT(item, idx, fmt);
+            UNPROTECT(1);
+        }
+        else {
+            SEXP fmt = PROTECT(allocVector(STRSXP, 2));
+            SET_STRING_ELT(fmt, 0, mkChar(results[i].format_spss));
+            SET_STRING_ELT(fmt, 1, mkChar(results[i].format_stata));
+            SET_VECTOR_ELT(item, idx, fmt);
+            UNPROTECT(1);
+        }
+        SET_STRING_ELT(item_names, idx++, mkChar("varFormat"));
+
+        SET_VECTOR_ELT(item, idx, results[i].xmlang);
+        SET_STRING_ELT(item_names, idx++, mkChar("xmlang"));
+
+        SET_VECTOR_ELT(item, idx, results[i].id);
+        SET_STRING_ELT(item_names, idx++, mkChar("ID"));
+
+        setAttrib(item, R_NamesSymbol, item_names);
+        SET_VECTOR_ELT(out, i, item);
+        UNPROTECT(3);
+    }
+
+    if (TYPEOF(out_names) == STRSXP && XLENGTH(out_names) == n) {
+        setAttrib(out, R_NamesSymbol, out_names);
+    }
+
+    free(results);
+    UNPROTECT(2);
+    return out;
+}
+
 SEXP label_freqs(SEXP x, SEXP labels, SEXP wt) {
     R_xlen_t n = XLENGTH(x);
     R_xlen_t k = XLENGTH(labels);
@@ -971,40 +1477,6 @@ static void sb_append_indent(ddiwr_strbuf *sb, int level, int indent_width) {
         sb->buf[sb->len++] = ' ';
     }
     sb->buf[sb->len] = '\0';
-}
-
-static const char *find_placeholder(const char *xml, const char **matched, size_t *mlen) {
-    const char *p = strstr(xml, "<dataDscr/>");
-    if (p != NULL) {
-        *matched = "<dataDscr/>";
-        *mlen = strlen(*matched);
-        return p;
-    }
-
-    p = strstr(xml, "<dataDscr />");
-    if (p != NULL) {
-        *matched = "<dataDscr />";
-        *mlen = strlen(*matched);
-        return p;
-    }
-
-    p = strstr(xml, "<d1:dataDscr/>");
-    if (p != NULL) {
-        *matched = "<d1:dataDscr/>";
-        *mlen = strlen(*matched);
-        return p;
-    }
-
-    p = strstr(xml, "<d1:dataDscr />");
-    if (p != NULL) {
-        *matched = "<d1:dataDscr />";
-        *mlen = strlen(*matched);
-        return p;
-    }
-
-    *matched = NULL;
-    *mlen = 0;
-    return NULL;
 }
 
 SEXP write_text_file(SEXP path, SEXP text) {
