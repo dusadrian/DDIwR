@@ -111,24 +111,27 @@
             )
         )) {
             if (!hasChildren(codeBook, "stdyDscr")) {
-                addChildren(
+                codeBook <- addChildren(
                     makeElement("stdyDscr", fill = TRUE, ... = ...),
-                    to = codeBook
+                    to = codeBook,
+                    overwrite = FALSE
                 )
             }
 
             if (!hasChildren(codeBook, "otherMat")) {
-                addChildren(
+                codeBook <- addChildren(
                     makeElement("otherMat", fill = TRUE, ... = ...),
-                    to = codeBook
+                    to = codeBook,
+                    overwrite = FALSE
                 )
             }
         }
 
         if (!hasChildren(codeBook, "docDscr")) {
-            addChildren(
+            codeBook <- addChildren(
                 makeElement("docDscr", fill = TRUE, ... = ...),
-                to = codeBook
+                to = codeBook,
+                overwrite = FALSE
             )
         }
     }
@@ -155,7 +158,11 @@
         data <- dots$data
         embed <- dots$embed
 
-        addChildren(makeElement("dataDscr"), to = codeBook)
+        codeBook <- addChildren(
+            makeElement("dataDscr"),
+            to = codeBook,
+            overwrite = FALSE
+        )
 
         var_info <- makeXMLvars(DDI = FALSE, ... = ...)
         var_xml <- var_info$xml
@@ -195,7 +202,11 @@
             for (i in seq(length(uuid))) {
                 attr(data[[i]], "ID") <- uuid[i]
             }
-            addChildren(makeDataNotes(data), to = codeBook$fileDscr)
+            codeBook$fileDscr <- addChildren(
+                makeDataNotes(data),
+                to = codeBook$fileDscr,
+                overwrite = FALSE
+            )
         } else if (!isFALSE(dots$csv)) {
             tp_file <- treatPath(to, type = "*", single = TRUE, check = FALSE)
             write.table(

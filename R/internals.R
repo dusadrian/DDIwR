@@ -1400,11 +1400,6 @@ NULL
             admisc::wholeNumeric(unclass(x))
         })
 
-        aN <- lapply(
-            subset(data, select = pN),
-            function(x) admisc::asNumeric(unclass(x))
-        )
-
         if (!is.null(wt)) {
             if (!is.character(wt) || length(wt) != 1) {
                 admisc::stopError("The weight variable 'wt' should be a character scalar.")
