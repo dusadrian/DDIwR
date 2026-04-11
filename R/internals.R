@@ -198,23 +198,43 @@ NULL
         labels <- labels[!is.element(labels, names(labels))]
     }
 
-    x <- declared::undeclare(x, drop = TRUE)
-    uniquevals <- unique(x)
-    all_nas <- declared:::all_missing_values(
-        x = unclass(x),
-        labels = labels,
-        na_values = na_values,
-        na_range = na_range
-    )
+    if (metadata) {
+        x <- unclass(x)
+    }
+    else if (is.factor(x)) {
+        x <- as.numeric(x)
+    }
+
+    missing_mask <- is.na(x)
+
+    if (length(na_values) > 0) {
+        missing_mask <- missing_mask | x %in% na_values
+    }
+
+    if (!is.null(na_range) && is.numeric(x)) {
+        na_range <- range(na_range)
+        missing_mask <- missing_mask | (x >= na_range[1] & x <= na_range[2])
+    }
 
     if (length(labels) > 0) {
+        labels_missing <- rep(FALSE, length(labels))
+
+        if (length(na_values) > 0) {
+            labels_missing <- labels_missing | labels %in% na_values
+        }
+
+        if (!is.null(na_range) && is.numeric(labels)) {
+            na_range <- range(na_range)
+            labels_missing <- labels_missing |
+                (labels >= na_range[1] & labels <= na_range[2])
+        }
 
         # possibly a categorical variable
         # but even numeric variables can have labels (for missing values)
         # check the unique values without the missing ones
-        except_na <- setdiff(uniquevals, all_nas)
+        except_na <- unique(x[!missing_mask])
 
-        if (all(is.element(labels, all_nas))) {
+        if (all(labels_missing)) {
             if (xnumeric) {
                 if (length(except_na) < 15) {
                     return("numcat")
@@ -252,7 +272,7 @@ NULL
 
     if (xnumeric && is.numeric(x)) {
         # pure numerical variable with no labels at all
-        if (length(uniquevals) < 15) {
+        if (length(unique(x[!missing_mask])) < 15) {
             return("numcat")
         }
         else {
