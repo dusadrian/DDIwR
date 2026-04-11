@@ -12,6 +12,8 @@ convert(
   recode = TRUE,
   encoding = "UTF-8",
   csv = NULL,
+  n_max = -1L,
+  skip = 0L,
   ...
 )
 }
@@ -31,6 +33,12 @@ categorical variables}
 \item{encoding}{The character encoding used to read a file}
 
 \item{csv}{Complex argument, see the Details section}
+
+\item{n_max}{Integer, maximum number of rows to import from SPSS, Stata or
+SAS files}
+
+\item{skip}{Integer, number of rows to skip when importing from SPSS, Stata
+or SAS files}
 
 \item{...}{Additional parameters passed to other functions, see the
 Details section}
@@ -65,6 +73,12 @@ Additional parameters can be specified via the three dots argument
 \bold{\pkg{haven}} and \bold{\pkg{readxl}}. For instance the function
 \bold{\code{\link[haven]{write_dta}()}} has an additional argument called
 \strong{\code{version}} when writing a Stata file.
+
+The formal arguments \strong{\code{n_max}} and \strong{\code{skip}} are used only when importing
+foreign data files through the direct ReadStat readers, namely SPSS (\code{.sav},
+\code{.zsav}, \code{.por}), Stata (\code{.dta}) and SAS (\code{.sas7bdat}, \code{.xpt}). They can be
+used to read only the first \code{n_max} rows or to import large files in batches
+by skipping the first \code{skip} rows.
 
 The most important argument to consider is called \strong{\code{user_na}}, part of
 the function \bold{\code{\link[haven]{read_sav}()}}. Defaulted to \code{FALSE} in

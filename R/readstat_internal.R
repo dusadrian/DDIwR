@@ -266,7 +266,7 @@ prepare_foreign_export_missings <- function(
     data
 }
 
-read_sav <- function(file, encoding = NULL, user_na = FALSE) {
+read_sav <- function(file, encoding = NULL, user_na = FALSE, n_max = -1L, skip = 0L) {
     if (is.null(encoding)) {
         encoding <- ""
     }
@@ -276,7 +276,8 @@ read_sav <- function(file, encoding = NULL, user_na = FALSE) {
     data <- NULL
 
     if (parallel_enabled && is.numeric(num_threads) && length(num_threads) == 1L &&
-        !is.na(num_threads) && as.integer(num_threads) != 1L) {
+        !is.na(num_threads) && as.integer(num_threads) != 1L &&
+        identical(as.integer(n_max), -1L) && identical(as.integer(skip), 0L)) {
         data <- tryCatch(
             .Call(
                 "declared_df_parse_sav_file_parallel_prototype",
@@ -297,8 +298,8 @@ read_sav <- function(file, encoding = NULL, user_na = FALSE) {
             encoding,
             user_na,
             integer(),
-            -1L,
-            0L,
+            as.integer(n_max),
+            as.integer(skip),
             PACKAGE = "DDIwR"
         )
     }
@@ -330,22 +331,22 @@ read_sav_parallel_prototype <- function(file, encoding = NULL, user_na = FALSE, 
         as_declared()
 }
 
-read_por <- function(file, user_na = FALSE) {
+read_por <- function(file, user_na = FALSE, n_max = -1L, skip = 0L) {
     data <- .Call(
         "declared_df_parse_por_file",
         source_file(file),
         "",
         user_na,
         integer(),
-        -1L,
-        0L,
+        as.integer(n_max),
+        as.integer(skip),
         PACKAGE = "DDIwR"
     )
 
     as_declared(data)
 }
 
-read_dta <- function(file, encoding = NULL, num_threads = getOption("DDIwR.readstat_threads", NULL)) {
+read_dta <- function(file, encoding = NULL, n_max = -1L, skip = 0L, num_threads = getOption("DDIwR.readstat_threads", NULL)) {
     if (is.null(encoding)) {
         encoding <- ""
     }
@@ -358,8 +359,8 @@ read_dta <- function(file, encoding = NULL, num_threads = getOption("DDIwR.reads
         source_file(file),
         encoding,
         integer(),
-        -1L,
-        0L,
+        as.integer(n_max),
+        as.integer(skip),
         as.integer(num_threads),
         PACKAGE = "DDIwR"
     )
@@ -367,7 +368,7 @@ read_dta <- function(file, encoding = NULL, num_threads = getOption("DDIwR.reads
     as_declared(data)
 }
 
-read_sas <- function(data_file, catalog_file = NULL, encoding = NULL, catalog_encoding = encoding) {
+read_sas <- function(data_file, catalog_file = NULL, encoding = NULL, catalog_encoding = encoding, n_max = -1L, skip = 0L) {
     if (is.null(encoding)) {
         encoding <- ""
     }
@@ -384,21 +385,21 @@ read_sas <- function(data_file, catalog_file = NULL, encoding = NULL, catalog_en
         encoding,
         catalog_encoding,
         integer(),
-        -1L,
-        0L,
+        as.integer(n_max),
+        as.integer(skip),
         PACKAGE = "DDIwR"
     )
 
     as_declared(data)
 }
 
-read_xpt <- function(file) {
+read_xpt <- function(file, n_max = -1L, skip = 0L) {
     data <- .Call(
         "declared_df_parse_xpt_file",
         source_file(file),
         integer(),
-        -1L,
-        0L,
+        as.integer(n_max),
+        as.integer(skip),
         PACKAGE = "DDIwR"
     )
 

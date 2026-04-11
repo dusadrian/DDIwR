@@ -146,6 +146,58 @@ test_that("convert() can auto-build a harmonized dictionary for Stata export", {
   expect_equal(unname(attr(imported$B, "labels", exact = TRUE)), c(1, -92, -93))
 })
 
+test_that("read_dta() can read in batches with n_max and skip", {
+  dta_file <- tempfile(fileext = ".dta")
+  on.exit(unlink(dta_file), add = TRUE)
+
+  exported <- data.frame(
+    id = 1:10,
+    score = seq(10, 100, by = 10)
+  )
+
+  haven::write_dta(exported, dta_file)
+
+  imported <- read_dta(dta_file, n_max = 3, skip = 4)
+
+  expect_equal(as.numeric(imported$id), 5:7)
+  expect_equal(as.numeric(imported$score), c(50, 60, 70))
+})
+
+test_that("read_dta() preserves metadata when n_max is zero", {
+  dta_file <- tempfile(fileext = ".dta")
+  on.exit(unlink(dta_file), add = TRUE)
+
+  exported <- data.frame(
+    labelled = haven::labelled(c(1, 2, 1), c(Yes = 1, No = 2))
+  )
+
+  haven::write_dta(exported, dta_file)
+
+  imported <- read_dta(dta_file, n_max = 0)
+
+  expect_equal(nrow(imported), 0)
+  expect_equal(names(imported), "labelled")
+  expect_equal(unname(attr(imported$labelled, "labels", exact = TRUE)), c(1, 2))
+  expect_equal(names(attr(imported$labelled, "labels", exact = TRUE)), c("Yes", "No"))
+})
+
+test_that("convert() forwards n_max and skip to foreign import readers", {
+  dta_file <- tempfile(fileext = ".dta")
+  on.exit(unlink(dta_file), add = TRUE)
+
+  exported <- data.frame(
+    id = 1:10,
+    score = seq(10, 100, by = 10)
+  )
+
+  haven::write_dta(exported, dta_file)
+
+  imported <- convert(dta_file, n_max = 3, skip = 4, recode = FALSE)
+
+  expect_equal(as.numeric(imported$id), 5:7)
+  expect_equal(as.numeric(imported$score), c(50, 60, 70))
+})
+
 test_that("convert() falls back to per-variable recoding when harmonized Stata export overflows", {
   manymissings <- seq(-950, -91)
   exported <- data.frame(

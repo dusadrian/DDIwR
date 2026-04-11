@@ -31,6 +31,12 @@
 #' \bold{\code{\link[haven]{write_dta}()}} has an additional argument called
 #' **`version`** when writing a Stata file.
 #'
+#' The formal arguments **`n_max`** and **`skip`** are used only when importing
+#' foreign data files through the direct ReadStat readers, namely SPSS (`.sav`,
+#' `.zsav`, `.por`), Stata (`.dta`) and SAS (`.sas7bdat`, `.xpt`). They can be
+#' used to read only the first `n_max` rows or to import large files in batches
+#' by skipping the first `skip` rows.
+#'
 #' The most important argument to consider is called **`user_na`**, part of
 #' the function \bold{\code{\link[haven]{read_sav}()}}. Defaulted to `FALSE` in
 #' package \bold{\pkg{haven}}, in package \bold{\pkg{DDIwR}} it is used as
@@ -158,6 +164,10 @@
 #' @param recode Logical, recode missing values
 #' @param encoding The character encoding used to read a file
 #' @param csv Complex argument, see the Details section
+#' @param n_max Integer, maximum number of rows to import from SPSS, Stata or
+#' SAS files
+#' @param skip Integer, number of rows to skip when importing from SPSS, Stata
+#' or SAS files
 #' @param ... Additional parameters passed to other functions, see the
 #' Details section
 #'
@@ -165,7 +175,7 @@
 
 `convert` <- function(
     from, to = NULL, declared = TRUE, chartonum = FALSE, recode = TRUE,
-    encoding = "UTF-8", csv = NULL, ...
+    encoding = "UTF-8", csv = NULL, n_max = -1L, skip = 0L, ...
 ) {
 
     if (missing(from)) {
@@ -465,6 +475,8 @@
         arglist$file <- from
         arglist$user_na <- !isFALSE(dots$user_na)
         arglist$encoding <- encoding
+        arglist$n_max <- n_max
+        arglist$skip <- skip
         tc <- admisc::tryCatchWEM(
             data <- do.call(read_sav, arglist)
         )
@@ -479,6 +491,8 @@
         arglist <- dots[is.element(names(dots), fargs)]
         arglist$file <- from
         arglist$user_na <- !isFALSE(dots$user_na)
+        arglist$n_max <- n_max
+        arglist$skip <- skip
         data <- do.call(read_por, arglist)
     }
     else if (tp_from$fileext == "DTA") {
@@ -486,6 +500,8 @@
         arglist <- dots[is.element(names(dots), fargs)]
         arglist$file <- from
         arglist$encoding <- encoding
+        arglist$n_max <- n_max
+        arglist$skip <- skip
         data <- do.call(read_dta, arglist)
 
         # return(list(data = data, to = to, dictionary = dictionary, chartonum = chartonum, to_declared = FALSE, error_null = FALSE))
@@ -505,6 +521,8 @@
         arglist <- dots[is.element(names(dots), fargs)]
         arglist$data_file <- from
         arglist$encoding <- encoding
+        arglist$n_max <- n_max
+        arglist$skip <- skip
 
         if (is.null(arglist$catalog_file)) {
             cats <- treatPath(tp_from$completePath, type = "sas7bcat")
@@ -533,6 +551,8 @@
         fargs <- names(formals(read_xpt))
         arglist <- dots[is.element(names(dots), fargs)]
         arglist$file <- from
+        arglist$n_max <- n_max
+        arglist$skip <- skip
         # arglist$encoding <- encoding
         data <- do.call(read_xpt, arglist)
 
