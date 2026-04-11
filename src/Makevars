@@ -116,5 +116,5 @@ OBJECTS = \
 	sc_parallel_read.o \
 	tagged_na.o
 
-PKG_CFLAGS =  -Ireadstat -DHAVE_ZLIB -fopenmp
-PKG_LIBS = -lz -fopenmp /opt/homebrew/opt/libomp/lib/libomp.dylib -Wl,-rpath,/opt/homebrew/opt/libomp/lib
+PKG_CFLAGS =  -Ireadstat -DHAVE_ZLIB
+PKG_LIBS = -lz

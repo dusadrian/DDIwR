@@ -6,11 +6,10 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <math.h>
-#ifdef _OPENMP
-#ifdef match
-#undef match
-#endif
-#include <omp.h>
+#include <limits.h>
+#ifndef _WIN32
+#include <pthread.h>
+#include <unistd.h>
 #endif
 
 typedef struct {
@@ -18,6 +17,33 @@ typedef struct {
     size_t len;
     size_t cap;
 } ddiwr_strbuf;
+
+#ifndef _WIN32
+typedef struct {
+    SEXP data;
+    SEXP variables;
+    SEXP dates;
+    SEXP var_dcml;
+    SEXP var_width;
+    SEXP range_units;
+    SEXP val_min;
+    SEXP val_max;
+    SEXP stat_min;
+    SEXP stat_max;
+    SEXP stat_mean;
+    SEXP stat_medn;
+    SEXP stat_stdev;
+    SEXP sum_valid;
+    SEXP sum_invalid;
+    SEXP cat_freq;
+    R_xlen_t n;
+    R_xlen_t next_index;
+    R_xlen_t *cat_offsets;
+    R_xlen_t **cat_label_idx_arr;
+    int *cat_counts_arr;
+    pthread_mutex_t mutex;
+} xmlstats_thread_ctx;
+#endif
 
 static SEXP getListElement(SEXP list, const char *name) {
     SEXP names = getAttrib(list, R_NamesSymbol);
@@ -235,6 +261,268 @@ static int double_matches_label_value(double value, SEXP labels) {
     return 0;
 }
 
+#ifndef _WIN32
+static int xmlstats_available_threads(void) {
+    long nproc = sysconf(_SC_NPROCESSORS_ONLN);
+    if (nproc < 1) {
+        nproc = 1;
+    }
+    if (nproc > INT_MAX) {
+        nproc = INT_MAX;
+    }
+    return (int)nproc;
+}
+#endif
+
+static void xmlstats_process_variable(
+    SEXP data,
+    SEXP variables,
+    SEXP dates,
+    SEXP var_dcml,
+    SEXP var_width,
+    SEXP range_units,
+    SEXP val_min,
+    SEXP val_max,
+    SEXP stat_min,
+    SEXP stat_max,
+    SEXP stat_mean,
+    SEXP stat_medn,
+    SEXP stat_stdev,
+    SEXP sum_valid,
+    SEXP sum_invalid,
+    SEXP cat_freq,
+    R_xlen_t *cat_offsets,
+    R_xlen_t **cat_label_idx_arr,
+    int *cat_counts_arr,
+    R_xlen_t i
+) {
+    SEXP x = VECTOR_ELT(data, i);
+    SEXP metadata = VECTOR_ELT(variables, i);
+    SEXP labels = getListElement(metadata, "labels");
+    SEXP na_values = getListElement(metadata, "na_values");
+    SEXP na_range = getListElement(metadata, "na_range");
+    SEXP type = getListElement(metadata, "type");
+    R_xlen_t len = XLENGTH(x);
+    R_xlen_t valid_n = 0;
+    R_xlen_t valid_obs = 0;
+    R_xlen_t invalid_n = 0;
+    R_xlen_t j = 0;
+    int numericish = 1;
+    int whole = 1;
+    int max_dcml = 0;
+    int max_width = 1;
+    double *vals = NULL;
+    double minv = 0.0, maxv = 0.0;
+    double mean = 0.0, m2 = 0.0;
+    int printnum = 0;
+    int has_type_num = 0;
+    int date_var = LOGICAL(dates)[i] == TRUE;
+    int has_labels = labels != R_NilValue;
+    int cat_count = cat_counts_arr[i];
+    R_xlen_t *cat_label_idx = cat_label_idx_arr[i];
+    double distinct_nonlabel[5];
+    int distinct_nonlabel_n = 0;
+    R_xlen_t cat_offset = cat_offsets[i];
+
+    if (!(TYPEOF(x) == REALSXP || TYPEOF(x) == INTSXP || TYPEOF(x) == LGLSXP || TYPEOF(x) == STRSXP)) {
+        numericish = 0;
+    }
+
+    if (type != R_NilValue && TYPEOF(type) == STRSXP && XLENGTH(type) > 0) {
+        const char *ct = CHAR(STRING_ELT(type, 0));
+        if (strstr(ct, "num") != NULL) {
+            has_type_num = 1;
+        }
+    }
+
+    if (numericish) {
+        vals = (double *)malloc((size_t)len * sizeof(double));
+        if (vals == NULL) {
+            return;
+        }
+    }
+
+    for (j = 0; j < len; j++) {
+        int is_invalid = 0;
+        double val = 0.0;
+        R_xlen_t row = j;
+
+        if (TYPEOF(x) == STRSXP) {
+            is_invalid = (STRING_ELT(x, row) == NA_STRING);
+        } else if (TYPEOF(x) == REALSXP) {
+            is_invalid = ISNAN(REAL(x)[row]);
+        } else if (TYPEOF(x) == INTSXP) {
+            is_invalid = INTEGER(x)[row] == NA_INTEGER;
+        } else if (TYPEOF(x) == LGLSXP) {
+            is_invalid = LOGICAL(x)[row] == NA_LOGICAL;
+        } else {
+            is_invalid = 1;
+        }
+
+        if (has_labels) {
+            R_xlen_t cat_i = 0;
+            for (cat_i = 0; cat_i < cat_count; cat_i++) {
+                if (value_matches_label(x, row, labels, cat_label_idx[cat_i])) {
+                    REAL(cat_freq)[cat_offset + cat_i] += 1.0;
+                    break;
+                }
+            }
+        }
+
+        if (!is_invalid && (value_in_na_values(x, row, na_values) || value_in_na_range(x, row, na_range))) {
+            is_invalid = 1;
+        }
+
+        if (is_invalid) {
+            invalid_n++;
+            continue;
+        }
+
+        valid_obs++;
+
+        if (!numericish || !sexp_as_double(x, row, &val)) {
+            numericish = 0;
+            continue;
+        }
+
+        vals[valid_n] = val;
+        if (valid_n == 0) {
+            minv = maxv = val;
+        } else {
+            if (val < minv) minv = val;
+            if (val > maxv) maxv = val;
+        }
+
+        if (!is_whole_double(val)) {
+            whole = 0;
+        }
+        if (decimal_count(val) > max_dcml) {
+            max_dcml = decimal_count(val);
+        }
+        if (digit_count_floor_abs(val) > max_width) {
+            max_width = digit_count_floor_abs(val);
+        }
+
+        if (!double_matches_label_value(val, labels) && distinct_nonlabel_n < 5) {
+            int seen = 0;
+            int d = 0;
+            for (d = 0; d < distinct_nonlabel_n; d++) {
+                if (distinct_nonlabel[d] == val) {
+                    seen = 1;
+                    break;
+                }
+            }
+            if (!seen) {
+                distinct_nonlabel[distinct_nonlabel_n++] = val;
+            }
+        }
+
+        valid_n++;
+    }
+
+    REAL(sum_valid)[i] = (double)valid_obs;
+    REAL(sum_invalid)[i] = (double)invalid_n;
+
+    if (numericish && valid_n > 0) {
+        REAL(var_dcml)[i] = (double)max_dcml;
+        REAL(var_width)[i] = (double)max_width;
+        SET_STRING_ELT(range_units, i, mkChar(whole ? "INT" : "REAL"));
+
+        if (!date_var && valid_n > 1) {
+            REAL(val_min)[i] = minv;
+            REAL(val_max)[i] = maxv;
+
+            printnum = distinct_nonlabel_n > 4 || (valid_n > 2 && has_type_num);
+            if (printnum) {
+                double *median_work = (double *)malloc((size_t)valid_n * sizeof(double));
+                double median = NA_REAL;
+
+                if (median_work == NULL) {
+                    free(vals);
+                    return;
+                }
+
+                memcpy(median_work, vals, (size_t)valid_n * sizeof(double));
+
+                if ((valid_n % 2) == 1) {
+                    int mid = (int)(valid_n / 2);
+                    rPsort(median_work, (int)valid_n, mid);
+                    median = median_work[mid];
+                } else {
+                    int upper_idx = (int)(valid_n / 2);
+                    double lower = median_work[0];
+                    double upper = NA_REAL;
+                    int k = 0;
+
+                    rPsort(median_work, (int)valid_n, upper_idx);
+                    upper = median_work[upper_idx];
+                    for (k = 1; k < upper_idx; k++) {
+                        if (median_work[k] > lower) {
+                            lower = median_work[k];
+                        }
+                    }
+                    median = (lower + upper) / 2.0;
+                }
+
+                REAL(stat_min)[i] = minv;
+                REAL(stat_max)[i] = maxv;
+                REAL(stat_mean)[i] = mean;
+                REAL(stat_medn)[i] = median;
+                if (valid_n > 1) {
+                    REAL(stat_stdev)[i] = sqrt(m2 / ((double)valid_n - 1.0));
+                }
+                free(median_work);
+            }
+        }
+    }
+
+    if (vals != NULL) {
+        free(vals);
+    }
+}
+
+#ifndef _WIN32
+static void *xmlstats_worker_main(void *arg) {
+    xmlstats_thread_ctx *ctx = (xmlstats_thread_ctx *)arg;
+
+    for (;;) {
+        R_xlen_t i;
+        pthread_mutex_lock(&ctx->mutex);
+        i = ctx->next_index++;
+        pthread_mutex_unlock(&ctx->mutex);
+
+        if (i >= ctx->n) {
+            break;
+        }
+
+        xmlstats_process_variable(
+            ctx->data,
+            ctx->variables,
+            ctx->dates,
+            ctx->var_dcml,
+            ctx->var_width,
+            ctx->range_units,
+            ctx->val_min,
+            ctx->val_max,
+            ctx->stat_min,
+            ctx->stat_max,
+            ctx->stat_mean,
+            ctx->stat_medn,
+            ctx->stat_stdev,
+            ctx->sum_valid,
+            ctx->sum_invalid,
+            ctx->cat_freq,
+            ctx->cat_offsets,
+            ctx->cat_label_idx_arr,
+            ctx->cat_counts_arr,
+            i
+        );
+    }
+
+    return NULL;
+}
+#endif
+
 SEXP collect_datadscr_stats(SEXP data, SEXP variables, SEXP dates) {
     R_xlen_t n = 0;
     R_xlen_t i = 0;
@@ -391,193 +679,79 @@ SEXP collect_datadscr_stats(SEXP data, SEXP variables, SEXP dates) {
         }
     }
 
-    #ifdef _OPENMP
-    #pragma omp parallel for schedule(dynamic)
-    #endif
-    for (i = 0; i < n; i++) {
-        SEXP x = VECTOR_ELT(data, i);
-        SEXP metadata = VECTOR_ELT(variables, i);
-        SEXP labels = getListElement(metadata, "labels");
-        SEXP na_values = getListElement(metadata, "na_values");
-        SEXP na_range = getListElement(metadata, "na_range");
-        SEXP type = getListElement(metadata, "type");
-        R_xlen_t len = XLENGTH(x);
-        R_xlen_t valid_n = 0;
-        R_xlen_t valid_obs = 0;
-        R_xlen_t invalid_n = 0;
-        R_xlen_t j = 0;
-        int numericish = 1;
-        int whole = 1;
-        int max_dcml = 0;
-        int max_width = 1;
-        double *vals = NULL;
-        double minv = 0.0, maxv = 0.0;
-        double mean = 0.0, m2 = 0.0;
-        int printnum = 0;
-        int has_type_num = 0;
-        int date_var = LOGICAL(dates)[i] == TRUE;
-        int has_labels = labels != R_NilValue;
-        int cat_count = cat_counts_arr[i];
-        R_xlen_t *cat_label_idx = cat_label_idx_arr[i];
-        double distinct_nonlabel[5];
-        int distinct_nonlabel_n = 0;
-        R_xlen_t cat_offset = cat_offsets[i];
+    #ifndef _WIN32
+    {
+        int nworkers = xmlstats_available_threads();
+        if (nworkers > 1 && n > 1) {
+            pthread_t *threads = (pthread_t *)calloc((size_t)nworkers, sizeof(pthread_t));
+            xmlstats_thread_ctx ctx;
+            int t = 0;
 
-        if (!(TYPEOF(x) == REALSXP || TYPEOF(x) == INTSXP || TYPEOF(x) == LGLSXP || TYPEOF(x) == STRSXP)) {
-            numericish = 0;
-        }
-
-        if (type != R_NilValue && TYPEOF(type) == STRSXP && XLENGTH(type) > 0) {
-            const char *ct = CHAR(STRING_ELT(type, 0));
-            if (strstr(ct, "num") != NULL) {
-                has_type_num = 1;
-            }
-        }
-
-        if (numericish) {
-            vals = (double *)malloc((size_t)len * sizeof(double));
-            if (vals == NULL) {
-                continue;
-            }
-        }
-
-        for (j = 0; j < len; j++) {
-            int is_invalid = 0;
-            double val = 0.0;
-            R_xlen_t row = j;
-
-            if (TYPEOF(x) == STRSXP) {
-                is_invalid = (STRING_ELT(x, row) == NA_STRING);
-            } else if (TYPEOF(x) == REALSXP) {
-                is_invalid = ISNAN(REAL(x)[row]);
-            } else if (TYPEOF(x) == INTSXP) {
-                is_invalid = INTEGER(x)[row] == NA_INTEGER;
-            } else if (TYPEOF(x) == LGLSXP) {
-                is_invalid = LOGICAL(x)[row] == NA_LOGICAL;
-            } else {
-                is_invalid = 1;
+            if (threads == NULL) {
+                free(cat_offsets);
+                free(cat_label_idx_arr);
+                free(cat_counts_arr);
+                UNPROTECT(19);
+                Rf_error("Failed to allocate xmlstats worker threads.");
             }
 
-            if (has_labels) {
-                R_xlen_t cat_i = 0;
-                for (cat_i = 0; cat_i < cat_count; cat_i++) {
-                    if (value_matches_label(x, row, labels, cat_label_idx[cat_i])) {
-                        REAL(cat_freq)[cat_offset + cat_i] += 1.0;
-                        break;
-                    }
-                }
+            memset(&ctx, 0, sizeof(ctx));
+            ctx.data = data;
+            ctx.variables = variables;
+            ctx.dates = dates;
+            ctx.var_dcml = var_dcml;
+            ctx.var_width = var_width;
+            ctx.range_units = range_units;
+            ctx.val_min = val_min;
+            ctx.val_max = val_max;
+            ctx.stat_min = stat_min;
+            ctx.stat_max = stat_max;
+            ctx.stat_mean = stat_mean;
+            ctx.stat_medn = stat_medn;
+            ctx.stat_stdev = stat_stdev;
+            ctx.sum_valid = sum_valid;
+            ctx.sum_invalid = sum_invalid;
+            ctx.cat_freq = cat_freq;
+            ctx.n = n;
+            ctx.next_index = 0;
+            ctx.cat_offsets = cat_offsets;
+            ctx.cat_label_idx_arr = cat_label_idx_arr;
+            ctx.cat_counts_arr = cat_counts_arr;
+            pthread_mutex_init(&ctx.mutex, NULL);
+
+            for (t = 0; t < nworkers; ++t) {
+                pthread_create(&threads[t], NULL, xmlstats_worker_main, &ctx);
             }
-
-            if (!is_invalid && (value_in_na_values(x, row, na_values) || value_in_na_range(x, row, na_range))) {
-                is_invalid = 1;
+            for (t = 0; t < nworkers; ++t) {
+                pthread_join(threads[t], NULL);
             }
-
-            if (is_invalid) {
-                invalid_n++;
-                continue;
+            pthread_mutex_destroy(&ctx.mutex);
+            free(threads);
+        } else {
+            for (i = 0; i < n; i++) {
+                xmlstats_process_variable(
+                    data, variables, dates,
+                    var_dcml, var_width, range_units,
+                    val_min, val_max, stat_min, stat_max,
+                    stat_mean, stat_medn, stat_stdev,
+                    sum_valid, sum_invalid, cat_freq,
+                    cat_offsets, cat_label_idx_arr, cat_counts_arr, i
+                );
             }
-
-            valid_obs++;
-
-            if (!numericish || !sexp_as_double(x, row, &val)) {
-                numericish = 0;
-                continue;
-            }
-
-            vals[valid_n] = val;
-            if (valid_n == 0) {
-                minv = maxv = val;
-            } else {
-                if (val < minv) minv = val;
-                if (val > maxv) maxv = val;
-            }
-
-            if (!is_whole_double(val)) {
-                whole = 0;
-            }
-            if (decimal_count(val) > max_dcml) {
-                max_dcml = decimal_count(val);
-            }
-            if (digit_count_floor_abs(val) > max_width) {
-                max_width = digit_count_floor_abs(val);
-            }
-
-            if (!double_matches_label_value(val, labels) && distinct_nonlabel_n < 5) {
-                int seen = 0;
-                int d = 0;
-                for (d = 0; d < distinct_nonlabel_n; d++) {
-                    if (distinct_nonlabel[d] == val) {
-                        seen = 1;
-                        break;
-                    }
-                }
-                if (!seen) {
-                    distinct_nonlabel[distinct_nonlabel_n++] = val;
-                }
-            }
-
-            valid_n++;
-        }
-
-        REAL(sum_valid)[i] = (double)valid_obs;
-        REAL(sum_invalid)[i] = (double)invalid_n;
-
-        if (numericish && valid_n > 0) {
-            REAL(var_dcml)[i] = (double)max_dcml;
-            REAL(var_width)[i] = (double)max_width;
-            SET_STRING_ELT(range_units, i, mkChar(whole ? "INT" : "REAL"));
-
-            if (!date_var && valid_n > 1) {
-                REAL(val_min)[i] = minv;
-                REAL(val_max)[i] = maxv;
-
-                printnum = distinct_nonlabel_n > 4 || (valid_n > 2 && has_type_num);
-                if (printnum) {
-                    double *median_work = (double *)malloc((size_t)valid_n * sizeof(double));
-                    double median = NA_REAL;
-                    if (median_work == NULL) {
-                        if (vals != NULL) {
-                            free(vals);
-                        }
-                        continue;
-                    }
-                    memcpy(median_work, vals, (size_t)valid_n * sizeof(double));
-
-                    if ((valid_n % 2) == 1) {
-                        int mid = (int)(valid_n / 2);
-                        rPsort(median_work, (int)valid_n, mid);
-                        median = median_work[mid];
-                    } else {
-                        int upper_idx = (int)(valid_n / 2);
-                        double lower = median_work[0];
-                        double upper = NA_REAL;
-                        int k = 0;
-
-                        rPsort(median_work, (int)valid_n, upper_idx);
-                        upper = median_work[upper_idx];
-                        for (k = 1; k < upper_idx; k++) {
-                            if (median_work[k] > lower) {
-                                lower = median_work[k];
-                            }
-                        }
-                        median = (lower + upper) / 2.0;
-                    }
-
-                    REAL(stat_min)[i] = minv;
-                    REAL(stat_max)[i] = maxv;
-                    REAL(stat_mean)[i] = mean;
-                    REAL(stat_medn)[i] = median;
-                    if (valid_n > 1) {
-                        REAL(stat_stdev)[i] = sqrt(m2 / ((double)valid_n - 1.0));
-                    }
-                    free(median_work);
-                }
-            }
-        }
-        if (vals != NULL) {
-            free(vals);
         }
     }
+    #else
+    for (i = 0; i < n; i++) {
+        xmlstats_process_variable(
+            data, variables, dates,
+            var_dcml, var_width, range_units,
+            val_min, val_max, stat_min, stat_max,
+            stat_mean, stat_medn, stat_stdev,
+            sum_valid, sum_invalid, cat_freq,
+            cat_offsets, cat_label_idx_arr, cat_counts_arr, i
+        );
+    }
+    #endif
 
     SET_VECTOR_ELT(out, 0, var_dcml);
     SET_VECTOR_ELT(out, 1, var_width);
