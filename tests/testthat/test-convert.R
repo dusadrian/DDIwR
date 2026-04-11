@@ -120,3 +120,46 @@ test_that("Stata export dictionary is applied natively", {
   expect_equal(unname(attr(imported$A, "labels", exact = TRUE)), c(1, -91, -92))
   expect_equal(unname(attr(imported$B, "labels", exact = TRUE)), c(1, -92, -93))
 })
+
+test_that("convert() can auto-build a harmonized dictionary for Stata export", {
+  exported <- data.frame(
+    A = declared(
+      c(1, -91, -92),
+      labels = c(Yes = 1, DK = -91, NR = -92),
+      na_values = c(-91, -92)
+    ),
+    B = declared(
+      c(1, -92, -93),
+      labels = c(Yes = 1, DK = -92, REF = -93),
+      na_values = c(-92, -93)
+    )
+  )
+  dta_file <- tempfile(fileext = ".dta")
+  on.exit(unlink(dta_file), add = TRUE)
+
+  convert(exported, to = dta_file, harmonize = TRUE)
+  imported <- read_dta(dta_file)
+
+  expect_equal(names(attr(imported$A, "na_index", exact = TRUE)), c("-91", "-92"))
+  expect_equal(names(attr(imported$B, "na_index", exact = TRUE)), c("-92", "-93"))
+  expect_equal(unname(attr(imported$A, "labels", exact = TRUE)), c(1, -91, -92))
+  expect_equal(unname(attr(imported$B, "labels", exact = TRUE)), c(1, -92, -93))
+})
+
+test_that("convert() falls back to per-variable recoding when harmonized Stata export overflows", {
+  manymissings <- seq(-950, -91)
+  exported <- data.frame(
+    A = declared(
+      c(1:5, manymissings),
+      labels = c(Good = 1, Bad = 5, setNames(manymissings, paste0("NR", manymissings))),
+      na_range = c(-950, -91)
+    )
+  )
+  dta_file <- tempfile(fileext = ".dta")
+  on.exit(unlink(dta_file), add = TRUE)
+
+  expect_message(
+    convert(exported, to = dta_file, harmonize = TRUE),
+    "Too many overall missing values for harmonized STATA recoding"
+  )
+})

@@ -98,6 +98,11 @@
 #' (a-z) missing types when converting to Stata or SAS. If the input has Stata
 #' like extended codes, they will be recoded to SPSS like numeric codes.
 #'
+#' To harmonize missing values across the entire dataset when exporting to
+#' Stata or SAS, use **`harmonize = TRUE`** via the three dots argument. This
+#' automatically builds a dataset-level missing value dictionary when possible.
+#' The alias **`harmonise = TRUE`** is also accepted.
+#'
 #' The character **`encoding`** is usually passed to the corresponding functions
 #' from package \bold{\pkg{haven}}. It can be set to \code{NULL} to reset at the
 #' default in that package.
@@ -188,6 +193,26 @@
 
     codeBook <- NULL
     dictionary <- dots$dictionary
+    harmonize <- isTRUE(dots$harmonize) || isTRUE(dots$harmonise)
+    dots$harmonize <- NULL
+    dots$harmonise <- NULL
+
+    maybe_build_dictionary <- function(dataset, to) {
+        if (!recode || !is.null(dictionary) || !harmonize) {
+            return(dictionary)
+        }
+
+        if (can_build_dictionary(dataset, to = to)) {
+            return(buildDictionary(dataset = dataset, to = to))
+        }
+
+        message(
+            "Too many overall missing values for harmonized ", toupper(to),
+            " recoding; using per-variable recoding instead."
+        )
+
+        return(NULL)
+    }
 
     Robject <- FALSE
     if (is.character(from)) {
@@ -710,6 +735,8 @@
             return(x)
         })
 
+        dictionary <- maybe_build_dictionary(data, to = "Stata")
+
         arglist <- list(data = data)
 
         if (is.element("version", names(dots))) {
@@ -841,10 +868,9 @@
                 # hardcode XPT version 5, since 8 doesn't work
                 arglist$version <- 5
             }
-            if (recode) {
-                if (!is.null(dictionary)) {
-                    arglist$dictionary <- dictionary
-                }
+            dictionary <- maybe_build_dictionary(arglist$data, to = "SAS")
+            if (recode && !is.null(dictionary)) {
+                arglist$dictionary <- dictionary
             }
             do.call(write_xpt, arglist)
         # }
@@ -853,21 +879,6 @@
             tp_from$completePath,
             paste(tp_from$filenames, "sas", sep = ".")
         )
-
-        if (is.null(dictionary) & recode) {
-            if (can_build_dictionary(arglist$data, to = "SAS")) {
-                dictionary <- buildDictionary(
-                    dataset = arglist$data,
-                    to = "SAS"
-                )
-            }
-            else {
-                message(
-                    "Too many overall missing values for harmonized SAS recoding; ",
-                    "using per-variable recoding instead."
-                )
-            }
-        }
 
         setupfile(
             obj = getCodebook(arglist$data),
