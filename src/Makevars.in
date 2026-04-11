@@ -116,5 +116,5 @@ OBJECTS = \
 	sc_parallel_read.o \
 	tagged_na.o
 
-PKG_CFLAGS = @cflags@ -Ireadstat -DHAVE_ZLIB
-PKG_LIBS = @libs@
+PKG_CFLAGS = @cflags@ -Ireadstat -DHAVE_ZLIB @openmp_cflags@
+PKG_LIBS = @libs@ @openmp_libs@

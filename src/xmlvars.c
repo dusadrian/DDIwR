@@ -6,6 +6,12 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <math.h>
+#ifdef _OPENMP
+#ifdef match
+#undef match
+#endif
+#include <omp.h>
+#endif
 
 typedef struct {
     char *buf;
@@ -252,7 +258,9 @@ SEXP collect_datadscr_stats(SEXP data, SEXP variables, SEXP dates) {
     SEXP cat_labels = R_NilValue;
     SEXP cat_missing = R_NilValue;
     SEXP cat_freq = R_NilValue;
-    R_xlen_t cat_offset = 0;
+    R_xlen_t *cat_offsets = NULL;
+    R_xlen_t **cat_label_idx_arr = NULL;
+    int *cat_counts_arr = NULL;
 
     if (!Rf_isNewList(data) || !Rf_isNewList(variables)) {
         Rf_error("Arguments 'data' and 'variables' must be lists.");
@@ -298,6 +306,17 @@ SEXP collect_datadscr_stats(SEXP data, SEXP variables, SEXP dates) {
     PROTECT(cat_missing = allocVector(LGLSXP, cat_total));
     PROTECT(cat_freq = allocVector(REALSXP, cat_total));
 
+    cat_offsets = (R_xlen_t *)calloc((size_t)n, sizeof(R_xlen_t));
+    cat_label_idx_arr = (R_xlen_t **)calloc((size_t)n, sizeof(R_xlen_t *));
+    cat_counts_arr = (int *)calloc((size_t)n, sizeof(int));
+    if (cat_offsets == NULL || cat_label_idx_arr == NULL || cat_counts_arr == NULL) {
+        free(cat_offsets);
+        free(cat_label_idx_arr);
+        free(cat_counts_arr);
+        UNPROTECT(19);
+        Rf_error("Failed to allocate category metadata buffers.");
+    }
+
     for (i = 0; i < n; i++) {
         REAL(var_dcml)[i] = NA_REAL;
         REAL(var_width)[i] = NA_REAL;
@@ -315,55 +334,34 @@ SEXP collect_datadscr_stats(SEXP data, SEXP variables, SEXP dates) {
     }
 
     for (i = 0; i < n; i++) {
-        SEXP x = VECTOR_ELT(data, i);
         SEXP metadata = VECTOR_ELT(variables, i);
         SEXP labels = getListElement(metadata, "labels");
         SEXP label_names = (labels == R_NilValue) ? R_NilValue : getAttrib(labels, R_NamesSymbol);
         SEXP na_values = getListElement(metadata, "na_values");
         SEXP na_range = getListElement(metadata, "na_range");
-        SEXP type = getListElement(metadata, "type");
-        R_xlen_t len = XLENGTH(x);
-        R_xlen_t valid_n = 0;
-        R_xlen_t valid_obs = 0;
-        R_xlen_t invalid_n = 0;
         R_xlen_t j = 0;
-        int numericish = 1;
-        int whole = 1;
-        int max_dcml = 0;
-        int max_width = 1;
-        double *vals = NULL;
-        double minv = 0.0, maxv = 0.0;
-        double mean = 0.0, m2 = 0.0;
-        int printnum = 0;
-        int has_type_num = 0;
-        int date_var = LOGICAL(dates)[i] == TRUE;
         int has_labels = labels != R_NilValue && TYPEOF(label_names) == STRSXP;
         int cat_count = 0;
-        R_xlen_t *cat_label_idx = NULL;
-        double *distinct_nonlabel = NULL;
-        int distinct_nonlabel_n = 0;
 
-        if (!(TYPEOF(x) == REALSXP || TYPEOF(x) == INTSXP || TYPEOF(x) == LGLSXP || TYPEOF(x) == STRSXP)) {
-            numericish = 0;
-        }
-
-        if (type != R_NilValue && TYPEOF(type) == STRSXP && XLENGTH(type) > 0) {
-            const char *ct = CHAR(STRING_ELT(type, 0));
-            if (strstr(ct, "num") != NULL) {
-                has_type_num = 1;
-            }
-        }
-
-        if (numericish) {
-            vals = (double *)R_alloc((size_t)len, sizeof(double));
-            distinct_nonlabel = (double *)R_alloc(5, sizeof(double));
-        }
+        cat_offsets[i] = (i == 0) ? 0 : (cat_offsets[i - 1] + (R_xlen_t)cat_counts_arr[i - 1]);
 
         if (has_labels) {
-            cat_label_idx = (R_xlen_t *)R_alloc((size_t)XLENGTH(labels), sizeof(R_xlen_t));
+            R_xlen_t *cat_label_idx = (R_xlen_t *)calloc((size_t)XLENGTH(labels), sizeof(R_xlen_t));
+            if (cat_label_idx == NULL) {
+                R_xlen_t k = 0;
+                for (k = 0; k < i; k++) {
+                    free(cat_label_idx_arr[k]);
+                }
+                free(cat_offsets);
+                free(cat_label_idx_arr);
+                free(cat_counts_arr);
+                UNPROTECT(19);
+                Rf_error("Failed to allocate category index buffer.");
+            }
+            cat_label_idx_arr[i] = cat_label_idx;
             for (j = 0; j < XLENGTH(labels); j++) {
                 if (STRING_ELT(label_names, j) != NA_STRING && strlen(CHAR(STRING_ELT(label_names, j))) > 0) {
-                    R_xlen_t pos = cat_offset + cat_count;
+                    R_xlen_t pos = cat_offsets[i] + cat_count;
 
                     cat_label_idx[cat_count] = j;
                     if (TYPEOF(labels) == STRSXP) {
@@ -389,6 +387,58 @@ SEXP collect_datadscr_stats(SEXP data, SEXP variables, SEXP dates) {
                 }
             }
             INTEGER(cat_counts)[i] = cat_count;
+            cat_counts_arr[i] = cat_count;
+        }
+    }
+
+    #ifdef _OPENMP
+    #pragma omp parallel for schedule(dynamic)
+    #endif
+    for (i = 0; i < n; i++) {
+        SEXP x = VECTOR_ELT(data, i);
+        SEXP metadata = VECTOR_ELT(variables, i);
+        SEXP labels = getListElement(metadata, "labels");
+        SEXP na_values = getListElement(metadata, "na_values");
+        SEXP na_range = getListElement(metadata, "na_range");
+        SEXP type = getListElement(metadata, "type");
+        R_xlen_t len = XLENGTH(x);
+        R_xlen_t valid_n = 0;
+        R_xlen_t valid_obs = 0;
+        R_xlen_t invalid_n = 0;
+        R_xlen_t j = 0;
+        int numericish = 1;
+        int whole = 1;
+        int max_dcml = 0;
+        int max_width = 1;
+        double *vals = NULL;
+        double minv = 0.0, maxv = 0.0;
+        double mean = 0.0, m2 = 0.0;
+        int printnum = 0;
+        int has_type_num = 0;
+        int date_var = LOGICAL(dates)[i] == TRUE;
+        int has_labels = labels != R_NilValue;
+        int cat_count = cat_counts_arr[i];
+        R_xlen_t *cat_label_idx = cat_label_idx_arr[i];
+        double distinct_nonlabel[5];
+        int distinct_nonlabel_n = 0;
+        R_xlen_t cat_offset = cat_offsets[i];
+
+        if (!(TYPEOF(x) == REALSXP || TYPEOF(x) == INTSXP || TYPEOF(x) == LGLSXP || TYPEOF(x) == STRSXP)) {
+            numericish = 0;
+        }
+
+        if (type != R_NilValue && TYPEOF(type) == STRSXP && XLENGTH(type) > 0) {
+            const char *ct = CHAR(STRING_ELT(type, 0));
+            if (strstr(ct, "num") != NULL) {
+                has_type_num = 1;
+            }
+        }
+
+        if (numericish) {
+            vals = (double *)malloc((size_t)len * sizeof(double));
+            if (vals == NULL) {
+                continue;
+            }
         }
 
         for (j = 0; j < len; j++) {
@@ -483,8 +533,14 @@ SEXP collect_datadscr_stats(SEXP data, SEXP variables, SEXP dates) {
 
                 printnum = distinct_nonlabel_n > 4 || (valid_n > 2 && has_type_num);
                 if (printnum) {
-                    double *median_work = (double *)R_alloc((size_t)valid_n, sizeof(double));
+                    double *median_work = (double *)malloc((size_t)valid_n * sizeof(double));
                     double median = NA_REAL;
+                    if (median_work == NULL) {
+                        if (vals != NULL) {
+                            free(vals);
+                        }
+                        continue;
+                    }
                     memcpy(median_work, vals, (size_t)valid_n * sizeof(double));
 
                     if ((valid_n % 2) == 1) {
@@ -514,10 +570,13 @@ SEXP collect_datadscr_stats(SEXP data, SEXP variables, SEXP dates) {
                     if (valid_n > 1) {
                         REAL(stat_stdev)[i] = sqrt(m2 / ((double)valid_n - 1.0));
                     }
+                    free(median_work);
                 }
             }
         }
-        cat_offset += (R_xlen_t)cat_count;
+        if (vals != NULL) {
+            free(vals);
+        }
     }
 
     SET_VECTOR_ELT(out, 0, var_dcml);
@@ -555,6 +614,13 @@ SEXP collect_datadscr_stats(SEXP data, SEXP variables, SEXP dates) {
     SET_STRING_ELT(names, 15, mkChar("cat_missing"));
     SET_STRING_ELT(names, 16, mkChar("cat_freq"));
     setAttrib(out, R_NamesSymbol, names);
+
+    for (i = 0; i < n; i++) {
+        free(cat_label_idx_arr[i]);
+    }
+    free(cat_offsets);
+    free(cat_label_idx_arr);
+    free(cat_counts_arr);
 
     UNPROTECT(19);
     return out;

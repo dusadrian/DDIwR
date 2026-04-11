@@ -13,6 +13,14 @@ PKG_BREW_NAME="zlib"
 PKG_TEST_HEADER="<zlib.h>"
 PKG_LIBS="-lz"
 PKG_CFLAGS=""
+OPENMP_CFLAGS=`${R_HOME}/bin/R CMD config SHLIB_OPENMP_CFLAGS 2>/dev/null`
+OPENMP_LIBS="$OPENMP_CFLAGS"
+case "$OPENMP_CFLAGS" in
+  ERROR:*|*"no information for variable"*)
+    OPENMP_CFLAGS=""
+    OPENMP_LIBS=""
+    ;;
+esac
 
 # Support static linking for binary packages on MacOS
 if [ `uname` = "Darwin" ]; then
@@ -66,9 +74,18 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
+# Detect OpenMP flags when R does not provide them
+if [ -z "$OPENMP_CFLAGS" ]; then
+  echo "int main(void){return 0;}" | ${CC} ${CPPFLAGS} ${PKG_CFLAGS} ${CFLAGS} -fopenmp -x c - -o /tmp/ddiwr_openmp_test >/dev/null 2>openmp.log
+  if [ $? -eq 0 ]; then
+    OPENMP_CFLAGS="-fopenmp"
+    OPENMP_LIBS="-fopenmp /opt/homebrew/opt/libomp/lib/libomp.dylib -Wl,-rpath,/opt/homebrew/opt/libomp/lib"
+  fi
+  rm -f /tmp/ddiwr_openmp_test
+fi
+
 # Write to Makevars
-sed -e "s|@cflags@|$PKG_CFLAGS|" -e "s|@libs@|$PKG_LIBS|" src/Makevars.in > src/Makevars
+sed -e "s|@cflags@|$PKG_CFLAGS|" -e "s|@libs@|$PKG_LIBS|" -e "s|@openmp_cflags@|$OPENMP_CFLAGS|" -e "s|@openmp_libs@|$OPENMP_LIBS|" src/Makevars.in > src/Makevars
 
 # Success
 exit 0
-

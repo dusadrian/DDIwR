@@ -116,5 +116,5 @@ OBJECTS = \
 	sc_parallel_read.o \
 	tagged_na.o
 
-PKG_CFLAGS = -Ireadstat -DHAVE_ZLIB
-PKG_LIBS = -lRiconv -lz
+PKG_CFLAGS = -Ireadstat -DHAVE_ZLIB $(SHLIB_OPENMP_CFLAGS)
+PKG_LIBS = -lRiconv -lz $(SHLIB_OPENMP_CFLAGS)
