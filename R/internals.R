@@ -540,10 +540,20 @@ NULL
             result[["varFormat"]] <- "date"
         }
         else {
-            x <- ensure_format(x, type = "SPSS")
             x <- ensure_format(x, type = "Stata")
-            format.spss <- attr(x, "format.spss", exact = TRUE)
             format.stata <- attr(x, "format.stata", exact = TRUE)
+            format.spss <- attr(x, "format.spss", exact = TRUE)
+
+            if (is.null(format.spss)) {
+                format.spss <- stataToSPSSFormat(format.stata)
+                if (is.null(format.spss)) {
+                    x <- ensure_format(x, type = "SPSS")
+                    format.spss <- attr(x, "format.spss", exact = TRUE)
+                }
+                else {
+                    attr(x, "format.spss") <- format.spss
+                }
+            }
 
             result[["varFormat"]] <- c(format.spss, format.stata)
         }
@@ -1021,24 +1031,44 @@ NULL
         labels <- attr(x, "labels", exact = TRUE)
     }
 
-    attributes(x) <- NULL
-    attributes(labels) <- NULL
+    if (!is.null(labels)) {
+        attributes(labels) <- NULL
+    }
 
-    pN <- TRUE
-    allnax <- all(is.na(x))
+    x_plain <- if (declared::is.declared(x)) unclass(x) else x
+    pN <- !is.character(x_plain) && admisc::possibleNumeric(x_plain)
+    allnax <- all(is.na(x_plain))
     nullabels <- is.null(labels)
-    if (!(allnax & nullabels)) {
-        pN <- admisc::possibleNumeric(c(x, labels))
+    if (!nullabels) {
+        pN <- pN && admisc::possibleNumeric(labels)
     }
 
     decimals <- 0
+    numeric_width <- 1
     if (pN & !allnax) {
-        decimals <- min(3, admisc::numdec(x))
+        x_num <- suppressWarnings(as.numeric(x_plain))
+        x_num <- x_num[!is.na(x_num)]
+
+        if (length(x_num) > 0) {
+            frac <- abs(x_num - trunc(x_num))
+            if (any(frac > 0)) {
+                for (d in 1:3) {
+                    scaled <- frac * (10^d)
+                    if (all(abs(scaled - round(scaled)) < 1e-7)) {
+                        decimals <- d
+                        break
+                    }
+                    decimals <- 3
+                }
+            }
+
+            numeric_width <- max(nchar(x_plain, allowNA = TRUE), na.rm = TRUE)
+        }
     }
 
     maxvarchar <- 0
-    if (!allnax) {
-        nofchars <- na.omit(nchar(x, allowNA = TRUE))
+    if (!allnax && !pN) {
+        nofchars <- na.omit(nchar(x_plain, allowNA = TRUE))
 
         if (length(nofchars) > 0) {
             maxvarchar <- max(nofchars, na.rm = TRUE)
@@ -1054,7 +1084,7 @@ NULL
             sprintf(
                 "%s%s%s%s",
                 ifelse(pN, "F", "A"),
-                max(1, maxvarchar),
+                ifelse(pN, numeric_width, max(1, maxvarchar)),
                 ifelse(pN, ".", ""),
                 ifelse(pN, decimals, "")
             )
@@ -1064,8 +1094,8 @@ NULL
         return(
             paste0("%",
                 sprintf(
-                    "%s%s%s%s",
-                    max(1, maxvarchar),
+                "%s%s%s%s",
+                    ifelse(pN, numeric_width, max(1, maxvarchar)),
                     ifelse(pN, ".", ""),
                     ifelse(pN, decimals, ""),
                     ifelse(pN, "g", "s")
@@ -1073,6 +1103,35 @@ NULL
             )
         )
     }
+}
+
+
+`stataToSPSSFormat` <- function(format) {
+    if (is.null(format) || length(format) == 0 || is.na(format)) {
+        return(NULL)
+    }
+
+    if (identical(format, "%td")) {
+        return("DATE")
+    }
+
+    if (identical(format, "%tc")) {
+        return("DATETIME")
+    }
+
+    mchar <- regexec("^%([0-9]+)s$", format, perl = TRUE)
+    rchar <- regmatches(format, mchar)[[1]]
+    if (length(rchar) > 0) {
+        return(paste0("A", rchar[2]))
+    }
+
+    mnum <- regexec("^%([0-9]+)\\.([0-9]+)g$", format, perl = TRUE)
+    rnum <- regmatches(format, mnum)[[1]]
+    if (length(rnum) > 0) {
+        return(paste0("F", rnum[2], ".", rnum[3]))
+    }
+
+    return(NULL)
 }
 
 
