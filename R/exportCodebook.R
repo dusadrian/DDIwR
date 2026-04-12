@@ -164,7 +164,7 @@
             overwrite = FALSE
         )
 
-        var_info <- makeXMLvars(DDI = FALSE, ... = ...)
+        var_info <- makeXMLvars(DDI = FALSE, return_hashes = TRUE, ... = ...)
         var_xml <- var_info$xml
         ns <- getElement(dots, "ns")
 
@@ -182,23 +182,10 @@
             "  </", ns, "dataDscr>\n"
         )
 
-        XMLtext <- paste0(
-            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n",
-            "<codeBook xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" ",
-            "xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" ",
-            "xmlns=\"ddi:codebook:2_6\" version=\"2.6\" ",
-            "xsi:schemaLocation=\"ddi:codebook:2_6 codebook.xsd\">\n",
-            dataDscr_xml,
-            "</codeBook>\n"
-        )
-
-        XMLdoc <- xml2::read_xml(XMLtext, options = c("HUGE", "NOBLANKS"))
-        XMLvars <- xml2::xml_find_all(XMLdoc, "/d1:codeBook/d1:dataDscr/d1:var")
-
-        attr(data, "hashes") <- getHashes(XMLvars)
+        attr(data, "hashes") <- var_info$hashes
 
         if (embed) {
-            uuid <- xml2::xml_attr(XMLvars, "ID")
+            uuid <- var_info$stats$id
             for (i in seq(length(uuid))) {
                 attr(data[[i]], "ID") <- uuid[i]
             }
@@ -226,12 +213,15 @@
         )
 
         codeBook_xml <- as.character(codeBook)
-        xmlfile <- sub(
-            "<dataDscr\\s*/>",
-            dataDscr_xml,
-            codeBook_xml,
-            perl = TRUE
-        )
+        dataDscr_match <- regexpr("<dataDscr\\s*/>", codeBook_xml, perl = TRUE)
+        if (dataDscr_match[1] < 0) {
+            admisc::stopError("Could not locate the <dataDscr/> placeholder in the codeBook XML.")
+        }
+
+        dataDscr_start <- dataDscr_match[1]
+        dataDscr_end <- dataDscr_start + attr(dataDscr_match, "match.length") - 1L
+        xml_prefix <- substr(codeBook_xml, 1L, dataDscr_start - 1L)
+        xml_suffix <- substr(codeBook_xml, dataDscr_end + 1L, nchar(codeBook_xml))
 
         if (!identical(indent, 2) || !identical(OS, "")) {
             defaultOS <- Sys.info()[["sysname"]]
@@ -239,6 +229,7 @@
             checkArgument(OS, default = defaultOS)
 
             enter <- getEnter(OS = ifelse(OS == "", defaultOS, OS))
+            xmlfile <- paste0(xml_prefix, dataDscr_xml, xml_suffix)
             xml_lines <- unlist(strsplit(xmlfile, "\n", fixed = TRUE))
             xmlfile <- paste(
                 prespace(xml_lines, indent),
@@ -247,8 +238,13 @@
         }
 
         if (is.character(to) && length(to) == 1 && nzchar(to)) {
-            writeTextFileC(to, xmlfile)
+            if (!identical(indent, 2) || !identical(OS, "")) {
+                writeTextFileC(to, xmlfile)
+            } else {
+                writeTextFileChunksC(to, c(xml_prefix, dataDscr_xml, xml_suffix))
+            }
         } else {
+            xmlfile <- paste0(xml_prefix, dataDscr_xml, xml_suffix)
             writeLines(xmlfile, con = to, useBytes = TRUE)
         }
 

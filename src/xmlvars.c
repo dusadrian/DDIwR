@@ -1482,36 +1482,43 @@ static void sb_append_indent(ddiwr_strbuf *sb, int level, int indent_width) {
 SEXP write_text_file(SEXP path, SEXP text) {
     FILE *fp = NULL;
     const char *cpath = NULL;
-    const char *ctext = NULL;
-    size_t written = 0;
-    size_t nbytes = 0;
+    size_t total_written = 0;
+    size_t total_bytes = 0;
+    R_xlen_t i = 0;
 
     if (!Rf_isString(path) || XLENGTH(path) != 1) {
         Rf_error("Argument 'path' must be a character scalar.");
     }
 
-    if (!Rf_isString(text) || XLENGTH(text) != 1) {
-        Rf_error("Argument 'text' must be a character scalar.");
+    if (!Rf_isString(text) || XLENGTH(text) < 1) {
+        Rf_error("Argument 'text' must be a character vector.");
     }
 
     cpath = CHAR(STRING_ELT(path, 0));
-    ctext = CHAR(STRING_ELT(text, 0));
-    nbytes = strlen(ctext);
 
     fp = fopen(cpath, "wb");
     if (fp == NULL) {
         Rf_error("Cannot open file for writing: %s", cpath);
     }
 
-    if (nbytes > 0) {
-        written = fwrite(ctext, 1, nbytes, fp);
+    for (i = 0; i < XLENGTH(text); i++) {
+        const char *ctext = CHAR(STRING_ELT(text, i));
+        size_t nbytes = strlen(ctext);
+        size_t written = 0;
+
+        total_bytes += nbytes;
+
+        if (nbytes > 0) {
+            written = fwrite(ctext, 1, nbytes, fp);
+            total_written += written;
+        }
     }
 
     if (fclose(fp) != 0) {
         Rf_error("Error while closing file: %s", cpath);
     }
 
-    if (written != nbytes) {
+    if (total_written != total_bytes) {
         Rf_error("Failed to write complete content to file: %s", cpath);
     }
 

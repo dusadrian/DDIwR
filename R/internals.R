@@ -1104,6 +1104,95 @@ NULL
 }
 
 
+#' @description `canonicalVariableMetadata`: Canonicalize variable metadata for hashing
+#' @return `canonicalVariableMetadata`: A normalized list
+#' @rdname DDIwR_internal
+#' @keywords internal
+#' @export
+`canonicalVariableMetadata` <- function(metadata) {
+    result <- list()
+
+    label <- getElement(metadata, "label")
+    if (!is.null(label) && length(label) > 0 && !is.na(label[1])) {
+        result$label <- unname(label[1])
+    }
+
+    labels <- getElement(metadata, "labels")
+    if (!is.null(labels) && length(labels) > 0) {
+        lbl_names <- names(labels)
+        if (is.null(lbl_names)) {
+            lbl_names <- rep("", length(labels))
+        }
+        result$labels <- structure(unname(labels), names = as.character(lbl_names))
+    }
+
+    na_range <- getElement(metadata, "na_range")
+    if (!is.null(na_range) && length(na_range) > 0) {
+        na_range <- as.numeric(na_range[1:2])
+        if (!all(is.na(na_range))) {
+            if (is.na(na_range[1])) na_range[1] <- -Inf
+            if (is.na(na_range[2])) na_range[2] <- Inf
+            result$na_range <- na_range
+        }
+    }
+
+    na_values <- getElement(metadata, "na_values")
+    if (!is.null(na_values) && length(na_values) > 0) {
+        if (!is.null(labels) && admisc::possibleNumeric(na_values) && admisc::possibleNumeric(unname(labels))) {
+            na_values <- admisc::asNumeric(na_values)
+        }
+
+        na_values <- sort(unique(na_values))
+
+        if (!is.null(result$na_range) && is.numeric(na_values)) {
+            na_values <- na_values[
+                na_values < result$na_range[1] | na_values > result$na_range[2]
+            ]
+        }
+
+        if (length(na_values) > 0) {
+            result$na_values <- na_values
+        }
+    }
+
+    result
+}
+
+
+#' @description `hashVariableMetadata`: Hash canonical variable metadata
+#' @return `hashVariableMetadata`: Character scalar
+#' @rdname DDIwR_internal
+#' @keywords internal
+#' @export
+`hashVariableMetadata` <- function(metadata) {
+    digest::digest(serialize(canonicalVariableMetadata(metadata), NULL, version = 2))
+}
+
+
+#' @description `getMetadataHashes`: Compute hashes from metadata lists
+#' @return `getMetadataHashes`: Character vector
+#' @rdname DDIwR_internal
+#' @keywords internal
+#' @export
+`getMetadataHashes` <- function(metadata) {
+    vapply(metadata, hashVariableMetadata, character(1))
+}
+
+
+#' @description `getXMLMetadataInfo`: Extract and hash variable metadata from XML nodes
+#' @return `getXMLMetadataInfo`: A list with `metadata` and `hashes`
+#' @rdname DDIwR_internal
+#' @keywords internal
+#' @export
+`getXMLMetadataInfo` <- function(xmlvars, dns) {
+    metadata <- lapply(xmlvars, XMLtoRmetadata, dns = dns)
+    list(
+        metadata = metadata,
+        hashes = getMetadataHashes(metadata)
+    )
+}
+
+
 #' @description `getValues`: Extract values, labels and missing values from a `var` element
 #' @return `getValues`: A list with two components: `labels` and `na_values`
 #' @rdname DDIwR_internal
@@ -1358,6 +1447,7 @@ NULL
 # completely internal function, not designed for general use
 `makeXMLvars` <- function(variables = NULL, data = NULL, indent = 2, ...) {
     dots <- list(...)
+    hashes <- NULL
 
     if (is.null(variables)) {
         if (is.null(data)) {
@@ -1673,6 +1763,10 @@ NULL
         cat_freq = cat_freq
     )
 
+    if (isTRUE(getElement(dots, "return_hashes"))) {
+        hashes <- getMetadataHashes(variables)
+    }
+
     stats <- data.frame(
         variable = varnames,
         id = uuid,
@@ -1702,6 +1796,7 @@ NULL
         return(list(
             xml = var_xml,
             stats = stats,
+            hashes = hashes,
             cat_counts = cat_counts,
             cat_values = cat_values,
             cat_labels = cat_labels,
@@ -1712,7 +1807,8 @@ NULL
 
     return(list(
         xml = var_xml,
-        stats = stats
+        stats = stats,
+        hashes = hashes
     ))
 
     # disabled legacy R XML construction block (replaced by C generator)
@@ -3073,6 +3169,12 @@ makedfm <- function() {
 #' @keywords internal
 `writeTextFileC` <- function(path, text) {
     invisible(.Call("write_text_file", path, text))
+}
+
+
+#' @keywords internal
+`writeTextFileChunksC` <- function(path, text) {
+    invisible(.Call("write_text_file", path, as.character(text)))
 }
 
 #' @keywords internal

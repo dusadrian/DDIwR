@@ -254,13 +254,14 @@
                     attr(data, "hashes") <- NULL
 
                     if (!is.null(hashes)) {
-                        checkhashes <- getHashes(xmlvars)
+                        metadata_info <- getXMLMetadataInfo(xmlvars, dns = dns)
+                        checkhashes <- metadata_info$hashes
 
                         if (!identical(hashes, checkhashes)) {
                             different <- which(hashes != checkhashes)
 
                             for (i in different) {
-                                metadata <- XMLtoRmetadata(xmlvars[i], dns = dns)
+                                metadata <- metadata_info$metadata[[i]]
                                 for (att in c("label", "labels", "na_values", "na_range")) {
                                     attr(data[[i]], att) <- getElement(metadata, att)
                                 }
