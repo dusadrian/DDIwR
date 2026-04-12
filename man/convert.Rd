@@ -147,10 +147,11 @@ input file has SPSS like numeric codes, they will be recoded to extended
 (a-z) missing types when converting to Stata or SAS. If the input has Stata
 like extended codes, they will be recoded to SPSS like numeric codes.
 
-To harmonize missing values across the entire dataset when exporting to
-Stata or SAS, use \strong{\code{harmonize = TRUE}} via the three dots argument. This
-automatically builds a dataset-level missing value dictionary when possible.
-The alias \strong{\code{harmonise = TRUE}} is also accepted.
+Missing values are harmonized across the entire dataset by default when
+exporting to Stata or SAS. This automatically builds a dataset-level missing
+value dictionary when possible. Use \strong{\code{harmonize = FALSE}} via the three
+dots argument to deactivate this behavior. The alias
+\strong{\code{harmonise = FALSE}} is also accepted.
 
 The character \strong{\code{encoding}} is usually passed to the corresponding functions
 from package \bold{\pkg{haven}}. It can be set to \code{NULL} to reset at the

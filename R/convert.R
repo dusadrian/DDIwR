@@ -104,10 +104,11 @@
 #' (a-z) missing types when converting to Stata or SAS. If the input has Stata
 #' like extended codes, they will be recoded to SPSS like numeric codes.
 #'
-#' To harmonize missing values across the entire dataset when exporting to
-#' Stata or SAS, use **`harmonize = TRUE`** via the three dots argument. This
-#' automatically builds a dataset-level missing value dictionary when possible.
-#' The alias **`harmonise = TRUE`** is also accepted.
+#' Missing values are harmonized across the entire dataset by default when
+#' exporting to Stata or SAS. This automatically builds a dataset-level missing
+#' value dictionary when possible. Use **`harmonize = FALSE`** via the three
+#' dots argument to deactivate this behavior. The alias
+#' **`harmonise = FALSE`** is also accepted.
 #'
 #' The character **`encoding`** is usually passed to the corresponding functions
 #' from package \bold{\pkg{haven}}. It can be set to \code{NULL} to reset at the
@@ -203,7 +204,13 @@
 
     codeBook <- NULL
     dictionary <- dots$dictionary
-    harmonize <- isTRUE(dots$harmonize) || isTRUE(dots$harmonise)
+    harmonize <- TRUE
+    if ("harmonize" %in% names(dots)) {
+        harmonize <- !isFALSE(dots$harmonize)
+    }
+    if ("harmonise" %in% names(dots)) {
+        harmonize <- !isFALSE(dots$harmonise)
+    }
     dots$harmonize <- NULL
     dots$harmonise <- NULL
 
