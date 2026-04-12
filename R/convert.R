@@ -602,7 +602,11 @@
     variables <- NULL
 
     if (tp_to$fileext == "XML") {
-        variables <- collectRMetadata(data, infer_type = FALSE)
+        variables <- collectRMetadata(
+            data,
+            infer_type = FALSE,
+            include_formats = FALSE
+        )
 
         if (admisc::anyTagged(data)) {
             admisc::stopError("DDI does not support extended missing codes")

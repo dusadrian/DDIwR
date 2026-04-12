@@ -30,10 +30,31 @@ typedef struct {
     SEXP xmlang;
     SEXP id;
     int factor_fallback;
+    int include_formats;
     int is_date;
     char format_spss[32];
     char format_stata[32];
 } xmlmeta_result;
+
+static SEXP ddiwr_sym_labels = NULL;
+static SEXP ddiwr_sym_label = NULL;
+static SEXP ddiwr_sym_measurement = NULL;
+static SEXP ddiwr_sym_na_values = NULL;
+static SEXP ddiwr_sym_na_range = NULL;
+static SEXP ddiwr_sym_xmlang = NULL;
+static SEXP ddiwr_sym_id = NULL;
+
+static void ddiwr_init_symbols(void) {
+    if (ddiwr_sym_labels == NULL) {
+        ddiwr_sym_labels = Rf_install("labels");
+        ddiwr_sym_label = Rf_install("label");
+        ddiwr_sym_measurement = Rf_install("measurement");
+        ddiwr_sym_na_values = Rf_install("na_values");
+        ddiwr_sym_na_range = Rf_install("na_range");
+        ddiwr_sym_xmlang = Rf_install("xmlang");
+        ddiwr_sym_id = Rf_install("ID");
+    }
+}
 
 #ifndef _WIN32
 typedef struct {
@@ -66,6 +87,7 @@ typedef struct {
     xmlmeta_result *results;
     R_xlen_t n;
     R_xlen_t next_index;
+    int include_formats;
     pthread_mutex_t mutex;
 } xmlmeta_thread_ctx;
 #endif
@@ -423,39 +445,45 @@ static SEXP sanitize_na_values(SEXP na_values) {
     }
 }
 
-static void xmlmeta_process_variable(SEXP data, xmlmeta_result *results, R_xlen_t i) {
+static void xmlmeta_process_variable(SEXP data, xmlmeta_result *results, R_xlen_t i, int include_formats) {
     SEXP x = VECTOR_ELT(data, i);
     SEXP classes = getAttrib(x, R_ClassSymbol);
-    SEXP labels = getAttrib(x, Rf_install("labels"));
+    SEXP labels = getAttrib(x, ddiwr_sym_labels);
     SEXP levels = getAttrib(x, R_LevelsSymbol);
 
     results[i].x = x;
     results[i].classes_attr = classes;
-    results[i].label = getAttrib(x, Rf_install("label"));
-    results[i].measurement = getAttrib(x, Rf_install("measurement"));
+    results[i].label = getAttrib(x, ddiwr_sym_label);
+    results[i].measurement = getAttrib(x, ddiwr_sym_measurement);
     results[i].labels = labels;
     results[i].levels = R_NilValue;
-    results[i].na_values = getAttrib(x, Rf_install("na_values"));
-    results[i].na_range = getAttrib(x, Rf_install("na_range"));
-    results[i].xmlang = getAttrib(x, Rf_install("xmlang"));
-    results[i].id = getAttrib(x, Rf_install("ID"));
+    results[i].na_values = getAttrib(x, ddiwr_sym_na_values);
+    results[i].na_range = getAttrib(x, ddiwr_sym_na_range);
+    results[i].xmlang = getAttrib(x, ddiwr_sym_xmlang);
+    results[i].id = getAttrib(x, ddiwr_sym_id);
     results[i].factor_fallback = 0;
+    results[i].include_formats = include_formats;
+    results[i].is_date = 0;
+    results[i].format_spss[0] = '\0';
+    results[i].format_stata[0] = '\0';
 
     if (labels == R_NilValue && class_has(classes, "factor") && TYPEOF(levels) == STRSXP) {
         results[i].factor_fallback = 1;
         results[i].levels = levels;
     }
 
-    infer_formats(
-        x,
-        classes,
-        labels,
-        results[i].format_spss,
-        sizeof(results[i].format_spss),
-        results[i].format_stata,
-        sizeof(results[i].format_stata),
-        &results[i].is_date
-    );
+    if (include_formats) {
+        infer_formats(
+            x,
+            classes,
+            labels,
+            results[i].format_spss,
+            sizeof(results[i].format_spss),
+            results[i].format_stata,
+            sizeof(results[i].format_stata),
+            &results[i].is_date
+        );
+    }
 }
 
 #ifndef _WIN32
@@ -473,7 +501,7 @@ static void *xmlmeta_worker_main(void *arg) {
         i = ctx->next_index++;
         pthread_mutex_unlock(&ctx->mutex);
 
-        xmlmeta_process_variable(ctx->data, ctx->results, i);
+        xmlmeta_process_variable(ctx->data, ctx->results, i, ctx->include_formats);
     }
 
     return NULL;
@@ -1138,16 +1166,23 @@ SEXP collect_datadscr_stats(SEXP data, SEXP variables, SEXP dates) {
     return out;
 }
 
-SEXP collect_xml_metadata(SEXP data) {
+SEXP collect_xml_metadata(SEXP data, SEXP include_formats) {
     R_xlen_t i = 0;
     R_xlen_t n = 0;
     SEXP out = R_NilValue;
     SEXP out_names = R_NilValue;
     xmlmeta_result *results = NULL;
+    int do_formats = 1;
 
     if (!Rf_isNewList(data)) {
         Rf_error("Argument 'data' must be a list.");
     }
+    if (!Rf_isLogical(include_formats) || XLENGTH(include_formats) != 1) {
+        Rf_error("Argument 'include_formats' must be a logical scalar.");
+    }
+    do_formats = LOGICAL(include_formats)[0] != 0;
+
+    ddiwr_init_symbols();
 
     n = XLENGTH(data);
     results = (xmlmeta_result *)calloc((size_t)n, sizeof(xmlmeta_result));
@@ -1173,6 +1208,7 @@ SEXP collect_xml_metadata(SEXP data) {
             ctx.results = results;
             ctx.n = n;
             ctx.next_index = 0;
+            ctx.include_formats = do_formats;
             pthread_mutex_init(&ctx.mutex, NULL);
 
             for (t = 0; t < nworkers; ++t) {
@@ -1186,13 +1222,13 @@ SEXP collect_xml_metadata(SEXP data) {
         }
         else {
             for (i = 0; i < n; i++) {
-                xmlmeta_process_variable(data, results, i);
+                xmlmeta_process_variable(data, results, i, do_formats);
             }
         }
     }
 #else
     for (i = 0; i < n; i++) {
-        xmlmeta_process_variable(data, results, i);
+        xmlmeta_process_variable(data, results, i, do_formats);
     }
 #endif
 
@@ -1204,7 +1240,7 @@ SEXP collect_xml_metadata(SEXP data) {
         SEXP item_names = R_NilValue;
         SEXP classes = results[i].classes_attr;
         int idx = 0;
-        int fields = 5; /* classes, na_range, varFormat, xmlang, ID */
+        int fields = do_formats ? 5 : 4; /* classes, na_range, [varFormat], xmlang, ID */
         int has_label = results[i].label != R_NilValue;
         int has_measurement = results[i].measurement != R_NilValue;
         int has_labels = results[i].labels != R_NilValue || results[i].factor_fallback;
@@ -1272,19 +1308,21 @@ SEXP collect_xml_metadata(SEXP data) {
         SET_VECTOR_ELT(item, idx, results[i].na_range);
         SET_STRING_ELT(item_names, idx++, mkChar("na_range"));
 
-        if (results[i].is_date) {
-            SEXP fmt = PROTECT(mkString("date"));
-            SET_VECTOR_ELT(item, idx, fmt);
-            UNPROTECT(1);
+        if (do_formats) {
+            if (results[i].is_date) {
+                SEXP fmt = PROTECT(mkString("date"));
+                SET_VECTOR_ELT(item, idx, fmt);
+                UNPROTECT(1);
+            }
+            else {
+                SEXP fmt = PROTECT(allocVector(STRSXP, 2));
+                SET_STRING_ELT(fmt, 0, mkChar(results[i].format_spss));
+                SET_STRING_ELT(fmt, 1, mkChar(results[i].format_stata));
+                SET_VECTOR_ELT(item, idx, fmt);
+                UNPROTECT(1);
+            }
+            SET_STRING_ELT(item_names, idx++, mkChar("varFormat"));
         }
-        else {
-            SEXP fmt = PROTECT(allocVector(STRSXP, 2));
-            SET_STRING_ELT(fmt, 0, mkChar(results[i].format_spss));
-            SET_STRING_ELT(fmt, 1, mkChar(results[i].format_stata));
-            SET_VECTOR_ELT(item, idx, fmt);
-            UNPROTECT(1);
-        }
-        SET_STRING_ELT(item_names, idx++, mkChar("varFormat"));
 
         SET_VECTOR_ELT(item, idx, results[i].xmlang);
         SET_STRING_ELT(item_names, idx++, mkChar("xmlang"));

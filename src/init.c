@@ -36,7 +36,7 @@ extern SEXP make_datadscr_xml(
     SEXP cat_missing,
     SEXP cat_freq
 );
-extern SEXP collect_xml_metadata(SEXP data);
+extern SEXP collect_xml_metadata(SEXP data, SEXP include_formats);
 extern SEXP collect_datadscr_stats(SEXP data, SEXP variables, SEXP dates);
 extern SEXP label_freqs(SEXP x, SEXP labels, SEXP wt);
 extern SEXP declared_df_parse_dta_file(SEXP spec, SEXP encoding, SEXP cols_skip, SEXP n_max, SEXP rows_skip);
@@ -60,7 +60,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"recode_to_spss_", (DL_FUNC) &recode_to_spss_, 5},
     {"recode_to_spss_full_", (DL_FUNC) &recode_to_spss_full_, 6},
     {"make_datadscr_xml", (DL_FUNC) &make_datadscr_xml, 26},
-    {"collect_xml_metadata", (DL_FUNC) &collect_xml_metadata, 1},
+    {"collect_xml_metadata", (DL_FUNC) &collect_xml_metadata, 2},
     {"collect_datadscr_stats", (DL_FUNC) &collect_datadscr_stats, 3},
     {"label_freqs", (DL_FUNC) &label_freqs, 3},
     {"declared_df_parse_dta_file", (DL_FUNC) &declared_df_parse_dta_file, 5},

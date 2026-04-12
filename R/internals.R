@@ -474,7 +474,7 @@ NULL
 #' @rdname DDIwR_internal
 #' @keywords internal
 #' @export
-`collectRMetadata` <- function(from, infer_type = TRUE, ...) {
+`collectRMetadata` <- function(from, infer_type = TRUE, include_formats = TRUE, ...) {
     dots <- list(...)
 
     if (!is.data.frame(from)) {
@@ -483,7 +483,7 @@ NULL
         )
     }
 
-    output <- collectRMetadataC(from)
+    output <- collectRMetadataC(from, include_formats = include_formats)
 
     output <- lapply(seq_along(output), function(i) {
         result <- output[[i]]
@@ -1453,7 +1453,7 @@ NULL
         if (is.null(data)) {
             admisc::stopError("Both variables and dataset are NULL.")
         }
-        variables <- collectRMetadata(data, infer_type = FALSE)
+        variables <- collectRMetadata(data, infer_type = FALSE, include_formats = FALSE)
     }
 
     varxmlang <- any(sapply(variables, function(x) {
@@ -1474,22 +1474,14 @@ NULL
     }
 
     dates <- sapply(variables, function(x) {
-        identical(x$varFormat, "date")
+        identical(x$varFormat, "date") ||
+        "Date" %in% getElement(x, "classes")
     })
 
     wt <- dots$wt
 
     pN <- wN <- logical(length(variables))
     if (!is.null(data)) {
-
-        pN <- sapply(data[names(variables)], function(x) {
-            admisc::possibleNumeric(unclass(x))
-        })
-
-        wN <- sapply(data[names(variables)], function(x) {
-            admisc::wholeNumeric(unclass(x))
-        })
-
         if (!is.null(wt)) {
             if (!is.character(wt) || length(wt) != 1) {
                 admisc::stopError("The weight variable 'wt' should be a character scalar.")
@@ -1503,6 +1495,14 @@ NULL
                     )
                 )
             }
+
+            pN <- sapply(data[names(variables)], function(x) {
+                admisc::possibleNumeric(unclass(x))
+            })
+
+            wN <- sapply(data[names(variables)], function(x) {
+                admisc::wholeNumeric(unclass(x))
+            })
         }
     }
 
@@ -1732,6 +1732,29 @@ NULL
         cat_labels <- fast_stats$cat_labels
         cat_missing <- fast_stats$cat_missing
         cat_freq <- fast_stats$cat_freq
+    }
+
+    missing_varformat <- !nzchar(varformat_value)
+    if (any(missing_varformat)) {
+        for (i in which(missing_varformat)) {
+            classes <- getElement(variables[[i]], "classes")
+            is_character <- identical(var_type[i], "char") ||
+                any(c("character", "factor") %in% classes)
+
+            if (isTRUE(dates[i])) {
+                varformat_type[i] <- "numeric"
+                varformat_value[i] <- "date"
+            } else if (is_character) {
+                width <- ifelse(is.na(var_width[i]) || var_width[i] < 1, 1, var_width[i])
+                varformat_type[i] <- "character"
+                varformat_value[i] <- paste0("A", as.integer(width))
+            } else {
+                width <- ifelse(is.na(var_width[i]) || var_width[i] < 1, 1, var_width[i])
+                dcml <- ifelse(is.na(var_dcml[i]) || var_dcml[i] < 0, 0, var_dcml[i])
+                varformat_type[i] <- "numeric"
+                varformat_value[i] <- paste0("F", as.integer(width), ".", as.integer(dcml))
+            }
+        }
     }
 
     var_xml <- makeDataDscrXMLC(
@@ -3248,8 +3271,8 @@ makedfm <- function() {
 }
 
 #' @keywords internal
-`collectRMetadataC` <- function(from) {
-    .Call("collect_xml_metadata", from)
+`collectRMetadataC` <- function(from, include_formats = TRUE) {
+    .Call("collect_xml_metadata", from, as.logical(include_formats))
 }
 
 #' @keywords internal

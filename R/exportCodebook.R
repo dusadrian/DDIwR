@@ -164,7 +164,19 @@
             overwrite = FALSE
         )
 
-        var_info <- makeXMLvars(DDI = FALSE, return_hashes = TRUE, ... = ...)
+        var_dots <- dots
+        var_dots$variables <- NULL
+        var_info <- do.call(
+            makeXMLvars,
+            c(
+                list(
+                    variables = dots$variables,
+                    DDI = FALSE,
+                    return_hashes = TRUE
+                ),
+                var_dots
+            )
+        )
         var_xml <- var_info$xml
         ns <- getElement(dots, "ns")
 
