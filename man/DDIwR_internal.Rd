@@ -24,6 +24,10 @@
 \alias{getFiles}
 \alias{getFormat}
 \alias{getHashes}
+\alias{canonicalVariableMetadata}
+\alias{hashVariableMetadata}
+\alias{getMetadataHashes}
+\alias{getXMLMetadataInfo}
 \alias{getValues}
 \alias{getXML}
 \alias{hasLabels}
@@ -69,7 +73,7 @@ coerceDDI(element, name = NULL)
 
 collectMetadata(from, ...)
 
-collectRMetadata(from, infer_type = TRUE, ...)
+collectRMetadata(from, infer_type = TRUE, include_formats = TRUE, ...)
 
 extractData(xml)
 
@@ -90,6 +94,14 @@ getFiles(path = ".", type = "*", currdir)
 getFormat(x, type = c("SPSS", "Stata"), ...)
 
 getHashes(nodes)
+
+canonicalVariableMetadata(metadata)
+
+hashVariableMetadata(metadata)
+
+getMetadataHashes(metadata)
+
+getXMLMetadataInfo(xmlvars, dns)
 
 getValues(variable)
 
@@ -174,6 +186,14 @@ containing variable level metadata information
 
 \code{getHashes}: Character vector
 
+\code{canonicalVariableMetadata}: A normalized list
+
+\code{hashVariableMetadata}: Character scalar
+
+\code{getMetadataHashes}: Character vector
+
+\code{getXMLMetadataInfo}: A list with \code{metadata} and \code{hashes}
+
 \code{getValues}: A list with two components: \code{labels} and \code{na_values}
 
 \code{getXML}: An XML document
@@ -255,6 +275,14 @@ specification
 \code{getFormat}: Determine the SPSS / Stata variable format
 
 \code{getHashes}: Compute hashes of XML nodes
+
+\code{canonicalVariableMetadata}: Canonicalize variable metadata for hashing
+
+\code{hashVariableMetadata}: Hash canonical variable metadata
+
+\code{getMetadataHashes}: Compute hashes from metadata lists
+
+\code{getXMLMetadataInfo}: Extract and hash variable metadata from XML nodes
 
 \code{getValues}: Extract values, labels and missing values from a \code{var} element
 
