@@ -1775,11 +1775,18 @@ SEXP make_datadscr_xml(
             sb_appendf(&sb, "</%svalrng>\n", nsp);
         }
 
-        if (R_FINITE(ivmin) && R_FINITE(ivmax)) {
+        if (R_FINITE(ivmin) || R_FINITE(ivmax)) {
             sb_append_indent(&sb, level_var_child, indent);
             sb_appendf(&sb, "<%sinvalrng>\n", nsp);
             sb_append_indent(&sb, level_var_grand, indent);
-            sb_appendf(&sb, "<%srange UNITS=\"%s\" min=\"%.15g\" max=\"%.15g\"/>\n", nsp, vunit, ivmin, ivmax);
+            sb_appendf(&sb, "<%srange UNITS=\"%s\"", nsp, vunit);
+            if (R_FINITE(ivmin)) {
+                sb_appendf(&sb, " min=\"%.15g\"", ivmin);
+            }
+            if (R_FINITE(ivmax)) {
+                sb_appendf(&sb, " max=\"%.15g\"", ivmax);
+            }
+            sb_append(&sb, "/>\n");
             sb_append_indent(&sb, level_var_child, indent);
             sb_appendf(&sb, "</%sinvalrng>\n", nsp);
         }
