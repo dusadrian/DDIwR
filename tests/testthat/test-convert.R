@@ -74,6 +74,27 @@ test_that("convert() works from R to RDS and return", {
   expect_equal(dfm, dfmrds)
 })
 
+test_that("Excel export materializes declared missing codes before writing", {
+  xlsx_file <- tempfile(fileext = ".xlsx")
+  on.exit(unlink(xlsx_file), add = TRUE)
+
+  exported <- data.frame(
+    A = declared::direct_declared(
+      c(1, NA, 2),
+      labels = c(Yes = 1, DK = -91),
+      na_values = -91,
+      na_index = structure(2L, names = "-91")
+    )
+  )
+
+  convert(exported, to = xlsx_file)
+  imported <- convert(xlsx_file)
+
+  expect_equal(declared::undeclare(imported$A, drop = TRUE), c(1, -91, 2))
+  expect_equal(attr(imported$A, "na_values", exact = TRUE), -91)
+  expect_equal(unname(attr(imported$A, "labels", exact = TRUE)), c(1, -91))
+})
+
 test_that("Stata tagged missings are normalized to numeric declared missings on import", {
   read_dta_internal <- get("read_dta", envir = asNamespace("DDIwR"))
   tagged_file <- tempfile(fileext = ".dta")

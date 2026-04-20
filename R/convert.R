@@ -819,8 +819,17 @@
             return(lbl)
         })
 
+        excel_data <- data
+        excel_data[] <- lapply(excel_data, function(x) {
+            if (declared::is.declared(x)) {
+                return(declared::undeclare(x, drop = TRUE))
+            }
+            x
+        })
+        class(excel_data) <- "data.frame"
+
         excel <- list(
-            data = data,
+            data = excel_data,
             variables = data.frame(
                 name = names(var_labels),
                 label = var_labels,
