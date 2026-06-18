@@ -1,5 +1,4 @@
 #' @keywords internal
-#' "_PACKAGE"
 #'
 #' @name DDIwR_package
 #' @aliases DDIwR-package
@@ -31,19 +30,17 @@
 #' \tabular{ll}{
 #'   Package: \tab DDIwR\cr
 #'   Type: \tab Package\cr
-#'   Version: \tab 0.19.18\cr
-#'   Date: \tab 2026-04-20\cr
+#'   Version: \tab 0.19.19\cr
+#'   Date: \tab 2026-06-18\cr
 #'   License: \tab GPL-v3\cr
 #' }
 #'
-#' @importFrom admisc anyTagged asNumeric getName numdec possibleNumeric
-#' stopError trimstr tryCatchWEM wholeNumeric
+#' @importFrom admisc anyTagged asNumeric getName numdec possibleNumeric stopError trimstr tryCatchWEM wholeNumeric
 #' @importFrom base64enc base64encode base64decode
 #' @importFrom declared as.declared declared is.declared undeclare
 #' @importFrom digest digest
 #' @importFrom tools file_ext
-#' @importFrom xml2 as_list as_xml_document read_xml xml_attr xml_children xml_find_all
-#' xml_find_first xml_name xml_ns xml_text
+#' @importFrom xml2 as_list as_xml_document read_xml xml_attr xml_children xml_find_all xml_find_first xml_name xml_ns xml_text
 #' @importFrom readxl read_excel
 #' @importFrom writexl write_xlsx
 #' @importFrom utils capture.output file_test packageVersion read.csv type.convert write.table

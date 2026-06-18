@@ -318,6 +318,12 @@ part in the setup file.
 
 \code{import_excel}: Import from an Excel file (containing metadata)
 
+\code{makeNotes}: (deprecated) use \code{makeDataNotes()} instead.
+
+\code{getMetadata}: (deprecated) use \code{getCodebook()} instead.
+
+\code{exportDDI}: (deprecated) use \code{exportCodebook()} instead.
+
 \code{writeRlist}: Write an .R file containing a metadata specific list.
 }
 \keyword{internal}
