@@ -2759,13 +2759,9 @@ NULL
 
         catgry <- xml2::xml_find_all(xmlvar, sprintf("%scatgry", dns))
 
-        na_values <- c(na_values, values[unlist(lapply(catgry, function(x) {
-            grepl("Y", xml2::xml_attr(x, "missing"))
-        }))])
+        na_values <- c(na_values, values[grepl("Y", xml2::xml_attr(catgry, "missing"))])
 
-        labl <- unlist(lapply(catgry, function(x) {
-            xml2::xml_text(xml2::xml_find_first(x, sprintf("%slabl", dns)))
-        }))
+        labl <- xml2::xml_text(xml2::xml_find_first(catgry, sprintf("%slabl", dns)))
 
         values <- values[!is.na(labl)]
         labl <- cleanup(labl[!is.na(labl)])
@@ -2777,9 +2773,7 @@ NULL
         result[["labels"]] <- values
         names(result[["labels"]]) <- labl
 
-        frequencies <- unlist(lapply(catgry, function(x) {
-            xml2::xml_text(xml2::xml_find_first(x, sprintf("%scatStat", dns)))
-        }))
+        frequencies <- xml2::xml_text(xml2::xml_find_first(catgry, sprintf("%scatStat", dns)))
 
         if (!all(is.na(frequencies))) {
             if (admisc::possibleNumeric(frequencies)) {
@@ -2935,6 +2929,7 @@ NULL
 
 
 
+#' @description `makeNotes`: (deprecated) use `makeDataNotes()` instead.
 #' @rdname DDIwR_internal
 #' @keywords internal
 #' @export
@@ -2953,6 +2948,7 @@ NULL
 }
 
 
+#' @description `getMetadata`: (deprecated) use `getCodebook()` instead.
 #' @rdname DDIwR_internal
 #' @keywords internal
 #' @export
@@ -2962,6 +2958,7 @@ NULL
 }
 
 
+#' @description `exportDDI`: (deprecated) use `exportCodebook()` instead.
 #' @rdname DDIwR_internal
 #' @keywords internal
 #' @export

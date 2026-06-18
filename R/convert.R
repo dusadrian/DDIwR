@@ -866,6 +866,7 @@
             )
         })
 
+        value_list <- list()
         for (v in names(variables)) {
             labels <- getElement(variables[[v]], "labels")
             if (!is.null(labels)) {
@@ -882,8 +883,11 @@
                     temp$missing[is.element(labels, na_values)] <- "y"
                 }
 
-                excel$values <- rbind(excel$values, temp)
+                value_list[[length(value_list) + 1]] <- temp
             }
+        }
+        if (length(value_list) > 0) {
+            excel$values <- do.call(rbind, c(list(excel$values), value_list))
         }
 
         writexl::write_xlsx(excel, path = to)
