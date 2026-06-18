@@ -14,3 +14,4 @@ docs
 inst/doc
 .Rproj.user
 *.txt
+.clangd

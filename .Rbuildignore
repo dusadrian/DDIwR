@@ -16,3 +16,5 @@
 ^src/.+\.so$
 ^DDIwR\.Rcheck$
 ^\.\.Rcheck$
+^\.clangd$
+^\.vscode$
