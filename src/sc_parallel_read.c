@@ -1,6 +1,13 @@
 #include <R.h>
 #include <Rinternals.h>
 
+#undef R_Calloc
+#undef R_Realloc
+#undef R_Free
+#define R_Calloc(n, type) (type *)calloc((size_t)(n), sizeof(type))
+#define R_Realloc(p, n, type) (type *)realloc((p), (size_t)(n) * sizeof(type))
+#define R_Free(p) free(p)
+
 #include <ctype.h>
 #include <limits.h>
 #include <stdio.h>
