@@ -58,7 +58,7 @@
 #' An XML file containing a DDI version 2.6 metadata.
 #'
 #' @seealso
-#' \url{https://ddialliance.org/Specification/DDI-Codebook/2.5/XMLSchema/field_level_documentation.html}
+#' \url{https://ddialliance.org/hubfs/Specification/DDI-Codebook/2.5/XMLSchema/field_level_documentation.html}
 #'
 #' @examples
 #' \dontrun{
@@ -85,7 +85,7 @@
 #'
 #' @export
 `exportCodebook` <- function(codeBook, to = "", OS = "", indent = 2, ...) {
-    # https://ddialliance.org/Specification/DDI-Codebook/2.5/XMLSchema/field_level_documentation.html
+    # https://ddialliance.org/hubfs/Specification/DDI-Codebook/2.5/XMLSchema/field_level_documentation.html
 
     # validation procedure:
     # https://ddialliance.org/Specification/DDI-Codebook/2.5/

@@ -74,7 +74,7 @@
 `getCodebook` <- function(from = NULL, encoding = "auto", ignore = NULL, ...) {
 
     # TODO: detect DDI version or ask the version through a dedicated argument
-    # http://www.ddialliance.org/Specification/DDI-Codebook/2.5/XMLSchema/field_level_documentation.html
+    # https://ddialliance.org/hubfs/Specification/DDI-Codebook/2.5/XMLSchema/field_level_documentation.html
 
     funargs <- lapply(
         lapply(match.call(), deparse)[-1],

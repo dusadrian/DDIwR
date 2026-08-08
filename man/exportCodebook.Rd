@@ -83,7 +83,7 @@ exportCodebook(codeBook, to = "codebook.xml", xmlns = "ddi")
 
 }
 \seealso{
-\url{https://ddialliance.org/Specification/DDI-Codebook/2.5/XMLSchema/field_level_documentation.html}
+\url{https://ddialliance.org/hubfs/Specification/DDI-Codebook/2.5/XMLSchema/field_level_documentation.html}
 }
 \author{
 Adrian Dusa
