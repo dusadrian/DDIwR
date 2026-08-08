@@ -18,3 +18,4 @@
 ^\.\.Rcheck$
 ^\.clangd$
 ^\.vscode$
+^tools/build-cran-source[.]R$
