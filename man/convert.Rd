@@ -40,8 +40,9 @@ SAS files}
 \item{skip}{Integer, number of rows to skip when importing from SPSS, Stata
 or SAS files}
 
-\item{...}{Additional parameters passed to other functions, see the
-Details section}
+\item{...}{Additional options specific to the source or destination format,
+including \code{language} when importing translated DDI labels; see the Details
+section}
 }
 \value{
 An invisible R data frame, when the argument \strong{\code{to}} is NULL.
@@ -100,6 +101,15 @@ file can be provided via the \strong{\code{csv}} argument. Additional formal
 parameters of the function \bold{\code{\link[utils]{read.csv}()}} can
 be passed via the same three dots \strong{\code{...}} argument. Alternatively, the
 \strong{\code{csv}} argument can also be an R data frame.
+
+A multilingual DDI Codebook is imported in one language at a time. The
+DDI-specific \strong{\code{language}} option is supplied via \strong{\code{...}}, for example
+\code{convert("codebook.xml", language = "en")}. When it is omitted, the
+effective \code{xml:lang} of the first variable label is used. Supplying it selects
+that translation throughout the variable and category labels. Language
+declarations inherited from a parent DDI element are honored. An unqualified
+label is used as a neutral fallback, but a label in a different language is
+not substituted.
 
 When converting to DDI, if the argument \strong{\code{embed}} is set to \code{FALSE}, users
 have the option to save the data in a separate CSV file (the default) or not
@@ -176,6 +186,10 @@ convert("test.sav", to = "DDI")
 
 # The data may be saved separately from the DDI file, using:
 convert("test.sav", to = "DDI", embed = FALSE)
+
+# Format-specific options are supplied through the three dots. For example,
+# import the English labels from a multilingual DDI Codebook using:
+test <- convert("test.xml", language = "en")
 
 # To produce a Stata file:
 convert("test.sav", to = "Stata")

@@ -101,7 +101,7 @@ hashVariableMetadata(metadata)
 
 getMetadataHashes(metadata)
 
-getXMLMetadataInfo(xmlvars, dns)
+getXMLMetadataInfo(xmlvars, dns, language = NULL)
 
 getValues(variable)
 
@@ -131,7 +131,7 @@ treatPath(path, type = "*", single = FALSE, check = TRUE)
 
 writeMetadata(variables, OS = "", indent = 4)
 
-XMLtoRmetadata(xmlvar, dns)
+XMLtoRmetadata(xmlvar, dns, language = NULL)
 
 import_excel(from, dots)
 

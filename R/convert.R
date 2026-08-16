@@ -58,6 +58,15 @@
 #' be passed via the same three dots **`...`** argument. Alternatively, the
 #' **`csv`** argument can also be an R data frame.
 #'
+#' A multilingual DDI Codebook is imported in one language at a time. The
+#' DDI-specific **`language`** option is supplied via **`...`**, for example
+#' `convert("codebook.xml", language = "en")`. When it is omitted, the
+#' effective `xml:lang` of the first variable label is used. Supplying it selects
+#' that translation throughout the variable and category labels. Language
+#' declarations inherited from a parent DDI element are honored. An unqualified
+#' label is used as a neutral fallback, but a label in a different language is
+#' not substituted.
+#'
 #' When converting to DDI, if the argument **`embed`** is set to `FALSE`, users
 #' have the option to save the data in a separate CSV file (the default) or not
 #' to save the data at all, by setting **`csv`** to `FALSE`.
@@ -136,6 +145,10 @@
 #' # The data may be saved separately from the DDI file, using:
 #' convert("test.sav", to = "DDI", embed = FALSE)
 #'
+#' # Format-specific options are supplied through the three dots. For example,
+#' # import the English labels from a multilingual DDI Codebook using:
+#' test <- convert("test.xml", language = "en")
+#'
 #' # To produce a Stata file:
 #' convert("test.sav", to = "Stata")
 #'
@@ -170,8 +183,9 @@
 #' SAS files
 #' @param skip Integer, number of rows to skip when importing from SPSS, Stata
 #' or SAS files
-#' @param ... Additional parameters passed to other functions, see the
-#' Details section
+#' @param ... Additional options specific to the source or destination format,
+#' including `language` when importing translated DDI labels; see the Details
+#' section
 #'
 #' @export
 
@@ -194,6 +208,9 @@
     # }
 
     dots <- list(...)
+    language <- dots[["language", exact = TRUE]]
+    dots[["language"]] <- NULL
+
     embed <- !isFALSE(dots$embed)
 
     file_extension <- dots$file_extension
@@ -351,6 +368,8 @@
             )
         }
 
+        selected_language <- resolveDDILanguage(xmlvars, language = language)
+
         header <- TRUE
 
         # if not present in the codeBook, maybe it is on a separate .csv file
@@ -407,7 +426,12 @@
                 data <- do.call("read.csv", callist)
             }
 
-            variables <- lapply(xmlvars, XMLtoRmetadata, dns = dns)
+            variables <- lapply(
+                xmlvars,
+                XMLtoRmetadata,
+                dns = dns,
+                language = selected_language
+            )
 
             xpath <- sprintf("/%scodeBook/%sdataDscr/%svar/@name", dns, dns, dns)
             names(variables) <- admisc::trimstr(
@@ -471,13 +495,25 @@
             hashes <- attr(data, "hashes")
             attr(data, "hashes") <- NULL
 
-            if (!is.null(hashes)) {
-                metadata_info <- getXMLMetadataInfo(xmlvars, dns = dns)
+            if (!is.null(hashes) || !is.null(selected_language)) {
+                metadata_info <- getXMLMetadataInfo(
+                    xmlvars,
+                    dns = dns,
+                    language = selected_language
+                )
                 checkhashes <- metadata_info$hashes
 
-                if (!identical(hashes, checkhashes)) {
+                if (is.null(hashes)) {
+                    different <- seq_along(metadata_info$metadata)
+                }
+                else if (!identical(hashes, checkhashes)) {
                     different <- which(hashes != checkhashes)
+                }
+                else {
+                    different <- integer(0)
+                }
 
+                if (length(different) > 0) {
                     for (i in different) {
                         metadata <- metadata_info$metadata[[i]]
                         for (att in c("label", "labels", "na_values", "na_range")) {

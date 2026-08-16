@@ -1189,12 +1189,123 @@ NULL
 #' @rdname DDIwR_internal
 #' @keywords internal
 #' @export
-`getXMLMetadataInfo` <- function(xmlvars, dns) {
-    metadata <- lapply(xmlvars, XMLtoRmetadata, dns = dns)
+`getXMLMetadataInfo` <- function(xmlvars, dns, language = NULL) {
+    metadata <- lapply(
+        xmlvars,
+        XMLtoRmetadata,
+        dns = dns,
+        language = language
+    )
     list(
         metadata = metadata,
         hashes = getMetadataHashes(metadata)
     )
+}
+
+
+# Return the effective xml:lang for a label, including an inherited declaration.
+`ddiLabelLanguage` <- function(label) {
+    language <- xml2::xml_text(
+        xml2::xml_find_first(
+            label,
+            "ancestor-or-self::*[@xml:lang][1]/@xml:lang"
+        )
+    )
+
+    if (is.na(language) || !nzchar(trimws(language))) {
+        return(NA_character_)
+    }
+
+    trimws(language)
+}
+
+
+`ddiLanguageMatches` <- function(candidate, selected) {
+    candidate <- tolower(candidate)
+    selected <- tolower(selected)
+
+    identical(candidate, selected) ||
+        identical(sub("[-_].*$", "", candidate), sub("[-_].*$", "", selected))
+}
+
+
+# Resolve one document-wide language from the variable labels in document order.
+`resolveDDILanguage` <- function(xmlvars, language = NULL) {
+    labels <- xml2::xml_find_all(
+        xmlvars,
+        ".//*[local-name() = 'labl']"
+    )
+
+    languages <- vapply(labels, ddiLabelLanguage, character(1))
+    available <- unique(languages[!is.na(languages)])
+
+    if (is.null(language)) {
+        if (length(languages) == 0 || is.na(languages[1])) {
+            return(NULL)
+        }
+
+        return(languages[1])
+    }
+
+    if (!is.character(language) || length(language) != 1L ||
+        is.na(language) || !nzchar(trimws(language))) {
+        admisc::stopError("Argument 'language' should be a non-empty character scalar.")
+    }
+
+    language <- trimws(language)
+
+    if (length(available) == 0) {
+        return(language)
+    }
+
+    exact <- which(tolower(available) == tolower(language))
+    if (length(exact) > 0) {
+        return(available[exact[1]])
+    }
+
+    matching <- vapply(available, ddiLanguageMatches, logical(1), selected = language)
+    if (any(matching)) {
+        return(available[which(matching)[1]])
+    }
+
+    admisc::stopError(
+        sprintf(
+            "Language '%s' is not available in the DDI Codebook. Available languages: %s.",
+            language,
+            paste(available, collapse = ", ")
+        )
+    )
+}
+
+
+# Select one translation from a set of sibling DDI label elements.
+`selectDDILabel` <- function(labels, language = NULL) {
+    if (length(labels) == 0) {
+        return(NA_character_)
+    }
+
+    if (is.null(language)) {
+        return(xml2::xml_text(labels[1]))
+    }
+
+    languages <- vapply(labels, ddiLabelLanguage, character(1))
+    matching <- !is.na(languages) & vapply(
+        languages,
+        ddiLanguageMatches,
+        logical(1),
+        selected = language
+    )
+
+    if (any(matching)) {
+        return(xml2::xml_text(labels[which(matching)[1]]))
+    }
+
+    neutral <- which(is.na(languages))
+    if (length(neutral) > 0) {
+        return(xml2::xml_text(labels[neutral[1]]))
+    }
+
+    NA_character_
 }
 
 
@@ -2721,7 +2832,7 @@ NULL
 #' @rdname DDIwR_internal
 #' @keywords internal
 #' @export
-`XMLtoRmetadata` <- function(xmlvar, dns) {
+`XMLtoRmetadata` <- function(xmlvar, dns, language = NULL) {
     result <- list()
     # nms <- xml_name(xml_contents(xml_find_all(xml, sprintf("/d1:codeBook/d1:dataDscr/d1:var[%s]", i))))
 
@@ -2729,8 +2840,9 @@ NULL
     # vars_i <- xml2::xml_find_first(xml, xpath)
 
     label <- cleanup(
-        xml2::xml_text(
-            xml2::xml_find_first(xmlvar, sprintf("%slabl", dns))
+        selectDDILabel(
+            xml2::xml_find_all(xmlvar, sprintf("%slabl", dns)),
+            language = language
         )
     )
 
@@ -2766,10 +2878,21 @@ NULL
 
         na_values <- c(na_values, values[grepl("Y", xml2::xml_attr(catgry, "missing"))])
 
-        labl <- xml2::xml_text(xml2::xml_find_first(catgry, sprintf("%slabl", dns)))
+        labl <- vapply(
+            catgry,
+            function(category) {
+                selectDDILabel(
+                    xml2::xml_find_all(category, sprintf("%slabl", dns)),
+                    language = language
+                )
+            },
+            character(1)
+        )
 
-        values <- values[!is.na(labl)]
-        labl <- cleanup(labl[!is.na(labl)])
+        has_label <- !is.na(labl)
+        values <- values[has_label]
+        catgry <- catgry[has_label]
+        labl <- cleanup(labl[has_label])
 
         if (admisc::possibleNumeric(values)) {
             values <- admisc::asNumeric(values)
