@@ -8,7 +8,7 @@
 #'
 #' @details
 #' This function extracts the metadata from an R dataset, or alternatively it
-#' can read an XML file containing a DDI codebook version 2.6, or an
+#' can read an XML file containing a DDI Codebook version 1.2.2, 2.5 or 2.6, or an
 #' SPSS or Stata file and returns a list containing the variable labels, value
 #' labels and information about the missing values.
 #'

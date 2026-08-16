@@ -76,7 +76,8 @@
 #' a data file, will result (by default) in a data frame containing declared
 #' labelled variables, as defined in package \bold{\pkg{declared}}.
 #'
-#' The current version reads and creates DDI Codebook version 2.6, with future
+#' The current version reads DDI Codebook versions 1.2.2, 2.5 and 2.6, and
+#' creates version 2.6, with future
 #' versions to extend the functionality for DDI Lifecycle versions 3.x and link
 #' to the future package \bold{DDI4R} for the UML model based version 4. It
 #' extends the standard DDI Codebook by offering the possibility to embed a
@@ -412,6 +413,19 @@
             names(variables) <- admisc::trimstr(
                 xml2::xml_text(xml2::xml_find_all(xml, xpath))
             )
+
+            if (!is.element(ncol(data), c(length(variables), length(variables) + 1L))) {
+                admisc::stopError(
+                    sprintf(
+                        paste0(
+                            "The .csv file does not match the DDI Codebook: ",
+                            "%s data columns for %s documented variables."
+                        ),
+                        ncol(data),
+                        length(variables)
+                    )
+                )
+            }
 
             if (ncol(data) == length(variables)) {
                 if (header) {

@@ -70,6 +70,54 @@ test_that("convert() works from R to DDI and return", {
   expect_equal(dfm, dfmddi)
 })
 
+test_that("DDI Codebook 1.2.2 plus delimited data imports as declared", {
+  ddi_122 <- tempfile(fileext = ".xml")
+  ddi_122_data <- tempfile(fileext = ".csv")
+  on.exit(unlink(c(ddi_122, ddi_122_data)), add = TRUE)
+
+  writeLines(c(
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<codeBook version="1.2.2" xmlns="http://www.icpsr.umich.edu/DDI">',
+    '  <dataDscr>',
+    '    <var ID="V1" name="answer" files="F1">',
+    '      <labl>Survey answer</labl>',
+    '      <catgry missing="N"><catValu>1</catValu><labl>Yes</labl></catgry>',
+    '      <catgry missing="Y"><catValu>9</catValu><labl>No answer</labl></catgry>',
+    '      <varFormat type="numeric"/>',
+    '    </var>',
+    '  </dataDscr>',
+    '</codeBook>'
+  ), ddi_122)
+  writeLines(c("answer", "1", "9"), ddi_122_data)
+
+  imported <- convert(ddi_122, csv = ddi_122_data, sep = "\t")
+
+  expect_s3_class(imported, "data.frame")
+  expect_true(declared::is.declared(imported$answer))
+  expect_equal(attr(imported$answer, "label", exact = TRUE), "Survey answer")
+  expect_equal(attr(imported$answer, "labels", exact = TRUE), c(Yes = 1, `No answer` = 9))
+  expect_equal(attr(imported$answer, "na_values", exact = TRUE), 9)
+})
+
+test_that("convert() rejects undocumented CSV columns", {
+  ddi_122 <- tempfile(fileext = ".xml")
+  ddi_122_data <- tempfile(fileext = ".csv")
+  on.exit(unlink(c(ddi_122, ddi_122_data)), add = TRUE)
+
+  writeLines(c(
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<codeBook version="1.2.2" xmlns="http://www.icpsr.umich.edu/DDI">',
+    '  <dataDscr><var ID="V1" name="answer"><varFormat type="numeric"/></var></dataDscr>',
+    '</codeBook>'
+  ), ddi_122)
+  writeLines(c("answer\textra_one\textra_two", "1\t2\t3"), ddi_122_data)
+
+  expect_error(
+    convert(ddi_122, csv = ddi_122_data, sep = "\t"),
+    "3 data columns\\s+for 1 documented variables"
+  )
+})
+
 test_that("convert() works from R to RDS and return", {
   expect_equal(dfm, dfmrds)
 })

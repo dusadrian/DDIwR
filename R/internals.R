@@ -807,7 +807,12 @@ NULL
 #' @export
 `getDNS` <- function(xml) {
     xmlns <- xml2::xml_ns(xml)
-    wns <- which(xmlns == "ddi:codebook:2_5" | xmlns == "ddi:codebook:2_6")
+    codebook_namespaces <- c(
+        "http://www.icpsr.umich.edu/DDI",
+        "ddi:codebook:2_5",
+        "ddi:codebook:2_6"
+    )
+    wns <- which(xmlns %in% codebook_namespaces)
     if (length(wns) == 0) {
         admisc::stopError("The XML document does not contain a DDI namespace.")
     }
