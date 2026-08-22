@@ -1,9 +1,11 @@
 Version 0.20
+  o function getCodebook() now defaults to autodetect the file encoding
   o improved getCodebook() capturing extended missing values from Stata/SAS
   o bug fix in getCodebook() when a variable is completely missing (all empty NAs)
-  o function getCodebook() now defaults to autodetect the file encoding
-  o function convert() now allows input files with no metadata at all
   o implemented way to produce a DDI Codebook using weighted summaries
+  o function convert() now allows input files with no metadata at all, and it
+    supports multi-language DDI XML Codebooks via the optional argument
+    "language", supplied via the three dots ...
   o added xpath support with indexed segments (e.g. var[3]) in getChildren()
   o new functions makePath(), moveChild() and replaceChild() that accept
     xpath (path renamed)
