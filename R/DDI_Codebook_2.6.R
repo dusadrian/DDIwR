@@ -1,3 +1,10 @@
+# Curated R representation of DDI-Codebook 2.6 (published 2026-04-15).
+# Schema: ddialliance/ddi-c_2, commit 94006d85b995c4013a07cd4e50a66df51aead33e.
+# DDI Alliance schema: https://github.com/ddialliance/ddi-c_2/tree/2.6
+# Licensed CC BY 4.0: https://creativecommons.org/licenses/by/4.0/
+# Adaptations include R attribute names, simplified content models, editorial
+# descriptions and recommendations. Do not replace these with raw extraction.
+
 cacheEnv <- new.env()
 
 assign(
@@ -92,9 +99,54 @@ assign(
             recommended = FALSE,
             deprecated = FALSE,
             attributes = list(
-                type = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
                     type = "string",
-                    description = "",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                n = list(
+                    type = "string",
+                    description = "Number or label identifying this formatting element.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                rend = list(
+                    type = "string",
+                    description = "Rendering or presentation information for this formatting element.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -115,9 +167,54 @@ assign(
             recommended = FALSE,
             deprecated = FALSE,
             attributes = list(
-                type = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
                     type = "string",
-                    description = "",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                n = list(
+                    type = "string",
+                    description = "Number or label identifying this formatting element.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                rend = list(
+                    type = "string",
+                    description = "Rendering or presentation information for this formatting element.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -137,7 +234,71 @@ assign(
             repeatable = FALSE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                n = list(
+                    type = "string",
+                    description = "Number or label identifying this formatting element.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                rend = list(
+                    type = "string",
+                    description = "Rendering or presentation information for this formatting element.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                type = list(
+                    type = "string",
+                    description = "Type of heading.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = c(),
             children = list(choice = c("emph", "hi", "list")),
             title = "Head",
@@ -151,9 +312,54 @@ assign(
             recommended = FALSE,
             deprecated = FALSE,
             attributes = list(
-                type = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
                     type = "string",
-                    description = "",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                n = list(
+                    type = "string",
+                    description = "Number or label identifying this formatting element.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                rend = list(
+                    type = "string",
+                    description = "Rendering or presentation information for this formatting element.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -174,9 +380,54 @@ assign(
             recommended = FALSE,
             deprecated = FALSE,
             attributes = list(
-                type = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
                     type = "string",
-                    description = "",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                n = list(
+                    type = "string",
+                    description = "Number or label identifying this formatting element.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                rend = list(
+                    type = "string",
+                    description = "Rendering or presentation information for this formatting element.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -197,9 +448,54 @@ assign(
             recommended = FALSE,
             deprecated = FALSE,
             attributes = list(
-                type = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
                     type = "string",
-                    description = "",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                n = list(
+                    type = "string",
+                    description = "Number or label identifying this formatting element.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                rend = list(
+                    type = "string",
+                    description = "Rendering or presentation information for this formatting element.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -237,6 +533,42 @@ assign(
                     optional = TRUE,
                     recommended = FALSE,
                     deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
                 )
             ),
             parents = "stdyInfo",
@@ -254,8 +586,98 @@ assign(
             attributes = list(
                 URI = list(
                     type = "string",
-                    description = "",
+                    description = "URI of the access location.",
                     values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                affiliation = list(
+                    type = "string",
+                    description = "Affiliation of the access provider with an agency or organization.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                abbr = list(
+                    type = "string",
+                    description = "Abbreviation for the access provider.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                agentIdentifier = list(
+                    type = "string",
+                    description = "Identifier of the access provider.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                typeOfAgentIdentifier = list(
+                    type = "string",
+                    description = "Identifier scheme; provide when agentIdentifier is used.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isPersistentIdentifier = list(
+                    type = "boolean",
+                    description = "Whether the identifier is intended to persist over time.",
+                    values = c("true", "false"),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                agentType = list(
+                    type = "NMTOKEN",
+                    description = "Whether the access provider is an organization or an individual.",
+                    values = c("organization", "individual"),
                     default = c(),
                     optional = TRUE,
                     recommended = FALSE,
@@ -274,14 +696,52 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "dataColl",
             children = list(choice = c("concept", "txt")),
             title = "Actions to Minimize Losses",
-            description = "Summary of actions taken to minimize data loss. Includes information on actions such as follow-up visits, supervisory checks, historical matching, estimation, etc. This element contains the sub-element \"concept\" to support the use of an external controlled vocabulary. PLEASE NOTE A CHANGE IN USAGE INSTRUCTIONS: The string content of the element now contains the language specific label obtained from the controlled vocabulary. This allows for multiple languages through the repeated entry of the \"concept\" element. The attribute \"vocabInstanceCodeTerm\" has been added to accommodate the code term as it appears in the controlled vocabulary. See the high level documentation for a complete description of usage. Additional textual description is entered in the mixed text content or using the sub-element \"txt\".",
+            description = "Summary of actions taken to minimize data loss. Includes information on actions such as follow-up visits, supervisory checks, historical matching, estimation, etc. This element contains the sub-element \"concept\" to support the use of an external controlled vocabulary. PLEASE NOTE A CHANGE IN USAGE INSTRUCTIONS: The string content of \"concept\" now contains the language specific label obtained from the controlled vocabulary. This allows for multiple languages through the repeated entry of the \"concept\" element. The attribute \"vocabInstanceCodeTerm\" has been added to accommodate the code term as it appears in the controlled vocabulary. See the high level documentation for a complete description of usage. Additional textual description is entered in the mixed text content or using the sub-element \"txt\".",
             examples = "<actMin>To minimize the number of unresolved cases and reduce the potential nonresponse bias, four follow-up contacts were made with agencies that had not responded by various stages of the data collection process.</actMin>"
         ),
         algorithmSpecification = list(
+            type = "xs:string",
             optional = TRUE,
             repeatable = FALSE,
             recommended = FALSE,
@@ -289,11 +749,12 @@ assign(
             attributes = list(),
             parents = "dataFingerprint",
             children = list(),
-            title = "",
-            description = "",
+            title = "Algorithm Specification",
+            description = "Specification or reference describing the algorithm used to calculate the fingerprint.",
             examples = c()
         ),
         algorithmVersion = list(
+            type = "xs:string",
             optional = TRUE,
             repeatable = FALSE,
             recommended = FALSE,
@@ -301,8 +762,8 @@ assign(
             attributes = list(),
             parents = "dataFingerprint",
             children = list(),
-            title = "",
-            description = "",
+            title = "Algorithm Version",
+            description = "Version of the algorithm used to calculate the fingerprint.",
             examples = c()
         ),
         altTitl = list(
@@ -311,7 +772,44 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "titlStmt",
             children = list(),
             title = "Alternative Title",
@@ -346,6 +844,42 @@ assign(
                     optional = TRUE,
                     recommended = FALSE,
                     deprecated = TRUE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
                 )
             ),
             parents = "sumDscr",
@@ -363,11 +897,48 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = c("nCube", "var"),
             children = list(choice = c("concept", "txt")),
             title = "Analysis Unit",
-            description = "",
+            description = "Provides information regarding whom or what the variable or nCube describes. DDI provides a controlled vocabulary for this element: \"AnalysisUnit\". The content of the child element \"concept\" contains the language-specific label from the controlled vocabulary; \"vocabInstanceCodeTerm\" identifies its code term. Repeat the full element to provide descriptions in multiple languages.",
             examples = c("<var><anlysUnit><concept vocabInstanceCodeTerm=\"constituency\">constituency level</concept>This variable reports election returns at the constituency level.</anlysUnit></var>")
         ),
         attribute = list(
@@ -426,7 +997,7 @@ assign(
                     recommended = FALSE,
                     deprecated = FALSE
                 ),
-                isPersistantIdentifier = list(
+                isPersistentIdentifier = list(
                     type = "boolean",
                     description = "Indicate if the agent identifier is intended to be a persistent identifier",
                     values = c("true", "false"),
@@ -439,6 +1010,42 @@ assign(
                     type = "NMTOKEN",
                     description = "Type of authoring entity: organization or individual.",
                     values = c("organization", "individual"),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
                     default = c(),
                     optional = TRUE,
                     recommended = FALSE,
@@ -503,7 +1110,7 @@ assign(
                     recommended = FALSE,
                     deprecated = FALSE
                 ),
-                isPersistantIdentifier = list(
+                isPersistentIdentifier = list(
                     type = "boolean",
                     description = "Indicate if the agent identifier is intended to be a persistent identifier",
                     values = c("true", "false"),
@@ -516,6 +1123,42 @@ assign(
                     type = "NMTOKEN",
                     description = "Type of authorizing agency: organization or individual.",
                     values = c("organization", "individual"),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
                     default = c(),
                     optional = TRUE,
                     recommended = FALSE,
@@ -534,7 +1177,44 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "studyAuthorization",
             children = list(),
             title = "Authorization Statement",
@@ -547,11 +1227,48 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "setAvail",
             children = list(choice = c("concept", "txt")),
             title = "Availability Status",
-            description = "Statement of collection availability. An archive may need to indicate that a collection is unavailable because it is embargoed for a period of time, because it has been superseded, because a new edition is imminent, etc. It is anticipated that a controlled vocabulary will be developed for this element. This element contains the sub-element \"concept\" to support the use of an external controlled vocabulary. PLEASE NOTE A CHANGE IN USAGE INSTRUCTIONS: The string content of the element now contains the language specific label obtained from the controlled vocabulary. This allows for multiple languages through the repeated entry of the \"concept\" element. The attribute \"vocabInstanceCodeTerm\" has been added to accommodate the code term as it appears in the controlled vocabulary. See the high level documentation for a complete description of usage. Additional textual description is entered in the mixed text content or using the sub-element \"txt\".",
+            description = "Statement of collection availability. An archive may need to indicate that a collection is unavailable because it is embargoed for a period of time, because it has been superseded, because a new edition is imminent, etc. It is anticipated that a controlled vocabulary will be developed for this element. This element contains the sub-element \"concept\" to support the use of an external controlled vocabulary. PLEASE NOTE A CHANGE IN USAGE INSTRUCTIONS: The string content of \"concept\" now contains the language specific label obtained from the controlled vocabulary. This allows for multiple languages through the repeated entry of the \"concept\" element. The attribute \"vocabInstanceCodeTerm\" has been added to accommodate the code term as it appears in the controlled vocabulary. See the high level documentation for a complete description of usage. Additional textual description is entered in the mixed text content or using the sub-element \"txt\".",
             examples = c(
                 "<avlStatus>This collection is superseded by CENSUS OF POPULATION, 1880 [UNITED STATES]: PUBLIC USE SAMPLE (ICPSR 6460).</avlStatus>",
                 "<avlStatus><concept vocab=\"ICPSR_Access_Restricted\" vocabURI=\"https://www.icpsr.umich.edu/web/pages/ICPSR/access/restricted/\" vocabInstanceCodeTerm=\"1\">Secure Download</concept>Upon approval, researchers will receive an encrypted file via e-mail which they may download to the secure location specified in the application.</avlStatus>"
@@ -567,6 +1284,42 @@ assign(
                 qstn = list(
                     type = "IDREFS",
                     description = "Specifies the question ID(s), space delimited.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -593,6 +1346,42 @@ assign(
                 format = list(
                     type = "string",
                     description = "Enables specification of the particular citation style used, e.g., APA, MLA, Chicago, etc.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -631,7 +1420,44 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = c("dimensns", "recDimnsn"),
             children = list(),
             title = "Number of cases / Record Quantity",
@@ -695,7 +1521,7 @@ assign(
                     description = "Reference to the variable(s) containing the weight used.",
                     values = c(),
                     default = c(),
-                    optional = FALSE,
+                    optional = TRUE,
                     recommended = FALSE,
                     deprecated = FALSE
                 ),
@@ -725,6 +1551,42 @@ assign(
                     optional = TRUE,
                     recommended = FALSE,
                     deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
                 )
             ),
             parents = c("catgry", "catgryGrp"),
@@ -745,7 +1607,44 @@ assign(
             repeatable = FALSE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "catgry",
             children = list(),
             title = "Category Value",
@@ -974,7 +1873,44 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "useStmt",
             children = list(),
             title = "Citation Requirement",
@@ -1027,6 +1963,42 @@ assign(
                     optional = TRUE,
                     recommended = FALSE,
                     deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
                 )
             ),
             parents = "dataColl",
@@ -1041,7 +2013,44 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "var",
             children = list(),
             title = "Coder Instructions",
@@ -1212,6 +2221,42 @@ assign(
                     optional = TRUE,
                     recommended = FALSE,
                     deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
                 )
             ),
             parents = "sumDscr",
@@ -1226,7 +2271,44 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "dataColl",
             children = list(choice = c("concept", "txt")),
             title = "Mode of Data Collection",
@@ -1244,7 +2326,44 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "dataColl",
             children = list(),
             title = "Characteristics of Data Collection Situation",
@@ -1257,7 +2376,44 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "setAvail",
             children = list(),
             title = "Extent of Collection",
@@ -1273,7 +2429,7 @@ assign(
             attributes = list(
                 colnum = list(
                     type = "string",
-                    description = "",
+                    description = "Specification of a column in a table group, including its name, width and alignment.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -1437,6 +2593,42 @@ assign(
                     optional = TRUE,
                     recommended = FALSE,
                     deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
                 )
             ),
             parents = "setAvail",
@@ -1532,6 +2724,42 @@ assign(
                     optional = TRUE,
                     recommended = FALSE,
                     deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
                 )
             ),
             parents = c("actMin", "anlyUnit", "anlysUnit", "avlStatus", "collMode", "dataAppr", "dataChck", "unitType", "instrumentDevelopment", "updateProcedure", "collectorTraining", "dataKind", "frequenc", "geogCover", "geogUnit", "dataProcessing", "nCubeGrp", "nation", "resInstru", "respUnit", "sampProc", "srcOrig", "stdyClas", "evaluationProcess", "timeMeth", "universe", "var", "varGrp", "weight"),
@@ -1551,7 +2779,44 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "useStmt",
             children = list(),
             title = "Conditions",
@@ -1586,6 +2851,42 @@ assign(
                 URI = list(
                     type = "string",
                     description = "Provides a URN or URL for online access to a confidentiality declaration form.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -1654,7 +2955,7 @@ assign(
                     recommended = FALSE,
                     deprecated = FALSE
                 ),
-                isPersistantIdentifier = list(
+                isPersistentIdentifier = list(
                     type = "boolean",
                     description = "Indicate if the agent identifier is intended to be a persistent identifier",
                     values = c("true", "false"),
@@ -1667,6 +2968,42 @@ assign(
                     type = "NMTOKEN",
                     description = "Type of authoring entity: organization or individual.",
                     values = c("organization", "individual"),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
                     default = c(),
                     optional = TRUE,
                     recommended = FALSE,
@@ -1689,6 +3026,42 @@ assign(
                 agency = list(
                     type = "string",
                     description = "Reference to the agency that performed the control operation.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -1721,7 +3094,44 @@ assign(
             repeatable = FALSE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "controlledVocabUsed",
             children = list(),
             title = "Code List ID",
@@ -1734,7 +3144,44 @@ assign(
             repeatable = FALSE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "controlledVocabUsed",
             children = list(),
             title = "Code List Name",
@@ -1747,7 +3194,44 @@ assign(
             repeatable = FALSE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "controlledVocabUsed",
             children = list(),
             title = "Code List Agency Name",
@@ -1760,7 +3244,44 @@ assign(
             repeatable = FALSE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "controlledVocabUsed",
             children = list(),
             title = "Code List Version ID",
@@ -1773,7 +3294,44 @@ assign(
             repeatable = FALSE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "controlledVocabUsed",
             children = list(),
             title = "Code List URN",
@@ -1786,7 +3344,44 @@ assign(
             repeatable = FALSE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "controlledVocabUsed",
             children = list(),
             title = "Code List Scheme URN",
@@ -1808,6 +3403,42 @@ assign(
                     optional = TRUE,
                     recommended = FALSE,
                     deprecated = TRUE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
                 )
             ),
             parents = "dataColl",
@@ -1817,15 +3448,53 @@ assign(
             examples = "<collectorTraining><concept vocab=\"TrainingObject\" vocabURI=\"http://xyzdatacollection.org/vocabularies/TrainingObject\" vocabInstanceURI=\"http://xyzdatacollection.org/vocabularies/TrainingObject#InterviewerTraining\">InterviewerTraining</concept>Describe research project, describe population and sample, suggest methods and language for approaching subjects, explain questions and key terms of survey instrument.</collectorTraining>"
         ),
         complianceDescription = list(
+            type = "simpleTextType",
             optional = TRUE,
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "standardsCompliance",
             children = list(),
-            title = "",
-            description = "",
+            title = "Compliance Description",
+            description = "Explanation of how the study complies with the identified standard.",
             examples = c()
         ),
         copyright = list(
@@ -1834,7 +3503,44 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "prodStmt",
             children = list(),
             title = "Copyright",
@@ -1938,7 +3644,7 @@ assign(
                     recommended = FALSE,
                     deprecated = FALSE
                 ),
-                isPersistantIdentifier = list(
+                isPersistentIdentifier = list(
                     type = "boolean",
                     description = "Indicate if the agent identifier is intended to be a persistent identifier",
                     values = c("true", "false"),
@@ -1951,6 +3657,42 @@ assign(
                     type = "NMTOKEN",
                     description = "Type of custodian: organization or individual.",
                     values = c("organization", "individual"),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
                     default = c(),
                     optional = TRUE,
                     recommended = FALSE,
@@ -1973,7 +3715,7 @@ assign(
             parents = "stdyDscr",
             children = list("typeOfAccess", "setAvail", "license", "useStmt", "notes"),
             title = "Data Access",
-            description = "This section describes access conditions and terms of use for the data collection. In cases where access conditions differ across individual files or variables, multiple access conditions can be specified. In cases where access conditions differ across individual files, variables, or categories multiple access conditions can be specified. The access conditions applying to a study, file, variable group, variable or category can be indicated by an IDREF attribute on the study, file, variable group, nCube group, variable, category, or data item elements called \"access\". The member element \"typeOfAccss\" is of the type \"concept\" and is intended to provide a specific type of access. If a license applies to the data access, use the optional \"license\" element.",
+            description = "This section describes access conditions and terms of use for the data collection. In cases where access conditions differ across individual files, variables, or categories multiple access conditions can be specified. The access conditions applying to a study, file, variable group, variable or category can be indicated by an IDREF attribute on the study, file, variable group, nCube group, variable, category, or data item elements called \"access\". The member element \"typeOfAccess\" is of the type \"concept\" and is intended to provide a specific type of access. If a license applies to the data access, use the optional \"license\" element.",
             examples = c()
         ),
         dataAppr = list(
@@ -1991,6 +3733,42 @@ assign(
                     optional = TRUE,
                     recommended = FALSE,
                     deprecated = TRUE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
                 )
             ),
             parents = "anlyInfo",
@@ -2005,7 +3783,44 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "fileTxt",
             children = list(choice = c("concept", "txt")),
             title = "Extent of Processing Checks",
@@ -2090,7 +3905,7 @@ assign(
                     recommended = FALSE,
                     deprecated = FALSE
                 ),
-                isPersistantIdentifier = list(
+                isPersistentIdentifier = list(
                     type = "boolean",
                     description = "Indicate if the agent identifier is intended to be a persistent identifier",
                     values = c("true", "false"),
@@ -2103,6 +3918,42 @@ assign(
                     type = "NMTOKEN",
                     description = "Type of data collector: organization or individual.",
                     values = c("organization", "individual"),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
                     default = c(),
                     optional = TRUE,
                     recommended = FALSE,
@@ -2224,6 +4075,42 @@ assign(
                     optional = TRUE,
                     recommended = FALSE,
                     deprecated = TRUE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
                 )
             ),
             parents = "sumDscr",
@@ -2238,7 +4125,44 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "fileTxt",
             children = list(),
             title = "Missing Data",
@@ -2254,7 +4178,44 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = c("sources", "resource"),
             children = list(),
             title = "Data Sources",
@@ -2270,7 +4231,44 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = c("nCubeGrp", "varGrp"),
             children = list(),
             title = "Definition",
@@ -2295,6 +4293,42 @@ assign(
                     optional = TRUE,
                     recommended = FALSE,
                     deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
                 )
             ),
             parents = "distStmt",
@@ -2309,7 +4343,44 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "useStmt",
             children = list(),
             title = "Deposit Requirement",
@@ -2359,7 +4430,7 @@ assign(
                     recommended = FALSE,
                     deprecated = FALSE
                 ),
-                isPersistantIdentifier = list(
+                isPersistentIdentifier = list(
                     type = "boolean",
                     description = "Indicate if the agent identifier is intended to be a persistent identifier",
                     values = c("true", "false"),
@@ -2372,6 +4443,42 @@ assign(
                     type = "NMTOKEN",
                     description = "Type of depositor: organization or individual.",
                     values = c("organization", "individual"),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
                     default = c(),
                     optional = TRUE,
                     recommended = FALSE,
@@ -2408,15 +4515,53 @@ assign(
             examples = "<derivation var=\"V4 V9\"><drvdesc>Taxible Income (V10) expressed as a combination of wage and salary income (V4) plus interest income (V9)</drvdesc><drvcmd syntax=\"SPSS\">V10=V4+V9</drvcmd></derivation>"
         ),
         description = list(
+            type = "simpleTextType",
             optional = TRUE,
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "developmentActivity",
             children = list(),
-            title = "",
-            description = "",
+            title = "Development Activity Description",
+            description = "Description of the development activity.",
             examples = c()
         ),
         developmentActivity = list(
@@ -2439,7 +4584,7 @@ assign(
             parents = "studyDevelopment",
             children = list("typeOfDevelopmentActivity", "description", "participant", "resource", "outcome"),
             title = "Development Activity",
-            description = "Information on the development activity including a description, set of participants, resources used, and outcomes. Use of the \"type\" attribute has been DEPRECATED. Use the element typeOfSetAvailability which supports the use of a controlled vocabulary. Repeat if multiple language labels are being provided directly within the documentation.",
+            description = "Information on the development activity including a description, set of participants, resources used, and outcomes. Use of the \"type\" attribute has been DEPRECATED. Use the element typeOfDevelopmentActivity which supports the use of a controlled vocabulary. Repeat if multiple language labels are being provided directly within the documentation.",
             examples = "<developmentActivity><typeOfDevelopmentActivity vocab=\"LifecycleEventType\" vocabURI=\"https://www.ddialliance.org/Specification/DDI-CV/LifecycleEventType_1.0.html\">QuestionnaireTranslation</typeOfDevelopmentActivity><typeOfDevelopmentActivity vocab=\"DIME Questionnaire Translation\" vocabURI=\"https://dimewiki.worldbank.org/index.php?title=Questionnaire_Translation&amp;oldid=8152\">Forward Translation</typeOfDevelopmentActivity><description>Translation from language A to language B of question and response text. Language experts are used. Translation is tested through round-trip translation practices. Translated question will be tested for response consistency with original language text.</description><participant affiliation=\"ISRDI\" role=\"language exert\">Ragi Yousef</participant><resource><srcCitation><titlStmt><titl>Labor Force Survey 2017-2018</titl></titlStmt><holding><URI>https://www.ilo.org/surveyLib/index.php/catalog/2549/related-materials</URI></holding></srcCitation></resource><outcome>Translated question resulted in valid replication of original language in the round trip test. Translated question resulted in statistically similar results as original language question following testing.</outcome></developmentActivity>"
         ),
         deviat = list(
@@ -2448,7 +4593,44 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "dataColl",
             children = list(),
             title = "Major Deviations from the Sample Design",
@@ -2456,6 +4638,7 @@ assign(
             examples = "<deviat>The suitability of Ohio as a research site reflected its similarity to the United States as a whole. The evidence extended by Tuchfarber (1988) shows that Ohio is representative of the United States in several ways: percent urban and rural, percent of the population that is African American, median age, per capita income, percent living below the poverty level, and unemployment rate. Although results generated from an Ohio sample are not empirically generalizable to the United States, they may be suggestive of what might be expected nationally.</deviat>"
         ),
         digitalFingerprintValue = list(
+            type = "xs:string",
             optional = FALSE,
             repeatable = FALSE,
             recommended = FALSE,
@@ -2463,8 +4646,8 @@ assign(
             attributes = list(),
             parents = "dataFingerprint",
             children = list(),
-            title = "",
-            description = "",
+            title = "Digital Fingerprint Value",
+            description = "Fingerprint value identifying the data or file described by the enclosing dataFingerprint element.",
             examples = c()
         ),
         dimensns = list(
@@ -2486,7 +4669,44 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "useStmt",
             children = list(),
             title = "Disclaimer",
@@ -2503,6 +4723,42 @@ assign(
                 date = list(
                     type = "string",
                     description = "The ISO standard for dates (YYYY-MM-DD) is recommended for use.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -2581,7 +4837,7 @@ assign(
                     recommended = FALSE,
                     deprecated = FALSE
                 ),
-                isPersistantIdentifier = list(
+                isPersistentIdentifier = list(
                     type = "boolean",
                     description = "Indicate if the agent identifier is intended to be a persistent identifier",
                     values = c("true", "false"),
@@ -2594,6 +4850,42 @@ assign(
                     type = "NMTOKEN",
                     description = "Type of distributor: organization or individual.",
                     values = c("organization", "individual"),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
                     default = c(),
                     optional = TRUE,
                     recommended = FALSE,
@@ -2774,6 +5066,42 @@ assign(
                     optional = TRUE,
                     recommended = FALSE,
                     deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
                 )
             ),
             parents = "docDscr",
@@ -2797,6 +5125,42 @@ assign(
                     optional = TRUE,
                     recommended = FALSE,
                     deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
                 )
             ),
             parents = c("derivation", "fileCommand"),
@@ -2811,7 +5175,44 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = c("derivation", "fileCommand"),
             children = list(),
             title = "Derivation Description",
@@ -2824,7 +5225,44 @@ assign(
             repeatable = FALSE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "geoBndBox",
             children = list(),
             title = "East Bounding Longitude",
@@ -2864,6 +5302,42 @@ assign(
                     optional = TRUE,
                     recommended = FALSE,
                     deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
                 )
             ),
             parents = c("nCube", "var"),
@@ -2884,7 +5358,7 @@ assign(
             attributes = list(
                 colname = list(
                     type = "NMTOKEN",
-                    description = "",
+                    description = "Content of a cell in a table row, with attributes for alignment and spanning rows or columns.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -2971,6 +5445,42 @@ assign(
                     optional = TRUE,
                     recommended = FALSE,
                     deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
                 )
             ),
             parents = "row",
@@ -2985,7 +5495,44 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "anlyInfo",
             children = list(),
             title = "Estimates of Sampling Error",
@@ -3044,7 +5591,7 @@ assign(
                     recommended = FALSE,
                     deprecated = FALSE
                 ),
-                isPersistantIdentifier = list(
+                isPersistentIdentifier = list(
                     type = "boolean",
                     description = "Indicate if the agent identifier is intended to be a persistent identifier",
                     values = c("true", "false"),
@@ -3057,6 +5604,42 @@ assign(
                     type = "NMTOKEN",
                     description = "Type of evaluator: organization or individual.",
                     values = c("organization", "individual"),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
                     default = c(),
                     optional = TRUE,
                     recommended = FALSE,
@@ -3075,7 +5658,44 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "exPostEvaluation",
             children = list(choice = c("concept", "txt")),
             title = "Evaluation Process",
@@ -3135,9 +5755,9 @@ assign(
             children = list("drvdesc", "drvcmd", "fileDerivationVars"),
             title = "File Command",
             description = c(
-                "The element allows for the description of the file command by capturing a textual description of the command including the capture of pseudo code in \"drvdesc\" as well as the specific command using \"drvcmd\". Follow the same convention as the variable derivation; source=\"producer\" holds original and source=\"archive\" holds the SDTD.",
-                "Provide linkage to source and target variables that were involved in this derivation command in \"fileDerivationVars\". Basically, any dropped variable from the source will only be identified and referenced here. A variable that is kept and unchanged, will have a derivation pointing to it source, but the specific command which led to its retention will only be identified here at the file level. Variables created by a file level command will be linked here, and their derivation elements will repeat the command.",
-                "If applicable, use the values \"add\" or \"drop\" if this command added or dropped cases from the referenced source files."
+                "The element allows for the description of the file command by capturing a textual description of the command including the capture of pseudo code in \"drvdesc\" as well as the specific command using \"drvcmd\". Follow the same convention as the variable derivation; source=\"producer\" holds original and source=\"archive\" holds the SDTL.",
+                "Provide linkage to source and target variables that were involved in this derivation command in \"fileDerivationVars\". Basically, any dropped variable from the source will only be identified and referenced here. A variable that is kept and unchanged, will have a derivation pointing to its source, but the specific command which led to its retention will only be identified here at the file level. Variables created by a file level command will be linked here, and their derivation elements will repeat the command.",
+                "If applicable, use the values \"add\" or \"drop\" in the attribute \"fileDerivationCasesAction\" if this command added or dropped cases from the referenced source files."
             ),
             examples = c()
         ),
@@ -3233,7 +5853,44 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "fileTxt",
             children = list(),
             title = "Contents of Files",
@@ -3311,7 +5968,44 @@ assign(
             repeatable = TRUE,
             recommended = TRUE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "fileTxt",
             children = list(),
             title = "File Name",
@@ -3324,7 +6018,44 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "fileTxt",
             children = list(),
             title = "Place of File Production",
@@ -3337,7 +6068,44 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "setAvail",
             children = list(),
             title = "Number of Files",
@@ -3446,6 +6214,42 @@ assign(
                     optional = TRUE,
                     recommended = FALSE,
                     deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
                 )
             ),
             parents = "fileTxt",
@@ -3541,6 +6345,42 @@ assign(
                     optional = TRUE,
                     recommended = FALSE,
                     deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
                 )
             ),
             parents = "fileTxt",
@@ -3559,6 +6399,42 @@ assign(
                 qstn = list(
                     type = "IDREFS",
                     description = "Space delimited question IDs.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -3610,6 +6486,42 @@ assign(
                     optional = TRUE,
                     recommended = FALSE,
                     deprecated = TRUE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
                 )
             ),
             parents = "dataColl",
@@ -3673,7 +6585,7 @@ assign(
                     recommended = FALSE,
                     deprecated = FALSE
                 ),
-                isPersistantIdentifier = list(
+                isPersistentIdentifier = list(
                     type = "boolean",
                     description = "Indicate if the agent identifier is intended to be a persistent identifier",
                     values = c("true", "false"),
@@ -3686,6 +6598,42 @@ assign(
                     type = "NMTOKEN",
                     description = "Type of funding agency: organization or individual.",
                     values = c("organization", "individual"),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
                     default = c(),
                     optional = TRUE,
                     recommended = FALSE,
@@ -3769,7 +6717,44 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "sumDscr",
             children = list(choice = c("concept", "txt")),
             title = "Geographic Coverage",
@@ -3785,7 +6770,44 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "sumDscr",
             children = list(choice = c("concept", "txt")),
             title = "Geographic Unit",
@@ -3879,6 +6901,42 @@ assign(
                     optional = TRUE,
                     recommended = FALSE,
                     deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
                 )
             ),
             parents = "sumDscr",
@@ -3929,6 +6987,60 @@ assign(
                     optional = TRUE,
                     recommended = FALSE,
                     deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                fundAgRefs = list(
+                    type = "IDREFS",
+                    description = "IDs of the funding agencies issuing the grant, separated by spaces. Each referenced fundAg must have an ID.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                URI = list(
+                    type = "anyURI",
+                    description = "URN or URL of the funding agency or funding program. Prefer the more specific funding program URI when both are available.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
                 )
             ),
             parents = "prodStmt",
@@ -3937,7 +7049,7 @@ assign(
             description = "The grant/contract number of the project that sponsored the effort. Note that regional and country differences may make direct comparison difficult. The attributes are intended to allow for differences in grant organization in different countries.",
             examples = c(
                 "<grantNo agency=\"Bureau of Justice Statistics\">J-LEAA-018-77</grantNo>",
-                "<grantNo agency=\"Academy of Finland. Strategic Research Council\" fundingProgramme=\"SRC 2016 Health, welfare and lifestyles\" grantName=\"Inclusive Promotion of Health and Wellbeing\">303654</grantNo>"
+                "<grantNo agency=\"Academy of Finland. Strategic Research Council\" fundingProgram=\"SRC 2016 Health, welfare and lifestyles\" grantName=\"Inclusive Promotion of Health and Wellbeing\">303654</grantNo>"
             )
         ),
         gringLat = list(
@@ -3946,7 +7058,44 @@ assign(
             repeatable = FALSE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "point",
             children = list(),
             title = "G-Ring Latitude",
@@ -3959,7 +7108,44 @@ assign(
             repeatable = FALSE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "point",
             children = list(),
             title = "G-Ring Longitude",
@@ -3972,7 +7158,44 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "docDscr",
             children = list(),
             title = "Guide to Codebook",
@@ -4021,6 +7244,42 @@ assign(
                     optional = TRUE,
                     recommended = FALSE,
                     deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
                 )
             ),
             parents = c("citation", "docSrc", "fileCitation", "sourceCitation"),
@@ -4061,6 +7320,42 @@ assign(
                     type = "NMTOKEN",
                     description = "Specifies the level (study, file, or project) to which the identification number applies.",
                     values = c("study", "file", "project"),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
                     default = c(),
                     optional = TRUE,
                     recommended = FALSE,
@@ -4164,6 +7459,42 @@ assign(
                     optional = TRUE,
                     recommended = FALSE,
                     deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
                 )
             ),
             parents = c("nCube", "var"),
@@ -4216,6 +7547,42 @@ assign(
                     optional = TRUE,
                     recommended = FALSE,
                     deprecated = TRUE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
                 )
             ),
             parents = "dataColl",
@@ -4266,9 +7633,54 @@ assign(
             recommended = FALSE,
             deprecated = FALSE,
             attributes = list(
-                type = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
                     type = "string",
-                    description = "",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                n = list(
+                    type = "string",
+                    description = "Number or label identifying this formatting element.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                rend = list(
+                    type = "string",
+                    description = "Rendering or presentation information for this formatting element.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -4288,7 +7700,44 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "qstn",
             children = list(),
             title = "Interviewer Instructions",
@@ -4301,7 +7750,44 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = c("invalrng", "valrng"),
             children = list("table"),
             title = "Range Key",
@@ -4402,6 +7888,42 @@ assign(
                     optional = TRUE,
                     recommended = FALSE,
                     deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
                 )
             ),
             parents = "subject",
@@ -4456,6 +7978,42 @@ assign(
                     optional = TRUE,
                     recommended = FALSE,
                     deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
                 )
             ),
             parents = c("catgry", "catgryGrp", "sampleFrame", "nCube", "nCubeGrp", "otherMat", "recGrp", "var", "varGrp"),
@@ -4493,6 +8051,42 @@ assign(
                 languageCode = list(
                     type = "string",
                     description = "Code value.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -4542,6 +8136,42 @@ assign(
                     optional = TRUE,
                     recommended = FALSE,
                     deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
                 )
             ),
             parents = c("dataAccs", "metadataAccs", "prodStmt"),
@@ -4562,6 +8192,60 @@ assign(
                     description = "",
                     values = c("ordered", "bulleted", "simple", "gloss"),
                     default = "simple",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                n = list(
+                    type = "string",
+                    description = "Number or label identifying this formatting element.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                rend = list(
+                    type = "string",
+                    description = "Rendering or presentation information for this formatting element.",
+                    values = c(),
+                    default = c(),
                     optional = TRUE,
                     recommended = FALSE,
                     deprecated = FALSE
@@ -4663,7 +8347,44 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = c("dimensns", "recDimnsn"),
             children = list(),
             title = "Logical Record Length",
@@ -4757,7 +8478,7 @@ assign(
             parents = "stdyDscr",
             children = list("typeOfAccess", "license", "useStmt", "notes"),
             title = "Metadata Access",
-            description = "This section describes access conditions and terms of use for the metadata. In cases where access conditions differ across individual files, variables, or categories multiple access conditions can be specified. The access conditions applying to a study, file, variable group, variable or category can be indicated by an IDREF attribute on the study, file, variable group, nCube group, variable, category, or data item elements called \"access\". The member element \"typeOfAccss\" is of the type \"concept\" and is intended to provide a specific type of access.  If a license applies to the data access, use the optional \"license\" element.",
+            description = "This section describes access conditions and terms of use for the metadata. In cases where access conditions differ across individual files, variables, or categories multiple access conditions can be specified. The access conditions applying to a study, file, variable group, variable or category can be indicated by an IDREF attribute on the study, file, variable group, nCube group, variable, category, or data item elements called \"access\". The member element \"typeOfAccess\" is of the type \"concept\" and is intended to provide a specific type of access.  If a license applies to the data access, use the optional \"license\" element.",
             examples = c()
         ),
         method = list(
@@ -4820,6 +8541,42 @@ assign(
                     optional = TRUE,
                     recommended = FALSE,
                     deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
                 )
             ),
             parents = "codingInstructions",
@@ -4843,6 +8600,42 @@ assign(
                     optional = TRUE,
                     recommended = FALSE,
                     deprecated = TRUE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
                 )
             ),
             parents = "method",
@@ -4864,6 +8657,42 @@ assign(
                     values = c(),
                     default = c(),
                     optional = FALSE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
                     recommended = FALSE,
                     deprecated = FALSE
                 )
@@ -5167,6 +8996,42 @@ assign(
                     optional = TRUE,
                     recommended = TRUE,
                     deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
                 )
             ),
             parents = "sumDscr",
@@ -5184,7 +9049,44 @@ assign(
             repeatable = FALSE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "geoBndBox",
             children = list(),
             title = "North Bounding Latitude",
@@ -5255,6 +9157,42 @@ assign(
                 sameNote = list(
                     type = "IDREF",
                     description = "Provide information for the translation of codebook content to DDI Lifecycle. If the same note is used multiple times all the parent IDs can be captured in a single note and all duplicate notes can reference the note containing the related to references in the attribute sameNote.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -5347,7 +9285,7 @@ assign(
                     recommended = FALSE,
                     deprecated = FALSE
                 ),
-                isPersistantIdentifier = list(
+                isPersistentIdentifier = list(
                     type = "boolean",
                     description = "Indicate if the agent identifier is intended to be a persistent identifier",
                     values = c("true", "false"),
@@ -5360,6 +9298,42 @@ assign(
                     type = "NMTOKEN",
                     description = "Type of originating archive: organization or individual.",
                     values = c("organization", "individual"),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
                     default = c(),
                     optional = TRUE,
                     recommended = FALSE,
@@ -5433,7 +9407,7 @@ assign(
                     recommended = FALSE,
                     deprecated = FALSE
                 ),
-                isPersistantIdentifier = list(
+                isPersistentIdentifier = list(
                     type = "boolean",
                     description = "Indicate if the agent identifier is intended to be a persistent identifier",
                     values = c("true", "false"),
@@ -5446,6 +9420,42 @@ assign(
                     type = "NMTOKEN",
                     description = "Type of authoring entity: organization or individual.",
                     values = c("organization", "individual"),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
                     default = c(),
                     optional = TRUE,
                     recommended = FALSE,
@@ -5464,7 +9474,44 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "othrStdyMat",
             children = list("citation"),
             title = "Other References Notes",
@@ -5533,15 +9580,53 @@ assign(
             examples = c()
         ),
         outcome = list(
+            type = "simpleTextType",
             optional = TRUE,
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "developmentActivity",
             children = list(),
-            title = "",
-            description = "",
+            title = "Development Activity Outcome",
+            description = "Result of the development activity.",
             examples = c()
         ),
         outcomes = list(
@@ -5550,7 +9635,44 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "exPostEvaluation",
             children = list(),
             title = "Evaluation Outcomes",
@@ -5558,15 +9680,53 @@ assign(
             examples = "<outcomes>The following steps were highly effective in increasing response rates, and should be repeated in the next collection cycle...</outcomes>"
         ),
         otherQualityStatement = list(
+            type = "simpleTextType",
             optional = TRUE,
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "qualityStatement",
             children = list(),
-            title = "",
-            description = "",
+            title = "Other Quality Statement",
+            description = "Additional information about study quality beyond the listed standards-compliance statements.",
             examples = c()
         ),
         participant = list(
@@ -5621,7 +9781,7 @@ assign(
                     recommended = FALSE,
                     deprecated = FALSE
                 ),
-                isPersistantIdentifier = list(
+                isPersistentIdentifier = list(
                     type = "boolean",
                     description = "Indicate if the agent identifier is intended to be a persistent identifier",
                     values = c("true", "false"),
@@ -5634,6 +9794,42 @@ assign(
                     type = "NMTOKEN",
                     description = "Type of participant: organization or individual.",
                     values = c("organization", "individual"),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
                     default = c(),
                     optional = TRUE,
                     recommended = FALSE,
@@ -5652,7 +9848,44 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "titlStmt",
             children = list(),
             title = "Parallel Title",
@@ -5759,7 +9992,44 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "qstn",
             children = list(),
             title = "PostQuestion Text",
@@ -5775,7 +10045,44 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "qstn",
             children = list(),
             title = "PreQuestion Text",
@@ -5873,6 +10180,42 @@ assign(
                     optional = TRUE,
                     recommended = FALSE,
                     deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
                 )
             ),
             parents = "fileTxt",
@@ -5893,7 +10236,43 @@ assign(
             attributes = list(
                 date = list(
                     type = "string",
-                    description = "",
+                    description = "Date of production, preferably expressed in ISO format (YYYY-MM-DD, optionally followed by a time).",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -5913,7 +10292,44 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "prodStmt",
             children = list(),
             title = "Place of Production",
@@ -5985,7 +10401,7 @@ assign(
                     recommended = FALSE,
                     deprecated = FALSE
                 ),
-                isPersistantIdentifier = list(
+                isPersistentIdentifier = list(
                     type = "boolean",
                     description = "Indicate if the agent identifier is intended to be a persistent identifier",
                     values = c("true", "false"),
@@ -5998,6 +10414,42 @@ assign(
                     type = "NMTOKEN",
                     description = "Type of producer: organization or individual.",
                     values = c("organization", "individual"),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
                     default = c(),
                     optional = TRUE,
                     recommended = FALSE,
@@ -6051,6 +10503,42 @@ assign(
                 URI = list(
                     type = "string",
                     description = "",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -6133,6 +10621,42 @@ assign(
                     optional = TRUE,
                     recommended = FALSE,
                     deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
                 )
             ),
             parents = "var",
@@ -6159,6 +10683,42 @@ assign(
                     optional = TRUE,
                     recommended = FALSE,
                     deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
                 )
             ),
             parents = "qstn",
@@ -6177,7 +10737,7 @@ assign(
             parents = "stdyInfo",
             children = list("standardsCompliance", "otherQualityStatement"),
             title = "Quality Statement",
-            description = "This structure consists of two parts, \"standardsCompliance\" and \"otherQualityStatements\". In \"standardsCompliance\" list all specific standards complied with during the execution of this study. Note the standard name and producer and how the study complied with the standard. Enter any additional quality statements in \"otherQualityStatements\".",
+            description = "This structure consists of two parts, \"standardsCompliance\" and \"otherQualityStatement\". In \"standardsCompliance\" list all specific standards complied with during the execution of this study. Note the standard name and producer and how the study complied with the standard. Enter any additional quality statements in \"otherQualityStatement\".",
             examples = c()
         ),
         range = list(
@@ -6348,7 +10908,44 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "dimensns",
             children = list(),
             title = "Overall Number of Records",
@@ -6361,7 +10958,44 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "dimensns",
             children = list(),
             title = "Records per Case",
@@ -6379,6 +11013,42 @@ assign(
                     type = "NMTOKEN",
                     description = "",
                     values = c("start", "end", "single"),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
                     default = c(),
                     optional = TRUE,
                     recommended = FALSE,
@@ -6433,6 +11103,42 @@ assign(
                     optional = TRUE,
                     recommended = FALSE,
                     deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
                 )
             ),
             parents = "othrStdyMat",
@@ -6451,7 +11157,44 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "othrStdyMat",
             children = list("citation"),
             title = "Related Publications",
@@ -6467,7 +11210,44 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "othrStdyMat",
             children = list("citation"),
             title = "Related Studies",
@@ -6489,6 +11269,42 @@ assign(
                     optional = TRUE,
                     recommended = FALSE,
                     deprecated = TRUE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
                 )
             ),
             parents = "dataColl",
@@ -6516,7 +11332,44 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "anlyInfo",
             children = list(),
             title = "Response Rate",
@@ -6532,13 +11385,50 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = c("nCube", "var"),
             children = list(choice = c("concept", "txt")),
             title = "Response Unit",
-            description = "Provides information regarding who is intended to provide the information contained within the variable/nCube, e.g., respondent, proxy, interviewer. This element contains the sub-element \"concept\". DDI provides a Controlled Vocabulary for this location: \"ResponseUnit\". PLEASE NOTE A CHANGE IN USAGE INSTRUCTIONS: The string content of the element now contains the language specific label obtained from the controlled vocabulary. This allows for multiple languages through the repeated entry of the \"concept\" element. See the high level documentation for a complete description of usage. Additional textual description is entered in the mixed text content or using the sub-element \"txt\".",
+            description = "Provides information regarding who is intended to provide the information contained within the variable/nCube, e.g., respondent, proxy, interviewer. This element contains the sub-element \"concept\". DDI provides a Controlled Vocabulary for this location: \"ResponseUnit\". PLEASE NOTE A CHANGE IN USAGE INSTRUCTIONS: The string content of \"concept\" now contains the language specific label obtained from the controlled vocabulary. This allows for multiple languages through the repeated entry of the \"concept\" element. See the high level documentation for a complete description of usage. Additional textual description is entered in the mixed text content or using the sub-element \"txt\".",
             examples = c(
-                "<var><respUnit><concept vocab=\"IPUMS_ResponseUnit\" vocabAgency=\"IPUMS\" vocabInstanceCodeTerm=\"HouseholdHead\">Head of household</concept>If the Head of Household is unavailable the information may be provided by the proxy respondent.</respUnit></var>",
+                "<var><respUnit><concept vocab=\"IPUMS_ResponseUnit\" vocabAgencyName=\"IPUMS\" vocabInstanceCodeTerm=\"HouseholdHead\">Head of household</concept>If the Head of Household is unavailable the information may be provided by the proxy respondent.</respUnit></var>",
                 "<nCube><respUnit>Head of household</respUnit></nCube>"
             )
         ),
@@ -6548,7 +11438,44 @@ assign(
             repeatable = TRUE,
             recommended = TRUE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "useStmt",
             children = list(),
             title = "Restrictions",
@@ -6567,7 +11494,7 @@ assign(
             attributes = list(
                 rowsep = list(
                     type = "string",
-                    description = "",
+                    description = "A row of entries in a table header or body.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -6622,7 +11549,44 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "sampleFrame",
             children = list(),
             title = "Sample Frame Name",
@@ -6635,7 +11599,44 @@ assign(
             repeatable = FALSE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "targetSampleSize",
             children = list(),
             title = "Sample Size",
@@ -6648,7 +11649,44 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "targetSampleSize",
             children = list(),
             title = "Sample Size Formula",
@@ -6661,7 +11699,44 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "dataColl",
             children = list(choice = c("concept", "txt")),
             title = "Sampling Procedure",
@@ -6685,6 +11760,42 @@ assign(
                 date = list(
                     type = "string",
                     description = "ISO standard for dates (YYYY-MM-DD) is recommended.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -6720,7 +11831,44 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "serStmt",
             children = list(),
             title = "Series Information",
@@ -6737,6 +11885,42 @@ assign(
                 abbr = list(
                     type = "string",
                     description = "Abbreviation for the series name.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -6928,6 +12112,42 @@ assign(
                     optional = TRUE,
                     recommended = FALSE,
                     deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
                 )
             ),
             parents = c("fileTxt", "prodStmt"),
@@ -6984,7 +12204,44 @@ assign(
             repeatable = FALSE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "geoBndBox",
             children = list(),
             title = "South Bounding Latitude",
@@ -7056,6 +12313,42 @@ assign(
                     optional = TRUE,
                     recommended = FALSE,
                     deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
                 )
             ),
             parents = "useStmt",
@@ -7070,7 +12363,44 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = c("sources", "resource"),
             children = list(),
             title = "Characteristics of Source Noted",
@@ -7083,7 +12413,44 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = c("sources", "resource"),
             children = list(),
             title = "Documentation and Access to Sources",
@@ -7096,7 +12463,44 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = c("sources", "resource"),
             children = list(choice = c("concept", "txt")),
             title = "Origins of Sources",
@@ -7136,6 +12540,42 @@ assign(
                     optional = TRUE,
                     recommended = FALSE,
                     deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
                 )
             ),
             parents = "var",
@@ -7159,6 +12599,42 @@ assign(
                     optional = TRUE,
                     recommended = FALSE,
                     deprecated = TRUE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
                 )
             ),
             parents = "method",
@@ -7269,7 +12745,7 @@ assign(
             parents = "standardsCompliance",
             children = list("standardName", "producer"),
             title = "Standard",
-            description = "Describes a standard with which the study complies.",
+            description = "Describes a standard with which the study complies. Specify its name using \"standardName\" and its producer using \"producer\".",
             examples = c()
         ),
         standardName = list(
@@ -7305,6 +12781,42 @@ assign(
                     optional = TRUE,
                     recommended = FALSE,
                     deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
                 )
             ),
             parents = "standard",
@@ -7319,7 +12831,44 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "stdyInfo",
             children = list(),
             title = "Study Budget",
@@ -7332,7 +12881,44 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "titlStmt",
             children = list(),
             title = "Subtitle",
@@ -7396,7 +12982,7 @@ assign(
                     description = "Reference to the variable(s) containing the weight used.",
                     values = c(),
                     default = c(),
-                    optional = FALSE,
+                    optional = TRUE,
                     recommended = FALSE,
                     deprecated = FALSE
                 ),
@@ -7435,6 +13021,42 @@ assign(
                     optional = TRUE,
                     recommended = FALSE,
                     deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
                 )
             ),
             parents = "var",
@@ -7456,7 +13078,7 @@ assign(
             attributes = list(
                 frame = list(
                     type = "NMTOKEN",
-                    description = "",
+                    description = "Tabular presentation of information, organized into one or more table groups with an optional title.",
                     values = c("top", "bottom", "topbot", "all", "sides", "none"),
                     default = c(),
                     optional = TRUE,
@@ -7519,7 +13141,7 @@ assign(
             attributes = list(
                 valign = list(
                     type = "NMTOKEN",
-                    description = "",
+                    description = "Body of a table group, containing its data rows.",
                     values = c("top", "middle", "bottom"),
                     default = c(),
                     optional = TRUE,
@@ -7542,7 +13164,7 @@ assign(
             attributes = list(
                 cols = list(
                     type = "string",
-                    description = "",
+                    description = "Group of columns and rows within a table, with column specifications, an optional header and a body.",
                     values = c(),
                     default = c(),
                     optional = FALSE,
@@ -7592,7 +13214,7 @@ assign(
             attributes = list(
                 valign = list(
                     type = "NMTOKEN",
-                    description = "",
+                    description = "Header rows of a table group.",
                     values = c("top", "middle", "bottom"),
                     default = c(),
                     optional = TRUE,
@@ -7621,6 +13243,42 @@ assign(
                     optional = TRUE,
                     recommended = FALSE,
                     deprecated = TRUE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
                 )
             ),
             parents = "dataColl",
@@ -7667,6 +13325,42 @@ assign(
                     optional = TRUE,
                     recommended = FALSE,
                     deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
                 )
             ),
             parents = "sumDscr",
@@ -7684,7 +13378,44 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = c("table", "titlStmt"),
             children = list(),
             title = "Title",
@@ -7795,6 +13526,42 @@ assign(
                     optional = TRUE,
                     recommended = FALSE,
                     deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
                 )
             ),
             parents = "subject",
@@ -7812,7 +13579,44 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "var",
             children = list(),
             title = "Total Responses",
@@ -7841,6 +13645,42 @@ assign(
                 sdatrefs = list(
                     type = "IDREFS",
                     description = "Summary data description references that record the ID values of all elements within the summary data description section of the Study Description that might apply to this element. These include: time period covered, date of collection, nation or country, geographic coverage, geographic unit, unit of analysis, universe, and kind of data.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -7951,6 +13791,42 @@ assign(
                     optional = TRUE,
                     recommended = FALSE,
                     deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
                 )
             ),
             parents = c("dataAccs", "metadataAccs"),
@@ -8041,6 +13917,42 @@ assign(
                 vocabInstanceCodeTerm = list(
                     type = "string",
                     description = "Added to accommodate the code term as it appears in the controlled vocabulary.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -8141,6 +14053,42 @@ assign(
                     optional = TRUE,
                     recommended = FALSE,
                     deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
                 )
             ),
             parents = "otherMat",
@@ -8231,6 +14179,42 @@ assign(
                 vocabInstanceCodeTerm = list(
                     type = "string",
                     description = "Added to accommodate the code term as it appears in the controlled vocabulary.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -8331,6 +14315,42 @@ assign(
                     optional = TRUE,
                     recommended = FALSE,
                     deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
                 )
             ),
             parents = c("sources", "resource"),
@@ -8421,6 +14441,42 @@ assign(
                 vocabInstanceCodeTerm = list(
                     type = "string",
                     description = "Added to accommodate the code term as it appears in the controlled vocabulary.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
                     values = c(),
                     default = c(),
                     optional = TRUE,
@@ -8521,6 +14577,42 @@ assign(
                     optional = TRUE,
                     recommended = FALSE,
                     deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
                 )
             ),
             parents = "exPostEvaluation",
@@ -8535,7 +14627,44 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "var",
             children = list(),
             title = "List of Undocumented Codes",
@@ -8548,16 +14677,53 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "sampleFrame",
             children = list(choice = c("concept", "txt")),
             title = "Instrument Development",
-            description = "Description of how and with what frequency the sample frame is updated. This element contains the sub-element \"concept\" to support the use of an external controlled vocabulary. PLEASE NOTE A CHANGE IN USAGE INSTRUCTIONS: The string content of the element now contains the language specific label obtained from the controlled vocabulary. This allows for multiple languages through the repeated entry of the \"concept\" element. The attribute \"vocabInstanceCodeTerm\" has been added to accommodate the code term as it appears in the controlled vocabulary. See the high level documentation for a complete description of usage. Additional textual description is entered in the mixed text content or using the sub-element \"txt\".",
+            description = "Description of how and with what frequency the sample frame is updated. This element contains the sub-element \"concept\" to support the use of an external controlled vocabulary. PLEASE NOTE A CHANGE IN USAGE INSTRUCTIONS: The string content of \"concept\" now contains the language specific label obtained from the controlled vocabulary. This allows for multiple languages through the repeated entry of the \"concept\" element. The attribute \"vocabInstanceCodeTerm\" has been added to accommodate the code term as it appears in the controlled vocabulary. See the high level documentation for a complete description of usage. Additional textual description is entered in the mixed text content or using the sub-element \"txt\".",
             examples = "<updateProcedure>Changes are collected as they occur through registration and loss of phone number from the specified geographic area. Data are compiled for the date June 1st of odd numbered years, and published on July 1st for the following two-year period.</updateProcedure>"
         ),
         usage = list(
             type = "usageType",
-            optional = TRUE,
+            optional = FALSE,
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
@@ -8605,6 +14771,42 @@ assign(
                     optional = TRUE,
                     recommended = FALSE,
                     deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
                 )
             ),
             parents = c("sampleFrame", "nCube", "nCubeGrp", "sumDscr", "var", "varGrp"),
@@ -8631,6 +14833,42 @@ assign(
                     optional = TRUE,
                     recommended = FALSE,
                     deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
                 )
             ),
             parents = "frameUnit",
@@ -8650,6 +14888,42 @@ assign(
                     type = "NMTOKEN",
                     description = "",
                     values = c("start", "end", "single"),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
                     default = c(),
                     optional = TRUE,
                     recommended = FALSE,
@@ -8718,7 +14992,7 @@ assign(
                     description = "Reference to the variable(s) containing the weight used.",
                     values = c(),
                     default = c(),
-                    optional = FALSE,
+                    optional = TRUE,
                     recommended = FALSE,
                     deprecated = FALSE
                 ),
@@ -9032,6 +15306,42 @@ assign(
                     optional = TRUE,
                     recommended = FALSE,
                     deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
                 )
             ),
             parents = "var",
@@ -9205,7 +15515,44 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = c("dimensns", "recDimnsn"),
             children = list(),
             title = "Overall Variable Count",
@@ -9246,7 +15593,7 @@ assign(
                     recommended = FALSE,
                     deprecated = FALSE
                 ),
-                isPersistantIdentifier = list(
+                isPersistentIdentifier = list(
                     type = "boolean",
                     description = "Indicate if the agent identifier is intended to be a persistent identifier",
                     values = c("true", "false"),
@@ -9259,6 +15606,42 @@ assign(
                     type = "NMTOKEN",
                     description = "Type of authoring entity: organization or individual.",
                     values = c("organization", "individual"),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
                     default = c(),
                     optional = TRUE,
                     recommended = FALSE,
@@ -9313,6 +15696,42 @@ assign(
                     optional = TRUE,
                     recommended = FALSE,
                     deprecated = FALSE
+                ),
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
                 )
             ),
             parents = "verStmt",
@@ -9331,7 +15750,44 @@ assign(
             repeatable = TRUE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "dataColl",
             children = list(choice = c("concept", "txt")),
             title = "Weighting",
@@ -9347,7 +15803,44 @@ assign(
             repeatable = FALSE,
             recommended = FALSE,
             deprecated = FALSE,
-            attributes = list(),
+            attributes = list(
+                isTranslated = list(
+                    type = "boolean",
+                    description = "Whether the content is a translation rather than the original text.",
+                    values = c("true", "false"),
+                    default = "false",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                isTranslatable = list(
+                    type = "boolean",
+                    description = "Whether the content is intended to be translated.",
+                    values = c("true", "false"),
+                    default = "true",
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationSourceLanguage = list(
+                    type = "string",
+                    description = "Languages or language codes of the source text, separated by spaces.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                ),
+                translationDate = list(
+                    type = "date",
+                    description = "Date of translation, expressed as YYYY-MM-DD.",
+                    values = c(),
+                    default = c(),
+                    optional = TRUE,
+                    recommended = FALSE,
+                    deprecated = FALSE
+                )
+            ),
             parents = "geoBndBox",
             children = list(),
             title = "West Bounding Longitude",
