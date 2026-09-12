@@ -2,30 +2,30 @@
 #'
 #' @title Validate a DDI element.
 #'
-#' @description Attempts a minimal validation of a DDI Codebook element, by
-#' searching for mandatory elements and attributes.
+#' @description Checks parent-specific child occurrences, sequences, choices
+#' and mandatory attributes throughout a DDI Codebook element.
 #'
 #' @param element A standard element of class `"DDI"`.
 #' @param monolang Logical, the codebook file is monolingual
 #'
-#' @details This function currently attempts a minimal check for the absolute
-#' most mandatory elements, such as the `stdyDscr`. An absolute bare version
-#' of this element, filled with arbitrary default values, can be produced with
-#' the function `makeElement()`, activating its attribute `fill`.
-
-#' It also checks for chained expectations, that is element X is mandatory only
-#' if the parent element is present.
+#' @details Each existing instance is checked separately, including repeated
+#' and recursively nested elements. Required children are checked only when
+#' their parent exists. Repeated choices may use different alternatives.
+#' An incomplete element can be built incrementally with `addChildren()`;
+#' `testValid()` also checks the required minimum occurrences and child order.
 #'
-#' Future versions will implement more functionality for recommended elements
-#' and attributes, with the intention to provide a 1:1 validation as offered by
-#' the "CESSDA Metadata Validator".
+#' Validation follows the curated DDI child model. It does not expand imported
+#' markup groups or validate all XML datatypes, ID references or mixed text.
+#' Use XML Schema validation on exported XML for those additional checks.
 #'
 #' To ease the validation of the DDI Codebook XML files, the argument `monolang`
 #' is activated by default. This means a single attribute `xmlang` in the main
 #' `codeBook` element. For multi-language codebooks, an error is flagged if this
 #' argument is missing where appropriate.
 #'
-#' @return A character vector of validation problems found.
+#' @return A list of class `validation`, with character vectors `mandatory` and
+#' `optional`. The latter contains missing required attributes of optional
+#' children; both components report validation problems, not recommendations.
 #'
 #' @author Adrian Dusa
 #'
@@ -36,189 +36,70 @@
 `testValid` <- function(element, monolang = TRUE) {
 
     DDIC <- get("DDIC", envir = cacheEnv)
-
-    # mandatory elements
-    melements <- setdiff(
-        names(which(sapply(DDIC, function(x) !x$optional))),
-        "codeBook"
-    )
-
-    # mandatory attributes
-    mattributes <- setdiff(
-        names(which(sapply(DDIC, function(x) {
-            ifelse(
-                length(x$attributes) > 0,
-                any(sapply(x$attributes, function(a) !a$optional)),
-                FALSE
-            )
-        }))),
-        "codeBook"
-    )
-
-    output <- list(mandatory = c(), optional = c())
-
-    xpaths_elements <- list()
-    for (m in melements) {
-        xpaths_elements <- c(xpaths_elements, showLineages(m))
+    if (
+        !is.list(element) ||
+        is.null(element$.extra$name) ||
+        !is.element(element$.extra$name, names(DDIC))
+    ) {
+        admisc::stopError("The argument 'element' is not a standard DDI element.")
     }
 
-    second <- sapply(xpaths_elements, "[[", 2)
-    xpaths_elements <- xpaths_elements[
-        order(match(second, unlist(DDIC$codeBook$children)))
-    ]
+    output <- list(mandatory = NULL, optional = NULL)
 
-    xpaths_attributes <- list()
-    for (m in mattributes) {
-        xpaths_attributes <- c(xpaths_attributes, showLineages(m))
-    }
+    visit <- function(node, path, optional = FALSE) {
+        name <- node$.extra$name
+        definition <- DDIC[[name]]
+        model <- definition$contentModel
+        if (is.null(model)) {
+            stop("The schema has no content model for ", name, ".")
+        }
 
-    second <- sapply(xpaths_attributes, "[[", 2)
-    xpaths_attributes <- xpaths_attributes[
-        order(match(second, unlist(DDIC$codeBook$children)))
-    ]
+        positions <- which(!is.element(names(node), c("", ".extra")))
+        children <- names(node)[positions]
+        output$mandatory <<- c(output$mandatory, ddiModelProblems(model, children, path))
+        attributes <- definition$attributes
 
-    xpaths_attributes <- setdiff(xpaths_attributes, xpaths_elements)
+        for (key in names(attributes)) {
+            if (isTRUE(attributes[[key]]$optional)) next
+            present <- !is.null(attr(node, key, exact = TRUE))
+            problem <- NULL
 
-
-    selements <- sapply(xpaths_elements, function(x) {
-        is.element(element$.extra$name, x)
-    })
-
-
-    if (length(xpaths_attributes) > 0) {
-        sattributes <- sapply(xpaths_attributes, function(x) {
-            is.element(element$.extra$name, x)
-        })
-    }
-    else {
-        sattributes <- FALSE
-    }
-
-    if (any(selements)) {
-        xpaths_elements <- lapply(xpaths_elements[selements], function(x) {
-            return(x[seq(which(x == element$.extra$name), length(x))])
-        })
-
-        result <- lapply(xpaths_elements, function(xpath) {
-            last <- xpath[length(xpath)]
-            xpath <- xpath[-length(xpath)]
-
-            if (identical(xpath, element$.extra$name)) {
-                if (!checkExisting(last, element)) {
-                    return(sprintf(
-                        "%s expects the mandatory child %s.",
-                        element$.extra$name, last
-                    ))
-                }
+            if (key == "xmlang") {
+                if (present && isTRUE(monolang)) problem <- sprintf(
+                    "%s should not have an 'xmlang' attribute, in a monolang codeBook.", path
+                )
+                if (!present && isFALSE(monolang)) problem <- sprintf(
+                    "%s should have an 'xmlang' attribute, when the codeBook is not monolang.", path
+                )
+            } else if (!present) {
+                problem <- sprintf("%s should have a mandatory attribute '%s'.", path, key)
             }
 
-            if (!checkExisting(xpath, element)) {
-                return(character(0))
+            field <- if (optional) "optional" else "mandatory"
+            output[[field]] <<- c(output[[field]], problem)
+        }
+
+        for (i in seq_along(positions)) {
+            child <- node[[positions[i]]]
+            childName <- children[i]
+            index <- sum(children[seq_len(i)] == childName)
+            childPath <- paste0(path, "/", childName, "[", index, "]")
+
+            if (!is.list(child) || is.null(child$.extra$name) ||
+                !identical(child$.extra$name, childName) ||
+                !is.element(childName, names(DDIC))) {
+                output$mandatory <<- c(output$mandatory, paste(childPath, "is not a standard DDI child."))
+                next
             }
 
-            if (!checkExisting(c(xpath, last), element)) {
-                return(sprintf(
-                    "%s expects the mandatory child %s.",
-                    paste(xpath, collapse = "/"), last
-                ))
-            }
-
-            if (length(DDIC[[last]]$attributes) > 0) {
-                optional <- sapply(DDIC[[last]]$attributes, function(x) {
-                    x$optional
-                })
-
-                if (any(!optional)) {
-                    for (n in names(optional)[!optional]) {
-                        attr <- checkExisting(c(xpath, last), element, attribute = n)
-
-                        if (n == "xmlang") {
-                            if (attr & isTRUE(monolang)) {
-                                return(sprintf(
-                                    "%s should not have an 'xmlang' attribute, in a monolang codeBook.",
-                                    paste(c(xpath, last), collapse = "/")
-                                ))
-                            }
-
-                            if (!attr & isFALSE(monolang)) {
-                                return(sprintf(
-                                    "%s should have an 'xmlang' attribute, when the codeBook is not monolang.",
-                                    paste(c(xpath, last), collapse = "/")
-                                ))
-                            }
-                        }
-                        else if (!attr) {
-                            return(sprintf(
-                                "%s should have a mandatory attribute '%s'.",
-                                paste(c(xpath, last), collapse = "/"), n
-                            ))
-                        }
-                    }
-                }
-            }
-        })
-
-        problems <- sapply(result, length) > 0
-        if (any(problems)) {
-            output$mandatory <- unlist(result[problems])
+            bounds <- ddiModelBounds(model, childName)
+            visit(child, childPath, optional = bounds[1] == 0)
         }
     }
 
-    if (any(sattributes)) {
-        xpaths_attributes <- lapply(xpaths_attributes[sattributes], function(x) {
-            return(x[seq(which(x == element$.extra$name), length(x))])
-        })
+    visit(element, element$.extra$name)
 
-        result <- lapply(xpaths_attributes, function(xpath) {
-
-            last <- xpath[length(xpath)]
-
-            if (!checkExisting(xpath, element)) {
-                return(character(0))
-            }
-
-            if (length(DDIC[[last]]$attributes) > 0) {
-                optional <- sapply(DDIC[[last]]$attributes, function(x) {
-                    x$optional
-                })
-
-                if (any(!optional)) {
-                    for (n in names(optional)[!optional]) {
-                        attr <- checkExisting(xpath, element, attribute = n)
-
-                        if (n == "xmlang") {
-                            if (attr & isTRUE(monolang)) {
-                                return(sprintf(
-                                    "%s should not have an 'xmlang' attribute, in a monolang codeBook.",
-                                    paste(xpath, collapse = "/")
-                                ))
-                            }
-
-                            if (!attr & isFALSE(monolang)) {
-                                return(sprintf(
-                                    "%s should have an 'xmlang' attribute, when the codeBook is not monolang.",
-                                    paste(xpath, collapse = "/")
-                                ))
-                            }
-                        }
-                        else if (!attr) {
-                            return(sprintf(
-                                "%s should have a mandatory attribute '%s'.",
-                                paste(xpath, collapse = "/"), n
-                            ))
-                        }
-                    }
-                }
-            }
-        })
-
-        problems <- sapply(result, length) > 0
-        if (any(problems)) {
-            output$optional <- unlist(result[problems])
-        }
-    }
-
-    return(structure(output, class = "validation"))
+    structure(output, class = "validation")
 }
 
 

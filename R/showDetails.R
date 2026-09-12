@@ -85,6 +85,35 @@
     dots <- list(...)
     endWith <- ifelse(isTRUE(dots$return), "", "\n")
 
+    occurrence <- paste0(
+        ifelse(DDIC[[x]]$optional, "optional, ", "mandatory, "),
+        ifelse(DDIC[[x]]$repeatable, "repeatable", "non-repeatable")
+    )
+
+    bounds <- lapply(DDIC[[x]]$parents, function(parent) {
+        ddiModelBounds(DDIC[[parent]]$contentModel, x)
+    })
+
+    if (length(bounds)) {
+
+        labels <- unique(
+            vapply(
+                bounds,
+                function(b) paste(b, collapse = ":"),
+                character(1)
+            )
+        )
+
+        occurrence <- if (length(labels) > 1) {
+            "occurrence depends on parent"
+        } else {
+            paste0(
+                ifelse(bounds[[1]][1] == 0, "optional, ", "mandatory, "),
+                ifelse(bounds[[1]][2] > 1, "repeatable", "non-repeatable")
+            )
+        }
+    }
+
     toprint <- "\n"
     toprint <- c(
         toprint,
@@ -93,8 +122,7 @@
                 paste0(
                     DDIC[[x]]$title,
                     " (",
-                    ifelse (DDIC[[x]]$optional, "optional, ", "mandatory, "),
-                    ifelse (DDIC[[x]]$repeatable, "repeatable", "non-repeatable"),
+                    occurrence,
                     ")"
                 )
             ),
@@ -294,9 +322,42 @@
     children <- unlist(DDIC[[x]]$children)
     children2 <- children
 
+    occurrenceLabel <- function(parent, child) {
+        bounds <- ddiModelBounds(DDIC[[parent]]$contentModel, child)
+        return(paste0(
+            " [",
+            bounds[1],
+            "..",
+            if (is.infinite(bounds[2])) "n" else bounds[2],
+            "]"
+        ))
+    }
+
+    if (length(children2)) {
+        children2 <- paste0(
+            children2,
+            vapply(
+                children,
+                function(child) occurrenceLabel(x, child),
+                character(1)
+            )
+        )
+    }
+
+    if (length(parents2)) {
+        parents2 <- paste0(
+            parents2,
+            vapply(
+                parents,
+                function(parent) occurrenceLabel(parent, x),
+                character(1)
+            )
+        )
+    }
+
     if (is.element(x, children)) {
         # recursive
-        children2[children == x] <- paste(children[children == x], "(RECURSIVE)")
+        children2[children == x] <- paste(children2[children == x], "(RECURSIVE)")
     }
 
     if (length(children) > 0) {
@@ -318,7 +379,7 @@
 
     if (is.element(x, parents)) {
         # recursive
-        parents2[parents == x] <- paste(parents[parents == x], "(RECURSIVE)")
+        parents2[parents == x] <- paste(parents2[parents == x], "(RECURSIVE)")
     }
 
     if (length(parents) > 0) {

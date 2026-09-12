@@ -1,790 +1,340 @@
 #' @name updateSchema
+#' @title Update the internal DDI Codebook schema object.
+#' @description Extract structural facts from a Codebook XSD while preserving
+#' the existing R naming conventions and curated descriptive metadata.
+#' @param xsd Path or URL to codebook.xsd. Defaults to the pinned 2.6 release.
+#' @param return Return the proposed list without changing the in-memory cache.
+#' @details The extractor follows type inheritance, restrictions, local elements
+#' and attribute groups. Each element receives a parent-specific contentModel
+#' containing sequence/choice particles and numeric min/max occurrence bounds.
+#' PHRASE, FORM, imported markup groups and wildcards remain outside the
+#' simplified child model. Existing descriptions, examples, recommendations and
+#' deprecation flags are preserved; new records use schema documentation.
 #'
-#' @title Updates the internal DDI Codebook schema object.
-#'
-#' @description Rebuilds the internal schema object, from a (newer) XML Schema codebook.xsd file.
-#'
-#' @param xsd A path to the Codebook XML Schema file.
-#' @param return Return an R object representing the schema instead of updating the internal one.
-#'
-#' @details Releasing a new stable version of the DDI Codebook takes about 10 years. There are
-#' numerous elements and attributes that have to work together, and most importantly the Codebook
-#' has to obey the backward compatibility rule. Until a new version is released, the Codebook
-#' schema is incrementally modified by the DDI Alliance, in their GitHub repository.
-#'
-#' This function is intended to update the internal DDI Codebook schema object, parsing the
-#' latest version of the Codebook XML Schema file.
-#'
-#' Unless the codebook.xsd file is provided by the user, the function will attempt to read it
-#' from the DDI Alliance GitHub repository, located at:
-#' \url{https://github.com/ddialliance/ddi-c_2}
-#'
+#' Inspect updateSchema(xsd, return = TRUE) before applying a different schema.
+#' Structural facts are refreshed, including removed/prohibited attributes.
+#' Legacy element-wide optional/repeatable flags are retained for existing
+#' records; validation uses contentModel. No source files are overwritten.
 #' @author Adrian Dusa
-#'
-# #' @export
-`updateSchema` <- function(xsd = NULL, return = FALSE) {
-
-    # aa <- readLines("Lucru/_R/DDIwR/R/DDI_Codebook_2.6.R")
-    # bb <- tools::showNonASCII(aa)
-
+updateSchema <- function(xsd = NULL, return = FALSE) {
     if (is.null(xsd)) {
-        xsd <- "https://raw.githubusercontent.com/ddialliance/ddi-c_2/master/schemas/codebook.xsd"
-    }
-
-    tc <- admisc::tryCatchWEM(schema <- xml2::read_xml(xsd))
-
-    if (!is.null(tc$error)) {
-        # message not error because this could be called at package load,
-        # if persistent caching is set
-        message(paste("Could not read the schema file:", tc$error))
-        invisible(return(NULL))
-    }
-
-    # Parse the .xsd file
-    xsd_doc <- xml2::read_xml("~/Documents/GitHub/ddi-c_26/schemas/codebook.xsd")
-
-    xsdlist <- xml2::as_list(xsd_doc)[[1]]
-    elements <- xsdlist[names(xsdlist) == "element"]
-    complex <- xsdlist[names(xsdlist) == "complexType"]
-
-
-    element_names <- unname(sapply(elements, function(x) {
-        attr(x, "name")
-    }))
-
-    complex_names <- unname(sapply(complex, function(x) {
-        attr(x, "name")
-    }))
-
-    types <- unname(sapply(elements, function(x) {
-        attr(x, "type")
-    }))
-
-    # not formally part of the DDI Codebook schema, but useful for validation
-    # purposes, akin to the CESSDA Metadata Validator
-    recommended <- list(
-        elements = c(
-            "abstract", "anlyUnit", "AuthEnty", "collDate", "concept",
-            "fileName", "IDNo", "nation", "restrctn", "topcClas", "universe"
-        ),
-        attributes = list(
-            date = c("collDate"),
-            vocab = c("concept", "keyword", "topcClas"),
-            vocabURI = c("concept", "topcClas"),
-            xmlang = c("AuthEnty", "fileName", "holdings", "IDNo"),
-            abbr = c("nation")
+        xsd <- paste0(
+            "https://raw.githubusercontent.com/ddialliance/ddi-c_2/",
+            "94006d85b995c4013a07cd4e50a66df51aead33e/schemas/codebook.xsd"
         )
-    )
-
-    getpieces <- function(complex_name, what = "element") {
-        comp <- complex[[which(complex_names == complex_name)]]
-        nms <- names(comp)
-
-        extension <- NULL
-        pieces <- NULL
-
-        if (is.element("complexContent", nms)) {
-            comp <- comp$complexContent
-            nms <- names(comp)
-
-            if (is.element("extension", nms)) {
-                comp <- comp$extension
-                extension <- attr(comp, "base")
-            } else if (is.element("restriction", nms)) {
-                comp <- comp$restriction
-            }
-            nms <- names(comp)
-
-            pieces <- comp[is.element(nms, what)]
-
-            if (!is.null(extension)) {
-                pieces <- c(getpieces(extension, what = what), pieces)
-            }
-
-            if (what == "element") {
-                if (is.element("choice", nms)) {
-                    comp <- comp$choice
-                    nms <- names(comp)
-                }
-
-                if (is.element("sequence", nms)) {
-                    comp <- comp$sequence
-                    nms <- names(comp)
-                }
-
-                # choice within a sequence
-                if (is.element("choice", nms)) {
-                    comp <- comp$choice
-                    nms <- names(comp)
-                }
-
-                pieces <- c(pieces, comp[is.element(nms, "element")])
-            }
-        }
-
-        return(pieces)
     }
-
-    # this is manually set by inspecting the XML Schema for element that contain
-    # the word "deprecated" in their documentation
-    deprecated <- list(
-        elements = c("ExtLink", "Link"),
-        attributes = list(
-            type = c(
-                "dataAppr", "instrumentDevelopment", "collectorTraining", "dataKind", "codingInstructions",
-                "dataProcessing", "otherMat", "resInstru", "setAvail", "stdyClas", "developmentActivity",
-                "exPostEvaluation"
-            ),
-            unit = c("anlyUnit"),
-            freq = c("frequenc"),
-            method = c("timeMeth"),
-            nCube = c("varGrp")
-        )
-    )
-
-    elnames <- function(x) {
-        children <- sapply(x, function(e) {
-            elname <- attr(e, "ref")
-            if (is.null(elname)) {
-                elname <- attr(e, "name")
-            }
-
-            names(elname) <- paste(
-                ifelse(is.null(attr(e, "minOccurs")), 1, 0),
-                ifelse(is.null(attr(e, "maxOccurs")), 1, "n"),
-                sep = "-"
-            )
-            return(elname)
-        })
-        names(children) <- gsub("element\\.", "", names(children))
-        return(children)
-    }
-
-    meta <- lapply(element_names, function(x) {
-
-        el <- elements[[which(element_names == x)]]
-        ldiv <- length(el$annotation$documentation$div)
-
-        title <- c()
-        if (ldiv > 0) {
-            title <- el$annotation$documentation$div$h1[[1]]
-        }
-
-        documentation <- c()
-        if (ldiv > 1) {
-            documentation <- unname(unlist(el$annotation$documentation$div[[2]]$div))
-            if (x == "abstract") {
-                documentation <- gsub(
-                    "\"source\" and \"date\"",
-                    "\"date\" and (the global) \"source\"",
-                    documentation
-                )
-                documentation <- gsub(
-                    "maps to Dublin Core Creator element",
-                    "maps to Dublin Core element \"Creator\"",
-                    documentation
-                )
-            }
-            if (is.element(x, c("collDate", "nation", "sumDscr"))) {
-                documentation <- gsub(
-                    "Maps to Dublin Core Coverage element",
-                    "Maps to Dublin Core element \"Coverage\"",
-                    documentation
-                )
-            }
-            if (x == "IDNo") {
-                documentation <- gsub(
-                    "Dublin Core Identifier element",
-                    "Dublin Core element \"Identifier\"",
-                    documentation
-                )
-            }
-            if (x == "othId") {
-                documentation <- gsub(
-                    "Dublin Core Contributor element",
-                    "Dublin Core element \"Contributor\"",
-                    documentation
-                )
-            }
-            if (x == "producer") {
-                documentation <- gsub(
-                    "Dublin Core Publisher element",
-                    "Dublin Core element \"Publisher\"",
-                    documentation
-                )
-            }
-            if (x == "qstn") {
-                documentation <- gsub(
-                    "The attribute \"ID\"",
-                    "The global attribute \"ID\"",
-                    documentation
-                )
-            }
-        }
-
-        examples <- c()
-        if (ldiv > 2) {
-            examples <- unname(sapply(
-                el$annotation$documentation$div[[3]]$div,
-                function(x) {
-                    gsub(
-                        ">(\\s+)<",
-                        "><",
-                        gsub(
-                            intToUtf8(157),
-                            "",
-                            gsub(
-                                intToUtf8(252),
-                                "\\u00fc",
-                                admisc::trimstr(x[[1]])
-                            )
-                        )
-                    )
-                }
-            ))
-
-            examples <- examples[examples != ""]
-        }
-
-        children <- c()
-        attributes <- c()
-
-        cpos <- which(complex_names == types[[which(element_names == x)]])
-
-        if (length(cpos) > 0) {
-            comp <- complex[[cpos]]
-            nms <- names(comp)
-
-            extension <- NULL
-
-            if (
-                any(is.element(c("simpleContent", "complexContent"), nms)) &
-                length(nms == 1)
-            ) {
-                comp <- comp[[1]]
-                nms <- names(comp)
-
-                if (is.element("extension", nms)) {
-                    comp <- comp$extension
-                    extension <- attr(comp, "base")
-                } else if (is.element("restriction", nms)) {
-                    comp <- comp$restriction
-                }
-                nms <- names(comp)
-            }
-
-            ats <- comp[is.element(nms, "attribute")]
-            els <- NULL
-            if (!is.null(extension)) {
-                ats <- c(getpieces(extension, "attribute"), ats)
-                els <- getpieces(extension, "element")
-            }
-
-            if (is.element("choice", nms)) {
-                comp <- comp$choice
-                nms <- names(comp)
-            }
-
-            if (is.element("sequence", nms)) {
-                comp <- comp$sequence
-                nms <- names(comp)
-            }
-
-            els <- c(els, comp[is.element(nms, "element")])
-
-            # choice within a sequence
-            choice <- list()
-
-            if (is.element("choice", nms)) {
-                pos <- which(nms == "choice") - 1
-                comp <- comp$choice
-                nms <- names(comp)
-
-                if (any(nms == "element")) {
-                    choice <- comp[is.element(nms, "element")]
-                    for (i in seq(length(choice))) {
-                        if (is.null(attr(choice[[i]], "minOccurs"))) {
-                            attr(choice[[i]], "minOccurs") <- attr(comp, "minOccurs")
-                        }
-                        if (is.null(attr(choice[[i]], "maxOccurs"))) {
-                            attr(choice[[i]], "maxOccurs") <- attr(comp, "maxOccurs")
-                        }
-                    }
-
-                }
-            }
-
-            if (length(els) > 0) {
-                els <- elnames(els)
-
-                children <- vector("list", length(els))
-                for (i in seq(length(els))) {
-                    children[[i]] <- els[i]
-                }
-            }
-
-            if (length(choice) > 0) {
-                choice <- elnames(choice)
-
-                if (length(choice) > 1) {
-                    choice <- list(choice = choice)
-                }
-
-                children <- append(children, choice, after = pos)
-            }
-
-            if (length(ats) > 0) {
-                attributes <- lapply(ats, function(a) {
-                    atname <- gsub("-", "_", attr(a, "name")) # wgt-var de ex.
-                    optional <- !identical(attr(a, "use"), "required")
-                    recommended <- is.element(x, recommended$attributes[[atname]])
-
-                    type <- attr(a, "type")
-                    default <- attr(a, "default")
-                    values <- c()
-                    deprecated <- is.element(x, deprecated$attributes[[atname]])
-                    description <- "" # TODO
-                    if (deprecated) {
-                        description <- paste(
-                            description,
-                            "DEPRECATED.",
-                            sep = ifelse (description == "", "", " ")
-                        )
-                    }
-
-                    if (is.element("simpleType", names(a))) {
-                        a <- a$simpleType$restriction
-                        type <- attr(a, "base")
-                        values <- unname(sapply(
-                            a[names(a) == "enumeration"],
-                            function(x) {
-                                return(attr(x, "value"))
-                            }
-                        ))
-                    }
-
-                    if (type == "xs:boolean") {
-                        values <- c("true", "false")
-                    }
-
-                    return(list(
-                        # type = gsub("xs:", "", type),
-                        type = type,
-                        description = description,
-                        values = values,
-                        default = default,
-                        optional = optional,
-                        recommended = recommended,
-                        deprecated = deprecated
-                    ))
-                })
-
-                names(attributes) <- sapply(ats, function(x) {
-                    return(attr(x, "name"))
-                })
-            }
-        }
-
-        return(list(
-            type = attr(el, "type"),
-            title = title,
-            # double quote from Word
-            description = gsub(
-                paste(intToUtf8(8220), intToUtf8(8221), sep = "|"),
-                "\"",
-                admisc::trimstr(documentation)
-            ),
-            examples = gsub(
-                paste(intToUtf8(8220), intToUtf8(8221), sep = "|"),
-                "\"",
-                admisc::trimstr(examples)
-            ),
-            children = children,
-            attributes = attributes,
-            parents = c()
-        ))
+    schema <- tryCatch(xml2::read_xml(xsd), error = function(e) {
+        message("Could not read the schema file: ", conditionMessage(e))
+        NULL
     })
-    names(meta) <- element_names
-
-    els <- unlist(lapply(meta, function(x) {
-        x <- unlist(x$children)
-        return(x)
-    }))
-
-    nms <- gsub(".*\\.", "", names(els)[!duplicated(els)])
-    els <- unname(els[!duplicated(els)])
-
-    # return(list(els, nms))
-
-    for (e in seq_along(els)) {
-        oprep <- unlist(strsplit(nms[e], split = "-"))
-        if (!is.element(els[e], element_names)) {
-            extratypes <- c(
-                digitalFingerprintValue = "xs:string",
-                algorithmSpecification = "xs:string",
-                algorithmVersion = "xs:string",
-                description = "simpleTextType",
-                outcome = "simpleTextType",
-                otherQualityStatement = "simpleTextType",
-                complianceDescription = "simpleTextType"
-            )
-            meta[[els[e]]] <- list(
-                type = extratypes[names(extratypes) == els[e]], # TODO type pentru elementele extra, cum le iau?
-                title = "",
-                description = "",
-                examples = c(),
-                children = c(),
-                attributes = list(),
-                parents = c()
-            )
-            element_names <- c(element_names, els[e])
-        }
-
-        meta[[els[e]]]$optional <- oprep[1] == "0"
-        meta[[els[e]]]$repeatable <- oprep[2] == "n"
-        meta[[els[e]]]$recommended <- is.element(els[e], recommended$elements)
+    if (is.null(schema)) {
+        return(invisible(NULL))
     }
-
-    for (element in element_names) {
-        meta[[element]]$deprecated <- is.element(element, deprecated$elements)
-        meta[[element]]$children <- lapply(
-            meta[[element]]$children,
-            function(x) {
-                names(x) <- NULL
-                return(x)
+    ns <- c(xs = "http://www.w3.org/2001/XMLSchema", h = "http://www.w3.org/1999/xhtml")
+    nodes <- function(node, xpath) xml2::xml_find_all(node, xpath, ns)
+    at <- function(node, name, default = NULL) {
+        value <- xml2::xml_attr(node, name)
+        if (is.na(value)) {
+            default
+        } else {
+            value
+        }
+    }
+    index <- function(xpath) {
+        result <- nodes(schema, xpath)
+        setNames(as.list(result), xml2::xml_attr(result, "name"))
+    }
+    types <- index("/xs:schema/xs:complexType")
+    simple <- index("/xs:schema/xs:simpleType")
+    groups <- index("/xs:schema/xs:attributeGroup")
+    declaredAttributes <- index("/xs:schema/xs:attribute")
+    strip <- function(x) sub("^.*:", "", x)
+    rname <- function(x) {
+        if (x == "xml:lang") {
+            "xmlang"
+        } else {
+            gsub("-", "_", x, fixed = TRUE)
+        }
+    }
+    emptyModel <- function() list(kind = "sequence", min = 1, max = 1, particles = list())
+    occurs <- function(node, name) {
+        value <- at(node, name, "1")
+        if (value == "unbounded" && name == "maxOccurs") {
+            return(Inf)
+        }
+        number <- suppressWarnings(as.numeric(value))
+        if (is.na(number) || number < 0 || number != floor(number)) {
+            stop("Invalid ", name, ": ", value)
+        }
+        number
+    }
+    particle <- function(node) {
+        kind <- xml2::xml_name(node)
+        # These content groups were deliberately not expanded in the R list.
+        if (is.element(kind, c("group", "any"))) {
+            return(emptyModel())
+        }
+        if (!is.element(kind, c("sequence", "choice", "element"))) {
+            stop("Unsupported content particle: ", kind)
+        }
+        result <- list(kind = kind, min = occurs(node, "minOccurs"), max = occurs(node, "maxOccurs"))
+        if (result$min > result$max) {
+            stop("minOccurs exceeds maxOccurs.")
+        }
+        if (kind == "element") {
+            result$name <- at(node, "ref", at(node, "name"))
+            if (is.null(result$name)) {
+                stop("Element particle has no name.")
             }
-        )
-        parents <- sapply(meta, function(x) {
-            is.element(element, unlist(x$children))
-        })
-
-        if (any(parents)) {
-            meta[[element]]$parents <- names(parents[parents])
+        } else {
+            result$particles <- lapply(nodes(node, "xs:sequence|xs:choice|xs:element|xs:group|xs:any|xs:all"), particle)
         }
+        result
+    }
+    groupAttributes <- function(name, seen = character()) {
+        if (is.element(name, seen) || is.null(groups[[name]])) {
+            stop("Unresolved/cyclic attribute group: ", name)
+        }
+        node <- groups[[name]]
+        inherited <- unlist(lapply(nodes(node, "xs:attributeGroup"), function(g) {
+            groupAttributes(at(g, "ref"), c(seen, name))
+        }), recursive = FALSE)
+        c(inherited, as.list(nodes(node, "xs:attribute")))
+    }
+    resolved <- new.env(parent = emptyenv())
+    resolveType <- function(name, seen = character()) {
+        if (is.null(name) || startsWith(name, "xs:") || is.element(name, names(simple))) {
+            return(list(model = emptyModel(), attributes = list()))
+        }
+        if (is.element(name, seen) || is.null(types[[name]])) {
+            stop("Unresolved/cyclic complex type: ", name)
+        }
+        if (exists(name, resolved, inherits = FALSE)) {
+            return(get(name, resolved))
+        }
+        node <- types[[name]]
+        derivation <- nodes(node, "xs:complexContent/xs:extension|xs:complexContent/xs:restriction|xs:simpleContent/xs:extension|xs:simpleContent/xs:restriction")
+        base <- list(model = emptyModel(), attributes = list())
+        extension <- FALSE
+
+        if (length(derivation)) {
+            node <- derivation[[1]]
+            base <- resolveType(at(node, "base"), c(seen, name))
+            extension <- xml2::xml_name(node) == "extension"
+        }
+
+        own <- lapply(nodes(node, "xs:sequence|xs:choice|xs:group|xs:all"), particle)
+        model <- if (length(own) == 1) own[[1]] else {
+            value <- emptyModel()
+            value$particles <- own
+            value
+        }
+        if (extension && length(ddiModelNames(base$model))) {
+            value <- emptyModel()
+            value$particles <- c(list(base$model), own)
+            model <- value
+        }
+        attributes <- base$attributes
+        inherited <- unlist(lapply(nodes(node, "xs:attributeGroup"), function(g) {
+            groupAttributes(at(g, "ref"))
+        }), recursive = FALSE)
+        for (a in c(inherited, as.list(nodes(node, "xs:attribute")))) {
+            key <- at(a, "name", at(a, "ref"))
+            if (is.null(key)) {
+                stop("Attribute has no name.")
+            }
+            if (identical(at(a, "use"), "prohibited")) {
+                attributes[[key]] <- NULL
+            } else {
+                attributes[[key]] <- a
+            }
+        }
+        result <- list(model = model, attributes = attributes)
+        assign(name, result, resolved)
+        result
+    }
+    text <- function(node, xpath) {
+        values <- xml2::xml_text(nodes(node, xpath))
+        unique(trimws(gsub("[[:space:]]+", " ", values)))
+    }
+    attributeRecord <- function(node, old = NULL) {
+        ref <- at(node, "ref")
+        definition <- node
+        if (!is.null(ref) && ref != "xml:lang") {
+            definition <- declaredAttributes[[ref]]
+            if (is.null(definition)) {
+                stop("Unresolved attribute: ", ref)
+            }
+        }
+        restrictions <- nodes(definition, "xs:simpleType/xs:restriction")
+        type <- at(definition, "type", if (identical(ref, "xml:lang")) "xs:language" else NULL)
+        if (length(restrictions)) {
+            type <- at(restrictions[[1]], "base")
+        }
+        if (is.null(type)) {
+            stop("Attribute has no supported type.")
+        }
+        if (length(restrictions)) {
+            values <- xml2::xml_attr(nodes(restrictions[[1]], "xs:enumeration"), "value")
+        } else {
+            values <- character()
+        }
+        if (type == "xs:boolean") {
+            values <- c("true", "false")
+        }
+        description <- text(definition, "xs:annotation/xs:documentation")
+        if (!length(description)) {
+            description <- ""
+        }
+        result <- list(
+            type = strip(type), description = description,
+            values = if (length(values)) values else NULL,
+            default = at(node, "default", at(definition, "default")),
+            optional = !identical(at(node, "use", at(definition, "use")), "required"),
+            recommended = FALSE, deprecated = any(grepl("deprecated", description, ignore.case = TRUE))
+        )
+        if (!is.null(old)) {
+            for (field in c("description", "recommended", "deprecated")) {
+                if (is.element(field, names(old))) {
+                    result[field] <- old[field]
+                } else {
+                    result[[field]] <- NULL
+                }
+            }
+            # Keep representation-only type aliases when the XSD type agrees.
+            equivalent <- identical(strip(old$type), result$type) ||
+                (identical(old$type, "dateSimple") && result$type == "dateSimpleType") ||
+                (identical(strip(old$type), "string") && result$type == "NMTOKEN" &&
+                 identical(old$values, result$values))
+            if (equivalent) {
+                result$type <- old$type
+            }
+        }
+        result
+    }
+    old <- get("DDIC", envir = cacheEnv)
+    globals <- get("DDIC_global_attributes", envir = cacheEnv)
+    # Global attributes remain factored out; preserve their editorial metadata.
+    if (!is.null(groups[["GLOBALS"]])) {
+        globalNodes <- groupAttributes("GLOBALS")
+        nextGlobals <- list()
+        for (a in globalNodes) {
+            key <- at(a, "name", at(a, "ref"))
+            if (key == "xml-lang" || identical(at(a, "use"), "prohibited")) {
+                next
+            }
+            key <- rname(key)
+            nextGlobals[[key]] <- attributeRecord(a, globals[[key]])
+        }
+    } else {
+        nextGlobals <- globals
     }
 
+    declarations <- nodes(schema, "//xs:element[@name]")
+    declarationNames <- xml2::xml_attr(declarations, "name")
+    if (anyDuplicated(declarationNames)) {
+        stop("Repeated local element names need a context-specific representation; cache unchanged.")
+    }
+    declarations <- setNames(as.list(declarations), declarationNames)
+    # Keep the curated order, appending any newly declared elements.
+    namesInOrder <- c(intersect(names(old), declarationNames), setdiff(declarationNames, names(old)))
+    meta <- setNames(vector("list", length(namesInOrder)), namesInOrder)
+    for (name in namesInOrder) {
+        el <- declarations[[name]]
+        type <- at(el, "type")
+        if (is.null(type)) {
+            stop("Unsupported anonymous element type: ", name)
+        }
+        definition <- resolveType(type)
+        previous <- old[[name]]
+        record <- if (!is.null(previous)) previous else list(
+            type = type, optional = TRUE, repeatable = FALSE,
+            recommended = FALSE, deprecated = FALSE, attributes = list(),
+            parents = NULL, children = list(),
+            title = text(el, "xs:annotation/xs:documentation//h:h1"),
+            description = text(el, "xs:annotation/xs:documentation//h:div[@class='description']"),
+            examples = NULL
+        )
+        if (is.null(previous)) {
+            record$examples <- trimws(xml2::xml_text(nodes(el, "xs:annotation/xs:documentation//h:samp")))
+            record$examples <- gsub(">[[:space:]]+<", "><", record$examples)
+            if (!length(record$title)) {
+                record$title <- name
+            }
+            if (!length(record$description)) {
+                record$description <- ""
+            }
+        }
+        record$type <- type
+        record$contentModel <- definition$model
+        children <- ddiModelNames(definition$model)
+        if (!identical(unname(unlist(record$children)), children)) {
+            record$children <- as.list(children)
+        }
+        attributes <- list()
+        for (key in names(definition$attributes)) {
+            if (key == "xml-lang") {
+                next
+            }
+            rkey <- rname(key)
+            # Keep existing element-specific overrides for globals, e.g. codeBook.
+            if (is.element(rkey, names(nextGlobals)) && is.null(previous$attributes[[rkey]])) {
+                next
+            }
+            attributes[[rkey]] <- attributeRecord(definition$attributes[[key]], previous$attributes[[rkey]])
+        }
+        if (name == "codeBook") {
+            synthetic <- intersect(c("xmlns", "xmlns:xsd", "xmlns:xsi", "xsi:schemaLocation"), names(previous$attributes))
+            attributes <- c(previous$attributes[synthetic], attributes)
+        }
+        # Preserve the existing attribute order for reviewable subsequent diffs.
+        order <- c(intersect(names(previous$attributes), names(attributes)), setdiff(names(attributes), names(previous$attributes)))
+        record$attributes <- attributes[order]
+        meta[[name]] <- record
+    }
+    for (name in names(meta)) {
+        parents <- names(meta)[vapply(meta, function(x) {
+            is.element(name, ddiModelNames(x$contentModel))
+        }, logical(1))]
+        previousParents <- old[[name]]$parents
+        parents <- c(intersect(previousParents, parents), setdiff(parents, previousParents))
+        if (length(parents)) {
+            meta[[name]]["parents"] <- list(parents)
+        } else {
+            meta[[name]]["parents"] <- list(NULL)
+        }
+        if (is.null(old[[name]]) && length(parents)) {
+            bounds <- lapply(parents, function(p) ddiModelBounds(meta[[p]]$contentModel, name))
+            meta[[name]]$optional <- any(vapply(bounds, function(b) b[1] == 0, logical(1)))
+            meta[[name]]$repeatable <- any(vapply(bounds, function(b) b[2] > 1, logical(1)))
+        }
+        unknown <- setdiff(ddiModelNames(meta[[name]]$contentModel), names(meta))
+        if (length(unknown)) {
+            stop("Unresolved child declarations: ", paste(unknown, collapse = ", "))
+        }
+    }
     if (return) {
+        # Carry proposed global changes with the preview so it is fully reviewable.
+        attr(meta, "global_attributes") <- nextGlobals
         return(meta)
     }
-
-
-    # DDIC <- get("DDIC", envir = cacheEnv)
-    # Code to modify the DDIC object
-    # then
     assign("DDIC", meta, envir = cacheEnv)
+    assign("DDIC_global_attributes", nextGlobals, envir = cacheEnv)
+    invisible(meta)
 }
 
-
-
-sinklist <- function(DDIC) {
-
-    on.exit(suppressWarnings(sink()))
-    nms <- names(DDIC)
-    sink("DDICtest.R")
-    cat("DDIC <- list(\n")
-    for (i in seq(length(DDIC))) {
-
-        # if (length(DDIC[[i]]$parents) > 0) {
-            cat("    ")
-            cat(nms[i])
-            cat(" = list(\n")
-            cat(sprintf(
-                "        type = \"%s\",\n",
-                DDIC[[i]]$type
-            ))
-            cat(sprintf(
-                "        optional = %s,\n",
-                ifelse(isTRUE(DDIC[[i]]$optional), "TRUE", "FALSE")
-            ))
-            cat(sprintf(
-                "        repeatable = %s,\n",
-                ifelse(isTRUE(DDIC[[i]]$repeatable), "TRUE", "FALSE")
-            ))
-            cat(sprintf(
-                "        recommended = %s,\n",
-                ifelse(isTRUE(DDIC[[i]]$recommended), "TRUE", "FALSE")
-            ))
-            cat(sprintf(
-                "        deprecated = %s,\n",
-                ifelse(isTRUE(DDIC[[i]]$deprecated), "TRUE", "FALSE")
-            ))
-
-            attributes <- DDIC[[i]]$attributes
-            cat("        attributes = list(")
-            if (length(attributes) > 0) {
-                cat("\n")
-                nmsa <- names(attributes)
-                for (j in seq(length(nmsa))) {
-                    n <- gsub("-", "_", nmsa[j])
-
-                    cat(paste(
-                        "           ",
-                        ifelse(grepl("\\:", n), paste0("'", n, "'"), n),
-                        "= list(\n"
-                    ))
-
-                    cat("                ")
-                    cat(paste0("type = \"", attributes[[n]]$type, "\",\n"))
-
-                    attr_description <- gsub("\"", "\\\\\"", attributes[[n]]$description)
-                    cat(paste0(
-                        "                ",
-                        "description = ",
-                        ifelse(length(attr_description) > 1, "c(\"", "\""),
-                        paste(attr_description, collapse = "\", \""),
-                        ifelse(length(attr_description) > 1, "\")", "\""),
-                        ",\n"
-                    ))
-
-                    values <- attributes[[n]]$values
-                    cat(paste0(
-                        "                ",
-                        "values = "
-                    ))
-                    if (length(values) == 0) {
-                        cat("c(),\n")
-                    }
-                    else {
-                        cat(paste0(
-                            ifelse(length(values) > 1, "c(\"", "\""),
-                            paste(values, collapse = "\", \""),
-                            ifelse(length(values) > 1, "\")", "\""),
-                            ",\n"
-                        ))
-                    }
-
-                    default <- attributes[[n]]$default
-                    cat("                ")
-                    if (length(default) == 0) {
-                        cat("default = c(),\n")
-                    }
-                    else {
-                        cat(paste0("default = \"", default, "\",\n"))
-                    }
-
-                    cat(paste0(
-                        "                optional = ",
-                        ifelse(isTRUE(attributes[[n]]$optional), "TRUE", "FALSE"),
-                        ",\n"
-                    ))
-
-                    cat(paste0(
-                        "                recommended = ",
-                        ifelse(isTRUE(attributes[[n]]$recommended), "TRUE", "FALSE"),
-                        ",\n"
-                    ))
-
-                    cat(paste0(
-                        "                deprecated = ",
-                        ifelse(isTRUE(attributes[[n]]$deprecated), "TRUE", "FALSE"),
-                        "\n"
-                    ))
-
-                    cat("            ")
-                    cat(ifelse(j < length(nmsa), "),\n", ")\n"))
-                }
-                cat("        ),")
-            }
-            else {
-                cat("),")
-            }
-
-            cat("\n        parents = c(")
-            if (length(DDIC[[i]]$parents) > 0) cat("\"")
-            cat(paste(DDIC[[i]]$parents, collapse = "\", \""))
-            if (length(DDIC[[i]]$parents) > 0) cat("\"")
-            cat("),")
-
-            children <- unname(unlist(DDIC[[i]]$children))
-            cat("\n        children = ")
-
-            # cat(ifelse(length(children) > 1, "c(\"", "\""))
-            # cat(paste(children, collapse = "\", \""))
-            # cat(ifelse(length(children) > 1, "\"),", "\","))
-
-            if (length(children) == 0) {
-                cat("list(),")
-            }
-            else {
-                cat("list(")
-                nmsc <- names(children)
-
-                for (cd in seq(length(children))) {
-                    # if (cd == 1) {
-                    #     cat("\n")
-                    # }
-
-                    many <- length(children[[cd]]) > 1
-                    choice <- FALSE
-                    tc <- admisc::tryCatchWEM({
-                        choice <- nmsc[cd] == "choice"
-                    })
-
-                    if (!is.null(tc$error)) {
-                        sink()
-                        print(nms[i])
-                        stop()
-                    }
-
-                    if (length(choice) && choice) {
-                        # cat("            choice = ")
-                        cat("choice = ")
-                        cat(paste0(
-                            ifelse(many, "c(\"", "\""),
-                            paste(children[[cd]], collapse = "\", \""),
-                            ifelse(many, "\")", "\"")
-                        ))
-                    }
-                    else {
-                        # cat("            ")
-                        cat(paste0("\"", children[[cd]], "\""))
-                    }
-
-                    if (cd < length(children)) {
-                        cat(", ")
-                    }
-                    # cat("\n")
-                }
-                # cat("        ),")
-                cat("),")
-            }
-
-            cat("\n        title = ")
-            if (length(DDIC[[i]]$title) == 0) {
-                cat("c(),")
-            }
-            else {
-                cat(paste0("\"", DDIC[[i]]$title, "\","))
-            }
-
-            cat("\n        description = ")
-
-            ld <- length(DDIC[[i]]$description)
-            if (length(DDIC[[i]]$description) == 0) {
-                cat("c(),")
-            }
-            else {
-                cat(ifelse(ld > 1, "c(\n", ""))
-                cat(ifelse(ld > 1, "            \"", "\""))
-                cat(paste(gsub("\"", "\\\\\"", DDIC[[i]]$description), collapse =  "\",\n            \""))
-                cat(ifelse(ld > 1, "\"\n        ),", "\","))
-            }
-
-
-            cat("\n        examples = ")
-            le <- length(DDIC[[i]]$example)
-
-            if (le == 0) {
-                cat("c()")
-            }
-            else {
-                cat(ifelse(le > 1, "c(\n", ""))
-                cat(ifelse(le > 1, "            \"", "\""))
-                cat(paste(gsub("\"", "\\\\\"", DDIC[[i]]$example), collapse =  "\",\n            \""))
-                cat(ifelse(le > 1, "\"\n        )", "\""))
-            }
-
-            cat("\n    )")
-            cat(ifelse(i < length(DDIC), ",\n", "\n"))
-
-        # }
+# Export a reviewable R expression. dput handles quoting, nested choices,
+# content models and empty values without changing names or losing fields.
+sinklist <- function(DDIC, file = "DDICtest.R") {
+    globals <- attr(DDIC, "global_attributes")
+    attr(DDIC, "global_attributes") <- NULL
+    connection <- file(file, open = "wt")
+    on.exit(close(connection))
+    writeLines("DDIC <-", connection)
+    dput(DDIC, connection)
+    if (!is.null(globals)) {
+        writeLines("DDIC_global_attributes <-", connection)
+        dput(globals, connection)
     }
-
-    cat(")\n")
-    sink()
-
-
+    invisible(file)
 }
-
-
-
-
-
-
-# atts <- sapply(DDIC, function(x) {
-#     if (length(x$attributes)) {
-#         desc <- sapply(x$attributes, function(y) {
-#             return(all(y$description != ""))
-#         })
-#         return(any(desc))
-#     }
-#     return(FALSE)
-# })
-
-# atts <- atts[atts]
-# nms <- names(atts)
-
-# sink("DDI attributes.R")
-# for (i in seq(length(atts))) {
-#     cat("\n----------------\n")
-#     element <- nms[i]
-#     elatts <- DDIC[[element]]$attributes
-#     atnms <- names(elatts)
-
-#     cat("Element: ", element, "\n\n")
-
-#     cat("<xhtml:div class=\"description\">")
-#     if (length(DDIC[[element]]$description) > 1) {
-#         cat("\n")
-#         for (d in seq(length(DDIC[[element]]$description))) {
-#             cat("   <xhtml:p>")
-#             cat(DDIC[[element]]$description[d])
-#             cat("</xhtml:p>\n")
-#         }
-#         cat("   ")
-#     } else {
-#         cat(DDIC[[element]]$description)
-#     }
-#     cat("</xhtml:div>\n\n")
-#     cat("------\n")
-#     cat("\nAttributes:\n")
-
-#     for (j in seq(length(elatts))) {
-#         cat(paste(
-#             "<xs:attribute name=\"",
-#             atnms[j],
-#             "\" type=\"xs:",
-#             elatts[[j]]$type,
-#             "\">\n",
-#             sep = ""
-#         ))
-#         cat("   <xs:annotation>\n")
-#         cat("      <xs:documentation>\n")
-#         cat("         <xhtml:div class=\"description\">")
-#         if (length(elatts[[j]]$description) > 1) {
-#             cat("\n")
-#             for (d in seq(length(elatts[[j]]$description))) {
-#                 cat("            <xhtml:p>")
-#                 cat(elatts[[j]]$description[d])
-#                 cat("</xhtml:p>\n")
-#             }
-#             cat("         ")
-#         } else {
-#             cat(elatts[[j]]$description)
-#         }
-#         cat("</xhtml:div>\n")
-#         cat("      </xs:documentation>\n")
-#         cat("   </xs:annotation>\n")
-#         cat("</xs:attribute>\n")
-#     }
-#     cat("\n\n")
-# }
-# sink()
-
-
-
-
-
-# sapply(DDIC, function(x) {
-#     if (!length(x$attributes)) {
-#         return(0)
-#     }
-
-#     att <- sapply(x$attributes, function(y) {
-#         return(length(y$values))
-#     })
-
-#     return(max(att))
-# })
-
-

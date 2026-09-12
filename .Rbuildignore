@@ -21,3 +21,4 @@
 ^tools/build-cran-source[.]R$
 ^configure[.]log$
 ^openmp[.]log$
+^AGENTS.md$

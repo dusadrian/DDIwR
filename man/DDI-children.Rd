@@ -115,6 +115,10 @@ Functions \code{addContent}, \code{changeContent}, \code{removeContent}, \code{a
 \code{changeAttributes}, and \code{removeAttributes} accept either a standard DDI element
 or a character \code{xpath}. When an xpath is provided, the target element is
 resolved and replaced in the root element.
+Child occurrence limits and choices are evaluated in the immediate parent.
+Required children may be added later while building an element; use
+\code{testValid()} to check completeness. Sequence slots are ordered according to
+the schema, while insertion order within repeated choices is preserved.
 }
 \author{
 Adrian Dusa

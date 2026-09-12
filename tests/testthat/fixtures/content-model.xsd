@@ -1,0 +1,53 @@
+<?xml version="1.0"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:attributeGroup name="shared">
+    <xs:attribute name="wgt-var" type="xs:IDREFS">
+      <xs:annotation><xs:documentation>Reference to a weight variable.</xs:documentation></xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="type" type="xs:string"/>
+  </xs:attributeGroup>
+  <xs:complexType name="baseType">
+    <xs:sequence>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element ref="a"/>
+        <xs:element ref="b"/>
+      </xs:choice>
+    </xs:sequence>
+    <xs:attributeGroup ref="shared"/>
+  </xs:complexType>
+  <xs:complexType name="restrictedType">
+    <xs:complexContent>
+      <xs:restriction base="baseType">
+        <xs:sequence>
+          <xs:choice minOccurs="2" maxOccurs="3">
+            <xs:element ref="a"/>
+            <xs:element ref="b"/>
+          </xs:choice>
+        </xs:sequence>
+        <xs:attribute name="type" use="prohibited"/>
+      </xs:restriction>
+    </xs:complexContent>
+  </xs:complexType>
+  <xs:complexType name="rootType">
+    <xs:complexContent>
+      <xs:extension base="restrictedType">
+        <xs:sequence><xs:element name="detail" type="xs:string" minOccurs="0" maxOccurs="2"/></xs:sequence>
+        <xs:attribute name="mode" default="brief">
+          <xs:simpleType><xs:restriction base="xs:string">
+            <xs:enumeration value="brief"/><xs:enumeration value="full"/>
+          </xs:restriction></xs:simpleType>
+        </xs:attribute>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+  <xs:element name="root" type="rootType"/>
+  <xs:element name="a" type="xs:string"/>
+  <xs:element name="b" type="xs:string"/>
+  <xs:complexType name="pairsType">
+    <xs:sequence minOccurs="1" maxOccurs="3">
+      <xs:element ref="a"/>
+      <xs:element ref="b"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:element name="pairs" type="pairsType"/>
+</xs:schema>

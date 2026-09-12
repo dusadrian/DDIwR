@@ -12,23 +12,24 @@ testValid(element, monolang = TRUE)
 \item{monolang}{Logical, the codebook file is monolingual}
 }
 \value{
-A character vector of validation problems found.
+A list of class \code{validation}, with character vectors \code{mandatory} and
+\code{optional}. The latter contains missing required attributes of optional
+children; both components report validation problems, not recommendations.
 }
 \description{
-Attempts a minimal validation of a DDI Codebook element, by
-searching for mandatory elements and attributes.
+Checks parent-specific child occurrences, sequences, choices
+and mandatory attributes throughout a DDI Codebook element.
 }
 \details{
-This function currently attempts a minimal check for the absolute
-most mandatory elements, such as the \code{stdyDscr}. An absolute bare version
-of this element, filled with arbitrary default values, can be produced with
-the function \code{makeElement()}, activating its attribute \code{fill}.
-It also checks for chained expectations, that is element X is mandatory only
-if the parent element is present.
+Each existing instance is checked separately, including repeated
+and recursively nested elements. Required children are checked only when
+their parent exists. Repeated choices may use different alternatives.
+An incomplete element can be built incrementally with \code{addChildren()};
+\code{testValid()} also checks the required minimum occurrences and child order.
 
-Future versions will implement more functionality for recommended elements
-and attributes, with the intention to provide a 1:1 validation as offered by
-the "CESSDA Metadata Validator".
+Validation follows the curated DDI child model. It does not expand imported
+markup groups or validate all XML datatypes, ID references or mixed text.
+Use XML Schema validation on exported XML for those additional checks.
 
 To ease the validation of the DDI Codebook XML files, the argument \code{monolang}
 is activated by default. This means a single attribute \code{xmlang} in the main

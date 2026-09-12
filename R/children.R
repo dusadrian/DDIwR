@@ -54,6 +54,10 @@
 #' `changeAttributes`, and `removeAttributes` accept either a standard DDI element
 #' or a character `xpath`. When an xpath is provided, the target element is
 #' resolved and replaced in the root element.
+#' Child occurrence limits and choices are evaluated in the immediate parent.
+#' Required children may be added later while building an element; use
+#' `testValid()` to check completeness. Sequence slots are ordered according to
+#' the schema, while insertion order within repeated choices is preserved.
 #'
 #' @export
 `addChildren` <- function(children, to, overwrite = TRUE, ...) {
@@ -83,80 +87,46 @@
         admisc::stopError("The argument 'to' is not standard.")
     }
 
-    childnames <- sapply(children, function(x) x$.extra$name)
+    childnames <- unname(
+        vapply(
+            children,
+            function(x) x$.extra$name,
+            character(1)
+        )
+    )
+
     names(children) <- childnames
+    model <- DDIC[[to$.extra$name]]$contentModel
 
-    all_children <- unlist(DDIC[[to$.extra$name]]$children)
-
-    if (!all(is.element(childnames, all_children))) {
-        admisc::stopError("One or more children do not belong to this element.")
+    if (is.null(model)) {
+        admisc::stopError("The schema has no content model for this element.")
     }
 
-    uchildren <- unique(childnames)
-    repeatable <- sapply(DDIC[uchildren], function(x) x$repeatable)
-    tbl <- table(childnames)
-    tbl <- tbl[tbl > 1 & !repeatable]
+    existing <- names(to)[!is.element(names(to), c("", ".extra"))]
+    combined <- c(existing, childnames)
+    combined <- combined[ddiModelOrder(model, combined)]
 
-    if (length(tbl) > 0) {
-        admisc::stopError(
-            sprintf(
-                "These children should not be repeated: %s.",
-                paste(names(tbl), collapse = ", ")
-            )
-        )
-    }
+    problems <- ddiModelProblems(
+        model,
+        combined,
+        to$.extra$name,
+        complete = FALSE
+    )
 
-    nonrep <- intersect(uchildren[!repeatable], names(to))
-
-    if (length(nonrep)) {
-        admisc::stopError(
-            sprintf(
-                "These children already exist and should not be repeated: %s.",
-                paste(nonrep, collapse = ", ")
-            )
-        )
-    }
-
-    choice <- NULL
-    tochildren <- DDIC[[to$.extra$name]]$children
-    if (!is.null(tochildren)) {
-        choice <- tochildren$choice
-    }
-
-
-    if (!is.null(choice)) {
-        existing <- names(to)
-        uchildren <- setdiff(uchildren, existing)
-
-        restriction <- FALSE
-
-        if (identical(existing, ".extra")) {
-            if (length(uchildren) > 1) {
-                restriction <- TRUE
-            }
-        }
-        else if (length(uchildren) && any(is.element(uchildren, choice))) {
-            restriction <- TRUE
-        }
-
-        if (restriction) {
-            admisc::stopError(
-                sprintf(
-                    "Choice restriction, only one of these children should be added: %s.",
-                    paste(choice, collapse = ", ")
-                )
-            )
-        }
+    if (length(problems)) {
+        admisc::stopError(paste(problems, collapse = "\n"))
     }
 
     attrbs <- attributes(to)
     to <- append(to, children)
     attrbs$names <- c(attrbs$names, childnames)
 
-    corder <- order(match(
-        attrbs$names,
-        c("", all_children, ".extra")
-    ))
+    childPositions <- which(!is.element(attrbs$names, c("", ".extra")))
+    corder <- c(
+        which(attrbs$names == ""),
+        childPositions[ddiModelOrder(model, attrbs$names[childPositions])],
+        which(attrbs$names == ".extra")
+    )
 
     to <- to[corder]
     attrbs$names <- attrbs$names[corder]

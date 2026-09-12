@@ -2,30 +2,31 @@
 % Please edit documentation in R/updateSchema.R
 \name{updateSchema}
 \alias{updateSchema}
-\title{Updates the internal DDI Codebook schema object.}
+\title{Update the internal DDI Codebook schema object.}
 \usage{
 updateSchema(xsd = NULL, return = FALSE)
 }
 \arguments{
-\item{xsd}{A path to the Codebook XML Schema file.}
+\item{xsd}{Path or URL to codebook.xsd. Defaults to the pinned 2.6 release.}
 
-\item{return}{Return an R object representing the schema instead of updating the internal one.}
+\item{return}{Return the proposed list without changing the in-memory cache.}
 }
 \description{
-Rebuilds the internal schema object, from a (newer) XML Schema codebook.xsd file.
+Extract structural facts from a Codebook XSD while preserving
+the existing R naming conventions and curated descriptive metadata.
 }
 \details{
-Releasing a new stable version of the DDI Codebook takes about 10 years. There are
-numerous elements and attributes that have to work together, and most importantly the Codebook
-has to obey the backward compatibility rule. Until a new version is released, the Codebook
-schema is incrementally modified by the DDI Alliance, in their GitHub repository.
+The extractor follows type inheritance, restrictions, local elements
+and attribute groups. Each element receives a parent-specific contentModel
+containing sequence/choice particles and numeric min/max occurrence bounds.
+PHRASE, FORM, imported markup groups and wildcards remain outside the
+simplified child model. Existing descriptions, examples, recommendations and
+deprecation flags are preserved; new records use schema documentation.
 
-This function is intended to update the internal DDI Codebook schema object, parsing the
-latest version of the Codebook XML Schema file.
-
-Unless the codebook.xsd file is provided by the user, the function will attempt to read it
-from the DDI Alliance GitHub repository, located at:
-\url{https://github.com/ddialliance/ddi-c_2}
+Inspect updateSchema(xsd, return = TRUE) before applying a different schema.
+Structural facts are refreshed, including removed/prohibited attributes.
+Legacy element-wide optional/repeatable flags are retained for existing
+records; validation uses contentModel. No source files are overwritten.
 }
 \author{
 Adrian Dusa
