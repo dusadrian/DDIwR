@@ -8,6 +8,7 @@
 *.Rhistory
 *.RData
 *.Ruserdata
+*.Rcheck/
 *.DS_Store
 *.vscode
 docs
