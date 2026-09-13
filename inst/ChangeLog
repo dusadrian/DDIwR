@@ -1,4 +1,9 @@
 Version 0.20
+  o the embedded DDI Codebook is now aligned to the very latest published
+    version of the standard
+  o validation is also aligned with this latest version
+
+Version 0.20
   o function getCodebook() now defaults to autodetect the file encoding
   o improved getCodebook() capturing extended missing values from Stata/SAS
   o bug fix in getCodebook() when a variable is completely missing (all empty NAs)
