@@ -409,13 +409,23 @@ NULL
 #' @description `collectMetadata`: Collect metadata from a file or a dataframe object
 #' @return `collectMetadata`: a standard DDI Codebook element `dataDscr`,
 #' containing variable level metadata information
+#' @param session Optional [metadataSweepCapture()] session for `collectMetadata`.
+#' When supplied, omit `from`; cached analysis and stable variable IDs are reused.
+#' @param revision Current host revision for a session read.
 #' @rdname DDIwR_internal
 #' @keywords internal
 #' @export
-`collectMetadata` <- function(from, ...) {
+`collectMetadata` <- function(from, ..., session = NULL, revision = NULL) {
     dots <- list(...)
 
-    if (is.data.frame(from)) {
+    if (!is.null(session)) {
+        .metadataSessionAssertRevision(session, revision)
+
+        if (!missing(from)) {
+            stop("Supply either 'from' or 'session', not both.")
+        }
+    }
+    else if (is.data.frame(from)) {
         error <- TRUE
         i <- 1
         while (i <= ncol(from) & error) {
@@ -444,10 +454,12 @@ NULL
         )
     }
 
-    var_info <- makeXMLvars(
-        data = from,
-        ... = ...
-    )
+    if (is.null(session)) {
+        var_info <- makeXMLvars(data = from, ... = ...)
+    }
+    else {
+        var_info <- makeXMLvars(session = session, revision = revision, ... = ...)
+    }
     var_xml <- var_info$xml
 
     dataDscr_xml <- paste0("  <dataDscr>\n", paste(var_xml, collapse = ""), "  </dataDscr>\n")
@@ -1561,9 +1573,29 @@ NULL
 
 
 # completely internal function, not designed for general use
-`makeXMLvars` <- function(variables = NULL, data = NULL, indent = 2, ...) {
+`makeXMLvars` <- function(variables = NULL, data = NULL, indent = 2, ...,
+    session = NULL, revision = NULL, columns = NULL, .analysis = NULL) {
     dots <- list(...)
     hashes <- NULL
+
+    if (!is.null(session)) {
+        .metadataSessionAssertRevision(session, revision)
+
+        if (!is.null(data) || !is.null(variables) || !is.null(.analysis)) {
+            stop("Session XML inputs must come from the session.")
+        }
+
+        positions <- .metadataSessionPositions(session, columns)
+        variables <- .metadataSessionVariables(session, positions)
+        data <- .metadataSessionValues(session, positions)
+
+        if (is.null(dots$wt)) {
+            .metadataSessionEnsureAnalysis(session, positions)
+            .analysis <- .metadataSessionCombineAnalysis(
+                session, positions
+            )
+        }
+    }
 
     if (is.null(variables)) {
         if (is.null(data)) {
@@ -1624,11 +1656,23 @@ NULL
 
 
     # uuid for all variables
-    uuid <- generateID(length(variables))
-    varnames <- names(variables)
+    uuid <- unname(vapply(variables, function(variable) {
+        id <- variable$ID
 
-    varuuid <- unlist(lapply(variables, function(x) x$ID))
-    uuid[match(names(varuuid), varnames)] <- varuuid
+        if (is.null(id) || length(id) == 0L || is.na(id[[1]]) ||
+            !nzchar(as.character(id[[1]]))) {
+            return(NA_character_)
+        }
+
+        return(as.character(id[[1]]))
+    }, character(1)))
+    missing_ids <- is.na(uuid)
+
+    if (any(missing_ids)) {
+        uuid[missing_ids] <- generateID(sum(missing_ids))
+    }
+
+    varnames <- names(variables)
 
     ns <- getElement(dots, "ns")
     if (is.null(ns)) {
@@ -1821,11 +1865,21 @@ NULL
     }
 
     if (!is.null(data) && is.null(wt)) {
-        fast_stats <- collectDataDscrStatsC(
-            data = data[varnames],
-            variables = variables,
-            dates = dates
-        )
+        fast_stats <- .analysis
+
+        if (is.null(fast_stats)) {
+            selected_data <- data
+
+            if (!identical(names(data), varnames)) {
+                selected_data <- data[varnames]
+            }
+
+            fast_stats <- collectDataDscrStatsC(
+                data = selected_data,
+                variables = variables,
+                dates = dates
+            )
+        }
 
         w <- !is.na(fast_stats$var_dcml)
         var_dcml[w] <- fast_stats$var_dcml[w]

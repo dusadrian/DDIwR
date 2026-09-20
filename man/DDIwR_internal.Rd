@@ -71,7 +71,7 @@ cleanup(x, cdata = TRUE)
 
 coerceDDI(element, name = NULL)
 
-collectMetadata(from, ...)
+collectMetadata(from, ..., session = NULL, revision = NULL)
 
 collectRMetadata(from, infer_type = TRUE, include_formats = TRUE, ...)
 
@@ -147,6 +147,11 @@ writeRlist(variables, OS = "windows", indent = 4, dirpath = "", filename = "")
 }
 \arguments{
 \item{x}{Number of ID values to return}
+
+\item{session}{Optional \code{\link[=metadataSweepCapture]{metadataSweepCapture()}} session for \code{collectMetadata}.
+When supplied, omit \code{from}; cached analysis and stable variable IDs are reused.}
+
+\item{revision}{Current host revision for a session read.}
 
 \item{nchars}{Number of characters for each ID}
 }

@@ -82,9 +82,17 @@
 #' @param indent Indent width, in number of spaces
 #'
 #' @param ... Other arguments, mainly for internal use
+#' @param session Optional session returned by [metadataSweepCapture()]. Its
+#' complete variable description replaces `dataDscr` in `codeBook`, reusing
+#' cached unweighted analysis. Study and document metadata remain supplied by
+#' `codeBook`. Do not also supply `data` or `variables`. `embed = TRUE` includes
+#' captured data with stable variable IDs; `csv = TRUE` requests a companion CSV.
+#' Weighted export uses the existing weighted calculation path.
+#' @param revision Current host revision, required when `session` is supplied.
 #'
 #' @export
-`exportCodebook` <- function(codeBook, to = "", OS = "", indent = 2, ...) {
+`exportCodebook` <- function(codeBook, to = "", OS = "", indent = 2, ...,
+    session = NULL, revision = NULL) {
     # https://ddialliance.org/hubfs/Specification/DDI-Codebook/2.5/XMLSchema/field_level_documentation.html
 
     # validation procedure:
@@ -98,6 +106,28 @@
     # https://cmv.cessda.eu/documentation/constraints.html
 
     dots <- list(...)
+
+    if (!is.null(session)) {
+        .metadataSessionAssertRevision(session, revision)
+
+        if (!is.null(dots$data) || !is.null(dots$variables)) {
+            stop("Supply session export inputs through the session only.")
+        }
+
+        dots$dataDscr_directly_in_XML <- TRUE
+        dots$embed <- isTRUE(dots$embed)
+        dots$csv <- isTRUE(dots$csv)
+        dots$variables <- .metadataSessionVariables(session, seq_len(session$columns))
+
+        if (hasChildren(codeBook, "dataDscr")) {
+            codeBook <- removeChildren("dataDscr", from = codeBook, overwrite = FALSE)
+        }
+
+        if (!hasChildren(codeBook, "fileDscr")) {
+            codeBook <- addChildren(makeElement("fileDscr"),
+                to = codeBook, overwrite = FALSE)
+        }
+    }
 
     if (identical(to, "") && !is.null(dots$file)) {
         to <- dots$file
@@ -156,6 +186,11 @@
 
     if (isTRUE(dots$dataDscr_directly_in_XML)) {
         data <- dots$data
+
+        if (!is.null(session)) {
+            data <- .metadataSessionValues(session, seq_len(session$columns),
+                attributes = TRUE)
+        }
         embed <- dots$embed
 
         codeBook <- addChildren(
@@ -166,11 +201,17 @@
 
         var_dots <- dots
         var_dots$variables <- NULL
+        generator_inputs <- list(variables = dots$variables)
+
+        if (!is.null(session)) {
+            generator_inputs <- list(session = session, revision = revision)
+        }
+
         var_info <- do.call(
             makeXMLvars,
             c(
+                generator_inputs,
                 list(
-                    variables = dots$variables,
                     DDI = FALSE,
                     return_hashes = TRUE
                 ),
@@ -198,7 +239,7 @@
 
         if (embed) {
             uuid <- var_info$stats$id
-            for (i in seq(length(uuid))) {
+            for (i in seq_along(uuid)) {
                 attr(data[[i]], "ID") <- uuid[i]
             }
             codeBook$fileDscr <- addChildren(

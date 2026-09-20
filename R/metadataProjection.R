@@ -1,5 +1,5 @@
 # Internal structured projection for browser and application consumers.
-# XML remains a separate projection until it can consume this same analysis result.
+# XML consumes the same analysed columns through an explicit internal argument.
 metadataProjection <- function(from, columns = seq_len(ncol(from)),
     fields = c("identity", "annotations", "classification", "weight_signal",
         "summaries", "categories"), revision = NULL, xml_options = list()) {
@@ -24,7 +24,8 @@ metadataProjection <- function(from, columns = seq_len(ncol(from)),
     if (!is.list(xml_options) || is.null(names(xml_options)) && length(xml_options) > 0L) {
         stop("XML options must be a named list.")
     }
-    if (any(is.element(names(xml_options), c("variables", "data")))) {
+    if (any(is.element(names(xml_options),
+        c("variables", "data", ".analysis", "session", "revision", "columns")))) {
         stop("XML options cannot replace projection inputs.")
     }
 
@@ -191,26 +192,16 @@ metadataProjection <- function(from, columns = seq_len(ncol(from)),
             )
         }
         else {
-            generator <- makeXMLvars
-            scope <- new.env(parent = environment(generator))
-            expected_data <- selected
-            expected_variables <- variables
-            expected_dates <- dates
-            scope$collectDataDscrStatsC <- function(data, variables, dates, ...) {
-                if (!identical(data, expected_data) ||
-                    !identical(variables, expected_variables) ||
-                    !identical(unname(dates), expected_dates)) {
-                    stop("XML projection inputs differ from the analysed selection.")
-                }
-
-                return(analysis)
-            }
-            environment(generator) <- scope
             xml_result <- do.call(
-                generator,
-                c(list(variables = variables, data = selected), xml_options)
+                makeXMLvars,
+                c(list(variables = variables, data = selected,
+                    .analysis = analysis), xml_options)
             )
             projection$xml <- xml_result$xml
+
+            if (isTRUE(xml_options$return_hashes)) {
+                projection$hashes <- xml_result$hashes
+            }
 
             xml_stats <- xml_result$stats
             display_type <- rep("", length(selected))

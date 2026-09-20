@@ -4,7 +4,15 @@
 \alias{exportCodebook}
 \title{Export a DDI Codebook to an XML file.}
 \usage{
-exportCodebook(codeBook, to = "", OS = "", indent = 2, ...)
+exportCodebook(
+  codeBook,
+  to = "",
+  OS = "",
+  indent = 2,
+  ...,
+  session = NULL,
+  revision = NULL
+)
 }
 \arguments{
 \item{codeBook}{A standard element of class \code{"DDI"}.}
@@ -17,6 +25,15 @@ writing ("" indicates output to the console)}
 \item{indent}{Indent width, in number of spaces}
 
 \item{...}{Other arguments, mainly for internal use}
+
+\item{session}{Optional session returned by \code{\link[=metadataSweepCapture]{metadataSweepCapture()}}. Its
+complete variable description replaces \code{dataDscr} in \code{codeBook}, reusing
+cached unweighted analysis. Study and document metadata remain supplied by
+\code{codeBook}. Do not also supply \code{data} or \code{variables}. \code{embed = TRUE} includes
+captured data with stable variable IDs; \code{csv = TRUE} requests a companion CSV.
+Weighted export uses the existing weighted calculation path.}
+
+\item{revision}{Current host revision, required when \code{session} is supplied.}
 }
 \value{
 An XML file containing a DDI version 2.6 metadata.
