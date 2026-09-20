@@ -17,3 +17,5 @@ inst/doc
 *.txt
 .clangd
 AGENTS.md
+/tools/*
+!/tools/build-cran-source.R

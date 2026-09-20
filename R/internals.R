@@ -3386,12 +3386,13 @@ makedfm <- function() {
 }
 
 #' @keywords internal
-`collectDataDscrStatsC` <- function(data, variables, dates) {
+`collectDataDscrStatsC` <- function(data, variables, dates, include_projection = FALSE) {
     .Call(
         "collect_datadscr_stats",
         data,
         variables,
-        as.logical(dates)
+        as.logical(dates),
+        as.logical(include_projection)
     )
 }
 

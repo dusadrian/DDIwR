@@ -8,10 +8,8 @@
 #include <math.h>
 #include <limits.h>
 
-#ifndef _WIN32
-#include <pthread.h>
-#include <unistd.h>
-#endif
+#include "variable_analysis.h"
+#include "variable_threads.h"
 
 
 typedef struct {
@@ -59,489 +57,68 @@ static void ddiwr_init_symbols(void) {
 }
 
 
-// C-level data structures and thread queues for data isolation
-typedef struct {
-    int index;
-    int type;
-    R_xlen_t len;
-    int is_numericish;
-    int has_type_num;
-    int date_var;
-    int has_labels;
-    int cat_count;
-
-    // Contiguous primitive pointers
-    const double *real_data;
-    const int *int_data;
-    const int *lgl_data;
-    const char **str_data;
-
-    // Missing values
-    int num_na_values_n;
-    double num_na_values[3];
-    int has_num_na_range;
-    double num_na_range[2];
-    int str_na_values_n;
-    const char *str_na_values[3];
-
-    // Category labels
-    double *cat_label_dvals;
-    const char **cat_label_svals;
-    R_xlen_t *cat_label_idx;
-    int *cat_missing;
-
-    // Output variables for Stats
-    double sum_valid;
-    double sum_invalid;
-    int max_dcml;
-    int max_width;
-    int whole;
-    double val_min;
-    double val_max;
-    double stat_min;
-    double stat_max;
-    double stat_mean;
-    double stat_medn;
-    double stat_stdev;
-    double *cat_freq; // Pointer to output segment
-
-    // Output variables for Formats
-    char format_spss[64];
-    char format_stata[64];
-    int is_date;
-} CVariableData;
-
-typedef struct {
-    CVariableData *jobs;
-    R_xlen_t n_jobs;
-    R_xlen_t next_job;
-#ifndef _WIN32
-    pthread_mutex_t mutex;
-#endif
-} CJobQueue;
-
-
 // Forward declarations for R-dependent functions used in extraction
 static int sexp_as_double(SEXP x, R_xlen_t i, double *out);
 static int label_is_missing(SEXP labels, R_xlen_t j, SEXP na_values, SEXP na_range);
-static int decimal_count(double x);
 static SEXP getListElement(SEXP list, const char *name);
+static int class_has(SEXP classes, const char *target);
 
-static int compare_doubles(const void *a, const void *b) {
-    double da = *(const double *)a;
-    double db = *(const double *)b;
-    if (isnan(da) && isnan(db)) return 0;
-    if (isnan(da)) return 1;
-    if (isnan(db)) return -1;
-    if (da < db) return -1;
-    if (da > db) return 1;
-    return 0;
-}
+static int label_matches_any_name(SEXP labels, R_xlen_t index, SEXP label_names) {
+    R_xlen_t name_index = 0;
 
-static int c_value_in_na_values(double val, const char *str_val, const CVariableData *job) {
-    if (job->type == STRSXP) {
-        if (str_val == NULL) return 0;
-        for (int k = 0; k < job->str_na_values_n; k++) {
-            if (job->str_na_values[k] != NULL && strcmp(str_val, job->str_na_values[k]) == 0) {
+    if (TYPEOF(label_names) != STRSXP || XLENGTH(label_names) == 0) {
+        return 0;
+    }
+
+    if (TYPEOF(labels) == STRSXP) {
+        SEXP value = STRING_ELT(labels, index);
+
+        if (value == NA_STRING) {
+            return 0;
+        }
+
+        for (name_index = 0; name_index < XLENGTH(label_names); name_index++) {
+            SEXP name = STRING_ELT(label_names, name_index);
+
+            if (name != NA_STRING && strcmp(CHAR(value), CHAR(name)) == 0) {
                 return 1;
             }
         }
-    } else {
-        if (isnan(val)) return 0;
-        for (int k = 0; k < job->num_na_values_n; k++) {
-            if (!isnan(job->num_na_values[k]) && val == job->num_na_values[k]) {
+
+        return 0;
+    }
+
+    {
+        double value = 0.0;
+        char buffer[128];
+
+        if (!sexp_as_double(labels, index, &value)) {
+            return 0;
+        }
+
+        if (TYPEOF(labels) == LGLSXP) {
+            snprintf(buffer, sizeof(buffer), "%s", value == 0.0 ? "FALSE" : "TRUE");
+        }
+        else {
+            snprintf(buffer, sizeof(buffer), "%.15g", value);
+        }
+
+        for (name_index = 0; name_index < XLENGTH(label_names); name_index++) {
+            SEXP name = STRING_ELT(label_names, name_index);
+
+            if (name != NA_STRING && strcmp(buffer, CHAR(name)) == 0) {
                 return 1;
             }
         }
     }
+
     return 0;
-}
-
-static int c_value_in_na_range(double val, const CVariableData *job) {
-    if (job->type == STRSXP || !job->has_num_na_range || isnan(val)) {
-        return 0;
-    }
-    double lo = job->num_na_range[0];
-    double hi = job->num_na_range[1];
-    if (isinf(lo) && lo < 0) {
-        return val <= hi;
-    }
-    if (isinf(hi) && hi > 0) {
-        return val >= lo;
-    }
-    return val >= lo && val <= hi;
-}
-
-static int c_value_matches_label(double val, const char *str_val, const CVariableData *job, int cat_idx) {
-    if (job->type == STRSXP) {
-        if (str_val == NULL || job->cat_label_svals[cat_idx] == NULL) {
-            return 0;
-        }
-        return strcmp(str_val, job->cat_label_svals[cat_idx]) == 0;
-    } else {
-        if (isnan(val) || isnan(job->cat_label_dvals[cat_idx])) {
-            return 0;
-        }
-        return val == job->cat_label_dvals[cat_idx];
-    }
-}
-
-static int c_double_matches_label_value(double val, const CVariableData *job) {
-    if (job->cat_label_dvals == NULL) {
-        return 0;
-    }
-    for (int k = 0; k < job->cat_count; k++) {
-        if (!isnan(job->cat_label_dvals[k]) && val == job->cat_label_dvals[k]) {
-            return 1;
-        }
-    }
-    return 0;
-}
-
-static int c_display_width(double val, int type, const char *str_val) {
-    char buf[128];
-    if (type == REALSXP) {
-        if (isnan(val)) return 0;
-        snprintf(buf, sizeof(buf), "%.15g", val);
-        return (int)strlen(buf);
-    } else if (type == INTSXP) {
-        if (isnan(val)) return 0;
-        snprintf(buf, sizeof(buf), "%d", (int)val);
-        return (int)strlen(buf);
-    } else if (type == LGLSXP) {
-        if (isnan(val)) return 0;
-        return ((int)val) ? 4 : 5;
-    } else if (type == STRSXP) {
-        if (str_val == NULL) return 0;
-        return (int)strlen(str_val);
-    }
-    return 0;
-}
-
-static void c_infer_formats(CVariableData *job) {
-    int pN = 0;
-    int allnax = 1;
-    int nullabels = !job->has_labels;
-    int decimals = 0;
-    int numeric_width = 1;
-    int maxvarchar = 0;
-    R_xlen_t i = 0;
-
-    job->is_date = 0;
-    pN = (job->type != STRSXP);
-    if (!nullabels) {
-        int labels_numeric = 1;
-        if (job->cat_label_svals != NULL) {
-            for (int k = 0; k < job->cat_count; k++) {
-                if (job->cat_label_svals[k] != NULL) {
-                    char *endptr = NULL;
-                    (void)strtod(job->cat_label_svals[k], &endptr);
-                    if (endptr == job->cat_label_svals[k] || *endptr != '\0') {
-                        labels_numeric = 0;
-                        break;
-                    }
-                }
-            }
-        }
-        pN = pN && labels_numeric;
-    }
-
-    for (i = 0; i < job->len; i++) {
-        if (job->type == STRSXP) {
-            if (job->str_data[i] != NULL) {
-                allnax = 0;
-                break;
-            }
-        } else if (job->type == REALSXP) {
-            if (!isnan(job->real_data[i])) {
-                allnax = 0;
-                break;
-            }
-        } else if (job->type == INTSXP) {
-            if (job->int_data[i] != INT_MIN) {
-                allnax = 0;
-                break;
-            }
-        } else if (job->type == LGLSXP) {
-            if (job->lgl_data[i] != INT_MIN) {
-                allnax = 0;
-                break;
-            }
-        }
-    }
-
-    if (pN && !allnax) {
-        for (i = 0; i < job->len; i++) {
-            double val = 0.0;
-            int width = 0;
-            
-            if (job->type == REALSXP) {
-                val = job->real_data[i];
-                if (isnan(val)) continue;
-            } else if (job->type == INTSXP) {
-                int iv = job->int_data[i];
-                if (iv == INT_MIN) continue;
-                val = (double)iv;
-            } else if (job->type == LGLSXP) {
-                int lv = job->lgl_data[i];
-                if (lv == INT_MIN) continue;
-                val = (double)lv;
-            }
-
-            width = c_display_width(val, job->type, NULL);
-            if (width > numeric_width) {
-                numeric_width = width;
-            }
-
-            if (decimals < 3) {
-                int d = decimal_count(val);
-                if (d > decimals) {
-                    decimals = d > 3 ? 3 : d;
-                }
-            }
-        }
-    }
-
-    if (!pN && !allnax) {
-        for (i = 0; i < job->len; i++) {
-            int width = 0;
-            if (job->type == STRSXP) {
-                if (job->str_data[i] != NULL) {
-                    width = (int)strlen(job->str_data[i]);
-                }
-            }
-            if (width > maxvarchar) {
-                maxvarchar = width;
-            }
-        }
-    }
-
-    if (!nullabels && !pN) {
-        for (int k = 0; k < job->cat_count; k++) {
-            int width = 0;
-            if (job->cat_label_svals != NULL && job->cat_label_svals[k] != NULL) {
-                width = (int)strlen(job->cat_label_svals[k]);
-            } else if (job->cat_label_dvals != NULL) {
-                char buf[128];
-                snprintf(buf, sizeof(buf), "%.15g", job->cat_label_dvals[k]);
-                width = (int)strlen(buf);
-            }
-            if (width > maxvarchar) {
-                maxvarchar = width;
-            }
-        }
-    }
-
-    if (pN) {
-        snprintf(job->format_spss, sizeof(job->format_spss), "F%d.%d", numeric_width, decimals);
-        snprintf(job->format_stata, sizeof(job->format_stata), "%%%d.%dg", numeric_width, decimals);
-    }
-    else {
-        int width = maxvarchar > 0 ? maxvarchar : 1;
-        snprintf(job->format_spss, sizeof(job->format_spss), "A%d", width);
-        snprintf(job->format_stata, sizeof(job->format_stata), "%%%ds", width);
-    }
-}
-
-static void process_stats_job(CVariableData *job) {
-    R_xlen_t len = job->len;
-    R_xlen_t valid_n = 0;
-    R_xlen_t valid_obs = 0;
-    R_xlen_t invalid_n = 0;
-    int numericish = job->is_numericish;
-    int whole = 1;
-    int max_dcml = 0;
-    int max_width = 1;
-    double *vals = NULL;
-    double minv = 0.0, maxv = 0.0;
-    double mean = 0.0, m2 = 0.0;
-    int printnum = 0;
-    int distinct_nonlabel_n = 0;
-    double distinct_nonlabel[5];
-
-    if (numericish) {
-        vals = (double *)malloc((size_t)len * sizeof(double));
-        if (vals == NULL) {
-            return;
-        }
-    }
-
-    for (R_xlen_t j = 0; j < len; j++) {
-        int is_invalid = 0;
-        double val = 0.0;
-        const char *str_val = NULL;
-
-        if (job->type == STRSXP) {
-            str_val = job->str_data[j];
-            is_invalid = (str_val == NULL);
-        } else if (job->type == REALSXP) {
-            val = job->real_data[j];
-            is_invalid = isnan(val);
-        } else if (job->type == INTSXP) {
-            int iv = job->int_data[j];
-            is_invalid = (iv == INT_MIN);
-            val = (double)iv;
-        } else if (job->type == LGLSXP) {
-            int lv = job->lgl_data[j];
-            is_invalid = (lv == INT_MIN);
-            val = (double)lv;
-        } else {
-            is_invalid = 1;
-        }
-
-        if (job->has_labels && job->cat_count > 0) {
-            for (int cat_i = 0; cat_i < job->cat_count; cat_i++) {
-                if (c_value_matches_label(val, str_val, job, cat_i)) {
-                    job->cat_freq[cat_i] += 1.0;
-                    break;
-                }
-            }
-        }
-
-        if (!is_invalid && (c_value_in_na_values(val, str_val, job) || c_value_in_na_range(val, job))) {
-            is_invalid = 1;
-        }
-
-        if (is_invalid) {
-            invalid_n++;
-            continue;
-        }
-
-        valid_obs++;
-
-        if (!numericish) {
-            continue;
-        }
-
-        if (job->type == STRSXP) {
-            char *endptr = NULL;
-            if (str_val == NULL) {
-                numericish = 0;
-                continue;
-            }
-            val = strtod(str_val, &endptr);
-            if (endptr == str_val || *endptr != '\0') {
-                numericish = 0;
-                continue;
-            }
-        }
-
-        vals[valid_n] = val;
-        if (valid_n == 0) {
-            minv = maxv = val;
-            mean = val;
-            m2 = 0.0;
-        } else {
-            if (val < minv) minv = val;
-            if (val > maxv) maxv = val;
-            double delta = val - mean;
-            mean += delta / (double)(valid_n + 1);
-            m2 += delta * (val - mean);
-        }
-
-        if (whole && (!isfinite(val) || fabs(val - nearbyint(val)) >= 1e-12)) {
-            whole = 0;
-        }
-        
-        int d_cnt = decimal_count(val);
-        if (d_cnt > max_dcml) {
-            max_dcml = d_cnt;
-        }
-        
-        int width = c_display_width(val, job->type, str_val);
-        if (width > max_width) {
-            max_width = width;
-        }
-
-        if (!c_double_matches_label_value(val, job) && distinct_nonlabel_n < 5) {
-            int seen = 0;
-            for (int d = 0; d < distinct_nonlabel_n; d++) {
-                if (distinct_nonlabel[d] == val) {
-                    seen = 1;
-                    break;
-                }
-            }
-            if (!seen) {
-                distinct_nonlabel[distinct_nonlabel_n++] = val;
-            }
-        }
-
-        valid_n++;
-    }
-
-    job->sum_valid = (double)valid_obs;
-    job->sum_invalid = (double)invalid_n;
-    job->is_numericish = numericish;
-
-    if (numericish && valid_n > 0) {
-        job->max_dcml = max_dcml;
-        job->max_width = max_width;
-        job->whole = whole;
-
-        if (!job->date_var && valid_n > 1) {
-            job->val_min = minv;
-            job->val_max = maxv;
-
-            printnum = distinct_nonlabel_n > 4 || (valid_n > 2 && job->has_type_num);
-            if (printnum) {
-                double *median_work = (double *)malloc((size_t)valid_n * sizeof(double));
-                double median = NA_REAL;
-
-                if (median_work != NULL) {
-                    memcpy(median_work, vals, (size_t)valid_n * sizeof(double));
-                    qsort(median_work, (size_t)valid_n, sizeof(double), compare_doubles);
-                    if ((valid_n % 2) == 1) {
-                        median = median_work[valid_n / 2];
-                    } else {
-                        median = (median_work[valid_n / 2 - 1] + median_work[valid_n / 2]) / 2.0;
-                    }
-                    free(median_work);
-                }
-
-                job->stat_min = minv;
-                job->stat_max = maxv;
-                job->stat_mean = mean;
-                job->stat_medn = median;
-                if (valid_n > 1) {
-                    job->stat_stdev = sqrt(m2 / ((double)valid_n - 1.0));
-                } else {
-                    job->stat_stdev = NA_REAL;
-                }
-            } else {
-                job->stat_min = NA_REAL;
-                job->stat_max = NA_REAL;
-                job->stat_mean = NA_REAL;
-                job->stat_medn = NA_REAL;
-                job->stat_stdev = NA_REAL;
-            }
-        } else {
-            job->val_min = NA_REAL;
-            job->val_max = NA_REAL;
-            job->stat_min = NA_REAL;
-            job->stat_max = NA_REAL;
-            job->stat_mean = NA_REAL;
-            job->stat_medn = NA_REAL;
-            job->stat_stdev = NA_REAL;
-        }
-    } else {
-        job->val_min = NA_REAL;
-        job->val_max = NA_REAL;
-        job->stat_min = NA_REAL;
-        job->stat_max = NA_REAL;
-        job->stat_mean = NA_REAL;
-        job->stat_medn = NA_REAL;
-        job->stat_stdev = NA_REAL;
-    }
-
-    if (vals != NULL) {
-        free(vals);
-    }
 }
 
 static void extract_variable_data(
     SEXP data, SEXP variables, SEXP dates, R_xlen_t i, 
     R_xlen_t *cat_offsets, R_xlen_t **cat_label_idx_arr, int *cat_counts_arr,
-    double *cat_freq_out, CVariableData *job
+    double *cat_freq_out, int include_projection, CVariableData *job
 ) {
     SEXP x = VECTOR_ELT(data, i);
     SEXP metadata = VECTOR_ELT(variables, i);
@@ -557,6 +134,23 @@ static void extract_variable_data(
     job->date_var = LOGICAL(dates)[i] == TRUE;
     job->has_labels = (labels != R_NilValue);
     job->cat_count = cat_counts_arr[i];
+    job->classification_label_count = 0;
+    job->classification_label_dvals = NULL;
+    job->classification_label_svals = NULL;
+    job->classification_label_missing = NULL;
+    job->classification_labels_numeric = 0;
+    job->source_is_numeric = TYPEOF(x) == REALSXP || TYPEOF(x) == INTSXP;
+    job->source_numeric_candidate = job->source_is_numeric || TYPEOF(x) == STRSXP;
+    job->include_projection = include_projection;
+
+    {
+        SEXP classes = getListElement(metadata, "classes");
+
+        if (class_has(classes, "factor") || TYPEOF(x) == LGLSXP) {
+            job->source_numeric_candidate = 0;
+            job->source_is_numeric = 0;
+        }
+    }
 
     job->has_type_num = 0;
     if (type != R_NilValue && TYPEOF(type) == STRSXP && XLENGTH(type) > 0) {
@@ -631,8 +225,10 @@ static void extract_variable_data(
     job->cat_freq = NULL;
 
     if (job->has_labels && job->cat_count > 0) {
-        job->cat_label_idx = (R_xlen_t *)malloc((size_t)job->cat_count * sizeof(R_xlen_t));
-        memcpy(job->cat_label_idx, cat_label_idx_arr[i], (size_t)job->cat_count * sizeof(R_xlen_t));
+        job->cat_label_idx = (ptrdiff_t *)malloc((size_t)job->cat_count * sizeof(ptrdiff_t));
+        for (int k = 0; k < job->cat_count; k++) {
+            job->cat_label_idx[k] = (ptrdiff_t)cat_label_idx_arr[i][k];
+        }
 
         if (TYPEOF(labels) == STRSXP) {
             job->cat_label_svals = (const char **)malloc((size_t)job->cat_count * sizeof(char *));
@@ -668,61 +264,81 @@ static void extract_variable_data(
             job->cat_freq[k] = 0.0;
         }
     }
-}
 
-#ifndef _WIN32
-static int xmlstats_available_threads(void) {
-    long nproc = sysconf(_SC_NPROCESSORS_ONLN);
-    if (nproc < 1) {
-        nproc = 1;
+    if (include_projection && labels != R_NilValue && XLENGTH(labels) > 0) {
+        SEXP label_names = getAttrib(labels, R_NamesSymbol);
+        int retained = 0;
+        int labels_numeric = TYPEOF(labels) == REALSXP || TYPEOF(labels) == INTSXP ||
+            TYPEOF(labels) == STRSXP;
+        int labels_have_observed = 0;
+
+        for (R_xlen_t k = 0; k < XLENGTH(labels); k++) {
+            if (!label_matches_any_name(labels, k, label_names)) {
+                retained++;
+            }
+        }
+
+        if (retained > 0) {
+            int destination = 0;
+
+            job->classification_label_count = retained;
+            job->classification_label_dvals = (double *)malloc(
+                (size_t)retained * sizeof(double)
+            );
+            job->classification_label_svals = (const char **)calloc(
+                (size_t)retained, sizeof(char *)
+            );
+            job->classification_label_missing = (int *)malloc(
+                (size_t)retained * sizeof(int)
+            );
+
+            if (job->classification_label_dvals == NULL ||
+                job->classification_label_svals == NULL ||
+                job->classification_label_missing == NULL) {
+                job->error = 1;
+                return;
+            }
+
+            for (R_xlen_t k = 0; k < XLENGTH(labels); k++) {
+                double numeric_value = NA_REAL;
+
+                if (label_matches_any_name(labels, k, label_names)) {
+                    continue;
+                }
+
+                if (TYPEOF(labels) == STRSXP) {
+                    SEXP value = STRING_ELT(labels, k);
+
+                    if (value != NA_STRING) {
+                        char *endptr = NULL;
+                        const char *text = CHAR(value);
+
+                        job->classification_label_svals[destination] = text;
+                        numeric_value = strtod(text, &endptr);
+                        if (endptr == text || *endptr != '\0') {
+                            numeric_value = NA_REAL;
+                            labels_numeric = 0;
+                        }
+                        else {
+                            labels_have_observed = 1;
+                        }
+                    }
+                }
+                else if (sexp_as_double(labels, k, &numeric_value)) {
+                    labels_have_observed = 1;
+                }
+
+                job->classification_label_dvals[destination] = numeric_value;
+                job->classification_label_missing[destination] = label_is_missing(
+                    labels, k, na_values, na_range
+                );
+                destination++;
+            }
+
+            job->classification_labels_numeric = labels_numeric && labels_have_observed;
+        }
     }
-    if (nproc > INT_MAX) {
-        nproc = INT_MAX;
-    }
-    return (int)nproc;
 }
-
-static void *xmlstats_worker_thread_main(void *arg) {
-    CJobQueue *queue = (CJobQueue *)arg;
-    for (;;) {
-        R_xlen_t job_idx = -1;
-        pthread_mutex_lock(&queue->mutex);
-        if (queue->next_job < queue->n_jobs) {
-            job_idx = queue->next_job++;
-        }
-        pthread_mutex_unlock(&queue->mutex);
-
-        if (job_idx < 0) {
-            break;
-        }
-
-        process_stats_job(&queue->jobs[job_idx]);
-    }
-    return NULL;
-}
-
-static void *xmlmeta_worker_thread_main(void *arg) {
-    CJobQueue *queue = (CJobQueue *)arg;
-    for (;;) {
-        R_xlen_t job_idx = -1;
-        pthread_mutex_lock(&queue->mutex);
-        if (queue->next_job < queue->n_jobs) {
-            job_idx = queue->next_job++;
-        }
-        pthread_mutex_unlock(&queue->mutex);
-
-        if (job_idx < 0) {
-            break;
-        }
-
-        CVariableData *job = &queue->jobs[job_idx];
-        if (job->len > 0) {
-            c_infer_formats(job);
-        }
-    }
-    return NULL;
-}
-#endif
 
 static SEXP getListElement(SEXP list, const char *name) {
     SEXP names = getAttrib(list, R_NamesSymbol);
@@ -736,13 +352,6 @@ static SEXP getListElement(SEXP list, const char *name) {
         }
     }
     return R_NilValue;
-}
-
-static int is_whole_double(double x) {
-    if (!R_finite(x)) {
-        return 0;
-    }
-    return fabs(x - nearbyint(x)) < 1e-12;
 }
 
 static int class_has(SEXP classes, const char *target) {
@@ -762,28 +371,6 @@ static int class_has(SEXP classes, const char *target) {
     return 0;
 }
 
-
-static int decimal_count(double x) {
-    char buf[128];
-    char *dot = NULL;
-    char *end = NULL;
-
-    if (!R_finite(x) || is_whole_double(x)) {
-        return 0;
-    }
-
-    snprintf(buf, sizeof(buf), "%.15f", x);
-    dot = strchr(buf, '.');
-    if (dot == NULL) {
-        return 0;
-    }
-    end = buf + strlen(buf) - 1;
-    while (end > dot && *end == '0') {
-        *end = '\0';
-        end--;
-    }
-    return (int)(end - dot);
-}
 
 static int parse_string_double(SEXP x, R_xlen_t i, double *out) {
     const char *s = NULL;
@@ -958,7 +545,7 @@ static void infer_formats(SEXP x, SEXP classes, SEXP labels, char *spss, size_t 
             }
 
             if (decimals < 3) {
-                int d = decimal_count(val);
+                int d = ddiwr_decimal_count(val);
                 if (d > decimals) {
                     decimals = d > 3 ? 3 : d;
                 }
@@ -1215,7 +802,24 @@ static int value_matches_label(SEXP x, R_xlen_t i, SEXP labels, R_xlen_t j) {
 
 
 
-SEXP collect_datadscr_stats(SEXP data, SEXP variables, SEXP dates) {
+/* Called only by the R thread, before extracting any worker inputs. */
+static int ddiwr_requested_variable_threads(void) {
+    SEXP option = Rf_GetOption1(Rf_install("DDIwR.variable_threads"));
+    if (option == R_NilValue) {
+        return 0;
+    }
+    if (!Rf_isNumeric(option) || XLENGTH(option) != 1) {
+        Rf_error("Option 'DDIwR.variable_threads' must be one integer from 0 to 256.");
+    }
+    double value = Rf_asReal(option);
+    if (!R_FINITE(value) || value < 0 || value > 256 || floor(value) != value) {
+        Rf_error("Option 'DDIwR.variable_threads' must be one integer from 0 to 256.");
+    }
+    return (int)value;
+}
+
+SEXP collect_datadscr_stats(SEXP data, SEXP variables, SEXP dates, SEXP include_projection) {
+    int requested_threads = ddiwr_requested_variable_threads();
     R_xlen_t n = 0;
     R_xlen_t i = 0;
     R_xlen_t cat_total = 0;
@@ -1238,13 +842,24 @@ SEXP collect_datadscr_stats(SEXP data, SEXP variables, SEXP dates) {
     SEXP cat_labels = R_NilValue;
     SEXP cat_missing = R_NilValue;
     SEXP cat_freq = R_NilValue;
+    SEXP variable_type = R_NilValue;
+    SEXP weight_numeric_compatible = R_NilValue;
+    SEXP weight_has_labels = R_NilValue;
+    SEXP weight_has_observed = R_NilValue;
+    SEXP weight_has_negative = R_NilValue;
     R_xlen_t *cat_offsets = NULL;
     R_xlen_t **cat_label_idx_arr = NULL;
     int *cat_counts_arr = NULL;
+    int do_projection = 0;
 
     if (!Rf_isNewList(data) || !Rf_isNewList(variables)) {
         Rf_error("Arguments 'data' and 'variables' must be lists.");
     }
+    if (!Rf_isLogical(include_projection) || XLENGTH(include_projection) != 1 ||
+        LOGICAL(include_projection)[0] == NA_LOGICAL) {
+        Rf_error("Argument 'include_projection' must be TRUE or FALSE.");
+    }
+    do_projection = LOGICAL(include_projection)[0] == TRUE;
 
     n = XLENGTH(data);
     if (XLENGTH(variables) != n || !Rf_isLogical(dates) || XLENGTH(dates) != n) {
@@ -1266,8 +881,8 @@ SEXP collect_datadscr_stats(SEXP data, SEXP variables, SEXP dates) {
         }
     }
 
-    PROTECT(out = allocVector(VECSXP, 17));
-    PROTECT(names = allocVector(STRSXP, 17));
+    PROTECT(out = allocVector(VECSXP, 22));
+    PROTECT(names = allocVector(STRSXP, 22));
     PROTECT(var_dcml = allocVector(REALSXP, n));
     PROTECT(var_width = allocVector(REALSXP, n));
     PROTECT(range_units = allocVector(STRSXP, n));
@@ -1285,6 +900,11 @@ SEXP collect_datadscr_stats(SEXP data, SEXP variables, SEXP dates) {
     PROTECT(cat_labels = allocVector(STRSXP, cat_total));
     PROTECT(cat_missing = allocVector(LGLSXP, cat_total));
     PROTECT(cat_freq = allocVector(REALSXP, cat_total));
+    PROTECT(variable_type = allocVector(STRSXP, n));
+    PROTECT(weight_numeric_compatible = allocVector(LGLSXP, n));
+    PROTECT(weight_has_labels = allocVector(LGLSXP, n));
+    PROTECT(weight_has_observed = allocVector(LGLSXP, n));
+    PROTECT(weight_has_negative = allocVector(LGLSXP, n));
 
     cat_offsets = (R_xlen_t *)calloc((size_t)n, sizeof(R_xlen_t));
     cat_label_idx_arr = (R_xlen_t **)calloc((size_t)n, sizeof(R_xlen_t *));
@@ -1293,7 +913,7 @@ SEXP collect_datadscr_stats(SEXP data, SEXP variables, SEXP dates) {
         free(cat_offsets);
         free(cat_label_idx_arr);
         free(cat_counts_arr);
-        UNPROTECT(19);
+        UNPROTECT(24);
         Rf_error("Failed to allocate category metadata buffers.");
     }
 
@@ -1335,7 +955,7 @@ SEXP collect_datadscr_stats(SEXP data, SEXP variables, SEXP dates) {
                 free(cat_offsets);
                 free(cat_label_idx_arr);
                 free(cat_counts_arr);
-                UNPROTECT(19);
+                UNPROTECT(24);
                 Rf_error("Failed to allocate category index buffer.");
             }
             cat_label_idx_arr[i] = cat_label_idx;
@@ -1379,7 +999,7 @@ SEXP collect_datadscr_stats(SEXP data, SEXP variables, SEXP dates) {
         free(cat_offsets);
         free(cat_label_idx_arr);
         free(cat_counts_arr);
-        UNPROTECT(19);
+        UNPROTECT(24);
         Rf_error("Failed to allocate C statistics jobs.");
     }
 
@@ -1387,63 +1007,44 @@ SEXP collect_datadscr_stats(SEXP data, SEXP variables, SEXP dates) {
         extract_variable_data(
             data, variables, dates, i,
             cat_offsets, cat_label_idx_arr, cat_counts_arr,
-            REAL(cat_freq), &jobs[i]
+            REAL(cat_freq), do_projection, &jobs[i]
         );
     }
 
-#ifndef _WIN32
-    int nworkers = xmlstats_available_threads();
-    if (nworkers > 1 && n > 1) {
-        pthread_t *threads = (pthread_t *)calloc((size_t)nworkers, sizeof(pthread_t));
-        CJobQueue queue;
-        
-        if (threads == NULL) {
-            for (i = 0; i < n; i++) {
-                if (jobs[i].str_data != NULL) free(jobs[i].str_data);
-                if (jobs[i].cat_label_idx != NULL) free(jobs[i].cat_label_idx);
-                if (jobs[i].cat_label_svals != NULL) free(jobs[i].cat_label_svals);
-                if (jobs[i].cat_label_dvals != NULL) free(jobs[i].cat_label_dvals);
-                if (jobs[i].cat_missing != NULL) free(jobs[i].cat_missing);
-            }
-            free(jobs);
-            for (i = 0; i < n; i++) {
-                free(cat_label_idx_arr[i]);
-            }
-            free(cat_offsets);
-            free(cat_label_idx_arr);
-            free(cat_counts_arr);
-            UNPROTECT(19);
-            Rf_error("Failed to allocate stats worker threads.");
-        }
+    int analysis_error = ddiwr_run_variable_jobs(
+        jobs, (size_t)n, requested_threads, DDIWR_ANALYSIS_STATS
+    );
 
-        queue.jobs = jobs;
-        queue.n_jobs = n;
-        queue.next_job = 0;
-        pthread_mutex_init(&queue.mutex, NULL);
-
-        for (int t = 0; t < nworkers; t++) {
-            pthread_create(&threads[t], NULL, xmlstats_worker_thread_main, &queue);
-        }
-        for (int t = 0; t < nworkers; t++) {
-            pthread_join(threads[t], NULL);
-        }
-        pthread_mutex_destroy(&queue.mutex);
-        free(threads);
-    } else {
-        for (i = 0; i < n; i++) {
-            process_stats_job(&jobs[i]);
-        }
-    }
-#else
-    for (i = 0; i < n; i++) {
-        process_stats_job(&jobs[i]);
-    }
-#endif
 
     for (i = 0; i < n; i++) {
         CVariableData *job = &jobs[i];
+        const char *classification = "char";
         REAL(sum_valid)[i] = job->sum_valid;
         REAL(sum_invalid)[i] = job->sum_invalid;
+
+        if (job->classification_label_count > 0) {
+            if (job->classification_all_labels_missing) {
+                if (job->source_numeric_candidate) {
+                    classification = job->classification_distinct_count < 15 ?
+                        "numcat" : "num";
+                }
+            }
+            else if (job->classification_all_values_labelled) {
+                classification = job->classification_labels_numeric ? "cat" : "catchar";
+            }
+            else {
+                classification = job->classification_distinct_count < 7 ? "cat" : "catnum";
+            }
+        }
+        else if (job->source_numeric_candidate && job->source_is_numeric) {
+            classification = job->classification_distinct_count < 15 ? "numcat" : "num";
+        }
+
+        SET_STRING_ELT(variable_type, i, mkChar(classification));
+        LOGICAL(weight_numeric_compatible)[i] = job->source_numeric_candidate;
+        LOGICAL(weight_has_labels)[i] = job->has_labels;
+        LOGICAL(weight_has_observed)[i] = job->has_observed_value;
+        LOGICAL(weight_has_negative)[i] = job->has_negative_value;
 
         if (job->is_numericish && job->sum_valid > 0) {
             REAL(var_dcml)[i] = (double)job->max_dcml;
@@ -1468,6 +1069,15 @@ SEXP collect_datadscr_stats(SEXP data, SEXP variables, SEXP dates) {
         if (jobs[i].cat_label_svals != NULL) free(jobs[i].cat_label_svals);
         if (jobs[i].cat_label_dvals != NULL) free(jobs[i].cat_label_dvals);
         if (jobs[i].cat_missing != NULL) free(jobs[i].cat_missing);
+        if (jobs[i].classification_label_dvals != NULL) {
+            free(jobs[i].classification_label_dvals);
+        }
+        if (jobs[i].classification_label_svals != NULL) {
+            free(jobs[i].classification_label_svals);
+        }
+        if (jobs[i].classification_label_missing != NULL) {
+            free(jobs[i].classification_label_missing);
+        }
     }
     free(jobs);
 
@@ -1488,6 +1098,11 @@ SEXP collect_datadscr_stats(SEXP data, SEXP variables, SEXP dates) {
     SET_VECTOR_ELT(out, 14, cat_labels);
     SET_VECTOR_ELT(out, 15, cat_missing);
     SET_VECTOR_ELT(out, 16, cat_freq);
+    SET_VECTOR_ELT(out, 17, variable_type);
+    SET_VECTOR_ELT(out, 18, weight_numeric_compatible);
+    SET_VECTOR_ELT(out, 19, weight_has_labels);
+    SET_VECTOR_ELT(out, 20, weight_has_observed);
+    SET_VECTOR_ELT(out, 21, weight_has_negative);
     SET_STRING_ELT(names, 0, mkChar("var_dcml"));
     SET_STRING_ELT(names, 1, mkChar("var_width"));
     SET_STRING_ELT(names, 2, mkChar("range_units"));
@@ -1505,6 +1120,11 @@ SEXP collect_datadscr_stats(SEXP data, SEXP variables, SEXP dates) {
     SET_STRING_ELT(names, 14, mkChar("cat_labels"));
     SET_STRING_ELT(names, 15, mkChar("cat_missing"));
     SET_STRING_ELT(names, 16, mkChar("cat_freq"));
+    SET_STRING_ELT(names, 17, mkChar("variable_type"));
+    SET_STRING_ELT(names, 18, mkChar("weight_numeric_compatible"));
+    SET_STRING_ELT(names, 19, mkChar("weight_has_labels"));
+    SET_STRING_ELT(names, 20, mkChar("weight_has_observed"));
+    SET_STRING_ELT(names, 21, mkChar("weight_has_negative"));
     setAttrib(out, R_NamesSymbol, names);
 
     for (i = 0; i < n; i++) {
@@ -1514,11 +1134,93 @@ SEXP collect_datadscr_stats(SEXP data, SEXP variables, SEXP dates) {
     free(cat_label_idx_arr);
     free(cat_counts_arr);
 
-    UNPROTECT(19);
+    UNPROTECT(24);
+    if (analysis_error) {
+        Rf_error("Failed to allocate variable summary working memory.");
+    }
     return out;
 }
 
+static void extract_format_data(xmlmeta_result *result, CVariableData *job, R_xlen_t i) {
+    SEXP x = result->x;
+    SEXP classes = result->classes_attr;
+    SEXP labels = result->labels;
+
+    job->index = (int)i;
+    job->type = TYPEOF(x);
+    job->len = XLENGTH(x);
+    job->has_labels = (labels != R_NilValue);
+    job->cat_count = labels != R_NilValue ? (int)XLENGTH(labels) : 0;
+    job->is_numericish = (TYPEOF(x) == REALSXP || TYPEOF(x) == INTSXP || TYPEOF(x) == LGLSXP || TYPEOF(x) == STRSXP);
+    job->date_var = 0;
+
+    job->real_data = NULL;
+    job->int_data = NULL;
+    job->lgl_data = NULL;
+    job->str_data = NULL;
+
+    if (TYPEOF(x) == REALSXP) {
+        job->real_data = REAL(x);
+    } else if (TYPEOF(x) == INTSXP) {
+        job->int_data = INTEGER(x);
+    } else if (TYPEOF(x) == LGLSXP) {
+        job->lgl_data = LOGICAL(x);
+    } else if (TYPEOF(x) == STRSXP) {
+        job->str_data = (const char **)malloc((size_t)job->len * sizeof(char *));
+        for (R_xlen_t j = 0; j < job->len; j++) {
+            if (STRING_ELT(x, j) == NA_STRING) {
+                job->str_data[j] = NULL;
+            } else {
+                job->str_data[j] = CHAR(STRING_ELT(x, j));
+            }
+        }
+    }
+
+    job->cat_label_dvals = NULL;
+    job->cat_label_svals = NULL;
+    if (labels != R_NilValue && job->cat_count > 0) {
+        if (TYPEOF(labels) == STRSXP) {
+            job->cat_label_svals = (const char **)malloc((size_t)job->cat_count * sizeof(char *));
+            for (int k = 0; k < job->cat_count; k++) {
+                if (STRING_ELT(labels, k) == NA_STRING) {
+                    job->cat_label_svals[k] = NULL;
+                } else {
+                    job->cat_label_svals[k] = CHAR(STRING_ELT(labels, k));
+                }
+            }
+        } else {
+            job->cat_label_dvals = (double *)malloc((size_t)job->cat_count * sizeof(double));
+            for (int k = 0; k < job->cat_count; k++) {
+                double val = 0.0;
+                if (sexp_as_double(labels, k, &val)) {
+                    job->cat_label_dvals[k] = val;
+                } else {
+                    job->cat_label_dvals[k] = NA_REAL;
+                }
+            }
+        }
+    }
+
+    if (class_has(classes, "POSIXct")) {
+        snprintf(job->format_spss, sizeof(job->format_spss), "DATETIME");
+        snprintf(job->format_stata, sizeof(job->format_stata), "%%tc");
+        job->is_date = 0;
+        job->len = 0;
+    } else if (class_has(classes, "Date")) {
+        job->is_date = 1;
+        job->format_spss[0] = '\0';
+        job->format_stata[0] = '\0';
+        job->len = 0;
+    } else if (class_has(classes, "hms")) {
+        snprintf(job->format_spss, sizeof(job->format_spss), "TIME");
+        snprintf(job->format_stata, sizeof(job->format_stata), "%%tc");
+        job->is_date = 0;
+        job->len = 0;
+    }
+}
+
 SEXP collect_xml_metadata(SEXP data, SEXP include_formats) {
+    int requested_threads = ddiwr_requested_variable_threads();
     R_xlen_t i = 0;
     R_xlen_t n = 0;
     SEXP out = R_NilValue;
@@ -1554,127 +1256,13 @@ SEXP collect_xml_metadata(SEXP data, SEXP include_formats) {
         }
 
         for (i = 0; i < n; i++) {
-            SEXP x = results[i].x;
-            SEXP classes = results[i].classes_attr;
-            SEXP labels = results[i].labels;
-
-            jobs[i].index = (int)i;
-            jobs[i].type = TYPEOF(x);
-            jobs[i].len = XLENGTH(x);
-            jobs[i].has_labels = (labels != R_NilValue);
-            jobs[i].cat_count = labels != R_NilValue ? (int)XLENGTH(labels) : 0;
-            jobs[i].is_numericish = (TYPEOF(x) == REALSXP || TYPEOF(x) == INTSXP || TYPEOF(x) == LGLSXP || TYPEOF(x) == STRSXP);
-            jobs[i].date_var = 0;
-
-            jobs[i].real_data = NULL;
-            jobs[i].int_data = NULL;
-            jobs[i].lgl_data = NULL;
-            jobs[i].str_data = NULL;
-
-            if (TYPEOF(x) == REALSXP) {
-                jobs[i].real_data = REAL(x);
-            } else if (TYPEOF(x) == INTSXP) {
-                jobs[i].int_data = INTEGER(x);
-            } else if (TYPEOF(x) == LGLSXP) {
-                jobs[i].lgl_data = LOGICAL(x);
-            } else if (TYPEOF(x) == STRSXP) {
-                jobs[i].str_data = (const char **)malloc((size_t)jobs[i].len * sizeof(char *));
-                for (R_xlen_t j = 0; j < jobs[i].len; j++) {
-                    if (STRING_ELT(x, j) == NA_STRING) {
-                        jobs[i].str_data[j] = NULL;
-                    } else {
-                        jobs[i].str_data[j] = CHAR(STRING_ELT(x, j));
-                    }
-                }
-            }
-
-            jobs[i].cat_label_dvals = NULL;
-            jobs[i].cat_label_svals = NULL;
-            if (labels != R_NilValue && jobs[i].cat_count > 0) {
-                if (TYPEOF(labels) == STRSXP) {
-                    jobs[i].cat_label_svals = (const char **)malloc((size_t)jobs[i].cat_count * sizeof(char *));
-                    for (int k = 0; k < jobs[i].cat_count; k++) {
-                        if (STRING_ELT(labels, k) == NA_STRING) {
-                            jobs[i].cat_label_svals[k] = NULL;
-                        } else {
-                            jobs[i].cat_label_svals[k] = CHAR(STRING_ELT(labels, k));
-                        }
-                    }
-                } else {
-                    jobs[i].cat_label_dvals = (double *)malloc((size_t)jobs[i].cat_count * sizeof(double));
-                    for (int k = 0; k < jobs[i].cat_count; k++) {
-                        double val = 0.0;
-                        if (sexp_as_double(labels, k, &val)) {
-                            jobs[i].cat_label_dvals[k] = val;
-                        } else {
-                            jobs[i].cat_label_dvals[k] = NA_REAL;
-                        }
-                    }
-                }
-            }
-
-            if (class_has(classes, "POSIXct")) {
-                snprintf(jobs[i].format_spss, sizeof(jobs[i].format_spss), "DATETIME");
-                snprintf(jobs[i].format_stata, sizeof(jobs[i].format_stata), "%%tc");
-                jobs[i].is_date = 0;
-                jobs[i].len = 0;
-            } else if (class_has(classes, "Date")) {
-                jobs[i].is_date = 1;
-                jobs[i].format_spss[0] = '\0';
-                jobs[i].format_stata[0] = '\0';
-                jobs[i].len = 0;
-            } else if (class_has(classes, "hms")) {
-                snprintf(jobs[i].format_spss, sizeof(jobs[i].format_spss), "TIME");
-                snprintf(jobs[i].format_stata, sizeof(jobs[i].format_stata), "%%tc");
-                jobs[i].is_date = 0;
-                jobs[i].len = 0;
-            }
+            extract_format_data(&results[i], &jobs[i], i);
         }
 
-#ifndef _WIN32
-        int nworkers = xmlstats_available_threads();
-        if (nworkers > 1 && n > 1) {
-            pthread_t *threads = (pthread_t *)calloc((size_t)nworkers, sizeof(pthread_t));
-            CJobQueue queue;
-            
-            if (threads == NULL) {
-                for (i = 0; i < n; i++) {
-                    if (jobs[i].str_data != NULL) free(jobs[i].str_data);
-                    if (jobs[i].cat_label_svals != NULL) free(jobs[i].cat_label_svals);
-                    if (jobs[i].cat_label_dvals != NULL) free(jobs[i].cat_label_dvals);
-                }
-                free(jobs);
-                free(results);
-                Rf_error("Failed to allocate format worker threads.");
-            }
+        ddiwr_run_variable_jobs(
+            jobs, (size_t)n, requested_threads, DDIWR_ANALYSIS_FORMATS
+        );
 
-            queue.jobs = jobs;
-            queue.n_jobs = n;
-            queue.next_job = 0;
-            pthread_mutex_init(&queue.mutex, NULL);
-
-            for (int t = 0; t < nworkers; t++) {
-                pthread_create(&threads[t], NULL, xmlmeta_worker_thread_main, &queue);
-            }
-            for (int t = 0; t < nworkers; t++) {
-                pthread_join(threads[t], NULL);
-            }
-            pthread_mutex_destroy(&queue.mutex);
-            free(threads);
-        } else {
-            for (i = 0; i < n; i++) {
-                if (jobs[i].len > 0) {
-                    c_infer_formats(&jobs[i]);
-                }
-            }
-        }
-#else
-        for (i = 0; i < n; i++) {
-            if (jobs[i].len > 0) {
-                c_infer_formats(&jobs[i]);
-            }
-        }
-#endif
 
         for (i = 0; i < n; i++) {
             strcpy(results[i].format_spss, jobs[i].format_spss);

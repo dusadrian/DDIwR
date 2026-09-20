@@ -1,5 +1,7 @@
 SOURCES = \
-	xmlvars.c \
+    xmlvars.c \
+    variable_analysis.c \
+    variable_threads.c \
 	declared_types.c \
 	init.c \
 	readstat/CKHashTable.c \
@@ -58,7 +60,9 @@ SOURCES = \
 	tagged_na.c
 
 OBJECTS = \
-	xmlvars.o \
+    xmlvars.o \
+    variable_analysis.o \
+    variable_threads.o \
 	declared_types.o \
 	init.o \
 	readstat/CKHashTable.o \

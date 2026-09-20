@@ -19,6 +19,8 @@
 ^\.clangd$
 ^\.vscode$
 ^tools/build-cran-source[.]R$
+^tools/browser-stats-experiment$
+^tools/browser-analysis$
 ^configure[.]log$
 ^openmp[.]log$
 ^AGENTS.md$
