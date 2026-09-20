@@ -52,7 +52,22 @@ extern SEXP declared_write_sas_(SEXP data, SEXP path, SEXP dictionary);
 extern SEXP declared_write_sav_(SEXP data, SEXP path, SEXP compress);
 extern SEXP declared_write_xpt_(SEXP data, SEXP path, SEXP version, SEXP name, SEXP label, SEXP dictionary);
 
+extern SEXP metadata_snapshot_create(SEXP records);
+extern SEXP metadata_clean_text(SEXP text);
+extern SEXP metadata_snapshot_normalized(SEXP pointer, SEXP columns, SEXP fields, SEXP threads);
+extern SEXP metadata_snapshot_raw(SEXP data, SEXP fields);
+extern SEXP metadata_snapshot_read(SEXP pointer, SEXP columns, SEXP fields);
+extern SEXP metadata_snapshot_close(SEXP pointer);
+extern SEXP metadata_values_copy(SEXP data, SEXP columns);
+
 static const R_CallMethodDef CallEntries[] = {
+    {"metadata_snapshot_create", (DL_FUNC) &metadata_snapshot_create, 1},
+    {"metadata_clean_text", (DL_FUNC) &metadata_clean_text, 1},
+    {"metadata_snapshot_normalized", (DL_FUNC) &metadata_snapshot_normalized, 4},
+    {"metadata_snapshot_raw", (DL_FUNC) &metadata_snapshot_raw, 2},
+    {"metadata_snapshot_read", (DL_FUNC) &metadata_snapshot_read, 3},
+    {"metadata_snapshot_close", (DL_FUNC) &metadata_snapshot_close, 1},
+    {"metadata_values_copy", (DL_FUNC) &metadata_values_copy, 2},
     {"write_text_file", (DL_FUNC) &write_text_file, 2},
     {"all_numeric_chars_", (DL_FUNC) &all_numeric_chars_, 1},
     {"can_build_dictionary_", (DL_FUNC) &can_build_dictionary_, 3},

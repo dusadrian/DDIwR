@@ -1,4 +1,6 @@
 SOURCES = \
+    metadata_text.c \
+    metadata_snapshot.c \
     xmlvars.c \
     variable_analysis.c \
     variable_threads.c \
@@ -60,6 +62,8 @@ SOURCES = \
 	tagged_na.c
 
 OBJECTS = \
+    metadata_text.o \
+    metadata_snapshot.o \
     xmlvars.o \
     variable_analysis.o \
     variable_threads.o \
