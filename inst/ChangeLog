@@ -1,3 +1,16 @@
+Version 0.22
+  o added reusable metadata sweep sessions via metadataSweepCapture(),
+    metadataSweepRead(), metadataSweepInvalidate() and metadataSweepClose()
+  o sessions support progressive metadata reads, DialogR variable information
+    and complete DDI Codebook descriptions through dedicated profiles
+  o metadata normalization and variable analysis are deferred until requested,
+    with cached results reused across reads and stable variable identifiers
+  o added shared variable analysis kernels with parallel processing where
+    supported and a serial fallback for browser runtimes
+  o collectMetadata() and exportCodebook() can reuse a captured session,
+    including full Codebook exports with embedded data
+  o sessions check dataset revisions to prevent reuse of stale metadata
+
 Version 0.21
   o the embedded DDI Codebook is now aligned to the very latest published
     version of the standard
