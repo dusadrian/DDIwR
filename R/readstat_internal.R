@@ -2,7 +2,7 @@ source_file <- function(file) {
     list(normalizePath(file, mustWork = FALSE))
 }
 
-as_declared <- function(data) {
+as_declared <- function(data, trusted = FALSE) {
     data[] <- lapply(data, function(x) {
         labels <- attr(x, "labels", exact = TRUE)
         na_values <- attr(x, "na_values", exact = TRUE)
@@ -38,6 +38,14 @@ as_declared <- function(data) {
                     names(na_index) <- as.character(codes)
                 }
             }
+        }
+
+        if (isTRUE(trusted)) {
+            attr(x, "na_index") <- na_index
+            attr(x, "date") <- inherits(x, "Date")
+            class(x) <- unique(c("declared", class(x)))
+
+            return(x)
         }
 
         out <- declared::direct_declared(
@@ -266,6 +274,13 @@ prepare_foreign_export_missings <- function(
     data
 }
 
+readstat_parallel_supported <- function() {
+    isTRUE(.Call(
+        "readstat_parallel_supported_",
+        PACKAGE = "DDIwR"
+    ))
+}
+
 read_sav <- function(file, encoding = NULL, user_na = FALSE, n_max = -1L, skip = 0L) {
     if (is.null(encoding)) {
         encoding <- ""
@@ -275,7 +290,8 @@ read_sav <- function(file, encoding = NULL, user_na = FALSE, n_max = -1L, skip =
     parallel_enabled <- isTRUE(getOption("DDIwR.readstat_parallel_sav", TRUE))
     data <- NULL
 
-    if (parallel_enabled && is.numeric(num_threads) && length(num_threads) == 1L &&
+    if (parallel_enabled && readstat_parallel_supported() &&
+        is.numeric(num_threads) && length(num_threads) == 1L &&
         !is.na(num_threads) && as.integer(num_threads) != 1L &&
         identical(as.integer(n_max), -1L) && identical(as.integer(skip), 0L)) {
         data <- tryCatch(
@@ -304,7 +320,7 @@ read_sav <- function(file, encoding = NULL, user_na = FALSE, n_max = -1L, skip =
         )
     }
 
-    as_declared(data)
+    as_declared(data, trusted = TRUE)
 }
 
 sav_parallel_prototype <- function(file, num_threads = getOption("DDIwR.readstat_threads", 0L)) {
@@ -328,7 +344,7 @@ read_sav_parallel_prototype <- function(file, encoding = NULL, user_na = FALSE, 
         as.integer(num_threads),
         PACKAGE = "DDIwR"
     ) |>
-        as_declared()
+        as_declared(trusted = TRUE)
 }
 
 read_por <- function(file, user_na = FALSE, n_max = -1L, skip = 0L) {
@@ -343,7 +359,7 @@ read_por <- function(file, user_na = FALSE, n_max = -1L, skip = 0L) {
         PACKAGE = "DDIwR"
     )
 
-    as_declared(data)
+    as_declared(data, trusted = TRUE)
 }
 
 read_dta <- function(file, encoding = NULL, n_max = -1L, skip = 0L, num_threads = getOption("DDIwR.readstat_threads", NULL)) {
@@ -354,18 +370,35 @@ read_dta <- function(file, encoding = NULL, n_max = -1L, skip = 0L, num_threads 
         num_threads <- 0L
     }
 
-    data <- .Call(
-        "declared_df_parse_dta_file_parallel",
-        source_file(file),
-        encoding,
-        integer(),
-        as.integer(n_max),
-        as.integer(skip),
-        as.integer(num_threads),
-        PACKAGE = "DDIwR"
-    )
+    use_parallel <- readstat_parallel_supported() &&
+        is.numeric(num_threads) && length(num_threads) == 1L &&
+        !is.na(num_threads) && as.integer(num_threads) != 1L
 
-    as_declared(data)
+    if (use_parallel) {
+        data <- .Call(
+            "declared_df_parse_dta_file_parallel",
+            source_file(file),
+            encoding,
+            integer(),
+            as.integer(n_max),
+            as.integer(skip),
+            as.integer(num_threads),
+            PACKAGE = "DDIwR"
+        )
+    }
+    else {
+        data <- .Call(
+            "declared_df_parse_dta_file",
+            source_file(file),
+            encoding,
+            integer(),
+            as.integer(n_max),
+            as.integer(skip),
+            PACKAGE = "DDIwR"
+        )
+    }
+
+    as_declared(data, trusted = TRUE)
 }
 
 read_sas <- function(data_file, catalog_file = NULL, encoding = NULL, catalog_encoding = encoding, n_max = -1L, skip = 0L) {
@@ -390,7 +423,7 @@ read_sas <- function(data_file, catalog_file = NULL, encoding = NULL, catalog_en
         PACKAGE = "DDIwR"
     )
 
-    as_declared(data)
+    as_declared(data, trusted = TRUE)
 }
 
 read_xpt <- function(file, n_max = -1L, skip = 0L) {
@@ -403,7 +436,7 @@ read_xpt <- function(file, n_max = -1L, skip = 0L) {
         PACKAGE = "DDIwR"
     )
 
-    as_declared(data)
+    as_declared(data, trusted = TRUE)
 }
 
 adjust_tz <- function(df) {

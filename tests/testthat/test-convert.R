@@ -169,6 +169,53 @@ test_that("Stata export dictionary is applied natively", {
   expect_equal(unname(attr(imported$B, "labels", exact = TRUE)), c(1, -92, -93))
 })
 
+test_that("ReadStat import reports whether native workers are available", {
+    expect_type(readstat_parallel_supported(), "logical")
+    expect_length(readstat_parallel_supported(), 1L)
+})
+
+test_that("trusted ReadStat conversion preserves declared metadata", {
+    imported <- data.frame(
+        A = structure(
+            c(1, 9, 2),
+            label = "Choice",
+            labels = c(Yes = 1, Missing = 9),
+            na_values = 9,
+            format.spss = "F8.0"
+        ),
+        B = structure(
+            as.Date("2026-01-01") + 0:2,
+            label = "Date"
+        )
+    )
+
+    expected <- as_declared(imported)
+    actual <- as_declared(imported, trusted = TRUE)
+
+    expect_identical(actual, expected)
+})
+
+test_that("Stata import can use the direct serial path", {
+    exported <- data.frame(
+        A = declared(
+            c(1, -91, 2),
+            labels = c(Yes = 1, DK = -91),
+            na_values = -91
+        )
+    )
+    dta_file <- tempfile(fileext = ".dta")
+    on.exit(unlink(dta_file), add = TRUE)
+
+    write_dta(exported, dta_file)
+    imported <- read_dta(dta_file, num_threads = 1L)
+
+    expect_equal(
+        declared::undeclare(imported$A, drop = TRUE),
+        c(1, -91, 2)
+    )
+    expect_equal(attr(imported$A, "na_values", exact = TRUE), -91)
+})
+
 test_that("convert() can auto-build a harmonized dictionary for Stata export", {
   exported <- data.frame(
     A = declared(

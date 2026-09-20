@@ -31,6 +31,14 @@
 
 extern SEXP declared_df_parse_dta_file(SEXP spec, SEXP encoding, SEXP cols_skip, SEXP n_max, SEXP rows_skip);
 
+SEXP readstat_parallel_supported_(void) {
+#if defined(__EMSCRIPTEN__) && !defined(DDIWR_WASM_PTHREADS)
+    return Rf_ScalarLogical(0);
+#else
+    return Rf_ScalarLogical(1);
+#endif
+}
+
 typedef enum {
     LABELSET_NONE = 0,
     LABELSET_STRING = 1,
