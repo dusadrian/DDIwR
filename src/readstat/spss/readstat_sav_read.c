@@ -14,6 +14,7 @@
 #include "../readstat_iconv.h"
 #include "../readstat_convert.h"
 #include "../readstat_malloc.h"
+#include "../readstat_strings.h"
 #include "../CKHashTable.h"
 
 #include "readstat_sav.h"
@@ -1496,6 +1497,9 @@ cleanup:
     return retval;
 }
 
+static readstat_error_t sav_parse_attributes(const char *data, size_t len,
+        int variable_scope, sav_ctx_t *ctx);
+
 static readstat_error_t sav_parse_records_pass2(sav_ctx_t *ctx) {
     void *data_buf = NULL;
     size_t data_buf_capacity = 4096;
@@ -1571,6 +1575,18 @@ static readstat_error_t sav_parse_records_pass2(sav_ctx_t *ctx) {
                 }
                 
                 switch (subtype) {
+                    case SAV_RECORD_SUBTYPE_DATA_FILE_ATTRS:
+                    case SAV_RECORD_SUBTYPE_VARIABLE_ATTRS:
+                        if (size != 1) {
+                            retval = READSTAT_ERROR_PARSE;
+                            goto cleanup;
+                        }
+                        retval = sav_parse_attributes(data_buf, data_len,
+                                subtype == SAV_RECORD_SUBTYPE_VARIABLE_ATTRS, ctx);
+                        if (retval != READSTAT_OK) {
+                            goto cleanup;
+                        }
+                        break;
                     case SAV_RECORD_SUBTYPE_INTEGER_INFO:
                     case SAV_RECORD_SUBTYPE_FP_INFO:
                     case SAV_RECORD_SUBTYPE_CHAR_ENCODING:
@@ -1625,6 +1641,99 @@ cleanup:
     return retval;
 }
 
+/* Parse subtype 17/18 only after converting the complete record. A quote in
+ * a value is literal: the closing quote is the one immediately before LF. */
+static readstat_error_t sav_parse_attributes(const char *data, size_t len,
+        int variable_scope, sav_ctx_t *ctx) {
+    char *text = NULL;
+    char *cursor;
+    char *variable = NULL;
+    char **values = NULL;
+    size_t count = 0;
+    readstat_error_t status = READSTAT_ERROR_PARSE;
+
+    if (len > (SIZE_MAX - 1) / 4 || memchr(data, '\0', len)) {
+        return READSTAT_ERROR_PARSE;
+    }
+    text = readstat_malloc(4 * len + 1);
+    if (!text) {
+        return READSTAT_ERROR_MALLOC;
+    }
+    status = readstat_convert_notrim(text, 4 * len + 1, data, len, ctx->converter);
+    if (status != READSTAT_OK) {
+        goto cleanup;
+    }
+    cursor = text;
+    status = READSTAT_ERROR_PARSE;
+    while (*cursor) {
+        if (variable_scope) {
+            variable = cursor;
+            cursor = strchr(cursor, ':');
+            if (!cursor || cursor == variable) {
+                goto cleanup;
+            }
+            *cursor++ = '\0';
+        }
+        if (!*cursor || *cursor == '/') {
+            goto cleanup;
+        }
+        while (*cursor && *cursor != '/') {
+            char *name = cursor;
+            cursor = strchr(cursor, '(');
+            if (!cursor || cursor == name) {
+                goto cleanup;
+            }
+            *cursor++ = '\0';
+            if (strpbrk(name, ":/\n\r\t '")) {
+                goto cleanup;
+            }
+            while (*cursor == '\'') {
+                char *value = ++cursor;
+                char *line_end = strchr(cursor, '\n');
+                char **grown;
+                if (!line_end || line_end == value || line_end[-1] != '\'') {
+                    goto cleanup;
+                }
+                line_end[-1] = '\0';
+                if (count == SIZE_MAX / sizeof(char *)) {
+                    status = READSTAT_ERROR_MALLOC;
+                    goto cleanup;
+                }
+                grown = readstat_realloc(values, (count + 1) * sizeof(char *));
+                if (!grown) {
+                    status = READSTAT_ERROR_MALLOC;
+                    goto cleanup;
+                }
+                values = grown;
+                values[count++] = value;
+                cursor = line_end + 1;
+            }
+            if (*cursor != ')' || count == 0) {
+                goto cleanup;
+            }
+            cursor++;
+            status = readstat_attribute_add(&ctx->spss_attributes, variable,
+                    name, (const char *const *)values, count);
+            count = 0;
+            if (status != READSTAT_OK) {
+                goto cleanup;
+            }
+            status = READSTAT_ERROR_PARSE;
+        }
+        if (*cursor == '/') {
+            if (!variable_scope || !cursor[1]) {
+                goto cleanup;
+            }
+            cursor++;
+        }
+    }
+    status = READSTAT_OK;
+cleanup:
+    free(values);
+    free(text);
+    return status;
+}
+
 static readstat_error_t sav_set_n_segments_and_var_count(sav_ctx_t *ctx) {
     int i;
     ctx->var_count = 0;
@@ -1639,6 +1748,34 @@ static readstat_error_t sav_set_n_segments_and_var_count(sav_ctx_t *ctx) {
         i += info->n_segments;
     }
     ctx->variables = readstat_calloc(ctx->var_count, sizeof(readstat_variable_t *));
+    return READSTAT_OK;
+}
+
+static readstat_error_t sav_validate_attribute_scopes(sav_ctx_t *ctx) {
+    const readstat_attribute_t *attribute;
+    for (attribute = ctx->spss_attributes; attribute; attribute = attribute->next) {
+        int i;
+        if (!attribute->variable) {
+            continue;
+        }
+        for (i = 0; i < ctx->var_index;) {
+            spss_varinfo_t *info = ctx->varinfo[i];
+            char name[sizeof(((readstat_variable_t *)0)->name)];
+            const char *raw = info->longname[0] ? info->longname : info->name;
+            readstat_error_t status = readstat_convert(name, sizeof(name), raw,
+                    strlen(raw), ctx->converter);
+            if (status != READSTAT_OK) {
+                return status;
+            }
+            if (!strcasecmp(name, attribute->variable)) {
+                break;
+            }
+            i += info->n_segments;
+        }
+        if (i == ctx->var_index) {
+            return READSTAT_ERROR_PARSE;
+        }
+    }
     return READSTAT_OK;
 }
 
@@ -1800,6 +1937,10 @@ readstat_error_t readstat_parse_sav(readstat_parser_t *parser, const char *path,
     if ((retval = sav_set_n_segments_and_var_count(ctx)) != READSTAT_OK)
         goto cleanup;
 
+    if ((retval = sav_validate_attribute_scopes(ctx)) != READSTAT_OK) {
+        goto cleanup;
+    }
+
     if (ctx->var_count == 0) {
         retval = READSTAT_ERROR_PARSE;
         goto cleanup;
@@ -1807,6 +1948,7 @@ readstat_error_t readstat_parse_sav(readstat_parser_t *parser, const char *path,
 
     if (ctx->handle.metadata) {
         readstat_metadata_t metadata = {
+            .spss_attributes = ctx->spss_attributes,
             .row_count = ctx->record_count < 0 ? -1 : ctx->row_limit,
             .var_count = ctx->var_count,
             .file_encoding = ctx->input_encoding,

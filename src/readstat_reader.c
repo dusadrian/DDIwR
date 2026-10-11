@@ -9,6 +9,7 @@
 #include <string.h>
 
 #include "readstat.h"
+#include "spss_attributes.h"
 #include "declared_types.h"
 #include "tagged_na.h"
 
@@ -59,6 +60,7 @@ typedef struct {
     char **notes;
     size_t notes_n;
     size_t notes_cap;
+    readstat_attribute_t *spss_attributes;
 } ReaderCtx;
 
 static char *str_dup(const char *x) {
@@ -215,6 +217,7 @@ static void reader_ctx_init(ReaderCtx *ctx, FileExt ext, int user_na, SEXP cols_
 }
 
 static void reader_ctx_free(ReaderCtx *ctx) {
+    readstat_attributes_free(ctx->spss_attributes);
     size_t i;
     size_t j;
     if (ctx->cols_skip != NULL) {
@@ -326,6 +329,10 @@ static int reader_metadata(readstat_metadata_t *metadata, void *ctx_) {
     ReaderCtx *ctx = (ReaderCtx *) ctx_;
     int var_count = readstat_get_var_count(metadata);
     int kept = var_count - ctx->cols_skip_n;
+
+    if (readstat_attributes_copy(&ctx->spss_attributes, metadata->spss_attributes) != READSTAT_OK) {
+        return READSTAT_HANDLER_ABORT;
+    }
 
     if (kept < 0) {
         kept = 0;
@@ -702,6 +709,7 @@ static SEXP finalize_output(ReaderCtx *ctx) {
     }
 
     Rf_setAttrib(ctx->output, R_NamesSymbol, ctx->names);
+    ddiwr_attach_spss_attributes(ctx->output, ctx->names, ctx->spss_attributes);
     PROTECT(row_names = Rf_allocVector(INTSXP, 2));
     INTEGER(row_names)[0] = NA_INTEGER;
     INTEGER(row_names)[1] = -(int) ctx->nrows;

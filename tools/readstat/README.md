@@ -26,6 +26,25 @@ reproducible baseline, not proof of the original import's exact commit.
 - `stata/readstat_dta.h` and `stata/readstat_dta_read.c`: retain prepared DTA
   contexts. Provide a local strL lookup adapter so parallel workers share the
   upstream reference decoder/comparator, including format 119 and empty strLs.
+- `readstat.h`, `readstat_writer.c`, and `spss/readstat_sav*`: preserve SPSS
+  dataset and variable custom attributes in SAV/ZSAV dictionary subtypes 17
+  and 18. Metadata callbacks receive a parser-owned `spss_attributes` list;
+  consumers that retain it use `readstat_attributes_copy()` and
+  `readstat_attributes_free()`. Writers register ordered string arrays with
+  `readstat_writer_add_spss_attribute()` before the first row, passing NULL
+  for dataset scope or a writer-owned variable for variable scope. Values
+  preserve literal quotes, empty strings and trailing spaces. Line feeds
+  cannot be represented by this grammar and are rejected. Duplicate names
+  within a scope and malformed records fail explicitly.
+
+The custom attribute record grammar follows the [GNU PSPP developer
+documentation](https://www.gnu.org/software/pspp/pspp-dev/html_node/Data-File-and-Variable-Attributes-Records.html).
+DDIwR exposes the attributes as a named list of character vectors in
+`attr(data, "spss.attributes")` and `attr(data$variable, "spss.attributes")`.
+The adapters preserve these through serial/parallel reading, export,
+missing-value recoding, and declared-vector reconstruction. This explicit
+container avoids collisions with R attributes such as `names`, `class` and
+`label`; unrelated R attributes are not automatically exported to SPSS.
 
 The package adapters outside `src/readstat` remain ordinary DDIwR code. They
 are not overwritten by the updater. The October update also adapts string
@@ -89,7 +108,7 @@ Rscript tools/readstat/vendor.R update --upstream /tmp/ReadStat \
     --revision <same-commit> --apply
 Rscript tools/readstat/vendor.R verify --upstream /tmp/ReadStat
 READSTAT_UPSTREAM=/tmp/ReadStat Rscript tools/readstat/test-vendor.R
-Rscript -e 'testthat::test_local(".", filter = "^(convert|readstat-update|metadata-import)$")'
+Rscript -e 'testthat::test_local(".", filter = "^(convert|readstat-update|metadata-import|spss-attributes)$")'
 ```
 
 A clean text merge does not prove compatibility: preparation hooks call
@@ -98,6 +117,12 @@ Review upstream changes affecting these paths and compare full serial/parallel
 results. Capture any necessary local adaptations with `refresh`, then verify
 again. Do not weaken upstream validation merely to retain acceptance of an
 invalid output file.
+
+The SPSS attribute regressions include independently constructed dictionary
+records and byte-level checks against the documented grammar, legacy encoding
+conversion, all supported SAV compression modes, row windows, empty data,
+Unicode long strings, and complete serial/parallel comparisons. They do not
+establish interoperability with an installed IBM SPSS application.
 
 This tooling is tracked for development and excluded from R source builds.
 No Git commit or network fetch is performed by the updater itself.

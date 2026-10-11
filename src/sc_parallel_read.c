@@ -20,6 +20,7 @@
 #endif
 
 #include "readstat.h"
+#include "spss_attributes.h"
 #include "readstat_bits.h"
 #include "readstat_iconv.h"
 #include "readstat_convert.h"
@@ -83,6 +84,7 @@ typedef struct {
     long total_rows;
     int ncols;
     char *file_label;
+    readstat_attribute_t *spss_attributes;
     SCColumnSchema *cols;
     SCLabelSet *label_sets;
     size_t label_set_n;
@@ -342,6 +344,7 @@ static void sc_free_schema(SCSchema *schema) {
     if (schema == NULL) {
         return;
     }
+    readstat_attributes_free(schema->spss_attributes);
     if (schema->file_label != NULL) {
         R_Free(schema->file_label);
     }
@@ -638,6 +641,9 @@ static int sc_probe_metadata_handler(readstat_metadata_t *metadata, void *ctx_) 
     SCParseState *state = (SCParseState *) ctx_;
     int var_count = readstat_get_var_count(metadata);
     int kept = var_count - state->cols_skip_n;
+    if (readstat_attributes_copy(&state->schema->spss_attributes, metadata->spss_attributes) != READSTAT_OK) {
+        return READSTAT_HANDLER_ABORT;
+    }
     if (kept < 0) {
         kept = 0;
     }
@@ -1487,6 +1493,7 @@ static SEXP sc_build_r_output(const SCSchema *schema, const SCMergedTable *merge
     }
 
     Rf_setAttrib(output, R_NamesSymbol, names);
+    ddiwr_attach_spss_attributes(output, names, schema->spss_attributes);
     PROTECT(row_names = Rf_allocVector(INTSXP, 2));
     INTEGER(row_names)[0] = NA_INTEGER;
     INTEGER(row_names)[1] = -(int) merged->nrows;

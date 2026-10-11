@@ -63,6 +63,18 @@ with an automatically added software specific extension.
 SPSS portable file (with the extension \code{".por"}) can only be read, but not
 written.
 
+SPSS system files (\code{.sav} and \code{.zsav}) preserve custom dataset and variable
+attributes. They are stored in the R attribute \code{spss.attributes} on the data
+frame and on each column, as a named list of character vectors. For example,
+\code{attr(data, "spss.attributes") <- list(source = "Archive")} and
+\code{attr(data$answer, "spss.attributes") <- list(foo = "bar")} are written as
+SPSS dataset and variable attributes, respectively. A character vector with
+several elements represents an attribute array; a single element represents
+a scalar. Custom names such as \code{label} remain separate from standard R
+metadata. Names must be valid SPSS attribute names of at most 64 UTF-8 bytes,
+unique ignoring case within their scope. Values must be non-missing strings
+without line feeds, which the SPSS attribute format cannot represent.
+
 The argument \strong{\code{to}} can also be specified as a path to a specific file,
 in which case the software package is determined from its file extension.
 The following extentions are currently recognized: \code{.xml} for DDI,

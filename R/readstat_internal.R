@@ -59,6 +59,7 @@ as_declared <- function(data, trusted = FALSE) {
         attr(out, "format.spss") <- attr(x, "format.spss", exact = TRUE)
         attr(out, "format.stata") <- attr(x, "format.stata", exact = TRUE)
         attr(out, "format.sas") <- attr(x, "format.sas", exact = TRUE)
+        attr(out, "spss.attributes") <- attr(x, "spss.attributes", exact = TRUE)
         out
     })
     class(data) <- "data.frame"
@@ -87,6 +88,7 @@ make_declared <- function(
     attr(x, "format.spss") <- format_spss
     attr(x, "format.stata") <- format_stata
     attr(x, "format.sas") <- format_sas
+    attr(x, "spss.attributes") <- attr(template, "spss.attributes", exact = TRUE)
     class(x) <- unique(c("declared", xclass))
     x
 }
@@ -117,7 +119,8 @@ plain_values <- function(x) {
 
     attrs[c(
         "labels", "na_values", "na_range", "label", "na_index",
-        "measurement", "format.spss", "format.stata", "format.sas", "date"
+        "measurement", "format.spss", "format.stata", "format.sas", "date",
+        "spss.attributes"
     )] <- NULL
 
     attributes(x) <- attrs
@@ -544,7 +547,63 @@ stata_file_format <- function(version) {
     }
 }
 
+validate_spss_attributes <- function(data) {
+    validate <- function(object, scope) {
+        attributes <- attr(object, "spss.attributes", exact = TRUE)
+
+        if (is.null(attributes)) {
+            return(invisible(NULL))
+        }
+
+        if (!is.list(attributes) || is.object(attributes)) {
+            stop(scope, ": 'spss.attributes' must be a named list of character vectors.", call. = FALSE)
+        }
+
+        if (length(attributes) == 0L) {
+            return(invisible(NULL))
+        }
+
+        attribute_names <- names(attributes)
+
+        if (is.null(attribute_names) || anyNA(attribute_names) ||
+            any(!nzchar(attribute_names)) || anyDuplicated(toupper(attribute_names)) > 0L) {
+            stop(scope, ": SPSS custom attribute names must be nonempty and unique ignoring case.", call. = FALSE)
+        }
+
+        if (any(nchar(enc2utf8(attribute_names), type = "bytes") > 64L) ||
+            any(!grepl("^[$]?[[:alpha:]@][[:alnum:]@#$_.]*$", attribute_names))) {
+            stop(scope, ": invalid SPSS custom attribute name (maximum 64 UTF-8 bytes).", call. = FALSE)
+        }
+
+        for (name in attribute_names) {
+            values <- attributes[[name]]
+
+            if (!is.character(values) || length(values) == 0L || anyNA(values)) {
+                stop(scope, ": custom attribute '", name,
+                    "' must contain one or more non-missing strings.", call. = FALSE)
+            }
+
+            if (any(grepl("\n", values, fixed = TRUE))) {
+                stop(scope, ": custom attribute '", name,
+                    "' cannot contain line feeds in SPSS files.", call. = FALSE)
+            }
+        }
+
+        return(invisible(NULL))
+    }
+
+    validate(data, "Dataset")
+
+    for (name in names(data)) {
+        validate(data[[name]], paste0("Variable '", name, "'"))
+    }
+
+    return(invisible(NULL))
+}
+
 write_sav <- function(data, path, compress = "byte", adjust_tz = TRUE) {
+    validate_spss_attributes(data)
+
     if (isTRUE(compress)) {
         compress <- "zsav"
     } else if (isFALSE(compress)) {

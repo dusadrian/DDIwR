@@ -127,6 +127,23 @@ typedef struct mr_set_s {
     int    label_from_var_label; /* subtype 19 sets with LABELSOURCE=VARLABEL */
 } mr_set_t;
 
+/* SPSS custom attributes. NULL variable denotes dataset scope. Values are
+ * ordered strings; even a scalar attribute has one value. Parser-owned data
+ * is valid only during the metadata callback. */
+typedef struct readstat_attribute_s {
+    char *variable;
+    char *name;
+    char **values;
+    size_t count;
+    struct readstat_attribute_s *next;
+} readstat_attribute_t;
+
+readstat_error_t readstat_attribute_add(readstat_attribute_t **attributes,
+        const char *variable, const char *name, const char *const *values, size_t count);
+readstat_error_t readstat_attributes_copy(readstat_attribute_t **dest,
+        const readstat_attribute_t *source);
+void readstat_attributes_free(readstat_attribute_t *attributes);
+
 typedef struct readstat_metadata_s {
     int64_t     row_count;
     int64_t     var_count;
@@ -141,6 +158,7 @@ typedef struct readstat_metadata_s {
     unsigned int is64bit:1;
     size_t multiple_response_sets_length;
     mr_set_t *mr_sets;
+    const readstat_attribute_t *spss_attributes;
 } readstat_metadata_t;
 
 /* If the row count is unknown (e.g. it's an XPORT or POR file, or an SAV
@@ -503,6 +521,8 @@ typedef struct readstat_writer_s {
     long                        notes_count;
     long                        notes_capacity;
 
+    readstat_attribute_t        *spss_attributes;
+
     readstat_string_ref_t    **string_refs;
     long                       string_refs_count;
     long                       string_refs_capacity;
@@ -572,6 +592,11 @@ readstat_variable_t *readstat_get_variable(readstat_writer_t *writer, int index)
 // Note that the line length in SPSS is 80 characters; ReadStat will
 // produce a write error if a note is longer than this limit.
 void readstat_add_note(readstat_writer_t *writer, const char *note);
+
+/* Register SPSS custom attributes before the first row. */
+readstat_error_t readstat_writer_add_spss_attribute(readstat_writer_t *writer,
+        const readstat_variable_t *variable, const char *name,
+        const char *const *values, size_t count);
 
 // String refs are used for creating a READSTAT_TYPE_STRING_REF column,
 // which is only supported in Stata. String references can be shared

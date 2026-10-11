@@ -1421,6 +1421,95 @@ static sav_varnames_t *sav_varnames_init(readstat_writer_t *writer) {
     return varnames;
 }
 
+static readstat_error_t sav_emit_attributes_record(readstat_writer_t *writer, int variable_scope) {
+    sav_info_record_t header = {
+        .rec_type = SAV_RECORD_TYPE_HAS_DATA,
+        .subtype = variable_scope ? SAV_RECORD_SUBTYPE_VARIABLE_ATTRS : SAV_RECORD_SUBTYPE_DATA_FILE_ATTRS,
+        .size = 1
+    };
+    uint64_t length = 0;
+    int pass;
+    for (pass = 0; pass < 2; pass++) {
+        long v;
+        int first_variable = 1;
+        for (v = variable_scope ? 0 : -1; v < (variable_scope ? writer->variables_count : 0); v++) {
+            const char *variable = v < 0 ? NULL : writer->variables[v]->name;
+            const readstat_attribute_t *attribute;
+            int first_attribute = 1;
+            for (attribute = writer->spss_attributes; attribute; attribute = attribute->next) {
+                size_t i;
+                readstat_error_t status;
+                if ((variable == NULL) != (attribute->variable == NULL) ||
+                        (variable && strcmp(variable, attribute->variable))) {
+                    continue;
+                }
+                if (pass == 0) {
+                    /* Internal SPSS attribute names may start with '$'. */
+                    const char *name = attribute->name[0] == '$' ? attribute->name + 1 : attribute->name;
+                    status = sav_validate_name_length(strlen(attribute->name));
+                    if (status != READSTAT_OK) {
+                        return status;
+                    }
+                    status = sav_validate_name_chars(name, 1);
+                    if (!*name || status != READSTAT_OK) {
+                        return READSTAT_ERROR_NAME_CONTAINS_ILLEGAL_CHARACTER;
+                    }
+                }
+                if (variable && first_attribute) {
+                    if (pass == 0) {
+                        length += strlen(variable) + 1 + !first_variable;
+                    } else {
+                        if (!first_variable && (status = readstat_write_string(writer, "/")) != READSTAT_OK) {
+                            return status;
+                        }
+                        if ((status = readstat_write_string(writer, variable)) != READSTAT_OK ||
+                                (status = readstat_write_string(writer, ":")) != READSTAT_OK) {
+                            return status;
+                        }
+                    }
+                    first_variable = 0;
+                }
+                first_attribute = 0;
+                if (pass == 0) {
+                    length += strlen(attribute->name) + 2;
+                    for (i = 0; i < attribute->count; i++) {
+                        length += strlen(attribute->values[i]) + 3;
+                    }
+                    if (length > INT32_MAX) {
+                        return READSTAT_ERROR_PARSE;
+                    }
+                } else {
+                    if ((status = readstat_write_string(writer, attribute->name)) != READSTAT_OK ||
+                            (status = readstat_write_string(writer, "(")) != READSTAT_OK) {
+                        return status;
+                    }
+                    for (i = 0; i < attribute->count; i++) {
+                        if ((status = readstat_write_string(writer, "'")) != READSTAT_OK ||
+                                (status = readstat_write_string(writer, attribute->values[i])) != READSTAT_OK ||
+                                (status = readstat_write_string(writer, "'\n")) != READSTAT_OK) {
+                            return status;
+                        }
+                    }
+                    if ((status = readstat_write_string(writer, ")")) != READSTAT_OK) {
+                        return status;
+                    }
+                }
+            }
+        }
+        if (pass == 0) {
+            readstat_error_t status;
+            if (length == 0) {
+                return READSTAT_OK;
+            }
+            header.count = length;
+            if ((status = readstat_write_bytes(writer, &header, sizeof(header))) != READSTAT_OK) {
+                return status;
+            }
+        }
+    }
+    return READSTAT_OK;
+}
+
 static readstat_error_t sav_begin_data(void *writer_ctx) {
     readstat_writer_t *writer = (readstat_writer_t *)writer_ctx;
     readstat_error_t retval = READSTAT_OK;
@@ -1480,6 +1569,16 @@ static readstat_error_t sav_begin_data(void *writer_ctx) {
     retval = sav_emit_number_of_cases_record(writer);
     if (retval != READSTAT_OK)
         goto cleanup;
+
+    retval = sav_emit_attributes_record(writer, 0);
+    if (retval != READSTAT_OK) {
+        goto cleanup;
+    }
+
+    retval = sav_emit_attributes_record(writer, 1);
+    if (retval != READSTAT_OK) {
+        goto cleanup;
+    }
 
     retval = sav_emit_termination_record(writer);
     if (retval != READSTAT_OK)

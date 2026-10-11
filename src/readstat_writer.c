@@ -1001,6 +1001,25 @@ static readstat_error_t writer_insert_string_value(WriterCtx *ctx, readstat_vari
     return readstat_insert_string_value(ctx->writer, var, value);
 }
 
+static void register_spss_attributes(WriterCtx *ctx, SEXP object, readstat_variable_t *variable) {
+    SEXP attributes = Rf_getAttrib(object, Rf_install("spss.attributes"));
+    SEXP names = Rf_getAttrib(attributes, R_NamesSymbol);
+    R_xlen_t i, j;
+    if (attributes == R_NilValue) {
+        return;
+    }
+    for (i = 0; i < XLENGTH(attributes); i++) {
+        SEXP values = VECTOR_ELT(attributes, i);
+        const char **strings = (const char **)R_alloc(XLENGTH(values), sizeof(char *));
+        for (j = 0; j < XLENGTH(values); j++) {
+            strings[j] = string_utf8_elt(values, j);
+        }
+        check_status(readstat_writer_add_spss_attribute(ctx->writer, variable,
+                string_utf8_elt(names, i), strings, XLENGTH(values)),
+                "Failed to register SPSS custom attributes");
+    }
+}
+
 static void writer_write(WriterCtx *ctx, SEXP dictionary) {
     readstat_error_t status = READSTAT_OK;
     int p = Rf_length(ctx->data);
@@ -1047,6 +1066,14 @@ static void writer_write(WriterCtx *ctx, SEXP dictionary) {
                 break;
             default:
                 Rf_error("Unsupported column type: %s", Rf_type2char(TYPEOF(col)));
+        }
+    }
+
+    if (ctx->ext == DECLARED_SAV) {
+        register_spss_attributes(ctx, ctx->data, NULL);
+        for (j = 0; j < p; j++) {
+            register_spss_attributes(ctx, VECTOR_ELT(ctx->data, j),
+                    readstat_get_variable(ctx->writer, j));
         }
     }
 

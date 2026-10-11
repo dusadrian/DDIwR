@@ -105,6 +105,7 @@ typedef struct sav_ctx_s {
 
     size_t         multiple_response_sets_length;
     mr_set_t      *mr_sets;
+    readstat_attribute_t *spss_attributes;
 
     double         bias;
     int            format_version;

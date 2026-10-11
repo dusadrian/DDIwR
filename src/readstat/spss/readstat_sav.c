@@ -72,6 +72,7 @@ sav_ctx_t *sav_ctx_init(sav_file_header_record_t *header, readstat_io_t *io) {
 }
 
 void sav_ctx_free(sav_ctx_t *ctx) {
+    readstat_attributes_free(ctx->spss_attributes);
     if (ctx->varinfo) {
         int i;
         for (i=0; i<ctx->var_index; i++) {

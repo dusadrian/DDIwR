@@ -1,3 +1,60 @@
+diff --git a/readstat.h b/readstat.h
+index aaafd7d..3709846 100644
+--- a/readstat.h
++++ b/readstat.h
+@@ -127,6 +127,23 @@ typedef struct mr_set_s {
+     int    label_from_var_label; /* subtype 19 sets with LABELSOURCE=VARLABEL */
+ } mr_set_t;
+ 
++/* SPSS custom attributes. NULL variable denotes dataset scope. Values are
++ * ordered strings; even a scalar attribute has one value. Parser-owned data
++ * is valid only during the metadata callback. */
++typedef struct readstat_attribute_s {
++    char *variable;
++    char *name;
++    char **values;
++    size_t count;
++    struct readstat_attribute_s *next;
++} readstat_attribute_t;
++
++readstat_error_t readstat_attribute_add(readstat_attribute_t **attributes,
++        const char *variable, const char *name, const char *const *values, size_t count);
++readstat_error_t readstat_attributes_copy(readstat_attribute_t **dest,
++        const readstat_attribute_t *source);
++void readstat_attributes_free(readstat_attribute_t *attributes);
++
+ typedef struct readstat_metadata_s {
+     int64_t     row_count;
+     int64_t     var_count;
+@@ -141,6 +158,7 @@ typedef struct readstat_metadata_s {
+     unsigned int is64bit:1;
+     size_t multiple_response_sets_length;
+     mr_set_t *mr_sets;
++    const readstat_attribute_t *spss_attributes;
+ } readstat_metadata_t;
+ 
+ /* If the row count is unknown (e.g. it's an XPORT or POR file, or an SAV
+@@ -503,6 +521,8 @@ typedef struct readstat_writer_s {
+     long                        notes_count;
+     long                        notes_capacity;
+ 
++    readstat_attribute_t        *spss_attributes;
++
+     readstat_string_ref_t    **string_refs;
+     long                       string_refs_count;
+     long                       string_refs_capacity;
+@@ -573,6 +593,11 @@ readstat_variable_t *readstat_get_variable(readstat_writer_t *writer, int index)
+ // produce a write error if a note is longer than this limit.
+ void readstat_add_note(readstat_writer_t *writer, const char *note);
+ 
++/* Register SPSS custom attributes before the first row. */
++readstat_error_t readstat_writer_add_spss_attribute(readstat_writer_t *writer,
++        const readstat_variable_t *variable, const char *name,
++        const char *const *values, size_t count);
++
+ // String refs are used for creating a READSTAT_TYPE_STRING_REF column,
+ // which is only supported in Stata. String references can be shared
+ // across columns, and inserted with readstat_insert_string_ref().
 diff --git a/readstat_iconv.h b/readstat_iconv.h
 index 38fb981..1327fc8 100644
 --- a/readstat_iconv.h
@@ -18,11 +75,163 @@ index 38fb981..1327fc8 100644
  #endif
  
  typedef ICONV_CONST char ** readstat_iconv_inbuf_t;
+diff --git a/readstat_writer.c b/readstat_writer.c
+index 9777e2a..e7d0e2f 100644
+--- a/readstat_writer.c
++++ b/readstat_writer.c
+@@ -1,8 +1,10 @@
+ 
+ #include <stdlib.h>
+ #include <time.h>
++#include <string.h>
+ #include "readstat.h"
+ #include "readstat_writer.h"
++#include "readstat_strings.h"
+ 
+ #define VARIABLES_INITIAL_CAPACITY    50
+ #define LABEL_SETS_INITIAL_CAPACITY   50
+@@ -11,6 +13,108 @@
+ #define STRING_REFS_INITIAL_CAPACITY 100
+ #define LABEL_SET_VARIABLES_INITIAL_CAPACITY 2
+ 
++void readstat_attributes_free(readstat_attribute_t *attributes) {
++    while (attributes) {
++        readstat_attribute_t *next = attributes->next;
++        size_t i;
++        free(attributes->variable);
++        free(attributes->name);
++        for (i = 0; i < attributes->count; i++) {
++            free(attributes->values[i]);
++        }
++        free(attributes->values);
++        free(attributes);
++        attributes = next;
++    }
++}
++
++readstat_error_t readstat_attribute_add(readstat_attribute_t **attributes,
++        const char *variable, const char *name, const char *const *values, size_t count) {
++    readstat_attribute_t *attribute;
++    readstat_attribute_t **tail = attributes;
++    size_t i;
++    if (!name || !*name || !values || count == 0 || count > SIZE_MAX / sizeof(char *)) {
++        return READSTAT_ERROR_PARSE;
++    }
++    while (*tail) {
++        if (((variable == NULL && (*tail)->variable == NULL) ||
++                (variable && (*tail)->variable && !strcasecmp(variable, (*tail)->variable))) &&
++                !strcasecmp(name, (*tail)->name)) {
++            return READSTAT_ERROR_PARSE;
++        }
++        tail = &(*tail)->next;
++    }
++    attribute = calloc(1, sizeof(*attribute));
++    if (!attribute) {
++        return READSTAT_ERROR_MALLOC;
++    }
++    attribute->name = strdup(name);
++    attribute->variable = variable ? strdup(variable) : NULL;
++    attribute->values = calloc(count, sizeof(char *));
++    if (!attribute->name || (variable && !attribute->variable) || !attribute->values) {
++        readstat_attributes_free(attribute);
++        return READSTAT_ERROR_MALLOC;
++    }
++    for (i = 0; i < count; i++) {
++        if (!values[i]) {
++            readstat_attributes_free(attribute);
++            return READSTAT_ERROR_PARSE;
++        }
++        attribute->values[i] = strdup(values[i]);
++        if (!attribute->values[i]) {
++            readstat_attributes_free(attribute);
++            return READSTAT_ERROR_MALLOC;
++        }
++        attribute->count++;
++    }
++    *tail = attribute;
++    return READSTAT_OK;
++}
++
++readstat_error_t readstat_attributes_copy(readstat_attribute_t **dest,
++        const readstat_attribute_t *source) {
++    for (; source; source = source->next) {
++        readstat_error_t status = readstat_attribute_add(dest, source->variable,
++                source->name, (const char *const *)source->values, source->count);
++        if (status != READSTAT_OK) {
++            return status;
++        }
++    }
++    return READSTAT_OK;
++}
++
++readstat_error_t readstat_writer_add_spss_attribute(readstat_writer_t *writer,
++        const readstat_variable_t *variable, const char *name,
++        const char *const *values, size_t count) {
++    size_t i;
++    if (writer->current_row || writer->row) {
++        return READSTAT_ERROR_PARSE;
++    }
++    if (variable) {
++        long index;
++        for (index = 0; index < writer->variables_count; index++) {
++            if (writer->variables[index] == variable) {
++                break;
++            }
++        }
++        if (index == writer->variables_count) {
++            return READSTAT_ERROR_PARSE;
++        }
++    }
++    /* Parentheses and line feeds delimit the on-disk syntax. Quotes inside
++     * values are literal, and must not be doubled or escaped. */
++    if (!name || !*name || strpbrk(name, "():/\n\r\t '")) {
++        return READSTAT_ERROR_PARSE;
++    }
++    for (i = 0; i < count; i++) {
++        if (!values || !values[i] || strchr(values[i], '\n')) {
++            return READSTAT_ERROR_PARSE;
++        }
++    }
++    return readstat_attribute_add(&writer->spss_attributes,
++            variable ? variable->name : NULL, name, values, count);
++}
++
+ static readstat_error_t readstat_write_row_default_callback(void *writer_ctx, void *bytes, size_t len) {
+     return readstat_write_bytes((readstat_writer_t *)writer_ctx, bytes, len);
+ }
+@@ -163,6 +267,7 @@ cleanup:
+ void readstat_writer_free(readstat_writer_t *writer) {
+     int i;
+     if (writer) {
++        readstat_attributes_free(writer->spss_attributes);
+         if (writer->callbacks.module_ctx_free && writer->module_ctx) {
+             writer->callbacks.module_ctx_free(writer->module_ctx);
+         }
+diff --git a/spss/readstat_sav.c b/spss/readstat_sav.c
+index 629e1e9..44c13f9 100644
+--- a/spss/readstat_sav.c
++++ b/spss/readstat_sav.c
+@@ -72,6 +72,7 @@ sav_ctx_t *sav_ctx_init(sav_file_header_record_t *header, readstat_io_t *io) {
+ }
+ 
+ void sav_ctx_free(sav_ctx_t *ctx) {
++    readstat_attributes_free(ctx->spss_attributes);
+     if (ctx->varinfo) {
+         int i;
+         for (i=0; i<ctx->var_index; i++) {
 diff --git a/spss/readstat_sav.h b/spss/readstat_sav.h
-index 75f69c6..291bdb4 100644
+index 75f69c6..ac8a591 100644
 --- a/spss/readstat_sav.h
 +++ b/spss/readstat_sav.h
-@@ -114,6 +114,23 @@ typedef struct sav_ctx_s {
+@@ -105,6 +105,7 @@ typedef struct sav_ctx_s {
+ 
+     size_t         multiple_response_sets_length;
+     mr_set_t      *mr_sets;
++    readstat_attribute_t *spss_attributes;
+ 
+     double         bias;
+     int            format_version;
+@@ -114,6 +115,23 @@ typedef struct sav_ctx_s {
      unsigned int   bswap:1;
  } sav_ctx_t;
  
@@ -46,7 +255,7 @@ index 75f69c6..291bdb4 100644
  #define SAV_RECORD_TYPE_VARIABLE                2
  #define SAV_RECORD_TYPE_VALUE_LABEL             3
  #define SAV_RECORD_TYPE_VALUE_LABEL_VARIABLES   4
-@@ -147,3 +164,6 @@ typedef struct sav_ctx_s {
+@@ -147,3 +165,6 @@ typedef struct sav_ctx_s {
  
  sav_ctx_t *sav_ctx_init(sav_file_header_record_t *header, readstat_io_t *io);
  void sav_ctx_free(sav_ctx_t *ctx);
@@ -54,10 +263,201 @@ index 75f69c6..291bdb4 100644
 +readstat_error_t sav_prepare(const char *path, const char *input_encoding, ddiwr_sav_prepared_t *out);
 +void sav_prepared_free(ddiwr_sav_prepared_t *prepared);
 diff --git a/spss/readstat_sav_read.c b/spss/readstat_sav_read.c
-index ab8ec9a..01900d3 100644
+index ab8ec9a..15c42ee 100644
 --- a/spss/readstat_sav_read.c
 +++ b/spss/readstat_sav_read.c
-@@ -1891,3 +1891,228 @@ cleanup:
+@@ -14,6 +14,7 @@
+ #include "../readstat_iconv.h"
+ #include "../readstat_convert.h"
+ #include "../readstat_malloc.h"
++#include "../readstat_strings.h"
+ #include "../CKHashTable.h"
+ 
+ #include "readstat_sav.h"
+@@ -1496,6 +1497,9 @@ cleanup:
+     return retval;
+ }
+ 
++static readstat_error_t sav_parse_attributes(const char *data, size_t len,
++        int variable_scope, sav_ctx_t *ctx);
++
+ static readstat_error_t sav_parse_records_pass2(sav_ctx_t *ctx) {
+     void *data_buf = NULL;
+     size_t data_buf_capacity = 4096;
+@@ -1571,6 +1575,18 @@ static readstat_error_t sav_parse_records_pass2(sav_ctx_t *ctx) {
+                 }
+                 
+                 switch (subtype) {
++                    case SAV_RECORD_SUBTYPE_DATA_FILE_ATTRS:
++                    case SAV_RECORD_SUBTYPE_VARIABLE_ATTRS:
++                        if (size != 1) {
++                            retval = READSTAT_ERROR_PARSE;
++                            goto cleanup;
++                        }
++                        retval = sav_parse_attributes(data_buf, data_len,
++                                subtype == SAV_RECORD_SUBTYPE_VARIABLE_ATTRS, ctx);
++                        if (retval != READSTAT_OK) {
++                            goto cleanup;
++                        }
++                        break;
+                     case SAV_RECORD_SUBTYPE_INTEGER_INFO:
+                     case SAV_RECORD_SUBTYPE_FP_INFO:
+                     case SAV_RECORD_SUBTYPE_CHAR_ENCODING:
+@@ -1625,6 +1641,99 @@ cleanup:
+     return retval;
+ }
+ 
++/* Parse subtype 17/18 only after converting the complete record. A quote in
++ * a value is literal: the closing quote is the one immediately before LF. */
++static readstat_error_t sav_parse_attributes(const char *data, size_t len,
++        int variable_scope, sav_ctx_t *ctx) {
++    char *text = NULL;
++    char *cursor;
++    char *variable = NULL;
++    char **values = NULL;
++    size_t count = 0;
++    readstat_error_t status = READSTAT_ERROR_PARSE;
++
++    if (len > (SIZE_MAX - 1) / 4 || memchr(data, '\0', len)) {
++        return READSTAT_ERROR_PARSE;
++    }
++    text = readstat_malloc(4 * len + 1);
++    if (!text) {
++        return READSTAT_ERROR_MALLOC;
++    }
++    status = readstat_convert_notrim(text, 4 * len + 1, data, len, ctx->converter);
++    if (status != READSTAT_OK) {
++        goto cleanup;
++    }
++    cursor = text;
++    status = READSTAT_ERROR_PARSE;
++    while (*cursor) {
++        if (variable_scope) {
++            variable = cursor;
++            cursor = strchr(cursor, ':');
++            if (!cursor || cursor == variable) {
++                goto cleanup;
++            }
++            *cursor++ = '\0';
++        }
++        if (!*cursor || *cursor == '/') {
++            goto cleanup;
++        }
++        while (*cursor && *cursor != '/') {
++            char *name = cursor;
++            cursor = strchr(cursor, '(');
++            if (!cursor || cursor == name) {
++                goto cleanup;
++            }
++            *cursor++ = '\0';
++            if (strpbrk(name, ":/\n\r\t '")) {
++                goto cleanup;
++            }
++            while (*cursor == '\'') {
++                char *value = ++cursor;
++                char *line_end = strchr(cursor, '\n');
++                char **grown;
++                if (!line_end || line_end == value || line_end[-1] != '\'') {
++                    goto cleanup;
++                }
++                line_end[-1] = '\0';
++                if (count == SIZE_MAX / sizeof(char *)) {
++                    status = READSTAT_ERROR_MALLOC;
++                    goto cleanup;
++                }
++                grown = readstat_realloc(values, (count + 1) * sizeof(char *));
++                if (!grown) {
++                    status = READSTAT_ERROR_MALLOC;
++                    goto cleanup;
++                }
++                values = grown;
++                values[count++] = value;
++                cursor = line_end + 1;
++            }
++            if (*cursor != ')' || count == 0) {
++                goto cleanup;
++            }
++            cursor++;
++            status = readstat_attribute_add(&ctx->spss_attributes, variable,
++                    name, (const char *const *)values, count);
++            count = 0;
++            if (status != READSTAT_OK) {
++                goto cleanup;
++            }
++            status = READSTAT_ERROR_PARSE;
++        }
++        if (*cursor == '/') {
++            if (!variable_scope || !cursor[1]) {
++                goto cleanup;
++            }
++            cursor++;
++        }
++    }
++    status = READSTAT_OK;
++cleanup:
++    free(values);
++    free(text);
++    return status;
++}
++
+ static readstat_error_t sav_set_n_segments_and_var_count(sav_ctx_t *ctx) {
+     int i;
+     ctx->var_count = 0;
+@@ -1642,6 +1751,34 @@ static readstat_error_t sav_set_n_segments_and_var_count(sav_ctx_t *ctx) {
+     return READSTAT_OK;
+ }
+ 
++static readstat_error_t sav_validate_attribute_scopes(sav_ctx_t *ctx) {
++    const readstat_attribute_t *attribute;
++    for (attribute = ctx->spss_attributes; attribute; attribute = attribute->next) {
++        int i;
++        if (!attribute->variable) {
++            continue;
++        }
++        for (i = 0; i < ctx->var_index;) {
++            spss_varinfo_t *info = ctx->varinfo[i];
++            char name[sizeof(((readstat_variable_t *)0)->name)];
++            const char *raw = info->longname[0] ? info->longname : info->name;
++            readstat_error_t status = readstat_convert(name, sizeof(name), raw,
++                    strlen(raw), ctx->converter);
++            if (status != READSTAT_OK) {
++                return status;
++            }
++            if (!strcasecmp(name, attribute->variable)) {
++                break;
++            }
++            i += info->n_segments;
++        }
++        if (i == ctx->var_index) {
++            return READSTAT_ERROR_PARSE;
++        }
++    }
++    return READSTAT_OK;
++}
++
+ static readstat_error_t sav_handle_variables(sav_ctx_t *ctx) {
+     int i;
+     int index_after_skipping = 0;
+@@ -1800,6 +1937,10 @@ readstat_error_t readstat_parse_sav(readstat_parser_t *parser, const char *path,
+     if ((retval = sav_set_n_segments_and_var_count(ctx)) != READSTAT_OK)
+         goto cleanup;
+ 
++    if ((retval = sav_validate_attribute_scopes(ctx)) != READSTAT_OK) {
++        goto cleanup;
++    }
++
+     if (ctx->var_count == 0) {
+         retval = READSTAT_ERROR_PARSE;
+         goto cleanup;
+@@ -1807,6 +1948,7 @@ readstat_error_t readstat_parse_sav(readstat_parser_t *parser, const char *path,
+ 
+     if (ctx->handle.metadata) {
+         readstat_metadata_t metadata = {
++            .spss_attributes = ctx->spss_attributes,
+             .row_count = ctx->record_count < 0 ? -1 : ctx->row_limit,
+             .var_count = ctx->var_count,
+             .file_encoding = ctx->input_encoding,
+@@ -1891,3 +2033,228 @@ cleanup:
      
      return retval;
  }
@@ -286,6 +686,123 @@ index ab8ec9a..01900d3 100644
 +    prepared->parser = NULL;
 +    prepared->ctx = NULL;
 +}
+diff --git a/spss/readstat_sav_write.c b/spss/readstat_sav_write.c
+index 4f3a35e..3441d47 100644
+--- a/spss/readstat_sav_write.c
++++ b/spss/readstat_sav_write.c
+@@ -1421,6 +1421,95 @@ static sav_varnames_t *sav_varnames_init(readstat_writer_t *writer) {
+     return varnames;
+ }
+ 
++static readstat_error_t sav_emit_attributes_record(readstat_writer_t *writer, int variable_scope) {
++    sav_info_record_t header = {
++        .rec_type = SAV_RECORD_TYPE_HAS_DATA,
++        .subtype = variable_scope ? SAV_RECORD_SUBTYPE_VARIABLE_ATTRS : SAV_RECORD_SUBTYPE_DATA_FILE_ATTRS,
++        .size = 1
++    };
++    uint64_t length = 0;
++    int pass;
++    for (pass = 0; pass < 2; pass++) {
++        long v;
++        int first_variable = 1;
++        for (v = variable_scope ? 0 : -1; v < (variable_scope ? writer->variables_count : 0); v++) {
++            const char *variable = v < 0 ? NULL : writer->variables[v]->name;
++            const readstat_attribute_t *attribute;
++            int first_attribute = 1;
++            for (attribute = writer->spss_attributes; attribute; attribute = attribute->next) {
++                size_t i;
++                readstat_error_t status;
++                if ((variable == NULL) != (attribute->variable == NULL) ||
++                        (variable && strcmp(variable, attribute->variable))) {
++                    continue;
++                }
++                if (pass == 0) {
++                    /* Internal SPSS attribute names may start with '$'. */
++                    const char *name = attribute->name[0] == '$' ? attribute->name + 1 : attribute->name;
++                    status = sav_validate_name_length(strlen(attribute->name));
++                    if (status != READSTAT_OK) {
++                        return status;
++                    }
++                    status = sav_validate_name_chars(name, 1);
++                    if (!*name || status != READSTAT_OK) {
++                        return READSTAT_ERROR_NAME_CONTAINS_ILLEGAL_CHARACTER;
++                    }
++                }
++                if (variable && first_attribute) {
++                    if (pass == 0) {
++                        length += strlen(variable) + 1 + !first_variable;
++                    } else {
++                        if (!first_variable && (status = readstat_write_string(writer, "/")) != READSTAT_OK) {
++                            return status;
++                        }
++                        if ((status = readstat_write_string(writer, variable)) != READSTAT_OK ||
++                                (status = readstat_write_string(writer, ":")) != READSTAT_OK) {
++                            return status;
++                        }
++                    }
++                    first_variable = 0;
++                }
++                first_attribute = 0;
++                if (pass == 0) {
++                    length += strlen(attribute->name) + 2;
++                    for (i = 0; i < attribute->count; i++) {
++                        length += strlen(attribute->values[i]) + 3;
++                    }
++                    if (length > INT32_MAX) {
++                        return READSTAT_ERROR_PARSE;
++                    }
++                } else {
++                    if ((status = readstat_write_string(writer, attribute->name)) != READSTAT_OK ||
++                            (status = readstat_write_string(writer, "(")) != READSTAT_OK) {
++                        return status;
++                    }
++                    for (i = 0; i < attribute->count; i++) {
++                        if ((status = readstat_write_string(writer, "'")) != READSTAT_OK ||
++                                (status = readstat_write_string(writer, attribute->values[i])) != READSTAT_OK ||
++                                (status = readstat_write_string(writer, "'\n")) != READSTAT_OK) {
++                            return status;
++                        }
++                    }
++                    if ((status = readstat_write_string(writer, ")")) != READSTAT_OK) {
++                        return status;
++                    }
++                }
++            }
++        }
++        if (pass == 0) {
++            readstat_error_t status;
++            if (length == 0) {
++                return READSTAT_OK;
++            }
++            header.count = length;
++            if ((status = readstat_write_bytes(writer, &header, sizeof(header))) != READSTAT_OK) {
++                return status;
++            }
++        }
++    }
++    return READSTAT_OK;
++}
++
+ static readstat_error_t sav_begin_data(void *writer_ctx) {
+     readstat_writer_t *writer = (readstat_writer_t *)writer_ctx;
+     readstat_error_t retval = READSTAT_OK;
+@@ -1481,6 +1570,16 @@ static readstat_error_t sav_begin_data(void *writer_ctx) {
+     if (retval != READSTAT_OK)
+         goto cleanup;
+ 
++    retval = sav_emit_attributes_record(writer, 0);
++    if (retval != READSTAT_OK) {
++        goto cleanup;
++    }
++
++    retval = sav_emit_attributes_record(writer, 1);
++    if (retval != READSTAT_OK) {
++        goto cleanup;
++    }
++
+     retval = sav_emit_termination_record(writer);
+     if (retval != READSTAT_OK)
+         goto cleanup;
 diff --git a/stata/readstat_dta.h b/stata/readstat_dta.h
 index 61e2bf8..f007f1f 100644
 --- a/stata/readstat_dta.h
