@@ -19,6 +19,11 @@ as_declared <- function(data, trusted = FALSE) {
 
         if (is.null(na_index) && (!is.null(na_values) || !is.null(na_range))) {
             x_plain <- plain_values(x)
+
+            if (inherits(x, "Date") || inherits(x, "POSIXct")) {
+                x_plain <- as.numeric(x_plain)
+            }
+
             missing_codes <- na_values
 
             if (!is.null(na_range) && length(na_range) == 2) {
@@ -511,42 +516,6 @@ adjust_datetime_from_r <- function(x, vendor) {
     x
 }
 
-materialize_na_index <- function(x, vendor) {
-    if (inherits(x, "Date") || inherits(x, "POSIXct")) {
-        out <- x
-        attr(out, "labels") <- NULL
-        attr(out, "na_values") <- NULL
-        attr(out, "na_range") <- NULL
-        attr(out, "na_index") <- NULL
-        xclass <- class(out)
-        if (!is.null(xclass)) {
-            class(out) <- setdiff(xclass, "declared")
-        }
-        return(out)
-    }
-
-    x
-}
-
-prepare_export <- function(data, vendor) {
-    needs_materialization <- vapply(data, function(x) {
-        inherits(x, "Date") || inherits(x, "POSIXct")
-    }, logical(1))
-
-    if (!any(needs_materialization)) {
-        class(data) <- "data.frame"
-        return(data)
-    }
-
-    data[needs_materialization] <- lapply(
-        data[needs_materialization],
-        materialize_na_index,
-        vendor = vendor
-    )
-    class(data) <- "data.frame"
-    data
-}
-
 stata_file_format <- function(version) {
     version <- as.integer(version)
 
@@ -631,7 +600,7 @@ write_sav <- function(data, path, compress = "byte", adjust_tz = TRUE) {
     }
 
     data_out <- if (isTRUE(adjust_tz)) adjust_tz(data) else data
-    data_out <- prepare_export(data_out, vendor = "SPSS")
+    data_out <- as_declared(data_out)
     invisible(.Call(
         "declared_write_sav_",
         data_out,

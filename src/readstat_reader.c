@@ -550,6 +550,9 @@ static int reader_value(int obs_index, readstat_variable_t *variable, readstat_v
             } else if ((!ctx->user_na && readstat_value_is_defined_missing(value, variable)) ||
                        readstat_value_is_system_missing(value)) {
                 REAL(col)[obs_index] = NA_REAL;
+            } else if (readstat_value_is_defined_missing(value, variable)) {
+                /* User-missing codes are not calendar values. */
+                REAL(col)[obs_index] = readstat_double_value(value);
             } else {
                 REAL(col)[obs_index] = adjustDatetimeToR(
                     ctx->vendor,

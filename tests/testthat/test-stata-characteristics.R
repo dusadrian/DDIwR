@@ -161,26 +161,14 @@ test_that("Stata characteristics round trip with labels, missing codes and dates
 
         expect_identical(attr(result$answer, "label"), "Answer")
         expect_identical(names(attr(result$answer, "labels")), names(attr(data$answer, "labels")))
-        # Date values already have a separate epoch-conversion issue. Check
-        # that adding characteristics does not change the existing result.
-        baseline <- data
-        attr(baseline, "stata.characteristics") <- NULL
-        baseline[] <- lapply(baseline, function(column) {
-            attr(column, "stata.characteristics") <- NULL
-
-            return(column)
-        })
-        baseline_path <- tempfile(fileext = ".dta")
-        paths <- c(paths, baseline_path)
-        convert(baseline, to = baseline_path, version = version)
-        baseline_result <- convert(baseline_path, encoding = encoding)
-        expect_identical(as.vector(result$when), as.vector(baseline_result$when))
+        expect_identical(as.numeric(result$when), as.numeric(data$when))
         expect_identical(as.vector(result$text), as.vector(data$text))
 
         repeated_path <- tempfile(fileext = ".dta")
         paths <- c(paths, repeated_path)
         convert(path, to = repeated_path, version = version, encoding = encoding)
         repeated <- convert(repeated_path, encoding = encoding)
+        expect_identical(as.numeric(repeated$when), as.numeric(data$when))
         expect_identical(attr(repeated, "stata.characteristics"), attr(data, "stata.characteristics"))
         expect_identical(attr(repeated$answer, "stata.characteristics"), attr(data$answer, "stata.characteristics"))
     }

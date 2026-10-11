@@ -50,6 +50,11 @@
 #' If no raw note characteristics are present, dataset `notes` are written as
 #' Stata note characteristics.
 #'
+#' Stata export converts R `Date` columns to days since 1960-01-01 and
+#' `POSIXct` columns to milliseconds since that date. Integer storage is used
+#' only when the converted values fit its range and precision. System and
+#' extended missing values are preserved separately from the date/time values.
+#'
 #' The argument **`to`** can also be specified as a path to a specific file,
 #' in which case the software package is determined from its file extension.
 #' The following extentions are currently recognized: `.xml` for DDI,
@@ -159,10 +164,13 @@
 #' default in that package.
 #'
 #' Converting to SPSS works with numerical and character labelled vectors, with
-#' or without labels. Date/Time variables are partially supported by package
-#' **haven**: either having such a variable with no labels and missing values,
-#' or if labels and missing values are declared the variable is automatically
-#' coerced to numeric, and users may have to make the proper settings in SPSS.
+#' or without labels. The native date/time adapters write SPSS dates and
+#' timestamps as seconds since 1582-10-14, SAS dates as days since 1960-01-01,
+#' and SAS timestamps as seconds since 1960-01-01. Integer-backed R temporal
+#' columns use double storage when exporting to SPSS or SAS to avoid overflow.
+#' SPSS user-missing codes and ranges remain separate from date/time values;
+#' they are retained when importing with `user_na = TRUE` and discarded with
+#' `user_na = FALSE`.
 #'
 #' @return An invisible R data frame, when the argument **`to`** is NULL.
 #'

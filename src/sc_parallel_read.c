@@ -1406,7 +1406,7 @@ static void sc_finalize_tagged_missing_attrs(const SCMergedColumn *col_info, SEX
     UNPROTECT(3);
 }
 
-static SEXP sc_build_r_output(const SCSchema *schema, const SCMergedTable *merged) {
+static SEXP sc_build_r_output(const SCSchema *schema, const SCMergedTable *merged, int user_na) {
     int i;
     SEXP output;
     SEXP names;
@@ -1452,7 +1452,7 @@ static SEXP sc_build_r_output(const SCSchema *schema, const SCMergedTable *merge
         if (col_schema->has_display_width) {
             Rf_setAttrib(col, Rf_install("display_width"), Rf_ScalarInteger(col_schema->display_width));
         }
-        if (col_schema->num_na_values_n > 0) {
+        if (user_na && col_schema->num_na_values_n > 0) {
             SEXP na_values = PROTECT(Rf_allocVector(REALSXP, col_schema->num_na_values_n));
             int k;
             for (k = 0; k < col_schema->num_na_values_n; ++k) {
@@ -1461,14 +1461,14 @@ static SEXP sc_build_r_output(const SCSchema *schema, const SCMergedTable *merge
             Rf_setAttrib(col, Rf_install("na_values"), na_values);
             UNPROTECT(1);
         }
-        if (col_schema->has_num_na_range) {
+        if (user_na && col_schema->has_num_na_range) {
             SEXP na_range = PROTECT(Rf_allocVector(REALSXP, 2));
             REAL(na_range)[0] = col_schema->num_na_range[0];
             REAL(na_range)[1] = col_schema->num_na_range[1];
             Rf_setAttrib(col, Rf_install("na_range"), na_range);
             UNPROTECT(1);
         }
-        if (col_schema->str_na_values_n > 0) {
+        if (user_na && col_schema->str_na_values_n > 0) {
             int k;
             SEXP na_values = PROTECT(Rf_allocVector(STRSXP, col_schema->str_na_values_n));
             for (k = 0; k < col_schema->str_na_values_n; ++k) {
@@ -1477,7 +1477,7 @@ static SEXP sc_build_r_output(const SCSchema *schema, const SCMergedTable *merge
             Rf_setAttrib(col, Rf_install("na_values"), na_values);
             UNPROTECT(1);
         }
-        if (col_schema->has_str_na_range) {
+        if (user_na && col_schema->has_str_na_range) {
             SEXP na_range = PROTECT(Rf_allocVector(STRSXP, 2));
             SET_STRING_ELT(na_range, 0, Rf_mkCharCE(col_schema->str_na_range[0], CE_UTF8));
             SET_STRING_ELT(na_range, 1, Rf_mkCharCE(col_schema->str_na_range[1], CE_UTF8));
@@ -1728,7 +1728,7 @@ static SEXP sc_read_parallel(SEXP spec, SEXP encoding, SEXP cols_skip_sexp, SEXP
         return sc_read_single_fallback(spec, encoding, cols_skip_sexp, n_max, rows_skip);
     }
 
-    out = sc_build_r_output(&schema, &merged);
+    out = sc_build_r_output(&schema, &merged, 1);
 
     for (i = 0; i < nchunks; ++i) {
         sc_free_chunk_result(&workers[i].result_data);
@@ -2067,6 +2067,8 @@ static int sc_sav_decode_chunk_to_columns(SCSavWorkerState *worker) {
                     sc_sav_tag_missing_double(&value, ctx);
                     if ((!worker->user_na && readstat_value_is_defined_missing(value, variable)) || readstat_value_is_system_missing(value)) {
                         out_col->dvalues[row_index] = NA_REAL;
+                    } else if (readstat_value_is_defined_missing(value, variable)) {
+                        out_col->dvalues[row_index] = fp_value;
                     } else {
                         out_col->dvalues[row_index] = adjustDatetimeToR(
                             DECLARED_SPSS,
@@ -2173,7 +2175,7 @@ static SEXP sc_build_sav_output_from_rows(const SCSchema *schema, const ddiwr_sa
         if (col_schema->var_type != DECLARED_DEFAULT) {
             sc_set_vector_class(col, col_schema->var_type);
         }
-        if (col_schema->num_na_values_n > 0) {
+        if (user_na && col_schema->num_na_values_n > 0) {
             SEXP na_values = PROTECT(Rf_allocVector(REALSXP, col_schema->num_na_values_n));
             int k;
             for (k = 0; k < col_schema->num_na_values_n; ++k) {
@@ -2182,14 +2184,14 @@ static SEXP sc_build_sav_output_from_rows(const SCSchema *schema, const ddiwr_sa
             Rf_setAttrib(col, Rf_install("na_values"), na_values);
             UNPROTECT(1);
         }
-        if (col_schema->has_num_na_range) {
+        if (user_na && col_schema->has_num_na_range) {
             SEXP na_range = PROTECT(Rf_allocVector(REALSXP, 2));
             REAL(na_range)[0] = col_schema->num_na_range[0];
             REAL(na_range)[1] = col_schema->num_na_range[1];
             Rf_setAttrib(col, Rf_install("na_range"), na_range);
             UNPROTECT(1);
         }
-        if (col_schema->str_na_values_n > 0) {
+        if (user_na && col_schema->str_na_values_n > 0) {
             int k;
             SEXP na_values = PROTECT(Rf_allocVector(STRSXP, col_schema->str_na_values_n));
             for (k = 0; k < col_schema->str_na_values_n; ++k) {
@@ -2198,7 +2200,7 @@ static SEXP sc_build_sav_output_from_rows(const SCSchema *schema, const ddiwr_sa
             Rf_setAttrib(col, Rf_install("na_values"), na_values);
             UNPROTECT(1);
         }
-        if (col_schema->has_str_na_range) {
+        if (user_na && col_schema->has_str_na_range) {
             SEXP na_range = PROTECT(Rf_allocVector(STRSXP, 2));
             SET_STRING_ELT(na_range, 0, Rf_mkCharCE(col_schema->str_na_range[0], CE_UTF8));
             SET_STRING_ELT(na_range, 1, Rf_mkCharCE(col_schema->str_na_range[1], CE_UTF8));
@@ -2290,6 +2292,8 @@ static SEXP sc_build_sav_output_from_rows(const SCSchema *schema, const ddiwr_sa
                 sc_sav_tag_missing_double(&value, ctx);
                 if ((!user_na && readstat_value_is_defined_missing(value, variable)) || readstat_value_is_system_missing(value)) {
                     REAL(out_col)[row] = NA_REAL;
+                } else if (readstat_value_is_defined_missing(value, variable)) {
+                    REAL(out_col)[row] = fp_value;
                 } else {
                     REAL(out_col)[row] = adjustDatetimeToR(
                         DECLARED_SPSS,
@@ -2629,7 +2633,7 @@ SEXP declared_df_parse_sav_file_parallel_prototype(SEXP spec, SEXP encoding, SEX
         Rf_error("Failed to merge SAV decoded chunks.");
     }
 
-    out = sc_build_r_output(&schema, &merged);
+    out = sc_build_r_output(&schema, &merged, Rf_asLogical(user_na));
 
     for (i = 0; i < nchunks; ++i) {
         sc_free_chunk_result(&workers[i].decoded);

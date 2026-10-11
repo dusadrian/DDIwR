@@ -138,7 +138,7 @@ Rscript tools/readstat/vendor.R update --upstream /tmp/ReadStat \
     --revision <same-commit> --apply
 Rscript tools/readstat/vendor.R verify --upstream /tmp/ReadStat
 READSTAT_UPSTREAM=/tmp/ReadStat Rscript tools/readstat/test-vendor.R
-Rscript -e 'testthat::test_local(".", filter = "^(convert|readstat-update|metadata-import|spss-attributes|stata-characteristics)$")'
+Rscript -e 'testthat::test_local(".", filter = "^(convert|readstat-update|metadata-import|spss-attributes|stata-characteristics|stata-datetime|spss-sas-datetime)$")'
 ```
 
 A clean text merge does not prove compatibility: preparation hooks call
@@ -160,8 +160,22 @@ checks; legacy encoding; case-sensitive variable and characteristic names;
 raw notes; empty and windowed imports; categorical recoding; and complete
 serial/parallel comparisons with strL values. They do not establish
 interoperability with an installed Stata application. Date-column checks
-compare against the existing conversion baseline: a separate date epoch
-conversion issue reproduces without characteristics and is not changed here.
+assert preservation of the original dates. The datetime regressions additionally
+cover epoch and millisecond conversion, system and extended missing values,
+and storage boundaries in the DDIwR writer adapter. Storage selection uses
+the converted Stata values, including for integer-backed R dates. These
+adapter changes are outside the vendored ReadStat tree and its patch.
+
+The SPSS/SAS datetime regressions cover integer-backed temporal columns,
+int32 boundaries, epoch and fractional-second conversion, system and
+user-missing values, and all-missing columns. They exercise every SAV
+compression mode, native SAS7BDAT, and XPT versions 5 and 8. Explicit numeric
+formats check stored date/time units without applying the reader's epoch
+conversion; a numeric SPSS fixture also checks serial/parallel missing-value
+handling independently of the temporal writer. These tests do not establish
+interoperability with an installed SPSS or SAS application. SAS's special
+`._` missing tag remains unsupported by DDIwR's existing missing-code mapping;
+that limitation also affects ordinary numeric columns.
 
 This tooling is tracked for development and excluded from R source builds.
 No Git commit or network fetch is performed by the updater itself.

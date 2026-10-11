@@ -764,7 +764,7 @@ static int double_is_intish(double value) {
     return R_finite(value) && fabs(value - round(value)) < sqrt(DBL_EPSILON);
 }
 
-static readstat_type_t dta_numeric_type_for_double_column(WriterCtx *ctx, SEXP x) {
+static readstat_type_t dta_numeric_type_for_column(WriterCtx *ctx, SEXP x) {
     R_xlen_t i;
     double min_value = 0.0;
     double max_value = 0.0;
@@ -775,10 +775,20 @@ static readstat_type_t dta_numeric_type_for_double_column(WriterCtx *ctx, SEXP x
     double int32_max = ctx->version >= 113 ? (double) DTA_113_MAX_INT32 : (double) DTA_OLD_MAX_INT32;
 
     for (i = 0; i < Rf_xlength(x); ++i) {
-        double value = REAL(x)[i];
+        double value;
+        if (TYPEOF(x) == INTSXP) {
+            if (INTEGER(x)[i] == NA_INTEGER) {
+                continue;
+            }
+            value = INTEGER(x)[i];
+        } else {
+            value = REAL(x)[i];
+        }
         if (!R_finite(value)) {
             continue;
         }
+        /* Storage bounds and integer precision apply to the exported units. */
+        value = adjustDatetimeFromR(ctx->vendor, x, value);
         if (!double_is_intish(value)) {
             all_intish = 0;
             break;
@@ -866,6 +876,16 @@ static readstat_error_t define_variable_int(WriterCtx *ctx, SEXP x, const char *
     readstat_label_set_t *label_set = NULL;
     readstat_variable_t *var;
     const char *format = var_format(x, ctx->vendor);
+    readstat_type_t variable_type = READSTAT_TYPE_INT32;
+
+    if (numTypeFromSEXP(x) != DECLARED_DEFAULT) {
+        if (ctx->ext == DECLARED_DTA) {
+            variable_type = dta_numeric_type_for_column(ctx, x);
+        } else {
+            /* SPSS seconds and SAS epoch offsets can exceed int32. */
+            variable_type = READSTAT_TYPE_DOUBLE;
+        }
+    }
 
     if (Rf_inherits(x, "factor")) {
         SEXP levels = Rf_getAttrib(x, Rf_install("levels"));
@@ -875,10 +895,10 @@ static readstat_error_t define_variable_int(WriterCtx *ctx, SEXP x, const char *
             readstat_label_int32_value(label_set, (int) i + 1, string_utf8_elt(levels, i));
         }
     } else {
-        label_set = build_numeric_label_set(ctx, x, name, 1, column);
+        label_set = build_numeric_label_set(ctx, x, name, variable_type != READSTAT_TYPE_DOUBLE, column);
     }
 
-    var = readstat_add_variable(ctx->writer, name, READSTAT_TYPE_INT32, scalar_int_attr(x, "width"));
+    var = readstat_add_variable(ctx->writer, name, variable_type, scalar_int_attr(x, "width"));
     readstat_variable_set_format(var, format);
     readstat_variable_set_label(var, var_label(x));
     readstat_variable_set_label_set(var, label_set);
@@ -895,7 +915,7 @@ static readstat_error_t define_variable_double(WriterCtx *ctx, SEXP x, const cha
     readstat_variable_t *var;
 
     if (ctx->ext == DECLARED_DTA) {
-        variable_type = dta_numeric_type_for_double_column(ctx, x);
+        variable_type = dta_numeric_type_for_column(ctx, x);
         as_int = variable_type == READSTAT_TYPE_INT8 ||
             variable_type == READSTAT_TYPE_INT16 ||
             variable_type == READSTAT_TYPE_INT32;
@@ -1161,7 +1181,13 @@ static void writer_write(WriterCtx *ctx, SEXP dictionary) {
                     int missing = value == NA_INTEGER;
                     int code_int;
                     if (missing && parse_code_int(code, &code_int)) {
-                        check_status(insert_int_value(ctx, var, code_int, 0), "Failed to insert integer value");
+                        if (var->type == READSTAT_TYPE_DOUBLE) {
+                            check_status(insert_double_value(ctx, var, code_int, 0), "Failed to insert integer value");
+                        } else {
+                            check_status(insert_int_value(ctx, var, code_int, 0), "Failed to insert integer value");
+                        }
+                    } else if (var->type == READSTAT_TYPE_DOUBLE) {
+                        check_status(insert_double_value(ctx, var, missing ? NA_REAL : adjustDatetimeFromR(ctx->vendor, col, value), missing), "Failed to insert integer value");
                     } else {
                         check_status(insert_int_value(ctx, var, (int) adjustDatetimeFromR(ctx->vendor, col, value), missing), "Failed to insert integer value");
                     }
@@ -1179,7 +1205,7 @@ static void writer_write(WriterCtx *ctx, SEXP dictionary) {
                         check_status(insert_int_value(ctx, var, code_int, 0), "Failed to insert numeric value");
                     } else if ((var->type == READSTAT_TYPE_INT8 || var->type == READSTAT_TYPE_INT16 || var->type == READSTAT_TYPE_INT32) &&
                                R_finite(value)) {
-                        check_status(insert_int_value(ctx, var, (int) llround(value), 0), "Failed to insert numeric value");
+                        check_status(insert_int_value(ctx, var, (int) llround(adjustDatetimeFromR(ctx->vendor, col, value)), 0), "Failed to insert numeric value");
                     } else if (!R_finite(value) && parse_code_double(code, &code_double)) {
                         check_status(insert_double_value(ctx, var, code_double, 0), "Failed to insert numeric value");
                     } else if (!R_finite(value) && code != NULL && strlen(code) == 1 && isalpha((unsigned char) code[0])) {

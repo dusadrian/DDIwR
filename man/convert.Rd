@@ -94,6 +94,11 @@ convenience attribute when writing, preserving note numbering and contents.
 If no raw note characteristics are present, dataset \code{notes} are written as
 Stata note characteristics.
 
+Stata export converts R \code{Date} columns to days since 1960-01-01 and
+\code{POSIXct} columns to milliseconds since that date. Integer storage is used
+only when the converted values fit its range and precision. System and
+extended missing values are preserved separately from the date/time values.
+
 The argument \strong{\code{to}} can also be specified as a path to a specific file,
 in which case the software package is determined from its file extension.
 The following extentions are currently recognized: \code{.xml} for DDI,
@@ -203,10 +208,13 @@ from package \bold{\pkg{haven}}. It can be set to \code{NULL} to reset at the
 default in that package.
 
 Converting to SPSS works with numerical and character labelled vectors, with
-or without labels. Date/Time variables are partially supported by package
-\strong{haven}: either having such a variable with no labels and missing values,
-or if labels and missing values are declared the variable is automatically
-coerced to numeric, and users may have to make the proper settings in SPSS.
+or without labels. The native date/time adapters write SPSS dates and
+timestamps as seconds since 1582-10-14, SAS dates as days since 1960-01-01,
+and SAS timestamps as seconds since 1960-01-01. Integer-backed R temporal
+columns use double storage when exporting to SPSS or SAS to avoid overflow.
+SPSS user-missing codes and ranges remain separate from date/time values;
+they are retained when importing with \code{user_na = TRUE} and discarded with
+\code{user_na = FALSE}.
 }
 \examples{
 \dontrun{
