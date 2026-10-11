@@ -10,6 +10,8 @@
 #include <string.h>
 
 #include "readstat.h"
+#include "readstat_iconv.h"
+#include "readstat_convert.h"
 #include "declared_types.h"
 #include "tagged_na.h"
 
@@ -1020,6 +1022,48 @@ static void register_spss_attributes(WriterCtx *ctx, SEXP object, readstat_varia
     }
 }
 
+static const char *stata_metadata_string(WriterCtx *ctx, const char *value) {
+    iconv_t converter;
+    readstat_error_t status;
+    char *encoded;
+    size_t length;
+    if (ctx->version >= 118) {
+        return value;
+    }
+    length = strlen(value);
+    encoded = (char *)R_alloc(length + 1, sizeof(char));
+    converter = iconv_open("WINDOWS-1252", "UTF-8");
+    if (converter == (iconv_t)-1) {
+        Rf_error("Failed to initialize Stata characteristic encoding.");
+    }
+    status = readstat_convert_notrim(encoded, length + 1, value, length, converter);
+    iconv_close(converter);
+    check_status(status, "Failed to encode Stata characteristics");
+    return encoded;
+}
+
+static int register_stata_characteristics(WriterCtx *ctx, SEXP object, readstat_variable_t *variable) {
+    SEXP characteristics = Rf_getAttrib(object, Rf_install("stata.characteristics"));
+    SEXP names = Rf_getAttrib(characteristics, R_NamesSymbol);
+    R_xlen_t i;
+    int has_notes = 0;
+    if (characteristics == R_NilValue) {
+        return 0;
+    }
+    for (i = 0; i < XLENGTH(characteristics); i++) {
+        const char *name = string_utf8_elt(names, i);
+        const char *value = string_utf8_elt(VECTOR_ELT(characteristics, i), 0);
+        if (!variable && !strncmp(name, "note", 4) && name[4] &&
+                strspn(name + 4, "0123456789") == strlen(name + 4)) {
+            has_notes = 1;
+        }
+        check_status(readstat_writer_add_characteristic(ctx->writer, variable,
+                stata_metadata_string(ctx, name), stata_metadata_string(ctx, value)),
+                "Failed to register Stata characteristics");
+    }
+    return has_notes;
+}
+
 static void writer_write(WriterCtx *ctx, SEXP dictionary) {
     readstat_error_t status = READSTAT_OK;
     int p = Rf_length(ctx->data);
@@ -1074,6 +1118,21 @@ static void writer_write(WriterCtx *ctx, SEXP dictionary) {
         for (j = 0; j < p; j++) {
             register_spss_attributes(ctx, VECTOR_ELT(ctx->data, j),
                     readstat_get_variable(ctx->writer, j));
+        }
+    }
+    if (ctx->ext == DECLARED_DTA) {
+        int has_notes = register_stata_characteristics(ctx, ctx->data, NULL);
+        for (j = 0; j < p; j++) {
+            register_stata_characteristics(ctx, VECTOR_ELT(ctx->data, j),
+                    readstat_get_variable(ctx->writer, j));
+        }
+        if (!has_notes) {
+            SEXP notes = Rf_getAttrib(ctx->data, Rf_install("notes"));
+            if (notes != R_NilValue) {
+                for (j = 0; j < XLENGTH(notes); j++) {
+                    readstat_add_note(ctx->writer, stata_metadata_string(ctx, string_utf8_elt(notes, j)));
+                }
+            }
         }
     }
 

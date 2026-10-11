@@ -36,6 +36,21 @@ reproducible baseline, not proof of the original import's exact commit.
   preserve literal quotes, empty strings and trailing spaces. Line feeds
   cannot be represented by this grammar and are rejected. Duplicate names
   within a scope and malformed records fail explicitly.
+- `readstat.h`, `readstat_parser.c`, `readstat_writer.c`, and
+  `stata/readstat_dta_read.c` / `stata/readstat_dta_write.c`: preserve dataset
+  and variable characteristics in legacy type-1 expansion fields and modern
+  `<ch>` records. The new characteristic callback runs after variable
+  callbacks, with NULL for dataset scope and a parser-owned variable otherwise.
+  The callback strings are temporary; `readstat_characteristic_add()` copies
+  them to an owned list, released with `readstat_attributes_free()`. Names
+  are case sensitive and each characteristic has one string value.
+  Writers register characteristics with `readstat_writer_add_characteristic()`
+  before the first row. Modern file-map sizing includes all characteristics.
+  Name widths, value lengths, string terminators and variable scopes are
+  checked; malformed records fail explicitly. The R adapter encodes legacy
+  characteristic values as Windows-1252 before registering them, matching the
+  legacy reader's default encoding. Direct C callers use the target file's
+  encoding, as with the other legacy writer metadata.
 
 The custom attribute record grammar follows the [GNU PSPP developer
 documentation](https://www.gnu.org/software/pspp/pspp-dev/html_node/Data-File-and-Variable-Attributes-Records.html).
@@ -45,6 +60,21 @@ The adapters preserve these through serial/parallel reading, export,
 missing-value recoding, and declared-vector reconstruction. This explicit
 container avoids collisions with R attributes such as `names`, `class` and
 `label`; unrelated R attributes are not automatically exported to SPSS.
+
+DDIwR exposes Stata characteristics as named lists of single strings in
+`attr(data, "stata.characteristics")` and
+`attr(data$variable, "stata.characteristics")`. The representations remain
+separate: SPSS attributes are not automatically translated into Stata
+characteristics or vice versa. Stata note characteristics are included in
+full, preserving `note0`, gaps in numbering, variable notes and literal
+contents. Dataset `notes` remains a convenience view. When raw dataset note
+characteristics exist, they take precedence during export; otherwise the
+adapter writes dataset `notes` through ReadStat's note API. The low-level
+writer rejects simultaneous registration of raw dataset note characteristics
+and generated notes to prevent duplicate records.
+
+See Stata's [characteristics manual](https://www.stata.com/manuals/pchar.pdf)
+and [DTA format documentation](https://www.stata.com/help.cgi?dta).
 
 The package adapters outside `src/readstat` remain ordinary DDIwR code. They
 are not overwritten by the updater. The October update also adapts string
@@ -108,7 +138,7 @@ Rscript tools/readstat/vendor.R update --upstream /tmp/ReadStat \
     --revision <same-commit> --apply
 Rscript tools/readstat/vendor.R verify --upstream /tmp/ReadStat
 READSTAT_UPSTREAM=/tmp/ReadStat Rscript tools/readstat/test-vendor.R
-Rscript -e 'testthat::test_local(".", filter = "^(convert|readstat-update|metadata-import|spss-attributes)$")'
+Rscript -e 'testthat::test_local(".", filter = "^(convert|readstat-update|metadata-import|spss-attributes|stata-characteristics)$")'
 ```
 
 A clean text merge does not prove compatibility: preparation hooks call
@@ -123,6 +153,15 @@ records and byte-level checks against the documented grammar, legacy encoding
 conversion, all supported SAV compression modes, row windows, empty data,
 Unicode long strings, and complete serial/parallel comparisons. They do not
 establish interoperability with an installed IBM SPSS application.
+
+The Stata regressions include independently constructed characteristic records
+for formats 105, 108, 113, 115, 117, 118 and 119; byte-level record and file-map
+checks; legacy encoding; case-sensitive variable and characteristic names;
+raw notes; empty and windowed imports; categorical recoding; and complete
+serial/parallel comparisons with strL values. They do not establish
+interoperability with an installed Stata application. Date-column checks
+compare against the existing conversion baseline: a separate date epoch
+conversion issue reproduces without characteristics and is not changed here.
 
 This tooling is tracked for development and excluded from R source builds.
 No Git commit or network fetch is performed by the updater itself.

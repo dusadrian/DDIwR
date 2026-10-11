@@ -7,6 +7,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <inttypes.h>
+#include <limits.h>
 #include <sys/types.h>
 
 #include "../readstat.h"
@@ -194,7 +195,7 @@ static readstat_error_t dta_read_expansion_fields(dta_ctx_t *ctx) {
     if (ctx->expansion_len_len == 0)
         return READSTAT_OK;
 
-    if (ctx->file_is_xmlish && !ctx->handle.note) {
+    if (ctx->file_is_xmlish && !ctx->handle.note && !ctx->handle.characteristic) {
         if (io->seek(ctx->data_offset, READSTAT_SEEK_SET, io->io_ctx) == -1) {
             if (ctx->handle.error) {
                 snprintf(ctx->error_buf, sizeof(ctx->error_buf),
@@ -263,7 +264,17 @@ static readstat_error_t dta_read_expansion_fields(dta_ctx_t *ctx) {
             goto cleanup;
         }
 
-        if (data_type == 1 && ctx->handle.note && len >= 2 * ctx->ch_metadata_len) {
+        if (data_type == 1 && (ctx->handle.note || ctx->handle.characteristic)) {
+            char scope[4 * 129 + 1];
+            char name[4 * 129 + 1];
+            const readstat_variable_t *variable = NULL;
+            const char *value;
+            size_t value_len;
+            int i;
+            if (len < 2 * ctx->ch_metadata_len + 1) {
+                retval = READSTAT_ERROR_PARSE;
+                goto cleanup;
+            }
             if ((buffer = readstat_realloc(buffer, len + 1)) == NULL) {
                 retval = READSTAT_ERROR_MALLOC;
                 goto cleanup;
@@ -274,21 +285,62 @@ static readstat_error_t dta_read_expansion_fields(dta_ctx_t *ctx) {
                 retval = READSTAT_ERROR_READ;
                 goto cleanup;
             }
-            int index = 0;
-            /* _dta[note0] holds the number of notes, not a note */
-            if (strcmp(&buffer[0], "_dta") == 0 &&
-                    sscanf(&buffer[ctx->ch_metadata_len], "note%d", &index) == 1 && index > 0) {
-                const char *note = &buffer[2*ctx->ch_metadata_len];
-                size_t note_len = strlen(note);
-                if ((note_buffer = readstat_realloc(note_buffer, 4*note_len+1)) == NULL) {
-                    retval = READSTAT_ERROR_MALLOC;
+            value = &buffer[2 * ctx->ch_metadata_len];
+            value_len = len - 2 * ctx->ch_metadata_len;
+            if (!memchr(buffer, '\0', ctx->ch_metadata_len) || !buffer[0] ||
+                    !memchr(buffer + ctx->ch_metadata_len, '\0', ctx->ch_metadata_len) ||
+                    !buffer[ctx->ch_metadata_len] || value[value_len - 1] != '\0' ||
+                    memchr(value, '\0', value_len - 1)) {
+                retval = READSTAT_ERROR_PARSE;
+                goto cleanup;
+            }
+            retval = readstat_convert_notrim(scope, sizeof(scope), buffer, strlen(buffer), ctx->converter);
+            if (retval != READSTAT_OK) {
+                goto cleanup;
+            }
+            retval = readstat_convert_notrim(name, sizeof(name), buffer + ctx->ch_metadata_len,
+                    strlen(buffer + ctx->ch_metadata_len), ctx->converter);
+            if (retval != READSTAT_OK) {
+                goto cleanup;
+            }
+            if ((note_buffer = readstat_realloc(note_buffer, 4 * value_len + 1)) == NULL) {
+                retval = READSTAT_ERROR_MALLOC;
+                goto cleanup;
+            }
+            retval = readstat_convert_notrim(note_buffer, 4 * value_len + 1,
+                    value, value_len - 1, ctx->converter);
+            if (retval != READSTAT_OK) {
+                goto cleanup;
+            }
+            if (strcmp(scope, "_dta")) {
+                for (i = 0; i < ctx->nvar; i++) {
+                    if (!strcmp(scope, ctx->variables[i]->name)) {
+                        variable = ctx->variables[i];
+                        break;
+                    }
+                }
+                if (!variable) {
+                    retval = READSTAT_ERROR_PARSE;
                     goto cleanup;
                 }
-                retval = readstat_convert(note_buffer, 4*note_len+1, note, note_len, ctx->converter);
-                if (retval != READSTAT_OK)
-                    goto cleanup;
-
-                if (ctx->handle.note(index, note_buffer, ctx->user_ctx) != READSTAT_HANDLER_OK) {
+            }
+            if (ctx->handle.characteristic && ctx->handle.characteristic(variable, name,
+                    note_buffer, ctx->user_ctx) != READSTAT_HANDLER_OK) {
+                retval = READSTAT_ERROR_USER_ABORT;
+                goto cleanup;
+            }
+            /* Expose actual dataset notes through the existing note callback
+             * too, while preserving the complete characteristic separately. */
+            if (!variable && ctx->handle.note && !strncmp(name, "note", 4) &&
+                    name[4] >= '1' && name[4] <= '9') {
+                char *end;
+                long index = strtol(name + 4, &end, 10);
+                size_t note_len = strlen(note_buffer);
+                while (note_len && note_buffer[note_len - 1] == ' ') {
+                    note_buffer[--note_len] = '\0';
+                }
+                if (!*end && index <= INT_MAX &&
+                        ctx->handle.note((int)index, note_buffer, ctx->user_ctx) != READSTAT_HANDLER_OK) {
                     retval = READSTAT_ERROR_USER_ABORT;
                     goto cleanup;
                 }

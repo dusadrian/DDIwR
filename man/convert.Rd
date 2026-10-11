@@ -75,6 +75,25 @@ metadata. Names must be valid SPSS attribute names of at most 64 UTF-8 bytes,
 unique ignoring case within their scope. Values must be non-missing strings
 without line feeds, which the SPSS attribute format cannot represent.
 
+Stata dataset and variable characteristics are preserved in \code{.dta} files
+through the R attribute \code{stata.characteristics} on the data frame and each
+column. Use a named list of single, non-missing strings, for example
+\code{attr(data, "stata.characteristics") <- list(Source = "Archive")} and
+\code{attr(data$answer, "stata.characteristics") <- list(Foo = "bar")}.
+Characteristic names are case sensitive and may contain at most 32
+characters. Values may contain line feeds and trailing spaces, and may use
+at most 67783 bytes in the target encoding (67784 including the terminating
+zero byte). Stata 14 and later use UTF-8.
+Earlier versions write characteristic values in Windows-1252 and require
+ASCII characteristic names; unrepresentable values are rejected. When
+importing these older files with \code{convert()}, specify
+\code{encoding = "windows-1252"} (or their actual source encoding).
+Dataset and variable note characteristics, including \code{note0}, are retained.
+Raw dataset note characteristics take precedence over the R \code{notes}
+convenience attribute when writing, preserving note numbering and contents.
+If no raw note characteristics are present, dataset \code{notes} are written as
+Stata note characteristics.
+
 The argument \strong{\code{to}} can also be specified as a path to a specific file,
 in which case the software package is determined from its file extension.
 The following extentions are currently recognized: \code{.xml} for DDI,

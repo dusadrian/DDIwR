@@ -28,8 +28,9 @@ void readstat_attributes_free(readstat_attribute_t *attributes) {
     }
 }
 
-readstat_error_t readstat_attribute_add(readstat_attribute_t **attributes,
-        const char *variable, const char *name, const char *const *values, size_t count) {
+static readstat_error_t readstat_attribute_add_impl(readstat_attribute_t **attributes,
+        const char *variable, const char *name, const char *const *values, size_t count,
+        int case_sensitive) {
     readstat_attribute_t *attribute;
     readstat_attribute_t **tail = attributes;
     size_t i;
@@ -37,9 +38,11 @@ readstat_error_t readstat_attribute_add(readstat_attribute_t **attributes,
         return READSTAT_ERROR_PARSE;
     }
     while (*tail) {
+        int same_variable = variable && (*tail)->variable &&
+            (case_sensitive ? !strcmp(variable, (*tail)->variable) : !strcasecmp(variable, (*tail)->variable));
+        int same_name = case_sensitive ? !strcmp(name, (*tail)->name) : !strcasecmp(name, (*tail)->name);
         if (((variable == NULL && (*tail)->variable == NULL) ||
-                (variable && (*tail)->variable && !strcasecmp(variable, (*tail)->variable))) &&
-                !strcasecmp(name, (*tail)->name)) {
+                same_variable) && same_name) {
             return READSTAT_ERROR_PARSE;
         }
         tail = &(*tail)->next;
@@ -69,6 +72,36 @@ readstat_error_t readstat_attribute_add(readstat_attribute_t **attributes,
     }
     *tail = attribute;
     return READSTAT_OK;
+}
+
+readstat_error_t readstat_attribute_add(readstat_attribute_t **attributes,
+        const char *variable, const char *name, const char *const *values, size_t count) {
+    return readstat_attribute_add_impl(attributes, variable, name, values, count, 0);
+}
+
+readstat_error_t readstat_characteristic_add(readstat_attribute_t **characteristics,
+        const char *variable, const char *name, const char *value) {
+    return readstat_attribute_add_impl(characteristics, variable, name, &value, 1, 1);
+}
+
+readstat_error_t readstat_writer_add_characteristic(readstat_writer_t *writer,
+        const readstat_variable_t *variable, const char *name, const char *value) {
+    if (writer->current_row || writer->row) {
+        return READSTAT_ERROR_PARSE;
+    }
+    if (variable) {
+        long i;
+        for (i = 0; i < writer->variables_count; i++) {
+            if (variable == writer->variables[i]) {
+                break;
+            }
+        }
+        if (i == writer->variables_count) {
+            return READSTAT_ERROR_PARSE;
+        }
+    }
+    return readstat_characteristic_add(&writer->stata_characteristics,
+            variable ? variable->name : NULL, name, value);
 }
 
 readstat_error_t readstat_attributes_copy(readstat_attribute_t **dest,
@@ -268,6 +301,7 @@ void readstat_writer_free(readstat_writer_t *writer) {
     int i;
     if (writer) {
         readstat_attributes_free(writer->spss_attributes);
+        readstat_attributes_free(writer->stata_characteristics);
         if (writer->callbacks.module_ctx_free && writer->module_ctx) {
             writer->callbacks.module_ctx_free(writer->module_ctx);
         }

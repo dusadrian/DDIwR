@@ -42,7 +42,7 @@
  * store them as UTF-8 in a 321-byte field. */
 #define DTA_MAX_LABEL_CHARS       80
 
-/* Stata refuses notes longer than this many bytes */
+/* Stata's characteristic contents limit includes the terminating NUL. */
 #define DTA_MAX_NOTE_LEN       67784
 
 /* Stata's smallest non-missing integers. The largest are in readstat_dta.h;
@@ -618,7 +618,7 @@ static void dta_note_count_string(readstat_writer_t *writer, char *buffer, size_
 }
 
 static readstat_error_t dta_emit_characteristic(readstat_writer_t *writer, dta_ctx_t *ctx,
-        char *buffer, const char *name, const char *contents) {
+        char *buffer, const char *scope, const char *name, const char *contents) {
     readstat_error_t error = READSTAT_OK;
     size_t len = strlen(contents);
 
@@ -642,7 +642,7 @@ static readstat_error_t dta_emit_characteristic(readstat_writer_t *writer, dta_c
         goto cleanup;
 
     memset(buffer, '\0', ctx->ch_metadata_len);
-    strncpy(buffer, "_dta", ctx->ch_metadata_len - 1);
+    strncpy(buffer, scope, ctx->ch_metadata_len - 1);
 
     error = readstat_write_bytes(writer, buffer, ctx->ch_metadata_len);
     if (error != READSTAT_OK)
@@ -671,6 +671,7 @@ static readstat_error_t dta_emit_characteristics(readstat_writer_t *writer, dta_
     char *buffer = NULL;
     char name[32];
     char count[32];
+    const readstat_attribute_t *characteristic;
 
     if (ctx->expansion_len_len == 0)
         return READSTAT_OK;
@@ -683,14 +684,23 @@ static readstat_error_t dta_emit_characteristics(readstat_writer_t *writer, dta_
 
     if (writer->notes_count > 0) {
         dta_note_count_string(writer, count, sizeof(count));
-        if ((error = dta_emit_characteristic(writer, ctx, buffer, "note0", count)) != READSTAT_OK)
+        if ((error = dta_emit_characteristic(writer, ctx, buffer, "_dta", "note0", count)) != READSTAT_OK)
             goto cleanup;
     }
 
     for (i=0; i<writer->notes_count; i++) {
         snprintf(name, sizeof(name), "note%d", i+1);
-        if ((error = dta_emit_characteristic(writer, ctx, buffer, name, writer->notes[i])) != READSTAT_OK)
+        if ((error = dta_emit_characteristic(writer, ctx, buffer, "_dta", name, writer->notes[i])) != READSTAT_OK)
             goto cleanup;
+    }
+
+    for (characteristic = writer->stata_characteristics; characteristic; characteristic = characteristic->next) {
+        error = dta_emit_characteristic(writer, ctx, buffer,
+                characteristic->variable ? characteristic->variable : "_dta",
+                characteristic->name, characteristic->values[0]);
+        if (error != READSTAT_OK) {
+            goto cleanup;
+        }
     }
 
     if (ctx->file_is_xmlish) {
@@ -1212,6 +1222,7 @@ static size_t dta_measure_characteristic(dta_ctx_t *ctx, size_t contents_len) {
 static size_t dta_measure_characteristics(readstat_writer_t *writer, dta_ctx_t *ctx) {
     size_t characteristics_len = 0;
     int i;
+    const readstat_attribute_t *characteristic;
     if (writer->notes_count > 0) {
         char count[32];
         dta_note_count_string(writer, count, sizeof(count));
@@ -1219,6 +1230,9 @@ static size_t dta_measure_characteristics(readstat_writer_t *writer, dta_ctx_t *
     }
     for (i=0; i<writer->notes_count; i++) {
         characteristics_len += dta_measure_characteristic(ctx, strlen(writer->notes[i]));
+    }
+    for (characteristic = writer->stata_characteristics; characteristic; characteristic = characteristic->next) {
+        characteristics_len += dta_measure_characteristic(ctx, strlen(characteristic->values[0]));
     }
     return (dta_measure_tag(ctx, "<characteristics>")
             + characteristics_len
@@ -1368,7 +1382,7 @@ static readstat_error_t dta_validate_label_set(readstat_writer_t *writer, dta_ct
 
 static readstat_error_t dta_validate_note(dta_ctx_t *ctx, const char *note) {
     size_t len = strlen(note);
-    if (len > DTA_MAX_NOTE_LEN)
+    if (len >= DTA_MAX_NOTE_LEN)
         return READSTAT_ERROR_NOTE_IS_TOO_LONG;
 
     /* Formats 105 through 109 store the expansion-field length in two bytes */
@@ -1385,6 +1399,7 @@ static readstat_error_t dta_validate_metadata(readstat_writer_t *writer, dta_ctx
     readstat_error_t error = READSTAT_OK;
     int unicode = (writer->version >= 118);
     int i;
+    const readstat_attribute_t *characteristic;
 
     error = dta_validate_label(writer->file_label, ctx->data_label_len, unicode);
     if (error != READSTAT_OK)
@@ -1415,6 +1430,33 @@ static readstat_error_t dta_validate_metadata(readstat_writer_t *writer, dta_ctx
         error = dta_validate_note(ctx, writer->notes[i]);
         if (error != READSTAT_OK)
             return error;
+    }
+
+    for (characteristic = writer->stata_characteristics; characteristic; characteristic = characteristic->next) {
+        if (ctx->expansion_len_len == 0) {
+            return READSTAT_ERROR_UNSUPPORTED_FILE_FORMAT_VERSION;
+        }
+        error = dta_validate_name_length_and_chars(characteristic->name, unicode, ctx->ch_metadata_len - 1);
+        if (error != READSTAT_OK) {
+            return error;
+        }
+        if (characteristic->variable && strlen(characteristic->variable) >= ctx->ch_metadata_len) {
+            return READSTAT_ERROR_NAME_IS_TOO_LONG;
+        }
+        error = dta_validate_note(ctx, characteristic->values[0]);
+        if (error != READSTAT_OK) {
+            return error;
+        }
+        /* Raw note characteristics and the note API must not emit the same
+         * dataset note twice. DDIwR prefers the raw imported characteristics. */
+        if (!characteristic->variable && writer->notes_count > 0 &&
+                !strncmp(characteristic->name, "note", 4)) {
+            char *end;
+            strtol(characteristic->name + 4, &end, 10);
+            if (end != characteristic->name + 4 && !*end) {
+                return READSTAT_ERROR_PARSE;
+            }
+        }
     }
 
     return READSTAT_OK;

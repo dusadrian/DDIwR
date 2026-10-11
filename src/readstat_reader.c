@@ -10,6 +10,7 @@
 
 #include "readstat.h"
 #include "spss_attributes.h"
+#include "stata_characteristics.h"
 #include "declared_types.h"
 #include "tagged_na.h"
 
@@ -61,6 +62,7 @@ typedef struct {
     size_t notes_n;
     size_t notes_cap;
     readstat_attribute_t *spss_attributes;
+    readstat_attribute_t *stata_characteristics;
 } ReaderCtx;
 
 static char *str_dup(const char *x) {
@@ -218,6 +220,7 @@ static void reader_ctx_init(ReaderCtx *ctx, FileExt ext, int user_na, SEXP cols_
 
 static void reader_ctx_free(ReaderCtx *ctx) {
     readstat_attributes_free(ctx->spss_attributes);
+    readstat_attributes_free(ctx->stata_characteristics);
     size_t i;
     size_t j;
     if (ctx->cols_skip != NULL) {
@@ -357,6 +360,14 @@ static int reader_metadata(readstat_metadata_t *metadata, void *ctx_) {
     }
 
     return READSTAT_HANDLER_OK;
+}
+
+static int reader_characteristic(const readstat_variable_t *variable,
+        const char *name, const char *value, void *ctx_) {
+    ReaderCtx *ctx = (ReaderCtx *)ctx_;
+    return readstat_characteristic_add(&ctx->stata_characteristics,
+            variable ? variable->name : NULL, name, value) == READSTAT_OK ?
+        READSTAT_HANDLER_OK : READSTAT_HANDLER_ABORT;
 }
 
 static int reader_note(int note_index, const char *note, void *ctx_) {
@@ -710,6 +721,7 @@ static SEXP finalize_output(ReaderCtx *ctx) {
 
     Rf_setAttrib(ctx->output, R_NamesSymbol, ctx->names);
     ddiwr_attach_spss_attributes(ctx->output, ctx->names, ctx->spss_attributes);
+    ddiwr_attach_stata_characteristics(ctx->output, ctx->names, ctx->stata_characteristics);
     PROTECT(row_names = Rf_allocVector(INTSXP, 2));
     INTEGER(row_names)[0] = NA_INTEGER;
     INTEGER(row_names)[1] = -(int) ctx->nrows;
@@ -725,6 +737,7 @@ static readstat_parser_t *init_parser(void) {
     readstat_parser_t *parser = readstat_parser_init();
     readstat_set_metadata_handler(parser, reader_metadata);
     readstat_set_note_handler(parser, reader_note);
+    readstat_set_characteristic_handler(parser, reader_characteristic);
     readstat_set_variable_handler(parser, reader_variable);
     readstat_set_value_handler(parser, reader_value);
     readstat_set_value_label_handler(parser, reader_value_label);

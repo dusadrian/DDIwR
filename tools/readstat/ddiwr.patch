@@ -1,14 +1,14 @@
 diff --git a/readstat.h b/readstat.h
-index aaafd7d..3709846 100644
+index aaafd7d..942e9bb 100644
 --- a/readstat.h
 +++ b/readstat.h
-@@ -127,6 +127,23 @@ typedef struct mr_set_s {
+@@ -127,6 +127,25 @@ typedef struct mr_set_s {
      int    label_from_var_label; /* subtype 19 sets with LABELSOURCE=VARLABEL */
  } mr_set_t;
  
-+/* SPSS custom attributes. NULL variable denotes dataset scope. Values are
-+ * ordered strings; even a scalar attribute has one value. Parser-owned data
-+ * is valid only during the metadata callback. */
++/* Named metadata. NULL variable denotes dataset scope. SPSS attributes hold
++ * ordered string arrays; Stata characteristics hold a single string.
++ * Parser-owned SPSS metadata is valid only during the metadata callback. */
 +typedef struct readstat_attribute_s {
 +    char *variable;
 +    char *name;
@@ -22,11 +22,13 @@ index aaafd7d..3709846 100644
 +readstat_error_t readstat_attributes_copy(readstat_attribute_t **dest,
 +        const readstat_attribute_t *source);
 +void readstat_attributes_free(readstat_attribute_t *attributes);
++readstat_error_t readstat_characteristic_add(readstat_attribute_t **characteristics,
++        const char *variable, const char *name, const char *value);
 +
  typedef struct readstat_metadata_s {
      int64_t     row_count;
      int64_t     var_count;
-@@ -141,6 +158,7 @@ typedef struct readstat_metadata_s {
+@@ -141,6 +160,7 @@ typedef struct readstat_metadata_s {
      unsigned int is64bit:1;
      size_t multiple_response_sets_length;
      mr_set_t *mr_sets;
@@ -34,16 +36,45 @@ index aaafd7d..3709846 100644
  } readstat_metadata_t;
  
  /* If the row count is unknown (e.g. it's an XPORT or POR file, or an SAV
-@@ -503,6 +521,8 @@ typedef struct readstat_writer_s {
+@@ -313,6 +333,10 @@ readstat_value_t readstat_variable_get_missing_range_hi(const readstat_variable_
+  */
+ typedef int (*readstat_metadata_handler)(readstat_metadata_t *metadata, void *ctx);
+ typedef int (*readstat_note_handler)(int note_index, const char *note, void *ctx);
++/* Stata characteristics are delivered after the variable callbacks. NULL
++ * variable denotes _dta. Name and value are valid only during this callback. */
++typedef int (*readstat_characteristic_handler)(const readstat_variable_t *variable,
++        const char *name, const char *value, void *ctx);
+ typedef int (*readstat_variable_handler)(int index, readstat_variable_t *variable, 
+         const char *val_labels, void *ctx);
+ typedef int (*readstat_fweight_handler)(readstat_variable_t *variable, void *ctx);
+@@ -366,6 +390,7 @@ typedef struct readstat_callbacks_s {
+     readstat_value_label_handler   value_label;
+     readstat_error_handler         error;
+     readstat_progress_handler      progress;
++    readstat_characteristic_handler characteristic;
+ } readstat_callbacks_t;
+ 
+ typedef struct readstat_parser_s {
+@@ -383,6 +408,8 @@ void readstat_io_free(readstat_io_t *io);
+ 
+ readstat_error_t readstat_set_metadata_handler(readstat_parser_t *parser, readstat_metadata_handler metadata_handler);
+ readstat_error_t readstat_set_note_handler(readstat_parser_t *parser, readstat_note_handler note_handler);
++readstat_error_t readstat_set_characteristic_handler(readstat_parser_t *parser,
++        readstat_characteristic_handler characteristic_handler);
+ readstat_error_t readstat_set_variable_handler(readstat_parser_t *parser, readstat_variable_handler variable_handler);
+ readstat_error_t readstat_set_fweight_handler(readstat_parser_t *parser, readstat_fweight_handler fweight_handler);
+ readstat_error_t readstat_set_value_handler(readstat_parser_t *parser, readstat_value_handler value_handler);
+@@ -503,6 +530,9 @@ typedef struct readstat_writer_s {
      long                        notes_count;
      long                        notes_capacity;
  
 +    readstat_attribute_t        *spss_attributes;
++    readstat_attribute_t        *stata_characteristics;
 +
      readstat_string_ref_t    **string_refs;
      long                       string_refs_count;
      long                       string_refs_capacity;
-@@ -573,6 +593,11 @@ readstat_variable_t *readstat_get_variable(readstat_writer_t *writer, int index)
+@@ -573,6 +603,14 @@ readstat_variable_t *readstat_get_variable(readstat_writer_t *writer, int index)
  // produce a write error if a note is longer than this limit.
  void readstat_add_note(readstat_writer_t *writer, const char *note);
  
@@ -51,6 +82,9 @@ index aaafd7d..3709846 100644
 +readstat_error_t readstat_writer_add_spss_attribute(readstat_writer_t *writer,
 +        const readstat_variable_t *variable, const char *name,
 +        const char *const *values, size_t count);
++/* Register a case-sensitive Stata characteristic before the first row. */
++readstat_error_t readstat_writer_add_characteristic(readstat_writer_t *writer,
++        const readstat_variable_t *variable, const char *name, const char *value);
 +
  // String refs are used for creating a READSTAT_TYPE_STRING_REF column,
  // which is only supported in Stata. String references can be shared
@@ -75,8 +109,25 @@ index 38fb981..1327fc8 100644
  #endif
  
  typedef ICONV_CONST char ** readstat_iconv_inbuf_t;
+diff --git a/readstat_parser.c b/readstat_parser.c
+index e5c4625..d4a40c9 100644
+--- a/readstat_parser.c
++++ b/readstat_parser.c
+@@ -34,6 +34,12 @@ readstat_error_t readstat_set_note_handler(readstat_parser_t *parser, readstat_n
+     return READSTAT_OK;
+ }
+ 
++readstat_error_t readstat_set_characteristic_handler(readstat_parser_t *parser,
++        readstat_characteristic_handler characteristic_handler) {
++    parser->handlers.characteristic = characteristic_handler;
++    return READSTAT_OK;
++}
++
+ readstat_error_t readstat_set_variable_handler(readstat_parser_t *parser, readstat_variable_handler variable_handler) {
+     parser->handlers.variable = variable_handler;
+     return READSTAT_OK;
 diff --git a/readstat_writer.c b/readstat_writer.c
-index 9777e2a..e7d0e2f 100644
+index 9777e2a..6af825c 100644
 --- a/readstat_writer.c
 +++ b/readstat_writer.c
 @@ -1,8 +1,10 @@
@@ -90,7 +141,7 @@ index 9777e2a..e7d0e2f 100644
  
  #define VARIABLES_INITIAL_CAPACITY    50
  #define LABEL_SETS_INITIAL_CAPACITY   50
-@@ -11,6 +13,108 @@
+@@ -11,6 +13,141 @@
  #define STRING_REFS_INITIAL_CAPACITY 100
  #define LABEL_SET_VARIABLES_INITIAL_CAPACITY 2
  
@@ -109,8 +160,9 @@ index 9777e2a..e7d0e2f 100644
 +    }
 +}
 +
-+readstat_error_t readstat_attribute_add(readstat_attribute_t **attributes,
-+        const char *variable, const char *name, const char *const *values, size_t count) {
++static readstat_error_t readstat_attribute_add_impl(readstat_attribute_t **attributes,
++        const char *variable, const char *name, const char *const *values, size_t count,
++        int case_sensitive) {
 +    readstat_attribute_t *attribute;
 +    readstat_attribute_t **tail = attributes;
 +    size_t i;
@@ -118,9 +170,11 @@ index 9777e2a..e7d0e2f 100644
 +        return READSTAT_ERROR_PARSE;
 +    }
 +    while (*tail) {
++        int same_variable = variable && (*tail)->variable &&
++            (case_sensitive ? !strcmp(variable, (*tail)->variable) : !strcasecmp(variable, (*tail)->variable));
++        int same_name = case_sensitive ? !strcmp(name, (*tail)->name) : !strcasecmp(name, (*tail)->name);
 +        if (((variable == NULL && (*tail)->variable == NULL) ||
-+                (variable && (*tail)->variable && !strcasecmp(variable, (*tail)->variable))) &&
-+                !strcasecmp(name, (*tail)->name)) {
++                same_variable) && same_name) {
 +            return READSTAT_ERROR_PARSE;
 +        }
 +        tail = &(*tail)->next;
@@ -150,6 +204,36 @@ index 9777e2a..e7d0e2f 100644
 +    }
 +    *tail = attribute;
 +    return READSTAT_OK;
++}
++
++readstat_error_t readstat_attribute_add(readstat_attribute_t **attributes,
++        const char *variable, const char *name, const char *const *values, size_t count) {
++    return readstat_attribute_add_impl(attributes, variable, name, values, count, 0);
++}
++
++readstat_error_t readstat_characteristic_add(readstat_attribute_t **characteristics,
++        const char *variable, const char *name, const char *value) {
++    return readstat_attribute_add_impl(characteristics, variable, name, &value, 1, 1);
++}
++
++readstat_error_t readstat_writer_add_characteristic(readstat_writer_t *writer,
++        const readstat_variable_t *variable, const char *name, const char *value) {
++    if (writer->current_row || writer->row) {
++        return READSTAT_ERROR_PARSE;
++    }
++    if (variable) {
++        long i;
++        for (i = 0; i < writer->variables_count; i++) {
++            if (variable == writer->variables[i]) {
++                break;
++            }
++        }
++        if (i == writer->variables_count) {
++            return READSTAT_ERROR_PARSE;
++        }
++    }
++    return readstat_characteristic_add(&writer->stata_characteristics,
++            variable ? variable->name : NULL, name, value);
 +}
 +
 +readstat_error_t readstat_attributes_copy(readstat_attribute_t **dest,
@@ -199,11 +283,12 @@ index 9777e2a..e7d0e2f 100644
  static readstat_error_t readstat_write_row_default_callback(void *writer_ctx, void *bytes, size_t len) {
      return readstat_write_bytes((readstat_writer_t *)writer_ctx, bytes, len);
  }
-@@ -163,6 +267,7 @@ cleanup:
+@@ -163,6 +300,8 @@ cleanup:
  void readstat_writer_free(readstat_writer_t *writer) {
      int i;
      if (writer) {
 +        readstat_attributes_free(writer->spss_attributes);
++        readstat_attributes_free(writer->stata_characteristics);
          if (writer->callbacks.module_ctx_free && writer->module_ctx) {
              writer->callbacks.module_ctx_free(writer->module_ctx);
          }
@@ -822,10 +907,122 @@ index 61e2bf8..f007f1f 100644
 +void dta_prepared_free(ddiwr_dta_prepared_t *prepared);
 +const char *dta_lookup_string_ref(dta_ctx_t *ctx, const unsigned char *bytes);
 diff --git a/stata/readstat_dta_read.c b/stata/readstat_dta_read.c
-index 210d4f9..fa6016e 100644
+index 210d4f9..8c024e0 100644
 --- a/stata/readstat_dta_read.c
 +++ b/stata/readstat_dta_read.c
-@@ -1395,3 +1395,181 @@ cleanup:
+@@ -7,6 +7,7 @@
+ #include <stdint.h>
+ #include <string.h>
+ #include <inttypes.h>
++#include <limits.h>
+ #include <sys/types.h>
+ 
+ #include "../readstat.h"
+@@ -194,7 +195,7 @@ static readstat_error_t dta_read_expansion_fields(dta_ctx_t *ctx) {
+     if (ctx->expansion_len_len == 0)
+         return READSTAT_OK;
+ 
+-    if (ctx->file_is_xmlish && !ctx->handle.note) {
++    if (ctx->file_is_xmlish && !ctx->handle.note && !ctx->handle.characteristic) {
+         if (io->seek(ctx->data_offset, READSTAT_SEEK_SET, io->io_ctx) == -1) {
+             if (ctx->handle.error) {
+                 snprintf(ctx->error_buf, sizeof(ctx->error_buf),
+@@ -263,7 +264,17 @@ static readstat_error_t dta_read_expansion_fields(dta_ctx_t *ctx) {
+             goto cleanup;
+         }
+ 
+-        if (data_type == 1 && ctx->handle.note && len >= 2 * ctx->ch_metadata_len) {
++        if (data_type == 1 && (ctx->handle.note || ctx->handle.characteristic)) {
++            char scope[4 * 129 + 1];
++            char name[4 * 129 + 1];
++            const readstat_variable_t *variable = NULL;
++            const char *value;
++            size_t value_len;
++            int i;
++            if (len < 2 * ctx->ch_metadata_len + 1) {
++                retval = READSTAT_ERROR_PARSE;
++                goto cleanup;
++            }
+             if ((buffer = readstat_realloc(buffer, len + 1)) == NULL) {
+                 retval = READSTAT_ERROR_MALLOC;
+                 goto cleanup;
+@@ -274,21 +285,62 @@ static readstat_error_t dta_read_expansion_fields(dta_ctx_t *ctx) {
+                 retval = READSTAT_ERROR_READ;
+                 goto cleanup;
+             }
+-            int index = 0;
+-            /* _dta[note0] holds the number of notes, not a note */
+-            if (strcmp(&buffer[0], "_dta") == 0 &&
+-                    sscanf(&buffer[ctx->ch_metadata_len], "note%d", &index) == 1 && index > 0) {
+-                const char *note = &buffer[2*ctx->ch_metadata_len];
+-                size_t note_len = strlen(note);
+-                if ((note_buffer = readstat_realloc(note_buffer, 4*note_len+1)) == NULL) {
+-                    retval = READSTAT_ERROR_MALLOC;
+-                    goto cleanup;
++            value = &buffer[2 * ctx->ch_metadata_len];
++            value_len = len - 2 * ctx->ch_metadata_len;
++            if (!memchr(buffer, '\0', ctx->ch_metadata_len) || !buffer[0] ||
++                    !memchr(buffer + ctx->ch_metadata_len, '\0', ctx->ch_metadata_len) ||
++                    !buffer[ctx->ch_metadata_len] || value[value_len - 1] != '\0' ||
++                    memchr(value, '\0', value_len - 1)) {
++                retval = READSTAT_ERROR_PARSE;
++                goto cleanup;
++            }
++            retval = readstat_convert_notrim(scope, sizeof(scope), buffer, strlen(buffer), ctx->converter);
++            if (retval != READSTAT_OK) {
++                goto cleanup;
++            }
++            retval = readstat_convert_notrim(name, sizeof(name), buffer + ctx->ch_metadata_len,
++                    strlen(buffer + ctx->ch_metadata_len), ctx->converter);
++            if (retval != READSTAT_OK) {
++                goto cleanup;
++            }
++            if ((note_buffer = readstat_realloc(note_buffer, 4 * value_len + 1)) == NULL) {
++                retval = READSTAT_ERROR_MALLOC;
++                goto cleanup;
++            }
++            retval = readstat_convert_notrim(note_buffer, 4 * value_len + 1,
++                    value, value_len - 1, ctx->converter);
++            if (retval != READSTAT_OK) {
++                goto cleanup;
++            }
++            if (strcmp(scope, "_dta")) {
++                for (i = 0; i < ctx->nvar; i++) {
++                    if (!strcmp(scope, ctx->variables[i]->name)) {
++                        variable = ctx->variables[i];
++                        break;
++                    }
+                 }
+-                retval = readstat_convert(note_buffer, 4*note_len+1, note, note_len, ctx->converter);
+-                if (retval != READSTAT_OK)
++                if (!variable) {
++                    retval = READSTAT_ERROR_PARSE;
+                     goto cleanup;
+-
+-                if (ctx->handle.note(index, note_buffer, ctx->user_ctx) != READSTAT_HANDLER_OK) {
++                }
++            }
++            if (ctx->handle.characteristic && ctx->handle.characteristic(variable, name,
++                    note_buffer, ctx->user_ctx) != READSTAT_HANDLER_OK) {
++                retval = READSTAT_ERROR_USER_ABORT;
++                goto cleanup;
++            }
++            /* Expose actual dataset notes through the existing note callback
++             * too, while preserving the complete characteristic separately. */
++            if (!variable && ctx->handle.note && !strncmp(name, "note", 4) &&
++                    name[4] >= '1' && name[4] <= '9') {
++                char *end;
++                long index = strtol(name + 4, &end, 10);
++                size_t note_len = strlen(note_buffer);
++                while (note_len && note_buffer[note_len - 1] == ' ') {
++                    note_buffer[--note_len] = '\0';
++                }
++                if (!*end && index <= INT_MAX &&
++                        ctx->handle.note((int)index, note_buffer, ctx->user_ctx) != READSTAT_HANDLER_OK) {
+                     retval = READSTAT_ERROR_USER_ABORT;
+                     goto cleanup;
+                 }
+@@ -1395,3 +1447,181 @@ cleanup:
  
      return retval;
  }
@@ -1007,3 +1204,139 @@ index 210d4f9..fa6016e 100644
 +
 +    return NULL;
 +}
+diff --git a/stata/readstat_dta_write.c b/stata/readstat_dta_write.c
+index b73b848..ba06405 100644
+--- a/stata/readstat_dta_write.c
++++ b/stata/readstat_dta_write.c
+@@ -42,7 +42,7 @@
+  * store them as UTF-8 in a 321-byte field. */
+ #define DTA_MAX_LABEL_CHARS       80
+ 
+-/* Stata refuses notes longer than this many bytes */
++/* Stata's characteristic contents limit includes the terminating NUL. */
+ #define DTA_MAX_NOTE_LEN       67784
+ 
+ /* Stata's smallest non-missing integers. The largest are in readstat_dta.h;
+@@ -618,7 +618,7 @@ static void dta_note_count_string(readstat_writer_t *writer, char *buffer, size_
+ }
+ 
+ static readstat_error_t dta_emit_characteristic(readstat_writer_t *writer, dta_ctx_t *ctx,
+-        char *buffer, const char *name, const char *contents) {
++        char *buffer, const char *scope, const char *name, const char *contents) {
+     readstat_error_t error = READSTAT_OK;
+     size_t len = strlen(contents);
+ 
+@@ -642,7 +642,7 @@ static readstat_error_t dta_emit_characteristic(readstat_writer_t *writer, dta_c
+         goto cleanup;
+ 
+     memset(buffer, '\0', ctx->ch_metadata_len);
+-    strncpy(buffer, "_dta", ctx->ch_metadata_len - 1);
++    strncpy(buffer, scope, ctx->ch_metadata_len - 1);
+ 
+     error = readstat_write_bytes(writer, buffer, ctx->ch_metadata_len);
+     if (error != READSTAT_OK)
+@@ -671,6 +671,7 @@ static readstat_error_t dta_emit_characteristics(readstat_writer_t *writer, dta_
+     char *buffer = NULL;
+     char name[32];
+     char count[32];
++    const readstat_attribute_t *characteristic;
+ 
+     if (ctx->expansion_len_len == 0)
+         return READSTAT_OK;
+@@ -683,16 +684,25 @@ static readstat_error_t dta_emit_characteristics(readstat_writer_t *writer, dta_
+ 
+     if (writer->notes_count > 0) {
+         dta_note_count_string(writer, count, sizeof(count));
+-        if ((error = dta_emit_characteristic(writer, ctx, buffer, "note0", count)) != READSTAT_OK)
++        if ((error = dta_emit_characteristic(writer, ctx, buffer, "_dta", "note0", count)) != READSTAT_OK)
+             goto cleanup;
+     }
+ 
+     for (i=0; i<writer->notes_count; i++) {
+         snprintf(name, sizeof(name), "note%d", i+1);
+-        if ((error = dta_emit_characteristic(writer, ctx, buffer, name, writer->notes[i])) != READSTAT_OK)
++        if ((error = dta_emit_characteristic(writer, ctx, buffer, "_dta", name, writer->notes[i])) != READSTAT_OK)
+             goto cleanup;
+     }
+ 
++    for (characteristic = writer->stata_characteristics; characteristic; characteristic = characteristic->next) {
++        error = dta_emit_characteristic(writer, ctx, buffer,
++                characteristic->variable ? characteristic->variable : "_dta",
++                characteristic->name, characteristic->values[0]);
++        if (error != READSTAT_OK) {
++            goto cleanup;
++        }
++    }
++
+     if (ctx->file_is_xmlish) {
+         error = dta_write_tag(writer, ctx, "</characteristics>");
+     } else {
+@@ -1212,6 +1222,7 @@ static size_t dta_measure_characteristic(dta_ctx_t *ctx, size_t contents_len) {
+ static size_t dta_measure_characteristics(readstat_writer_t *writer, dta_ctx_t *ctx) {
+     size_t characteristics_len = 0;
+     int i;
++    const readstat_attribute_t *characteristic;
+     if (writer->notes_count > 0) {
+         char count[32];
+         dta_note_count_string(writer, count, sizeof(count));
+@@ -1220,6 +1231,9 @@ static size_t dta_measure_characteristics(readstat_writer_t *writer, dta_ctx_t *
+     for (i=0; i<writer->notes_count; i++) {
+         characteristics_len += dta_measure_characteristic(ctx, strlen(writer->notes[i]));
+     }
++    for (characteristic = writer->stata_characteristics; characteristic; characteristic = characteristic->next) {
++        characteristics_len += dta_measure_characteristic(ctx, strlen(characteristic->values[0]));
++    }
+     return (dta_measure_tag(ctx, "<characteristics>")
+             + characteristics_len
+             + dta_measure_tag(ctx, "</characteristics>"));
+@@ -1368,7 +1382,7 @@ static readstat_error_t dta_validate_label_set(readstat_writer_t *writer, dta_ct
+ 
+ static readstat_error_t dta_validate_note(dta_ctx_t *ctx, const char *note) {
+     size_t len = strlen(note);
+-    if (len > DTA_MAX_NOTE_LEN)
++    if (len >= DTA_MAX_NOTE_LEN)
+         return READSTAT_ERROR_NOTE_IS_TOO_LONG;
+ 
+     /* Formats 105 through 109 store the expansion-field length in two bytes */
+@@ -1385,6 +1399,7 @@ static readstat_error_t dta_validate_metadata(readstat_writer_t *writer, dta_ctx
+     readstat_error_t error = READSTAT_OK;
+     int unicode = (writer->version >= 118);
+     int i;
++    const readstat_attribute_t *characteristic;
+ 
+     error = dta_validate_label(writer->file_label, ctx->data_label_len, unicode);
+     if (error != READSTAT_OK)
+@@ -1417,6 +1432,33 @@ static readstat_error_t dta_validate_metadata(readstat_writer_t *writer, dta_ctx
+             return error;
+     }
+ 
++    for (characteristic = writer->stata_characteristics; characteristic; characteristic = characteristic->next) {
++        if (ctx->expansion_len_len == 0) {
++            return READSTAT_ERROR_UNSUPPORTED_FILE_FORMAT_VERSION;
++        }
++        error = dta_validate_name_length_and_chars(characteristic->name, unicode, ctx->ch_metadata_len - 1);
++        if (error != READSTAT_OK) {
++            return error;
++        }
++        if (characteristic->variable && strlen(characteristic->variable) >= ctx->ch_metadata_len) {
++            return READSTAT_ERROR_NAME_IS_TOO_LONG;
++        }
++        error = dta_validate_note(ctx, characteristic->values[0]);
++        if (error != READSTAT_OK) {
++            return error;
++        }
++        /* Raw note characteristics and the note API must not emit the same
++         * dataset note twice. DDIwR prefers the raw imported characteristics. */
++        if (!characteristic->variable && writer->notes_count > 0 &&
++                !strncmp(characteristic->name, "note", 4)) {
++            char *end;
++            strtol(characteristic->name + 4, &end, 10);
++            if (end != characteristic->name + 4 && !*end) {
++                return READSTAT_ERROR_PARSE;
++            }
++        }
++    }
++
+     return READSTAT_OK;
+ }
+ 

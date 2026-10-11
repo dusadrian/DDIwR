@@ -21,6 +21,7 @@
 
 #include "readstat.h"
 #include "spss_attributes.h"
+#include "stata_characteristics.h"
 #include "readstat_bits.h"
 #include "readstat_iconv.h"
 #include "readstat_convert.h"
@@ -85,6 +86,7 @@ typedef struct {
     int ncols;
     char *file_label;
     readstat_attribute_t *spss_attributes;
+    readstat_attribute_t *stata_characteristics;
     SCColumnSchema *cols;
     SCLabelSet *label_sets;
     size_t label_set_n;
@@ -345,6 +347,7 @@ static void sc_free_schema(SCSchema *schema) {
         return;
     }
     readstat_attributes_free(schema->spss_attributes);
+    readstat_attributes_free(schema->stata_characteristics);
     if (schema->file_label != NULL) {
         R_Free(schema->file_label);
     }
@@ -756,6 +759,14 @@ static int sc_probe_value_label_handler(const char *val_labels, readstat_value_t
     return READSTAT_HANDLER_OK;
 }
 
+static int sc_probe_characteristic_handler(const readstat_variable_t *variable,
+        const char *name, const char *value, void *ctx_) {
+    SCParseState *state = (SCParseState *)ctx_;
+    return readstat_characteristic_add(&state->schema->stata_characteristics,
+            variable ? variable->name : NULL, name, value) == READSTAT_OK ?
+        READSTAT_HANDLER_OK : READSTAT_HANDLER_ABORT;
+}
+
 static readstat_error_t sc_probe_readstat_metadata(FileExt ext, const char *path, const char *encoding, const int *cols_skip, int cols_skip_n, SCSchema *schema) {
     readstat_error_t result;
     readstat_parser_t *parser;
@@ -784,6 +795,7 @@ static readstat_error_t sc_probe_readstat_metadata(FileExt ext, const char *path
     readstat_set_metadata_handler(parser, sc_probe_metadata_handler);
     readstat_set_variable_handler(parser, sc_probe_variable_handler);
     readstat_set_value_label_handler(parser, sc_probe_value_label_handler);
+    readstat_set_characteristic_handler(parser, sc_probe_characteristic_handler);
     if (ext == DECLARED_DTA) {
         readstat_set_row_limit(parser, 1);
         result = readstat_parse_dta(parser, path, &state);
@@ -1494,6 +1506,7 @@ static SEXP sc_build_r_output(const SCSchema *schema, const SCMergedTable *merge
 
     Rf_setAttrib(output, R_NamesSymbol, names);
     ddiwr_attach_spss_attributes(output, names, schema->spss_attributes);
+    ddiwr_attach_stata_characteristics(output, names, schema->stata_characteristics);
     PROTECT(row_names = Rf_allocVector(INTSXP, 2));
     INTEGER(row_names)[0] = NA_INTEGER;
     INTEGER(row_names)[1] = -(int) merged->nrows;

@@ -60,10 +60,29 @@ as_declared <- function(data, trusted = FALSE) {
         attr(out, "format.stata") <- attr(x, "format.stata", exact = TRUE)
         attr(out, "format.sas") <- attr(x, "format.sas", exact = TRUE)
         attr(out, "spss.attributes") <- attr(x, "spss.attributes", exact = TRUE)
+        attr(out, "stata.characteristics") <- attr(x, "stata.characteristics", exact = TRUE)
         out
     })
     class(data) <- "data.frame"
     data
+}
+
+as_declared_dataset <- function(data) {
+    spss_attributes <- lapply(data, attr, which = "spss.attributes", exact = TRUE)
+    stata_characteristics <- lapply(data, attr, which = "stata.characteristics", exact = TRUE)
+
+    out <- declared::as.declared(data)
+
+    for (index in seq_along(out)) {
+        attr(out[[index]], "spss.attributes") <- spss_attributes[[index]]
+        attr(out[[index]], "stata.characteristics") <- stata_characteristics[[index]]
+    }
+
+    attr(out, "spss.attributes") <- attr(data, "spss.attributes", exact = TRUE)
+    attr(out, "stata.characteristics") <- attr(data, "stata.characteristics", exact = TRUE)
+    class(out) <- "data.frame"
+
+    return(out)
 }
 
 make_declared <- function(
@@ -89,6 +108,7 @@ make_declared <- function(
     attr(x, "format.stata") <- format_stata
     attr(x, "format.sas") <- format_sas
     attr(x, "spss.attributes") <- attr(template, "spss.attributes", exact = TRUE)
+    attr(x, "stata.characteristics") <- attr(template, "stata.characteristics", exact = TRUE)
     class(x) <- unique(c("declared", xclass))
     x
 }
@@ -120,7 +140,7 @@ plain_values <- function(x) {
     attrs[c(
         "labels", "na_values", "na_range", "label", "na_index",
         "measurement", "format.spss", "format.stata", "format.sas", "date",
-        "spss.attributes"
+        "spss.attributes", "stata.characteristics"
     )] <- NULL
 
     attributes(x) <- attrs
@@ -622,17 +642,112 @@ write_sav <- function(data, path, compress = "byte", adjust_tz = TRUE) {
     invisible(data)
 }
 
+validate_stata_characteristics <- function(data, file_format) {
+    unicode <- file_format >= 118L
+
+    validate_values <- function(values, scope) {
+        encoded <- enc2utf8(values)
+
+        if (!unicode) {
+            encoded <- iconv(encoded, from = "UTF-8", to = "windows-1252", sub = NA_character_)
+
+            if (anyNA(encoded)) {
+                stop(scope, ": Stata versions before 14 require characteristics representable in Windows-1252.", call. = FALSE)
+            }
+        }
+
+        if (any(nchar(encoded, type = "bytes") > 67783L)) {
+            stop(scope, ": Stata characteristic values cannot exceed 67783 bytes (67784 including the terminator).", call. = FALSE)
+        }
+
+        return(invisible(NULL))
+    }
+
+    validate <- function(object, scope) {
+        characteristics <- attr(object, "stata.characteristics", exact = TRUE)
+
+        if (is.null(characteristics)) {
+            return(invisible(NULL))
+        }
+
+        if (!is.list(characteristics) || is.object(characteristics)) {
+            stop(scope, ": 'stata.characteristics' must be a named list of single strings.", call. = FALSE)
+        }
+
+        if (length(characteristics) == 0L) {
+            return(invisible(NULL))
+        }
+
+        characteristic_names <- names(characteristics)
+
+        if (is.null(characteristic_names) || anyNA(characteristic_names) ||
+            any(!nzchar(characteristic_names)) || anyDuplicated(characteristic_names) > 0L) {
+            stop(scope, ": Stata characteristic names must be nonempty and unique (case sensitive).", call. = FALSE)
+        }
+
+        if (unicode) {
+            name_pattern <- "^[[:alpha:]_][[:alnum:]_]*$"
+            max_name_bytes <- 128L
+        }
+        else {
+            name_pattern <- "^[A-Za-z_][A-Za-z0-9_]*$"
+            max_name_bytes <- 32L
+        }
+
+        if (any(!grepl(name_pattern, characteristic_names)) ||
+            any(nchar(characteristic_names, type = "chars") > 32L) ||
+            any(nchar(enc2utf8(characteristic_names), type = "bytes") > max_name_bytes)) {
+            stop(scope, ": invalid Stata characteristic name (maximum 32 characters).", call. = FALSE)
+        }
+
+        for (name in characteristic_names) {
+            value <- characteristics[[name]]
+
+            if (!is.character(value) || length(value) != 1L || is.na(value)) {
+                stop(scope, ": characteristic '", name, "' must be a single non-missing string.", call. = FALSE)
+            }
+
+            validate_values(value, scope)
+        }
+
+        return(invisible(NULL))
+    }
+
+    validate(data, "Dataset")
+
+    for (name in names(data)) {
+        validate(data[[name]], paste0("Variable '", name, "'"))
+    }
+
+    characteristics <- attr(data, "stata.characteristics", exact = TRUE)
+    has_note_characteristics <- any(grepl("^note[0-9]+$", names(characteristics)))
+    notes <- attr(data, "notes", exact = TRUE)
+
+    if (!has_note_characteristics && !is.null(notes)) {
+        if (!is.character(notes) || anyNA(notes)) {
+            stop("Dataset: Stata notes must be non-missing strings.", call. = FALSE)
+        }
+
+        validate_values(notes, "Dataset notes")
+    }
+
+    return(invisible(NULL))
+}
+
 write_dta <- function(
     data, path, version = 14, label = attr(data, "label"), strl_threshold = 2045,
     adjust_tz = TRUE, dictionary = NULL
 ) {
+    file_format <- stata_file_format(version)
+    validate_stata_characteristics(data, file_format)
+
     data_out <- if (isTRUE(adjust_tz)) adjust_tz(data) else data
     data_out <- as_declared(data_out)
     invisible(.Call(
         "declared_write_dta_",
         data_out,
         normalizePath(path, mustWork = FALSE),
-        stata_file_format(version),
+        file_format,
         label,
         as.integer(strl_threshold),
         dictionary,

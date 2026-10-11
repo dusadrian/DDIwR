@@ -28,7 +28,7 @@ VendoredSHA256: 667881da6f75656bce1991314d688c721923e6efd76f7468e135b41a92e7bfa7
 File: readstat.h
 Source: src/readstat.h
 UpstreamSHA256: e28624d134fc33cf4fed7e69db3a5efd11b9ca8ef32d0e4dc64443822426cca9
-VendoredSHA256: 9857539d4fe19e70ada3d821042c0b3875d906f327bd88b009cf7dee91a18553
+VendoredSHA256: b0301e6cc977536b7e2e4ededac594b0ac7142db40844ce34876942b1b81e799
 
 File: readstat_bits.c
 Source: src/readstat_bits.c
@@ -88,7 +88,7 @@ VendoredSHA256: 38f71d04aa9e333fa567ea994595732a2501d20dfc452be28842f044ff22b744
 File: readstat_parser.c
 Source: src/readstat_parser.c
 UpstreamSHA256: 0b63fcfe7208cad4500dae89b529ce829be327398b05eb350ce250780a437d35
-VendoredSHA256: 0b63fcfe7208cad4500dae89b529ce829be327398b05eb350ce250780a437d35
+VendoredSHA256: b51920d89f87896f86027fded4b69d8f5640eedcb9f0ebd91d488b82fafe7d98
 
 File: readstat_strings.h
 Source: src/readstat_strings.h
@@ -108,7 +108,7 @@ VendoredSHA256: cbb71938a8ff314ad78c1252e7f82e445e9370d8b1b90c9884fc78bf6aea8adb
 File: readstat_writer.c
 Source: src/readstat_writer.c
 UpstreamSHA256: 38b0aff1d9d8e4797807a6c9fb4dca8220aec15c6e8836467cb8c145c344a3d8
-VendoredSHA256: 05e5bb6f60a088cb4cad8ae5c119354baa369fc86fa5bc151ad67ca1c4483499
+VendoredSHA256: 8135246d102ea9cfce0f17687d383865ff0502999f967d1130b709df88d8fda5
 
 File: readstat_writer.h
 Source: src/readstat_writer.h
@@ -388,12 +388,12 @@ VendoredSHA256: 3781fefd222e13b1cfa1877961e0ba78fee27f3672bd5504c0fbe386bc1ee079
 File: stata/readstat_dta_read.c
 Source: src/stata/readstat_dta_read.c
 UpstreamSHA256: 1f81328da7d8f9ce4a9ded6a1ce0a680761cb6a0fc7e53c8b0cd31709566fa31
-VendoredSHA256: 2b02d161c31b8dac3e626d3dc25213b5e7ce78d160cb22596f6839dd6800e256
+VendoredSHA256: 9c1948b6e5eeb3be2d830c0b0a5ea23595379b474bf62db03a071e6d2269e374
 
 File: stata/readstat_dta_write.c
 Source: src/stata/readstat_dta_write.c
 UpstreamSHA256: 592e0ca524117d3e281b9af8610af2cc172121ae27a94c47fad77df526b43977
-VendoredSHA256: 592e0ca524117d3e281b9af8610af2cc172121ae27a94c47fad77df526b43977
+VendoredSHA256: 8832b75f3f1a483515649bbf5b394d1ea4040060dda93b5dde6fdbd5ff413c5f
 
 File: txt/commands_util.c
 Source: src/txt/commands_util.c

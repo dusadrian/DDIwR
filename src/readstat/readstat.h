@@ -127,9 +127,9 @@ typedef struct mr_set_s {
     int    label_from_var_label; /* subtype 19 sets with LABELSOURCE=VARLABEL */
 } mr_set_t;
 
-/* SPSS custom attributes. NULL variable denotes dataset scope. Values are
- * ordered strings; even a scalar attribute has one value. Parser-owned data
- * is valid only during the metadata callback. */
+/* Named metadata. NULL variable denotes dataset scope. SPSS attributes hold
+ * ordered string arrays; Stata characteristics hold a single string.
+ * Parser-owned SPSS metadata is valid only during the metadata callback. */
 typedef struct readstat_attribute_s {
     char *variable;
     char *name;
@@ -143,6 +143,8 @@ readstat_error_t readstat_attribute_add(readstat_attribute_t **attributes,
 readstat_error_t readstat_attributes_copy(readstat_attribute_t **dest,
         const readstat_attribute_t *source);
 void readstat_attributes_free(readstat_attribute_t *attributes);
+readstat_error_t readstat_characteristic_add(readstat_attribute_t **characteristics,
+        const char *variable, const char *name, const char *value);
 
 typedef struct readstat_metadata_s {
     int64_t     row_count;
@@ -331,6 +333,10 @@ readstat_value_t readstat_variable_get_missing_range_hi(const readstat_variable_
  */
 typedef int (*readstat_metadata_handler)(readstat_metadata_t *metadata, void *ctx);
 typedef int (*readstat_note_handler)(int note_index, const char *note, void *ctx);
+/* Stata characteristics are delivered after the variable callbacks. NULL
+ * variable denotes _dta. Name and value are valid only during this callback. */
+typedef int (*readstat_characteristic_handler)(const readstat_variable_t *variable,
+        const char *name, const char *value, void *ctx);
 typedef int (*readstat_variable_handler)(int index, readstat_variable_t *variable, 
         const char *val_labels, void *ctx);
 typedef int (*readstat_fweight_handler)(readstat_variable_t *variable, void *ctx);
@@ -384,6 +390,7 @@ typedef struct readstat_callbacks_s {
     readstat_value_label_handler   value_label;
     readstat_error_handler         error;
     readstat_progress_handler      progress;
+    readstat_characteristic_handler characteristic;
 } readstat_callbacks_t;
 
 typedef struct readstat_parser_s {
@@ -401,6 +408,8 @@ void readstat_io_free(readstat_io_t *io);
 
 readstat_error_t readstat_set_metadata_handler(readstat_parser_t *parser, readstat_metadata_handler metadata_handler);
 readstat_error_t readstat_set_note_handler(readstat_parser_t *parser, readstat_note_handler note_handler);
+readstat_error_t readstat_set_characteristic_handler(readstat_parser_t *parser,
+        readstat_characteristic_handler characteristic_handler);
 readstat_error_t readstat_set_variable_handler(readstat_parser_t *parser, readstat_variable_handler variable_handler);
 readstat_error_t readstat_set_fweight_handler(readstat_parser_t *parser, readstat_fweight_handler fweight_handler);
 readstat_error_t readstat_set_value_handler(readstat_parser_t *parser, readstat_value_handler value_handler);
@@ -522,6 +531,7 @@ typedef struct readstat_writer_s {
     long                        notes_capacity;
 
     readstat_attribute_t        *spss_attributes;
+    readstat_attribute_t        *stata_characteristics;
 
     readstat_string_ref_t    **string_refs;
     long                       string_refs_count;
@@ -597,6 +607,9 @@ void readstat_add_note(readstat_writer_t *writer, const char *note);
 readstat_error_t readstat_writer_add_spss_attribute(readstat_writer_t *writer,
         const readstat_variable_t *variable, const char *name,
         const char *const *values, size_t count);
+/* Register a case-sensitive Stata characteristic before the first row. */
+readstat_error_t readstat_writer_add_characteristic(readstat_writer_t *writer,
+        const readstat_variable_t *variable, const char *name, const char *value);
 
 // String refs are used for creating a READSTAT_TYPE_STRING_REF column,
 // which is only supported in Stata. String references can be shared

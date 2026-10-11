@@ -34,6 +34,12 @@ readstat_error_t readstat_set_note_handler(readstat_parser_t *parser, readstat_n
     return READSTAT_OK;
 }
 
+readstat_error_t readstat_set_characteristic_handler(readstat_parser_t *parser,
+        readstat_characteristic_handler characteristic_handler) {
+    parser->handlers.characteristic = characteristic_handler;
+    return READSTAT_OK;
+}
+
 readstat_error_t readstat_set_variable_handler(readstat_parser_t *parser, readstat_variable_handler variable_handler) {
     parser->handlers.variable = variable_handler;
     return READSTAT_OK;
