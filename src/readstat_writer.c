@@ -368,6 +368,10 @@ static void init_foreign_missing_map(ForeignMissingMap *map, SEXP x) {
         return;
     }
 
+    if (n_codes > 26) {
+        Rf_error("Cannot export more than 26 distinct missing value codes in one variable to Stata or SAS.");
+    }
+
     qsort(codes, (size_t) n_codes, sizeof(double), foreign_map_entry_cmp_desc);
 
     map->entries = (ForeignMissingCode *) R_Calloc((size_t) n_codes, ForeignMissingCode);
@@ -581,15 +585,23 @@ static void ensure_string_ref_capacity(WriterCtx *ctx) {
 
 static readstat_string_ref_t *get_or_create_string_ref(WriterCtx *ctx, const char *value) {
     size_t i;
+    readstat_string_ref_t *reference;
+
     for (i = 0; i < ctx->string_ref_n; ++i) {
         if (strcmp(ctx->string_refs[i].value, value) == 0) {
             return ctx->string_refs[i].ref;
         }
     }
+
+    reference = readstat_add_string_ref(ctx->writer, value);
+    if (reference == NULL) {
+        Rf_error("Failed to register a Stata string reference before writing data.");
+    }
+
     ensure_string_ref_capacity(ctx);
     ctx->string_refs[ctx->string_ref_n].value = (char *) R_Calloc(strlen(value) + 1, char);
     strcpy(ctx->string_refs[ctx->string_ref_n].value, value);
-    ctx->string_refs[ctx->string_ref_n].ref = readstat_add_string_ref(ctx->writer, value);
+    ctx->string_refs[ctx->string_ref_n].ref = reference;
     ctx->string_ref_n++;
     return ctx->string_refs[ctx->string_ref_n - 1].ref;
 }
@@ -900,25 +912,45 @@ static readstat_error_t define_variable_double(WriterCtx *ctx, SEXP x, const cha
 
 static readstat_error_t define_variable_string(WriterCtx *ctx, SEXP x, const char *name) {
     readstat_label_set_t *label_set = build_string_label_set(ctx, x, name);
+    SEXP missing_codes = Rf_getAttrib(Rf_getAttrib(x, Rf_install("na_index")), R_NamesSymbol);
     int user_width = scalar_int_attr(x, "width");
     int max_length = 1;
     readstat_variable_t *var;
     R_xlen_t i;
 
-    if (user_width <= 0) {
-        for (i = 0; i < Rf_xlength(x); ++i) {
-            int length = string_len_missing(x, i);
-            if (length > max_length) {
-                max_length = length;
-            }
+    for (i = 0; i < Rf_xlength(x); ++i) {
+        int length = string_len_missing(x, i);
+        if (length > max_length) {
+            max_length = length;
         }
-        if (user_width < max_length) {
-            user_width = max_length;
+    }
+
+    /* Missing codes are restored during export and must fit the declared width. */
+    for (i = 0; i < Rf_xlength(missing_codes); ++i) {
+        int length = string_len_missing(missing_codes, i);
+        if (length > max_length) {
+            max_length = length;
         }
+    }
+
+    if (user_width < max_length) {
+        user_width = max_length;
     }
 
     if (ctx->ext == DECLARED_DTA && ctx->version >= 117 && user_width > ctx->strl_threshold) {
         var = readstat_add_variable(ctx->writer, name, READSTAT_TYPE_STRING_REF, user_width);
+
+        /* Upstream measures strL records before writing the first data row. */
+        for (i = 0; i < Rf_xlength(x); ++i) {
+            if (!string_is_missing(x, i)) {
+                get_or_create_string_ref(ctx, string_utf8_elt(x, i));
+            }
+        }
+        for (i = 0; i < Rf_xlength(missing_codes); ++i) {
+            if (!string_is_missing(missing_codes, i)) {
+                get_or_create_string_ref(ctx, string_utf8_elt(missing_codes, i));
+            }
+        }
     } else {
         var = readstat_add_variable(ctx->writer, name, READSTAT_TYPE_STRING, user_width);
     }

@@ -1,3 +1,6 @@
+Version 0.23
+  o update to the latest version of ReadStat
+
 Version 0.22
   o added reusable metadata sweep sessions via metadataSweepCapture(),
     metadataSweepRead(), metadataSweepInvalidate() and metadataSweepClose()

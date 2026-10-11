@@ -266,20 +266,24 @@ test_that("convert() allows disabling harmonized Stata export", {
   expect_equal(unname(attr(imported$B, "labels", exact = TRUE)), c(1, -91, -92))
 })
 
-test_that("convert() falls back to per-variable recoding when harmonized Stata export overflows", {
-  manymissings <- seq(-950, -91)
-  exported <- data.frame(
-    A = declared(
-      c(1:5, manymissings),
-      labels = c(Good = 1, Bad = 5, setNames(manymissings, paste0("NR", manymissings))),
-      na_range = c(-950, -91)
+test_that("convert() rejects missing-code overflow within a Stata variable", {
+    manymissings <- seq(-117, -91)
+    exported <- data.frame(
+        A = declared(
+            c(1:5, manymissings),
+            labels = c(Good = 1, Bad = 5, setNames(manymissings, paste0("NR", manymissings))),
+            na_range = c(-950, -91)
+        )
     )
-  )
-  dta_file <- tempfile(fileext = ".dta")
-  on.exit(unlink(dta_file), add = TRUE)
+    dta_file <- tempfile(fileext = ".dta")
+    on.exit(unlink(dta_file), add = TRUE)
 
-  expect_message(
-    convert(exported, to = dta_file, harmonize = TRUE),
-    "Too many overall missing values for harmonized STATA recoding"
-  )
+    expect_message(
+        expect_error(
+            convert(exported, to = dta_file, harmonize = TRUE),
+            "Cannot export more than 26 distinct missing value codes in one variable",
+            fixed = TRUE
+        ),
+        "Too many overall missing values for harmonized STATA recoding"
+    )
 })

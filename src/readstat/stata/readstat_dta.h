@@ -45,7 +45,7 @@ typedef struct dta_118_strl_header_s {
 #pragma pack(pop)
 
 typedef struct dta_strl_s {
-    uint16_t        v;
+    uint32_t        v;
     uint64_t        o;
     unsigned char   type;
     size_t          len;
@@ -181,6 +181,7 @@ typedef struct dta_ctx_s {
 #define DTA_OLD_TYPE_CODE_FLOAT    'f'
 #define DTA_OLD_TYPE_CODE_DOUBLE   'd'
 
+int dta_format_is_supported(int ds_format);
 dta_ctx_t *dta_ctx_alloc(readstat_io_t *io);
 readstat_error_t dta_ctx_init(dta_ctx_t *ctx, uint32_t nvar, uint64_t nobs, 
         unsigned char byteorder, unsigned char ds_format,
@@ -198,3 +199,4 @@ typedef struct ddiwr_dta_prepared_s {
 
 readstat_error_t dta_prepare(const char *path, const char *input_encoding, ddiwr_dta_prepared_t *out);
 void dta_prepared_free(ddiwr_dta_prepared_t *prepared);
+const char *dta_lookup_string_ref(dta_ctx_t *ctx, const unsigned char *bytes);

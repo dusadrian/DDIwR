@@ -21,3 +21,4 @@ openmp.log
 AGENTS.md
 /tools/*
 !/tools/build-cran-source.R
+!/tools/readstat/

@@ -119,6 +119,9 @@
 #' value dictionary when possible. Use **`harmonize = FALSE`** via the three
 #' dots argument to deactivate this behavior. The alias
 #' **`harmonise = FALSE`** is also accepted.
+#' If the dataset-level dictionary exceeds 26 codes, conversion falls back to
+#' separate dictionaries for each variable. A variable with more than 26
+#' distinct missing codes cannot be represented this way and export fails.
 #'
 #' The character **`encoding`** is usually passed to the corresponding functions
 #' from package \bold{\pkg{haven}}. It can be set to \code{NULL} to reset at the

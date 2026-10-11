@@ -1,0 +1,492 @@
+diff --git a/readstat_iconv.h b/readstat_iconv.h
+index 38fb981..1327fc8 100644
+--- a/readstat_iconv.h
++++ b/readstat_iconv.h
+@@ -1,10 +1,10 @@
+ #include <iconv.h>
+ 
+-/* ICONV_CONST defined by autotools during configure according
+- * to the current platform. Some people copy-paste the source code, so
+- * provide some fallback logic */
+-#ifndef ICONV_CONST
+-#define ICONV_CONST
++/* ICONV_CONST defined by autotools; so we hack this in manually */
++#if defined(_WIN32) || defined(__sun)
++  #define ICONV_CONST const
++#else
++  #define ICONV_CONST
+ #endif
+ 
+ typedef ICONV_CONST char ** readstat_iconv_inbuf_t;
+diff --git a/spss/readstat_sav.h b/spss/readstat_sav.h
+index 75f69c6..291bdb4 100644
+--- a/spss/readstat_sav.h
++++ b/spss/readstat_sav.h
+@@ -114,6 +114,23 @@ typedef struct sav_ctx_s {
+     unsigned int   bswap:1;
+ } sav_ctx_t;
+ 
++typedef struct ddiwr_sav_row_stream_info_s {
++    int64_t              record_count;
++    int64_t              data_offset;
++    size_t               file_size;
++    size_t               row_width;
++    double               bias;
++    uint64_t             missing_double;
++    readstat_compress_t  compression;
++    readstat_endian_t    endianness;
++    unsigned int         bswap:1;
++} ddiwr_sav_row_stream_info_t;
++
++typedef struct ddiwr_sav_prepared_s {
++    readstat_parser_t *parser;
++    sav_ctx_t *ctx;
++} ddiwr_sav_prepared_t;
++
+ #define SAV_RECORD_TYPE_VARIABLE                2
+ #define SAV_RECORD_TYPE_VALUE_LABEL             3
+ #define SAV_RECORD_TYPE_VALUE_LABEL_VARIABLES   4
+@@ -147,3 +164,6 @@ typedef struct sav_ctx_s {
+ 
+ sav_ctx_t *sav_ctx_init(sav_file_header_record_t *header, readstat_io_t *io);
+ void sav_ctx_free(sav_ctx_t *ctx);
++readstat_error_t sav_row_stream_info(const char *path, const char *input_encoding, ddiwr_sav_row_stream_info_t *out);
++readstat_error_t sav_prepare(const char *path, const char *input_encoding, ddiwr_sav_prepared_t *out);
++void sav_prepared_free(ddiwr_sav_prepared_t *prepared);
+diff --git a/spss/readstat_sav_read.c b/spss/readstat_sav_read.c
+index ab8ec9a..01900d3 100644
+--- a/spss/readstat_sav_read.c
++++ b/spss/readstat_sav_read.c
+@@ -1891,3 +1891,228 @@ cleanup:
+     
+     return retval;
+ }
++
++readstat_error_t sav_row_stream_info(const char *path, const char *input_encoding, ddiwr_sav_row_stream_info_t *out) {
++    readstat_error_t retval = READSTAT_OK;
++    readstat_parser_t *parser = NULL;
++    readstat_io_t *io = NULL;
++    sav_file_header_record_t header;
++    sav_ctx_t *ctx = NULL;
++    size_t file_size = 0;
++    readstat_off_t data_offset = 0;
++
++    if (out == NULL) {
++        return READSTAT_ERROR_PARSE;
++    }
++    memset(out, 0, sizeof(*out));
++
++    parser = readstat_parser_init();
++    if (parser == NULL) {
++        retval = READSTAT_ERROR_MALLOC;
++        goto cleanup;
++    }
++    if (input_encoding != NULL && *input_encoding != '\0') {
++        parser->input_encoding = input_encoding;
++    }
++    io = parser->io;
++
++    if (io->open(path, io->io_ctx) == -1) {
++        retval = READSTAT_ERROR_OPEN;
++        goto cleanup;
++    }
++
++    file_size = io->seek(0, READSTAT_SEEK_END, io->io_ctx);
++    if (file_size == (size_t) -1) {
++        retval = READSTAT_ERROR_SEEK;
++        goto cleanup;
++    }
++
++    if (io->seek(0, READSTAT_SEEK_SET, io->io_ctx) == -1) {
++        retval = READSTAT_ERROR_SEEK;
++        goto cleanup;
++    }
++
++    if (io->read(&header, sizeof(sav_file_header_record_t), io->io_ctx) < sizeof(sav_file_header_record_t)) {
++        retval = READSTAT_ERROR_READ;
++        goto cleanup;
++    }
++
++    ctx = sav_ctx_init(&header, io);
++    if (ctx == NULL) {
++        retval = READSTAT_ERROR_PARSE;
++        goto cleanup;
++    }
++
++    ctx->input_encoding = input_encoding;
++    ctx->output_encoding = NULL;
++    ctx->user_ctx = NULL;
++    ctx->file_size = file_size;
++
++    sav_parse_timestamp(ctx, &header);
++
++    if ((retval = sav_parse_records_pass1(ctx)) != READSTAT_OK) {
++        goto cleanup;
++    }
++    if ((retval = sav_setup_converter(ctx)) != READSTAT_OK) {
++        goto cleanup;
++    }
++    if (io->seek(sizeof(sav_file_header_record_t), READSTAT_SEEK_SET, io->io_ctx) == -1) {
++        retval = READSTAT_ERROR_SEEK;
++        goto cleanup;
++    }
++    if ((retval = sav_parse_records_pass2(ctx)) != READSTAT_OK) {
++        goto cleanup;
++    }
++
++    data_offset = io->seek(0, READSTAT_SEEK_CUR, io->io_ctx);
++    if (data_offset == -1) {
++        retval = READSTAT_ERROR_SEEK;
++        goto cleanup;
++    }
++
++    out->record_count = ctx->record_count;
++    out->data_offset = data_offset;
++    out->file_size = file_size;
++    out->row_width = ctx->var_offset * 8;
++    out->bias = ctx->bias;
++    out->missing_double = ctx->missing_double;
++    out->compression = ctx->compression;
++    out->endianness = ctx->endianness;
++    out->bswap = ctx->bswap;
++
++cleanup:
++    if (io != NULL) {
++        io->close(io->io_ctx);
++    }
++    if (ctx != NULL) {
++        sav_ctx_free(ctx);
++    }
++    if (parser != NULL) {
++        readstat_parser_free(parser);
++    }
++    return retval;
++}
++
++readstat_error_t sav_prepare(const char *path, const char *input_encoding, ddiwr_sav_prepared_t *out) {
++    readstat_error_t retval = READSTAT_OK;
++    readstat_parser_t *parser = NULL;
++    readstat_io_t *io = NULL;
++    sav_file_header_record_t header;
++    sav_ctx_t *ctx = NULL;
++    size_t file_size = 0;
++    int i;
++    int index_after_skipping = 0;
++
++    if (out == NULL) {
++        return READSTAT_ERROR_PARSE;
++    }
++    memset(out, 0, sizeof(*out));
++
++    parser = readstat_parser_init();
++    if (parser == NULL) {
++        retval = READSTAT_ERROR_MALLOC;
++        goto cleanup;
++    }
++    if (input_encoding != NULL && *input_encoding != '\0') {
++        parser->input_encoding = input_encoding;
++    }
++    io = parser->io;
++
++    if (io->open(path, io->io_ctx) == -1) {
++        retval = READSTAT_ERROR_OPEN;
++        goto cleanup;
++    }
++
++    file_size = io->seek(0, READSTAT_SEEK_END, io->io_ctx);
++    if (file_size == (size_t) -1) {
++        retval = READSTAT_ERROR_SEEK;
++        goto cleanup;
++    }
++
++    if (io->seek(0, READSTAT_SEEK_SET, io->io_ctx) == -1) {
++        retval = READSTAT_ERROR_SEEK;
++        goto cleanup;
++    }
++
++    if (io->read(&header, sizeof(sav_file_header_record_t), io->io_ctx) < sizeof(sav_file_header_record_t)) {
++        retval = READSTAT_ERROR_READ;
++        goto cleanup;
++    }
++
++    ctx = sav_ctx_init(&header, io);
++    if (ctx == NULL) {
++        retval = READSTAT_ERROR_PARSE;
++        goto cleanup;
++    }
++
++    ctx->input_encoding = input_encoding;
++    ctx->output_encoding = "UTF-8";
++    ctx->user_ctx = NULL;
++    ctx->file_size = file_size;
++
++    sav_parse_timestamp(ctx, &header);
++
++    if ((retval = sav_parse_records_pass1(ctx)) != READSTAT_OK) {
++        goto cleanup;
++    }
++    if ((retval = sav_setup_converter(ctx)) != READSTAT_OK) {
++        goto cleanup;
++    }
++    if (io->seek(sizeof(sav_file_header_record_t), READSTAT_SEEK_SET, io->io_ctx) == -1) {
++        retval = READSTAT_ERROR_SEEK;
++        goto cleanup;
++    }
++    if ((retval = sav_parse_records_pass2(ctx)) != READSTAT_OK) {
++        goto cleanup;
++    }
++    if ((retval = sav_set_n_segments_and_var_count(ctx)) != READSTAT_OK) {
++        goto cleanup;
++    }
++    if ((retval = sav_parse_variable_display_parameter_record(ctx)) != READSTAT_OK) {
++        goto cleanup;
++    }
++
++    for (i = 0; i < ctx->var_index;) {
++        spss_varinfo_t *info = ctx->varinfo[i];
++        ctx->variables[info->index] = spss_init_variable_for_info(info, index_after_skipping, ctx->converter);
++        if (ctx->variables[info->index] == NULL) {
++            retval = READSTAT_ERROR_MALLOC;
++            goto cleanup;
++        }
++        index_after_skipping++;
++        i += info->n_segments;
++    }
++
++    out->parser = parser;
++    out->ctx = ctx;
++    return READSTAT_OK;
++
++cleanup:
++    if (ctx != NULL) {
++        sav_ctx_free(ctx);
++    }
++    if (io != NULL) {
++        io->close(io->io_ctx);
++    }
++    if (parser != NULL) {
++        readstat_parser_free(parser);
++    }
++    return retval;
++}
++
++void sav_prepared_free(ddiwr_sav_prepared_t *prepared) {
++    if (prepared == NULL) {
++        return;
++    }
++    if (prepared->parser != NULL && prepared->parser->io != NULL) {
++        prepared->parser->io->close(prepared->parser->io->io_ctx);
++    }
++    if (prepared->ctx != NULL) {
++        sav_ctx_free(prepared->ctx);
++    }
++    if (prepared->parser != NULL) {
++        readstat_parser_free(prepared->parser);
++    }
++    prepared->parser = NULL;
++    prepared->ctx = NULL;
++}
+diff --git a/stata/readstat_dta.h b/stata/readstat_dta.h
+index 61e2bf8..f007f1f 100644
+--- a/stata/readstat_dta.h
++++ b/stata/readstat_dta.h
+@@ -190,3 +190,13 @@ void dta_ctx_free(dta_ctx_t *ctx);
+ 
+ readstat_error_t dta_type_info(uint16_t typecode, dta_ctx_t *ctx,
+         size_t *max_len, readstat_type_t *out_type);
++
++typedef struct ddiwr_dta_prepared_s {
++    readstat_parser_t *parser;
++    dta_ctx_t *ctx;
++    int64_t rows_offset;
++} ddiwr_dta_prepared_t;
++
++readstat_error_t dta_prepare(const char *path, const char *input_encoding, ddiwr_dta_prepared_t *out);
++void dta_prepared_free(ddiwr_dta_prepared_t *prepared);
++const char *dta_lookup_string_ref(dta_ctx_t *ctx, const unsigned char *bytes);
+diff --git a/stata/readstat_dta_read.c b/stata/readstat_dta_read.c
+index 210d4f9..fa6016e 100644
+--- a/stata/readstat_dta_read.c
++++ b/stata/readstat_dta_read.c
+@@ -1395,3 +1395,181 @@ cleanup:
+ 
+     return retval;
+ }
++
++readstat_error_t dta_prepare(const char *path, const char *input_encoding, ddiwr_dta_prepared_t *out) {
++    readstat_error_t retval = READSTAT_OK;
++    readstat_parser_t *parser = NULL;
++    readstat_io_t *io = NULL;
++    dta_ctx_t *ctx = NULL;
++    size_t file_size = 0;
++    int i;
++
++    if (out == NULL) {
++        return READSTAT_ERROR_PARSE;
++    }
++    memset(out, 0, sizeof(*out));
++
++    parser = readstat_parser_init();
++    if (parser == NULL) {
++        return READSTAT_ERROR_MALLOC;
++    }
++    if (input_encoding != NULL && *input_encoding != '\0') {
++        parser->input_encoding = input_encoding;
++    }
++
++    io = parser->io;
++    ctx = dta_ctx_alloc(io);
++    if (ctx == NULL) {
++        retval = READSTAT_ERROR_MALLOC;
++        goto cleanup;
++    }
++
++    if (io->open(path, io->io_ctx) == -1) {
++        retval = READSTAT_ERROR_OPEN;
++        goto cleanup;
++    }
++
++    {
++        char magic[4];
++        if (io->read(magic, 4, io->io_ctx) != 4) {
++            retval = READSTAT_ERROR_READ;
++            goto cleanup;
++        }
++
++        file_size = io->seek(0, READSTAT_SEEK_END, io->io_ctx);
++        if (file_size == (size_t)-1) {
++            retval = READSTAT_ERROR_SEEK;
++            goto cleanup;
++        }
++        if (io->seek(0, READSTAT_SEEK_SET, io->io_ctx) == -1) {
++            retval = READSTAT_ERROR_SEEK;
++            goto cleanup;
++        }
++
++        if (strncmp(magic, "<sta", 4) == 0) {
++            dta_header64_t header;
++            if ((retval = dta_read_xmlish_header(ctx, &header)) != READSTAT_OK) {
++                goto cleanup;
++            }
++            retval = dta_ctx_init(ctx, header.nvar, header.nobs, header.byteorder, header.ds_format,
++                    parser->input_encoding, "UTF-8");
++        } else {
++            dta_header_t header;
++            if ((retval = dta_read_header(ctx, &header)) != READSTAT_OK) {
++                goto cleanup;
++            }
++            retval = dta_ctx_init(ctx, header.nvar, header.nobs, header.byteorder, header.ds_format,
++                    parser->input_encoding, "UTF-8");
++        }
++        if (retval != READSTAT_OK) {
++            goto cleanup;
++        }
++    }
++
++    ctx->user_ctx = NULL;
++    ctx->file_size = file_size;
++
++    if ((retval = dta_read_label_and_timestamp(ctx)) != READSTAT_OK)
++        goto cleanup;
++    if ((retval = dta_read_tag(ctx, "</header>")) != READSTAT_OK)
++        goto cleanup;
++    if ((retval = dta_read_map(ctx)) != READSTAT_OK)
++        goto cleanup;
++    if ((retval = dta_read_descriptors(ctx)) != READSTAT_OK)
++        goto cleanup;
++
++    for (i = 0; i < ctx->nvar; i++) {
++        size_t max_len;
++        if ((retval = dta_type_info(ctx->typlist[i], ctx, &max_len, NULL)) != READSTAT_OK)
++            goto cleanup;
++        ctx->record_len += max_len;
++    }
++
++    if (ctx->nvar > 0 && ctx->record_len == 0) {
++        retval = READSTAT_ERROR_PARSE;
++        goto cleanup;
++    }
++
++    if ((retval = dta_handle_variables(ctx)) != READSTAT_OK)
++        goto cleanup;
++    if ((retval = dta_read_expansion_fields(ctx)) != READSTAT_OK)
++        goto cleanup;
++
++    if (!ctx->file_is_xmlish) {
++        ctx->data_offset = io->seek(0, READSTAT_SEEK_CUR, io->io_ctx);
++        if (ctx->data_offset == -1) {
++            retval = READSTAT_ERROR_SEEK;
++            goto cleanup;
++        }
++        ctx->value_labels_offset = ctx->data_offset + ctx->record_len * ctx->nobs;
++        out->rows_offset = ctx->data_offset;
++    }
++
++    if ((retval = dta_read_strls(ctx)) != READSTAT_OK)
++        goto cleanup;
++
++    if (ctx->file_is_xmlish) {
++        if (io->seek(ctx->data_offset, READSTAT_SEEK_SET, io->io_ctx) == -1) {
++            retval = READSTAT_ERROR_SEEK;
++            goto cleanup;
++        }
++        if ((retval = dta_read_tag(ctx, "<data>")) != READSTAT_OK) {
++            goto cleanup;
++        }
++        out->rows_offset = io->seek(0, READSTAT_SEEK_CUR, io->io_ctx);
++        if (out->rows_offset == -1) {
++            retval = READSTAT_ERROR_SEEK;
++            goto cleanup;
++        }
++    }
++
++    out->parser = parser;
++    out->ctx = ctx;
++    return READSTAT_OK;
++
++cleanup:
++    if (ctx != NULL) {
++        dta_ctx_free(ctx);
++    }
++    if (io != NULL) {
++        io->close(io->io_ctx);
++    }
++    if (parser != NULL) {
++        readstat_parser_free(parser);
++    }
++    return retval;
++}
++
++void dta_prepared_free(ddiwr_dta_prepared_t *prepared) {
++    if (prepared == NULL) {
++        return;
++    }
++    if (prepared->parser != NULL && prepared->parser->io != NULL) {
++        prepared->parser->io->close(prepared->parser->io->io_ctx);
++    }
++    if (prepared->ctx != NULL) {
++        dta_ctx_free(prepared->ctx);
++    }
++    if (prepared->parser != NULL) {
++        readstat_parser_free(prepared->parser);
++    }
++    prepared->parser = NULL;
++    prepared->ctx = NULL;
++    prepared->rows_offset = 0;
++}
++
++/* Keep parallel workers on the upstream strL reference decoder and comparator. */
++const char *dta_lookup_string_ref(dta_ctx_t *ctx, const unsigned char *bytes) {
++    dta_strl_t key = dta_interpret_strl_vo_bytes(ctx, bytes);
++    dta_strl_t **found = bsearch(&key, ctx->strls, ctx->strls_count,
++            sizeof(dta_strl_t *), &dta_compare_strls);
++
++    if (found != NULL) {
++        return (*found)->data;
++    }
++    if (key.v == 0 && key.o == 0) {
++        return "";
++    }
++
++    return NULL;
++}

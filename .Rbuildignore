@@ -21,6 +21,7 @@
 ^tools/build-cran-source[.]R$
 ^tools/browser-stats-experiment$
 ^tools/browser-analysis$
+^tools/readstat$
 ^configure[.]log$
 ^openmp[.]log$
 ^AGENTS.md$

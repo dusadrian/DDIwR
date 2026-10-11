@@ -31,7 +31,7 @@
 #'   Package: \tab DDIwR\cr
 #'   Type: \tab Package\cr
 #'   Version: \tab 0.22\cr
-#'   Date: \tab 2026-09-19\cr
+#'   Date: \tab 2026-10-08\cr
 #'   License: \tab GPL-v3\cr
 #' }
 #'

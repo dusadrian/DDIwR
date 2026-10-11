@@ -883,47 +883,6 @@ static int sc_worker_value_handler(int obs_index, readstat_variable_t *variable,
     return READSTAT_HANDLER_OK;
 }
 
-static int sc_dta_compare_strls(const void *elem1, const void *elem2) {
-    const dta_strl_t *key = (const dta_strl_t *) elem1;
-    const dta_strl_t *target = *(const dta_strl_t * const *) elem2;
-    if (key->o == target->o) {
-        return key->v - target->v;
-    }
-    return key->o - target->o;
-}
-
-static dta_strl_t sc_dta_interpret_strl_vo_bytes(const dta_ctx_t *ctx, const unsigned char *vo_bytes) {
-    dta_strl_t strl;
-    memset(&strl, 0, sizeof(strl));
-
-    if (ctx->strl_v_len == 2) {
-        if (ctx->endianness == READSTAT_ENDIAN_BIG) {
-            strl.v = (vo_bytes[0] << 8) + vo_bytes[1];
-            strl.o = (((uint64_t) vo_bytes[2] << 40)
-                    + ((uint64_t) vo_bytes[3] << 32)
-                    + ((uint64_t) vo_bytes[4] << 24)
-                    + (vo_bytes[5] << 16)
-                    + (vo_bytes[6] << 8)
-                    + vo_bytes[7]);
-        } else {
-            strl.v = vo_bytes[0] + (vo_bytes[1] << 8);
-            strl.o = (vo_bytes[2] + (vo_bytes[3] << 8)
-                    + (vo_bytes[4] << 16)
-                    + ((uint64_t) vo_bytes[5] << 24)
-                    + ((uint64_t) vo_bytes[6] << 32)
-                    + ((uint64_t) vo_bytes[7] << 40));
-        }
-    } else if (ctx->strl_v_len == 4) {
-        uint32_t v, o;
-        memcpy(&v, &vo_bytes[0], sizeof(uint32_t));
-        memcpy(&o, &vo_bytes[4], sizeof(uint32_t));
-        strl.v = ctx->bswap ? byteswap4(v) : v;
-        strl.o = ctx->bswap ? byteswap4(o) : o;
-    }
-
-    return strl;
-}
-
 static readstat_value_t sc_dta_interpret_int8_bytes(const dta_ctx_t *ctx, const void *buf) {
     readstat_value_t value = { .type = READSTAT_TYPE_INT8 };
     int8_t byte = 0;
@@ -1117,18 +1076,14 @@ static readstat_error_t sc_dta_decode_row(
                 return READSTAT_ERROR_PARSE;
             }
             str_len = strnlen((const char *) &buf[offset], max_len);
-            retval = readstat_convert(str_buf, str_buf_len, (const char *) &buf[offset], str_len, ctx->converter);
+            retval = readstat_convert_notrim(str_buf, str_buf_len, (const char *) &buf[offset], str_len, ctx->converter);
             if (retval != READSTAT_OK) {
                 return retval;
             }
             value.v.string_value = str_buf;
         } else if (value.type == READSTAT_TYPE_STRING_REF) {
-            dta_strl_t key = sc_dta_interpret_strl_vo_bytes(ctx, &buf[offset]);
-            dta_strl_t **found = bsearch(&key, ctx->strls, ctx->strls_count, sizeof(dta_strl_t *), &sc_dta_compare_strls);
+            value.v.string_value = dta_lookup_string_ref((dta_ctx_t *) ctx, &buf[offset]);
             value.type = READSTAT_TYPE_STRING;
-            if (found) {
-                value.v.string_value = (*found)->data;
-            }
         } else if (value.type == READSTAT_TYPE_INT8) {
             value = sc_dta_interpret_int8_bytes(ctx, &buf[offset]);
         } else if (value.type == READSTAT_TYPE_INT16) {
