@@ -87,7 +87,7 @@
 #' @param indent Indent width, in number of spaces
 #'
 #' @param ... Other arguments, mainly for internal use
-#' @param session Optional session returned by [metadataSweepCapture()]. Its
+#' @param session Optional session returned by `metadataSweepCapture()`. Its
 #' complete variable description replaces `dataDscr` in `codeBook`, reusing
 #' cached unweighted analysis. Study and document metadata remain supplied by
 #' `codeBook`. Do not also supply `data` or `variables`. `embed = TRUE` includes

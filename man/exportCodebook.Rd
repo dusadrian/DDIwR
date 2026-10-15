@@ -27,7 +27,7 @@ Home-directory paths beginning with \code{~} are expanded before writing.}
 
 \item{...}{Other arguments, mainly for internal use}
 
-\item{session}{Optional session returned by \code{\link[=metadataSweepCapture]{metadataSweepCapture()}}. Its
+\item{session}{Optional session returned by \code{metadataSweepCapture()}. Its
 complete variable description replaces \code{dataDscr} in \code{codeBook}, reusing
 cached unweighted analysis. Study and document metadata remain supplied by
 \code{codeBook}. Do not also supply \code{data} or \code{variables}. \code{embed = TRUE} includes

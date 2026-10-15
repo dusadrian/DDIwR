@@ -148,7 +148,7 @@ writeRlist(variables, OS = "windows", indent = 4, dirpath = "", filename = "")
 \arguments{
 \item{x}{Number of ID values to return}
 
-\item{session}{Optional \code{\link[=metadataSweepCapture]{metadataSweepCapture()}} session for \code{collectMetadata}.
+\item{session}{Optional \code{metadataSweepCapture()} session for \code{collectMetadata}.
 When supplied, omit \code{from}; cached analysis and stable variable IDs are reused.}
 
 \item{revision}{Current host revision for a session read.}

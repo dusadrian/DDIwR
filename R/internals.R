@@ -409,7 +409,7 @@ NULL
 #' @description `collectMetadata`: Collect metadata from a file or a dataframe object
 #' @return `collectMetadata`: a standard DDI Codebook element `dataDscr`,
 #' containing variable level metadata information
-#' @param session Optional [metadataSweepCapture()] session for `collectMetadata`.
+#' @param session Optional `metadataSweepCapture()` session for `collectMetadata`.
 #' When supplied, omit `from`; cached analysis and stable variable IDs are reused.
 #' @param revision Current host revision for a session read.
 #' @rdname DDIwR_internal
