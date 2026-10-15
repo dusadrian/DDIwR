@@ -1,5 +1,7 @@
 Version 0.23
   o update to the latest version of ReadStat
+  o exported XML files are now always validated by default
+  o bug fix in function setupfile()
 
 Version 0.22
   o added reusable metadata sweep sessions via metadataSweepCapture(),
