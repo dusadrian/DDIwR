@@ -14,6 +14,7 @@ test_that("translation metadata can be created, edited and exported", {
     path <- tempfile(fileext = ".xml")
     on.exit(unlink(path))
     exportCodebook(book, path, monolang = FALSE)
+    expect_ddi_26_schema(path)
     doc <- xml2::read_xml(path)
     node <- xml2::xml_find_first(doc, "//*[local-name()='labl']")
     expect_equal(xml2::xml_text(node), "Age")

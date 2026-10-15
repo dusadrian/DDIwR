@@ -19,6 +19,15 @@ Update an XML file containing a DDI Codebook.
 \details{
 This function replaces entire Codebook sections. Any such section present in
 the R object will replace the corresponding section from the XML document.
+Sections are matched as XML elements, including in compact or prefixed XML,
+and inserted in schema order. Repeated sections are replaced as a group.
+The document namespace, root attributes and untouched sections are preserved.
+Both inputs must have a \code{codeBook} root. Invalid root inputs are rejected
+before the file is written.
+The finished document must conform to the bundled DDI Codebook 2.6 schema.
+Validation is mandatory and offline; failure leaves the original file
+unchanged. Documents using another DDI namespace are rejected rather than
+silently converted to 2.6.
 }
 \author{
 Adrian Dusa

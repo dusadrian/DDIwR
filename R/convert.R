@@ -57,6 +57,12 @@
 #'
 #' The argument **`to`** can also be specified as a path to a specific file,
 #' in which case the software package is determined from its file extension.
+#' Home-directory paths beginning with `~` are supported.
+#' DDI exports include the required study description with generic defaults.
+#' Supply `titl`, `IDNo`, `agency`, `distrbtr`, `URI` and `abstract` through
+#' `...` to describe the actual study.
+#' XML exports are validated against the bundled DDI Codebook 2.6 schema before
+#' writing. Invalid XML causes an error and leaves destination files unchanged.
 #' The following extentions are currently recognized: `.xml` for DDI,
 #' `.rds` for R, `.dta` for Stata, `.sav` for SPSS, `.xpt` for SAS, and
 #' `.xlsx` for Excel.
@@ -382,6 +388,7 @@
             )
         }
 
+        to <- path.expand(to)
         tp_to <- treatPath(to, single = TRUE, check = FALSE)
 
         if (tp_to$fileext == "XLS") {
@@ -723,6 +730,11 @@
         }
 
         codeBook <- makeElement("codeBook")
+
+        addChildren(
+            makeElement("stdyDscr", fill = TRUE, ... = ...),
+            to = codeBook
+        )
 
         fileName <- makeElement(
             "fileName",

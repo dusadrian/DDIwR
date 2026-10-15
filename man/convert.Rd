@@ -101,6 +101,12 @@ extended missing values are preserved separately from the date/time values.
 
 The argument \strong{\code{to}} can also be specified as a path to a specific file,
 in which case the software package is determined from its file extension.
+Home-directory paths beginning with \code{~} are supported.
+DDI exports include the required study description with generic defaults.
+Supply \code{titl}, \code{IDNo}, \code{agency}, \code{distrbtr}, \code{URI} and \code{abstract} through
+\code{...} to describe the actual study.
+XML exports are validated against the bundled DDI Codebook 2.6 schema before
+writing. Invalid XML causes an error and leaves destination files unchanged.
 The following extentions are currently recognized: \code{.xml} for DDI,
 \code{.rds} for R, \code{.dta} for Stata, \code{.sav} for SPSS, \code{.xpt} for SAS, and
 \code{.xlsx} for Excel.

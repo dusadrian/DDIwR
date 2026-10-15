@@ -91,6 +91,7 @@ test_that("complete Codebook export consumes cached sessions including embedded 
     target <- tempfile(fileext = ".xml")
     on.exit(unlink(target), add = TRUE)
     exportCodebook(book, target, session = session, revision = "v1", embed = TRUE)
+    expect_ddi_26_schema(target)
     document <- xml2::read_xml(target)
     variables <- xml2::xml_find_all(document, "//*[local-name()='var']")
 
@@ -115,6 +116,7 @@ test_that("complete Codebook export consumes cached sessions including embedded 
         .package = "DDIwR"
     )
     expect_silent(exportCodebook(book, target, session = session, revision = "v1"))
+    expect_ddi_26_schema(target)
     expect_error(exportCodebook(book, target, session = session, revision = "v2"),
         "revision does not match")
 })
@@ -165,8 +167,12 @@ test_that("session profiles cover empty and duplicate-name selections", {
 
     target <- tempfile(fileext = ".xml")
     on.exit(unlink(target), add = TRUE)
-    exportCodebook(makeElement("codeBook"), target, session = session,
+    book <- makeElement("codeBook", children = list(
+        makeElement("stdyDscr", fill = TRUE)
+    ))
+    exportCodebook(book, target, session = session,
         revision = 1L, embed = TRUE)
+    expect_ddi_26_schema(target)
     expect_equal(ncol(extractData(xml2::read_xml(target))), 0L)
     expect_error(metadataSweepCapture(data.frame(), new.env()), "Revision")
 

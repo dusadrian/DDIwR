@@ -9,6 +9,15 @@
 #' @details
 #' This function replaces entire Codebook sections. Any such section present in
 #' the R object will replace the corresponding section from the XML document.
+#' Sections are matched as XML elements, including in compact or prefixed XML,
+#' and inserted in schema order. Repeated sections are replaced as a group.
+#' The document namespace, root attributes and untouched sections are preserved.
+#' Both inputs must have a `codeBook` root. Invalid root inputs are rejected
+#' before the file is written.
+#' The finished document must conform to the bundled DDI Codebook 2.6 schema.
+#' Validation is mandatory and offline; failure leaves the original file
+#' unchanged. Documents using another DDI namespace are rejected rather than
+#' silently converted to 2.6.
 #'
 #' @author Adrian Dusa
 #'
@@ -18,93 +27,63 @@
 #'
 #' @export
 `updateCodebook` <- function(xmlfile, with, ...) {
+    if (
+        !is.list(with) || !is.list(with$.extra) ||
+        !identical(with$.extra$name, "codeBook")
+    ) {
+        admisc::stopError("The argument 'with' must be a standard codeBook element.")
+    }
 
+    checkXMList(with)
     DDIC <- get("DDIC", envir = cacheEnv)
-
+    sections <- DDIC$codeBook$children
     dots <- list(...)
     indent <- checkDots(dots$indent, default = 2)
-    enter <- checkDots(
-        dots$enter,
-        default = getEnter(OS = Sys.info()[['sysname']])
-    )
-
-    sections <- DDIC$codeBook$children
+    enter <- checkDots(dots$enter,
+        default = getEnter(OS = Sys.info()[["sysname"]]))
     xml <- getXML(xmlfile)
-    # if this survives, it is a valid XML document
+    root <- xml2::xml_root(xml)
 
-    if (
-        !all(
-            is.element(
-                xml_name(xml_children(xml)),
-                sections
-            )
-        )
-    ) {
+    if (!identical(xml2::xml_name(root), "codeBook")) {
+        admisc::stopError("The XML file must contain a codeBook root element.")
+    }
+
+    if (!all(is.element(xml2::xml_name(xml2::xml_children(root)), sections))) {
         admisc::stopError(
             "The XML file contains elements that are not Codebook sections."
         )
     }
 
-    xml <- readLines(xmlfile)
-    checkXMList(with)
-
-    starts <- lapply(sections, function(s) {
-        which(grepl(paste0("<", s), xml))
-    })
-    names(starts) <- sections
-
-    ends <- lapply(sections, function(s) {
-        which(grepl(paste0("</", s), xml))
-    })
-    names(ends) <- sections
-
-    for (s in sections) {
-        if (length(starts[[s]]) > 0 && length(ends[[s]]) == 0) {
-            ends[[s]] <- starts[[s]]
-        }
-    }
-
-    # TODO: make sure the sections are PROPERLY ordered
-
-    tmp <- tempdir()
-
-    monolang <- with$.extra$monolang
-    if (is.null(monolang)) monolang <- FALSE
-
+    monolang <- isTRUE(with$.extra$monolang)
     codeBook <- removeExtra(changeXMLang(with, remove = monolang))
-    children <- names(codeBook)
+    namespace <- xml2::xml_find_chr(root, "namespace-uri(.)")
+    attr(codeBook, "xmlns") <- namespace
+    replacements <- xml2::xml_children(xml2::as_xml_document(
+        list(codeBook = codeBook)
+    ))
+    replacement_names <- xml2::xml_name(replacements)
 
-    for (child in unique(children[order(match(children, rev(sections)))])) {
-        parts <- unlist(lapply(
-            which(children == child),
-            function(x) {
-                xml2::write_xml(
-                    xml2::as_xml_document(list(codeBook = codeBook[x])),
-                    file = file.path(tmp, "part.xml")
-                )
-                part <- readLines(file.path(tmp, "part.xml"))
-                return(part[seq(3, length(part) - 1)])
-            }
-        ))
+    # Work with elements rather than lines, including repeated and empty sections.
+    for (section in unique(replacement_names)) {
+        existing <- xml2::xml_children(root)
+        xml2::xml_remove(existing[xml2::xml_name(existing) == section])
+        following <- xml2::xml_children(root)
+        following <- following[
+            match(xml2::xml_name(following), sections) > match(section, sections)
+        ]
 
-        start <- starts[[child]]
-        end <- ends[[child]]
-
-        if (length(start) > 0) {
-            xml <- xml[-seq(start[1], end[length(end)])]
-            xml <- append(xml, parts, after = start[1] - 1)
-        }
-        else {
-            # new element
-            if (child == "docDscr") {
-                xml <- append(xml, parts, after = unlist(starts)[1] - 1)
+        for (node in replacements[replacement_names == section]) {
+            if (length(following) > 0L) {
+                xml2::xml_add_sibling(following[[1]], node, .where = "before")
             }
             else {
-                end <- unlist(ends[seq(1, match(child, sections) - 1)])
-                xml <- append(xml, parts, after = end[length(end)])
+                xml2::xml_add_child(root, node)
             }
         }
     }
 
-    writeLines(xml, con = xmlfile)
+    lines <- strsplit(as.character(xml), "\n", fixed = TRUE)[[1]]
+    output <- paste(prespace(lines, indent), collapse = enter)
+    .validateCodebookXML(output)
+    writeLines(output, con = xmlfile, sep = enter, useBytes = TRUE)
 }

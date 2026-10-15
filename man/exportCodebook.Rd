@@ -18,7 +18,8 @@ exportCodebook(
 \item{codeBook}{A standard element of class \code{"DDI"}.}
 
 \item{to}{either a character string naming a file or a connection open for
-writing ("" indicates output to the console)}
+writing ("" indicates output to the console)
+Home-directory paths beginning with \code{~} are expanded before writing.}
 
 \item{OS}{The target operating system, for the eol - end of line character(s)}
 
@@ -60,8 +61,11 @@ the current version, these are: \code{monolang}, \code{xmlang}, \code{IDNo}, \co
 \code{agency}, \code{URI} (for the \code{holdings} element), \code{distrbtr}, \code{abstract} and
 \code{level} (for the \code{otherMat} element).
 
-The \code{codeBook} object is exported as provided, and it is the user's
-responsibility to test its validity against the XML schema. Most of these
+The finished XML is always validated against the bundled, pinned DDI Codebook
+2.6 schema and its local dependencies before writing. Invalid or incomplete
+documents, or unavailable schemas, cause an error. Validation failure leaves
+the destination and any companion CSV unchanged, and writes nothing to an
+output connection. No network access is needed for validation. Most of these
 arguments help create the mandatory element \code{stdyDscr}, which cannot be
 harvested from the dataset. If this element is not already present, providing
 any of these arguments via the three dots \code{...} gate, signal an automatic
@@ -89,6 +93,7 @@ the running OS.
 
 The argument \strong{\code{indent}} controls how many spaces will be used in the XML
 file, to indent the different sub-elements.
+Formatting and target line endings also apply when writing to a connection.
 }
 \examples{
 \dontrun{

@@ -24,8 +24,11 @@
 #' `agency`, `URI` (for the `holdings` element), `distrbtr`, `abstract` and
 #' `level` (for the `otherMat` element).
 #'
-#' The `codeBook` object is exported as provided, and it is the user's
-#' responsibility to test its validity against the XML schema. Most of these
+#' The finished XML is always validated against the bundled, pinned DDI Codebook
+#' 2.6 schema and its local dependencies before writing. Invalid or incomplete
+#' documents, or unavailable schemas, cause an error. Validation failure leaves
+#' the destination and any companion CSV unchanged, and writes nothing to an
+#' output connection. No network access is needed for validation. Most of these
 #' arguments help create the mandatory element `stdyDscr`, which cannot be
 #' harvested from the dataset. If this element is not already present, providing
 #' any of these arguments via the three dots `...` gate, signal an automatic
@@ -53,6 +56,7 @@
 #'
 #' The argument **`indent`** controls how many spaces will be used in the XML
 #' file, to indent the different sub-elements.
+#' Formatting and target line endings also apply when writing to a connection.
 #'
 #' @return
 #' An XML file containing a DDI version 2.6 metadata.
@@ -75,6 +79,7 @@
 #' @param to
 #' either a character string naming a file or a connection open for
 #' writing ("" indicates output to the console)
+#' Home-directory paths beginning with `~` are expanded before writing.
 #'
 #' @param OS
 #' The target operating system, for the eol - end of line character(s)
@@ -93,18 +98,6 @@
 #' @export
 `exportCodebook` <- function(codeBook, to = "", OS = "", indent = 2, ...,
     session = NULL, revision = NULL) {
-    # https://ddialliance.org/hubfs/Specification/DDI-Codebook/2.5/XMLSchema/field_level_documentation.html
-
-    # validation procedure:
-    # https://ddialliance.org/Specification/DDI-Codebook/2.5/
-    # schema <- read_xml("path/to/ddi_2_5_1/schemas/codebook.xsd")
-    # doc <- read_xml("path/to/filetovalidate.xml")
-    # xml_validate(doc, schema)
-    # or using the CESSDA Metadata Validator
-    # https://cmv.cessda.eu/#!validation
-    # with its validation constraints
-    # https://cmv.cessda.eu/documentation/constraints.html
-
     dots <- list(...)
 
     if (!is.null(session)) {
@@ -131,6 +124,10 @@
 
     if (identical(to, "") && !is.null(dots$file)) {
         to <- dots$file
+    }
+
+    if (is.character(to) && length(to) == 1L && nzchar(to)) {
+        to <- path.expand(to)
     }
 
     if (codeBook$.extra$name == "codeBook") {
@@ -168,13 +165,9 @@
 
     xmlang <- checkDots(dots$xmlang, default = "en")
     variables <- getElement(dots, "variables")
-    varxmlang <- ifelse(
-        is.null(variables),
-        FALSE,
-        any(sapply(variables, function(x) {
-            is.element("xmlang", names(x))
-        }))
-    )
+    varxmlang <- any(vapply(variables, function(x) {
+        length(x$xmlang) > 0L
+    }, logical(1)))
 
     if (!isFALSE(dots$monolang) & !varxmlang) {
         codeBook <- changeXMLang(codeBook, remove = TRUE)
@@ -247,18 +240,6 @@
                 to = codeBook$fileDscr,
                 overwrite = FALSE
             )
-        } else if (!isFALSE(dots$csv)) {
-            tp_file <- treatPath(to, type = "*", single = TRUE, check = FALSE)
-            write.table(
-                undeclare(data, drop = TRUE),
-                file = file.path(
-                    tp_file$completePath,
-                    paste(tp_file$filenames[1], "csv", sep = ".")
-                ),
-                sep = ",",
-                na = "",
-                row.names = FALSE
-            )
         }
 
         codeBook <- as_xml_document(
@@ -266,7 +247,11 @@
         )
 
         codeBook_xml <- as.character(codeBook)
-        dataDscr_match <- regexpr("<dataDscr\\s*/>", codeBook_xml, perl = TRUE)
+        dataDscr_match <- regexpr(
+            "(?m)^[ \\t]*<dataDscr\\s*/>\\r?\\n?",
+            codeBook_xml,
+            perl = TRUE
+        )
         if (dataDscr_match[1] < 0) {
             admisc::stopError("Could not locate the <dataDscr/> placeholder in the codeBook XML.")
         }
@@ -289,6 +274,25 @@
                 collapse = enter
             )
         }
+        else {
+            xmlfile <- paste0(xml_prefix, dataDscr_xml, xml_suffix)
+        }
+
+        .validateCodebookXML(xmlfile)
+
+        if (!embed && !isFALSE(dots$csv)) {
+            tp_file <- treatPath(to, type = "*", single = TRUE, check = FALSE)
+            write.table(
+                undeclare(data, drop = TRUE),
+                file = file.path(
+                    tp_file$completePath,
+                    paste(tp_file$filenames[1], "csv", sep = ".")
+                ),
+                sep = ",",
+                na = "",
+                row.names = FALSE
+            )
+        }
 
         if (is.character(to) && length(to) == 1 && nzchar(to)) {
             if (!identical(indent, 2) || !identical(OS, "")) {
@@ -297,8 +301,13 @@
                 writeTextFileChunksC(to, c(xml_prefix, dataDscr_xml, xml_suffix))
             }
         } else {
-            xmlfile <- paste0(xml_prefix, dataDscr_xml, xml_suffix)
-            writeLines(xmlfile, con = to, useBytes = TRUE)
+            if (!identical(indent, 2) || !identical(OS, "")) {
+                writeLines(xmlfile, con = to, sep = enter, useBytes = TRUE)
+            }
+            else {
+                xmlfile <- paste0(xml_prefix, dataDscr_xml, xml_suffix)
+                writeLines(xmlfile, con = to, useBytes = TRUE)
+            }
         }
 
     } else {
@@ -306,10 +315,8 @@
             list(codeBook = removeExtra(codeBook))
         )
 
-        xml2::write_xml(codeBook, file = to)
-
         if (!identical(indent, 2) || !identical(OS, "")) {
-            xmlfile <- readLines(to)
+            xmlfile <- strsplit(as.character(codeBook), "\n", fixed = TRUE)[[1]]
 
             defaultOS <- Sys.info()[["sysname"]]
             checkArgument(indent, default = 2)
@@ -322,8 +329,12 @@
                 collapse = enter
             )
 
-            writeLines(xmlfile, con = to, useBytes = TRUE)
-
+            .validateCodebookXML(xmlfile)
+            writeLines(xmlfile, con = to, sep = enter, useBytes = TRUE)
+        }
+        else {
+            .validateCodebookXML(as.character(codeBook))
+            xml2::write_xml(codeBook, file = to)
         }
     }
 }
