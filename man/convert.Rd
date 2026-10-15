@@ -176,18 +176,26 @@ generated codebook is unique to this package and automatically detected when
 converting to another statistical software. This will likely be replaced with
 a time insensitive text version.
 
-Converting to SAS is experimental, and it relies on the same package
-\bold{\pkg{haven}} that uses the ReadStat C library. The safest way to
-convert, which at the same time consistently converts the missing values, is
-to export the data to a CSV file and create a setup file produced by function
-\bold{\code{\link{setupfile}()}} and run the commands manually.
+Native SAS import uses ReadStat directly. SAS value-label definitions are
+read from a companion format catalog. Supply its path via \strong{\code{catalog_file}},
+or place it alongside the \code{.sas7bdat} file with the same base name and the
+extension \code{.sas7bcat} for automatic discovery.
+When a catalog does not declare an encoding, it inherits the effective
+data-file encoding. Use \strong{\code{encoding}} and \strong{\code{catalog_encoding}} to override
+their encodings independently; a catalog override does not affect data-file
+decoding.
 
-Converting data from SAS is possible, however reading the metadata is also
-experimental (the current version of \bold{haven} only partially imports the
-metadata). Either specify the path to the catalog file using the argument
-\strong{\code{catalog_file}} from the function \bold{\code{\link[haven]{read_sas}()}},
-or have the catalog file in the same directory as the data set, with the same
-file name and the extension \code{.sas7bcat}
+Catalog labels for \code{.A} through \code{.Z} use numeric keys -91 through -116 in
+the R \code{labels} attribute. A label for \code{._} retains an underscore-tagged NA
+key, distinct from the ordinary NA key for system missing. These keys also
+apply to dates and timestamps and are preserved in RDS storage.
+
+The native SAS7BDAT and XPT writers preserve missing values but do not emit
+value-label definitions or a format catalog. An existing catalog can be
+reused with SAS7BDAT only while its format references and code mappings
+remain unchanged. A standalone exported data file does not preserve value
+labels. Creating or modifying SAS format definitions requires a separate
+catalog or SAS setup commands; see \bold{\code{\link{setupfile}()}}.
 
 The argument \strong{\code{recode}} controls how missing values are treated. If the
 input file has SPSS like numeric codes, they will be recoded to extended
@@ -201,7 +209,11 @@ dots argument to deactivate this behavior. The alias
 \strong{\code{harmonise = FALSE}} is also accepted.
 If the dataset-level dictionary exceeds 26 codes, conversion falls back to
 separate dictionaries for each variable. A variable with more than 26
-distinct missing codes cannot be represented this way and export fails.
+distinct numeric missing codes cannot be represented this way and export fails.
+SAS's additional \code{._} tag is preserved as an \code{NA} with the name \code{"_"} in
+the column's \code{na_index} attribute, for numeric columns, dates and timestamps.
+It does not consume a letter-tag dictionary entry; the A-Z tags retain their
+existing numeric codes from -91 to -116.
 
 The character \strong{\code{encoding}} is usually passed to the corresponding functions
 from package \bold{\pkg{haven}}. It can be set to \code{NULL} to reset at the

@@ -684,8 +684,10 @@ static SEXP remap_na_index(SEXP na_index, SEXP old, SEXP new_chr) {
             REAL(out)[keep] = REAL(na_index)[i];
         }
 
+        /* SAS ._ is preserved separately from the numeric missing dictionary. */
         if (STRING_ELT(new_names, keep) != NA_STRING &&
-            string_in_set(CHAR(STRING_ELT(new_names, keep)), new_chr)) {
+            (string_in_set(CHAR(STRING_ELT(new_names, keep)), new_chr) ||
+             (idx < 0 && name != NULL && strcmp(name, "_") == 0))) {
             keep++;
         }
     }

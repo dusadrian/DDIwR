@@ -93,6 +93,10 @@ static double tag_code_value(char tag) {
 static SEXP tag_code_name(char tag) {
     char buffer[32];
     double code = tag_code_value(tag);
+    /* SAS ._ has its own tag, outside the numeric A-Z mapping. */
+    if (tag == '_') {
+        return Rf_mkChar("_");
+    }
     if (ISNAN(code)) {
         return NA_STRING;
     }
@@ -587,6 +591,8 @@ static int reader_value_label(const char *val_labels, readstat_value_t value, co
             set->labels[set->n] = str_dup(label);
             if (readstat_value_is_tagged_missing(value)) {
                 set->dvalues[set->n] = make_tagged_na((char) tolower((unsigned char) readstat_value_tag(value)));
+            } else if (readstat_value_is_system_missing(value)) {
+                set->dvalues[set->n] = NA_REAL;
             } else {
                 set->dvalues[set->n] = readstat_double_value(value);
             }
@@ -629,7 +635,8 @@ static SEXP labelset_to_sexp(LabelSet *set) {
     for (i = 0; i < set->n; ++i) {
         char tag = tagged_na_value(set->dvalues[i]);
         if (ISNAN(set->dvalues[i]) && tag != '\0') {
-            REAL(out)[i] = tag_code_value(tag);
+            /* Keep SAS ._ distinguishable from an untagged NA label key. */
+            REAL(out)[i] = tag == '_' ? set->dvalues[i] : tag_code_value(tag);
         } else {
             REAL(out)[i] = set->dvalues[i];
         }
@@ -747,16 +754,59 @@ static readstat_parser_t *init_parser(void) {
     return parser;
 }
 
+typedef struct {
+    char name[128];
+} SasFileEncoding;
+
+static int sas_encoding_metadata(readstat_metadata_t *metadata, void *ctx) {
+    SasFileEncoding *encoding = (SasFileEncoding *) ctx;
+    const char *name = readstat_get_file_encoding(metadata);
+    if (name != NULL) {
+        snprintf(encoding->name, sizeof(encoding->name), "%s", name);
+    }
+    return READSTAT_HANDLER_ABORT;
+}
+
+static int sas_data_file_encoding(const char *path, SasFileEncoding *encoding) {
+    readstat_parser_t *parser = readstat_parser_init();
+    readstat_error_t result;
+    if (parser == NULL) {
+        return 0;
+    }
+
+    readstat_set_metadata_handler(parser, sas_encoding_metadata);
+    result = readstat_parse_sas7bdat(parser, path, encoding);
+    readstat_parser_free(parser);
+    return result == READSTAT_ERROR_USER_ABORT && encoding->name[0] != '\0';
+}
+
+static int sas_catalog_encoding_unspecified(readstat_parser_t *parser, const char *path) {
+    readstat_io_t *io = parser->io;
+    unsigned char code = 1;
+    int success;
+    if (io->open(path, io->io_ctx) < 0) {
+        return 0;
+    }
+
+    /* The SAS header stores its character encoding at byte offset 70. */
+    success = io->seek(70, READSTAT_SEEK_SET, io->io_ctx) == 70 &&
+        io->read(&code, 1, io->io_ctx) == 1;
+    io->close(io->io_ctx);
+    return success && code == 0;
+}
+
 static SEXP parse_file(FileExt ext, SEXP spec, SEXP encoding, SEXP user_na, SEXP cols_skip, SEXP n_max, SEXP rows_skip, SEXP spec_cat, SEXP catalog_encoding) {
     ReaderCtx ctx;
     readstat_parser_t *parser;
     readstat_error_t result = READSTAT_OK;
     const char *path;
+    const char *failed_path;
     const char *cat_path = NULL;
     long nmax = -1;
     long skip = 0;
     const char *enc = NULL;
     const char *cat_enc = NULL;
+    SasFileEncoding data_encoding = {{0}};
     SEXP out;
 
     reader_ctx_init(&ctx, ext, Rf_asLogical(user_na), cols_skip);
@@ -784,19 +834,29 @@ static SEXP parse_file(FileExt ext, SEXP spec, SEXP encoding, SEXP user_na, SEXP
     }
 
     path = spec_path_cstr(spec);
+    failed_path = path;
 
     if (ext == DECLARED_SAS7BDAT && Rf_isNewList(spec_cat) && Rf_length(spec_cat) > 0) {
         cat_path = spec_path_cstr(spec_cat);
         if (!Rf_isNull(catalog_encoding)) {
             cat_enc = CHAR(STRING_ELT(catalog_encoding, 0));
-            if (cat_enc != NULL && *cat_enc != '\0') {
-                readstat_set_file_character_encoding(parser, cat_enc);
+        }
+        if ((cat_enc == NULL || *cat_enc == '\0') &&
+                sas_catalog_encoding_unspecified(parser, cat_path)) {
+            if (enc != NULL && *enc != '\0') {
+                cat_enc = enc;
+            } else if (sas_data_file_encoding(path, &data_encoding)) {
+                cat_enc = data_encoding.name;
             }
         }
+        readstat_set_file_character_encoding(parser,
+            cat_enc != NULL && *cat_enc != '\0' ? cat_enc : NULL);
         result = readstat_parse_sas7bcat(parser, cat_path, &ctx);
-        if (!Rf_isNull(encoding) && enc != NULL && *enc != '\0') {
-            readstat_set_file_character_encoding(parser, enc);
+        if (result != READSTAT_OK) {
+            failed_path = cat_path;
         }
+        readstat_set_file_character_encoding(parser,
+            enc != NULL && *enc != '\0' ? enc : NULL);
     }
 
     if (result == READSTAT_OK) {
@@ -825,7 +885,7 @@ static SEXP parse_file(FileExt ext, SEXP spec, SEXP encoding, SEXP user_na, SEXP
     readstat_parser_free(parser);
     if (result != READSTAT_OK) {
         reader_ctx_free(&ctx);
-        Rf_error("Failed to parse %s: %s", path, readstat_error_message(result));
+        Rf_error("Failed to parse %s: %s", failed_path, readstat_error_message(result));
     }
 
     if (nmax == 0) {

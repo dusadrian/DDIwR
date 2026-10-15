@@ -259,7 +259,8 @@ static int foreign_tag_from_code(WriterCtx *ctx, int column, const char *code, c
         return 0;
     }
 
-    if (strlen(code) == 1 && isalpha((unsigned char) code[0])) {
+    if (strlen(code) == 1 &&
+        (isalpha((unsigned char) code[0]) || (ctx->vendor == DECLARED_SAS && code[0] == '_'))) {
         *tag_out = vendor_missing_tag(ctx->vendor, code[0]);
         return 1;
     }
@@ -1180,7 +1181,10 @@ static void writer_write(WriterCtx *ctx, SEXP dictionary) {
                     int value = INTEGER(col)[i];
                     int missing = value == NA_INTEGER;
                     int code_int;
-                    if (missing && parse_code_int(code, &code_int)) {
+                    char export_tag;
+                    if (missing && foreign_tag_from_code(ctx, j, code, &export_tag, 1)) {
+                        check_status(readstat_insert_tagged_missing_value(ctx->writer, var, export_tag), "Failed to insert integer value");
+                    } else if (missing && parse_code_int(code, &code_int)) {
                         if (var->type == READSTAT_TYPE_DOUBLE) {
                             check_status(insert_double_value(ctx, var, code_int, 0), "Failed to insert integer value");
                         } else {

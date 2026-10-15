@@ -138,7 +138,7 @@ Rscript tools/readstat/vendor.R update --upstream /tmp/ReadStat \
     --revision <same-commit> --apply
 Rscript tools/readstat/vendor.R verify --upstream /tmp/ReadStat
 READSTAT_UPSTREAM=/tmp/ReadStat Rscript tools/readstat/test-vendor.R
-Rscript -e 'testthat::test_local(".", filter = "^(convert|readstat-update|metadata-import|spss-attributes|stata-characteristics|stata-datetime|spss-sas-datetime)$")'
+Rscript -e 'testthat::test_local(".", filter = "^(convert|recodeMissings|readstat-update|metadata-import|spss-attributes|stata-characteristics|stata-datetime|spss-sas-datetime|sas-underscore|sas-missing-labels|sas-catalog-encoding)$")'
 ```
 
 A clean text merge does not prove compatibility: preparation hooks call
@@ -173,9 +173,60 @@ compression mode, native SAS7BDAT, and XPT versions 5 and 8. Explicit numeric
 formats check stored date/time units without applying the reader's epoch
 conversion; a numeric SPSS fixture also checks serial/parallel missing-value
 handling independently of the temporal writer. These tests do not establish
-interoperability with an installed SPSS or SAS application. SAS's special
-`._` missing tag remains unsupported by DDIwR's existing missing-code mapping;
-that limitation also affects ordinary numeric columns.
+interoperability with an installed SPSS or SAS application.
+
+The SAS underscore regressions additionally cover `._` in ordinary numeric
+and temporal columns, including integer-backed columns. They inject the
+on-disk tag bytes independently of the tag writer, check row windows and
+output bytes for system missing, `._` and all A-Z tags, and repeat imports
+and exports with automatic and explicit dictionaries. SAS7BDAT and XPT imports
+through `convert()`, RDS storage, and subsequent XPT exports also retain the tag.
+DDIwR stores `._` as an `NA` with an `"_"` name in
+`na_index`, separately from the A-Z numeric codes -91 through -116. These
+adapter changes require no modifications to the vendored ReadStat patch,
+because ReadStat already supports `._`.
+
+The SAS missing-label tests build little- and big-endian catalogs independently
+of ReadStat's catalog writer, with labels for system missing, `._` and every
+A-Z tag. They check numeric, date and timestamp columns, row windows, empty
+imports, UTF-8 text, RDS storage, and exports read with the original catalog.
+The `._` label key retains its tagged NA payload; byte comparisons are needed
+because R's `identical()` treats different NA payloads as equal. These tests
+also document that standalone SAS7BDAT and XPT exports do not contain value-label
+definitions. Reusing a catalog requires unchanged formats and code mappings;
+it does not demonstrate creation or updating of a catalog. Native catalog export
+remains unsupported. The reader fix is outside the vendored ReadStat patch.
+
+The October 11 audit also used the original attachments from haven issues
+[#716](https://github.com/tidyverse/haven/issues/716) and
+[#836](https://github.com/tidyverse/haven/issues/836). Both #716 data/catalog
+pairs already recover the correct six `OUTCOME` and twenty `PREGORDR` labels:
+164 of 171 columns are labelled in `labelled` (10,215 rows), and 246 of 248
+in `no-labels` (9,553 rows). The upstream catalog fixes included in haven's
+merged [PR #832](https://github.com/tidyverse/haven/pull/832) are already present
+in the pinned ReadStat snapshot.
+
+The ESS catalog from #836 has UTF-8 text but declares encoding zero. Automatic
+native import previously failed; explicitly choosing Latin-1 produced garbled
+accents. The DDIwR reader now uses the effective data-file encoding when a
+catalog declares zero and no catalog override was supplied, matching the
+approach proposed in haven's [PR #840](https://github.com/tidyverse/haven/pull/840)
+(still open at the time of this audit). A metadata-only parse obtains the
+data-file encoding; an explicit data encoding takes precedence. A nonzero
+catalog encoding and an explicit catalog override retain precedence for that
+catalog. The reader resets the encoding before parsing the data file, so a
+catalog override cannot change data decoding. Catalog errors name the catalog
+path. These changes belong to the DDIwR adapter and require no vendor patch.
+After the fix, all 1,668 ESS rows import successfully, with labels on 558 of
+572 columns and correct accents including `SPÖ`, `Grüne`, and `DéFI`.
+Automatic native import and public `convert(encoding = NULL)` match their
+explicit UTF-8 catalog counterparts across the full dataset.
+
+The catalog-encoding regressions cover numeric/date/timestamp labels, little-
+and big-endian catalogs, unspecified and declared encodings, independent
+overrides, UTF-8 data values and variable labels, row windows, empty imports,
+and public `convert()` discovery with automatic encoding. The original issue
+attachments are external audit inputs, not bundled package fixtures.
 
 This tooling is tracked for development and excluded from R source builds.
 No Git commit or network fetch is performed by the updater itself.

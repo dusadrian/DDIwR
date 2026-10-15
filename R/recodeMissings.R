@@ -11,6 +11,9 @@
 #' representation. Recoding to `"Stata"` or `"SAS"` is therefore best viewed as
 #' an export-oriented temporary representation, not as a preferred internal
 #' storage strategy for declared vectors in R.
+#' SAS's `._` tag is retained separately as `"_"` in `na_index` when it is
+#' absent from the recoding dictionary. Columns with missing metadata alone
+#' are accepted, even without variable or value labels.
 #'
 #' When no dictionary is provided, export-oriented recoding can be performed
 #' either by scanning the entire dataset for a harmonized mapping, or by
@@ -163,7 +166,7 @@
         while (i <= ncol(dataset) & error) {
             attrx <- attributes(dataset[[i]])
             if (any(is.element(
-                c("label", "labels", "na_value", "na_range"),
+                c("label", "labels", "na_value", "na_values", "na_range", "na_index"),
                 names(attrx)
             ))) {
                 error <- FALSE

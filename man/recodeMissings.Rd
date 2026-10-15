@@ -35,6 +35,9 @@ Package \bold{DDIwR} uses numeric declared missing codes as its internal R
 representation. Recoding to \code{"Stata"} or \code{"SAS"} is therefore best viewed as
 an export-oriented temporary representation, not as a preferred internal
 storage strategy for declared vectors in R.
+SAS's \code{._} tag is retained separately as \code{"_"} in \code{na_index} when it is
+absent from the recoding dictionary. Columns with missing metadata alone
+are accepted, even without variable or value labels.
 
 When no dictionary is provided, export-oriented recoding can be performed
 either by scanning the entire dataset for a harmonized mapping, or by
