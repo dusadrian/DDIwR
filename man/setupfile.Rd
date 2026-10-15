@@ -16,8 +16,8 @@ setupfile(
 )
 }
 \arguments{
-\item{obj}{A data frame, or a list object containing the metadata, or a path to a data
-file or to a directory where such objects are located, for batch processing}
+\item{obj}{A labelled data frame, a DDI \code{codeBook} list returned by \code{\link[=getCodebook]{getCodebook()}},
+or a path to a metadata file or directory for batch processing}
 
 \item{file}{Character, the (path to the) setup file to be created}
 
@@ -42,6 +42,12 @@ A setup file to complement the imported raw dataset.
 Creates a setup file, based on a list of variable and value labels.
 }
 \details{
+A \code{codeBook} object is an R list containing DDI metadata, such as variable
+labels and value labels. It can be created from a labelled data frame with
+\code{\link[=getCodebook]{getCodebook()}}. A data frame can also be passed directly to \code{setupfile()}.
+The generated commands have a configuration section where input and output
+paths must be set before running them in the target software.
+
 When a path to a metadata directory is specified for the argument \strong{\code{obj}},
 then next argument \strong{\code{file}} is silently ignored and all created setup files
 are saved in a directory called "Setup Files" that (if not already found) is
@@ -87,34 +93,45 @@ The end of line character(s) changes only when the target OS is different
 from the running OS.
 }
 \examples{
+# A small dataset with variable and value labels
+survey <- data.frame(
+    age = declared(
+        c(28, 35, 42),
+        label = "Age in years"
+    ),
+    device = declared(
+        c(1, 2, 1),
+        label = "Device used",
+        labels = c(Desktop = 1, Mobile = 2)
+    )
+)
 
+# Use a temporary directory for the files created in this example
+temp_dir <- tempdir()
+csv_file <- file.path(temp_dir, "survey.csv")
+admisc::export(undeclare(survey, drop = TRUE), file = csv_file)
+
+# codeBook is an R object containing DDI metadata extracted from survey.
+# It describes the variables and their labels; the observations are in the CSV.
+codeBook <- getCodebook(survey)
+
+# Create Stata commands to import the CSV and apply the metadata
+# Edit the generated file's configuration paths before running it in Stata.
+setupfile(codeBook, file = file.path(temp_dir, "survey.do"), csv = csv_file)
+
+# A labelled data frame can also be supplied directly
+setupfile(survey, file = file.path(temp_dir, "survey.sps"))
+
+# The file extension selects the software: .do, .sps, .sas or .R.
+# A setup file contains import commands, not the observations themselves.
 
 \dontrun{
-# IMPORTANT:
-# make sure to set the working directory to a directory with
-# read/write permissions
-# setwd("/path/to/read/write/directory")
+# Alternatively, read metadata from an existing DDI XML file
+setupfile("/path/to/metadata.xml", file = "survey.do",
+    csv = "/path/to/survey.csv")
 
-
-setupfile(codeBook)
-
-
-# if the csv data file is available
-setupfile(codeBook, csv="/path/to/csv/file.csv")
-
-
-# generating a specific type of setup file
-setupfile(codeBook, file = "codeBook.do") # type = "Stata" also works
-
-
-# other types of possible utilizations, using paths to specific files
-# an XML file containing a DDI metadata object
-
-setupfile("/path/to/the/metadata/file.xml", csv="/path/to/csv/file.csv")
-
-
-# or in batch mode, specifying entire directories
-setupfile("/path/to/the/metadata/directory", csv="/path/to/csv/directory")
+# Batch processing: read metadata and CSV files from matching directories
+setupfile("/path/to/metadata/directory", csv = "/path/to/csv/directory")
 }
 
 }

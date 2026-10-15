@@ -6,6 +6,12 @@
 #' Creates a setup file, based on a list of variable and value labels.
 #'
 #' @details
+#' A `codeBook` object is an R list containing DDI metadata, such as variable
+#' labels and value labels. It can be created from a labelled data frame with
+#' [getCodebook()]. A data frame can also be passed directly to `setupfile()`.
+#' The generated commands have a configuration section where input and output
+#' paths must be set before running them in the target software.
+#'
 #' When a path to a metadata directory is specified for the argument **`obj`**,
 #' then next argument **`file`** is silently ignored and all created setup files
 #' are saved in a directory called "Setup Files" that (if not already found) is
@@ -54,41 +60,52 @@
 #' A setup file to complement the imported raw dataset.
 #'
 #' @examples
+#' # A small dataset with variable and value labels
+#' survey <- data.frame(
+#'     age = declared(
+#'         c(28, 35, 42),
+#'         label = "Age in years"
+#'     ),
+#'     device = declared(
+#'         c(1, 2, 1),
+#'         label = "Device used",
+#'         labels = c(Desktop = 1, Mobile = 2)
+#'     )
+#' )
 #'
+#' # Use a temporary directory for the files created in this example
+#' temp_dir <- tempdir()
+#' csv_file <- file.path(temp_dir, "survey.csv")
+#' admisc::export(undeclare(survey, drop = TRUE), file = csv_file)
+#'
+#' # codeBook is an R object containing DDI metadata extracted from survey.
+#' # It describes the variables and their labels; the observations are in the CSV.
+#' codeBook <- getCodebook(survey)
+#'
+#' # Create Stata commands to import the CSV and apply the metadata
+#' # Edit the generated file's configuration paths before running it in Stata.
+#' setupfile(codeBook, file = file.path(temp_dir, "survey.do"), csv = csv_file)
+#'
+#' # A labelled data frame can also be supplied directly
+#' setupfile(survey, file = file.path(temp_dir, "survey.sps"))
+#'
+#' # The file extension selects the software: .do, .sps, .sas or .R.
+#' # A setup file contains import commands, not the observations themselves.
 #'
 #' \dontrun{
-#' # IMPORTANT:
-#' # make sure to set the working directory to a directory with
-#' # read/write permissions
-#' # setwd("/path/to/read/write/directory")
+#' # Alternatively, read metadata from an existing DDI XML file
+#' setupfile("/path/to/metadata.xml", file = "survey.do",
+#'     csv = "/path/to/survey.csv")
 #'
-#'
-#' setupfile(codeBook)
-#'
-#'
-#' # if the csv data file is available
-#' setupfile(codeBook, csv="/path/to/csv/file.csv")
-#'
-#'
-#' # generating a specific type of setup file
-#' setupfile(codeBook, file = "codeBook.do") # type = "Stata" also works
-#'
-#'
-#' # other types of possible utilizations, using paths to specific files
-#' # an XML file containing a DDI metadata object
-#'
-#' setupfile("/path/to/the/metadata/file.xml", csv="/path/to/csv/file.csv")
-#'
-#'
-#' # or in batch mode, specifying entire directories
-#' setupfile("/path/to/the/metadata/directory", csv="/path/to/csv/directory")
+#' # Batch processing: read metadata and CSV files from matching directories
+#' setupfile("/path/to/metadata/directory", csv = "/path/to/csv/directory")
 #' }
 #'
 #' @author Adrian Dusa
 #'
 #' @param obj
-#' A data frame, or a list object containing the metadata, or a path to a data
-#' file or to a directory where such objects are located, for batch processing
+#' A labelled data frame, a DDI `codeBook` list returned by [getCodebook()],
+#' or a path to a metadata file or directory for batch processing
 #'
 #' @param file Character, the (path to the) setup file to be created
 #'
@@ -118,7 +135,14 @@
 
     # TO DO: when obj is a path to a file or directory,
     # it should be (only) XML and not R anymore
-    on.exit(suppressWarnings(sink()))
+    output_sink_depth <- sink.number(type = "output")
+    restore_setupfile_output <- function() {
+        while (sink.number(type = "output") > output_sink_depth) {
+            sink(type = "output")
+        }
+        invisible(NULL)
+    }
+    on.exit(restore_setupfile_output())
 
     funargs <- sapply(
         lapply(match.call(), deparse)[-1],
@@ -492,13 +516,7 @@
                                     ... = ...
                                 ),
                                 error = function(x) {
-                                    # if no sink() is needed, an invisible warning message will be returned
-                                    tryCatch(
-                                        sink(),
-                                        warning = function(y) {
-                                            return(invisible(y))
-                                        }
-                                    )
+                                    restore_setupfile_output()
                                     setwd(currentdir)
                                     cat(paste(
                                         "     There is an error associated with the file \"",
@@ -539,12 +557,7 @@
                             ... = ...
                         ),
                         error = function(x) {
-                            tryCatch(
-                                sink(),
-                                warning = function(y) {
-                                    return(invisible(y))
-                                }
-                            )
+                            restore_setupfile_output()
 
                             setwd(currentdir)
                             cat(paste(
@@ -600,12 +613,7 @@
                                 ... = ...
                             ),
                             error = function(x) {
-                                tryCatch(
-                                    sink(),
-                                    warning = function(y) {
-                                        return(invisible(y))
-                                    }
-                                )
+                                restore_setupfile_output()
                                 setwd(currentdir)
 
                                 cat(paste(
@@ -641,12 +649,7 @@
                             ... = ...
                         ),
                         error = function(x) {
-                            tryCatch(
-                                sink(),
-                                warning = function(y) {
-                                    return(invisible(y))
-                                }
-                            )
+                            restore_setupfile_output()
 
                             setwd(currentdir)
 
@@ -683,6 +686,9 @@
 
         return(invisible())
     }
+    else if (is.data.frame(obj)) {
+        outdir <- FALSE
+    }
     else if (
         is.list(obj) &&
         !is.null(obj$.extra) &&
@@ -690,9 +696,31 @@
     ) {
 
         if (is.null(dataDscr_vars)) {
-            # TODO: this should have the same output as collectRMetadata()...!
-            dataDscr_vars <- getChildren("codeBook/dataDscr/var", from = obj)
-            names(dataDscr_vars) <- sapply(dataDscr_vars, function(x) attr(x, "name"))
+            document <- xml2::as_xml_document(
+                list(codeBook = removeExtra(changeXMLang(obj)))
+            )
+
+            document <- xml2::read_xml(
+                as.character(document),
+                options = c("HUGE", "NONET", "NOBLANKS")
+            )
+
+            namespace <- getDNS(document)
+            variables <- xml2::xml_find_all(
+                document,
+                sprintf("/%scodeBook/%sdataDscr/%svar", namespace, namespace, namespace)
+            )
+
+            language <- resolveDDILanguage(variables, language = dots$language)
+
+            dataDscr_vars <- lapply(
+                variables,
+                XMLtoRmetadata,
+                dns = namespace,
+                language = language
+            )
+
+            names(dataDscr_vars) <- xml2::xml_attr(variables, "name")
         }
 
         if (identical(csv, "")) {
@@ -804,6 +832,9 @@
     maxchars <- max(nchar(varnames))
     varcheck <- rep(0, length(varnames))
     formats <- FALSE
+
+    # Without observations, column emptiness is unknown.
+    emptyvars <- setNames(rep(NA, length(varnames)), varnames)
 
     csv_is_df <- is.data.frame(csv)
 
@@ -1331,7 +1362,7 @@
 
 
                     # if (csv_is_df | csv_is_path) {
-                        if (emptyvars[[sv]]) {
+                        if (isTRUE(emptyvars[[sv]])) {
                             cat(paste(
                                 "* Variable ",
                                 toupper(sv),
