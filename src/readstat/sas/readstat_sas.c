@@ -246,6 +246,8 @@ readstat_error_t sas_read_header(readstat_io_t *io, sas_header_info_t *hinfo,
     
     hinfo->creation_time = sas_convert_time(creation_time, creation_time_diff, epoch);
     hinfo->modification_time = sas_convert_time(modification_time, modification_time_diff, epoch);
+    hinfo->creation_time_present = isfinite(creation_time) && isfinite(creation_time_diff);
+    hinfo->modification_time_present = isfinite(modification_time) && isfinite(modification_time_diff);
 
     uint32_t header_size, page_size;
 
@@ -447,15 +449,17 @@ readstat_error_t sas_write_header(readstat_writer_t *writer, sas_header_info_t *
 
     memcpy(&header[156], header_start.file_info, sizeof(header_start.file_info));
 
-    double utc_offset = sas_local_utc_offset(writer->timestamp);
+    double utc_offset = sas_local_utc_offset(hinfo->creation_time);
+    double modified_utc_offset = sas_local_utc_offset(hinfo->modification_time);
+    double modified_fraction = writer->modified_timestamp_set ? 0.0 : writer->timestamp_fraction;
     double creation_time = (double)(hinfo->creation_time - epoch) + utc_offset + writer->timestamp_fraction;
-    double modification_time = (double)(hinfo->modification_time - epoch) + utc_offset + writer->timestamp_fraction;
+    double modification_time = (double)(hinfo->modification_time - epoch) + modified_utc_offset + modified_fraction;
 
     off = 164 + a1;
     memcpy(&header[off], &creation_time, sizeof(double));
     memcpy(&header[off+8], &modification_time, sizeof(double));
     memcpy(&header[off+16], &utc_offset, sizeof(double));
-    memcpy(&header[off+24], &utc_offset, sizeof(double));
+    memcpy(&header[off+24], &modified_utc_offset, sizeof(double));
 
     uint32_t header_size = hinfo->header_size;
     uint32_t page_size = hinfo->page_size;
@@ -517,7 +521,7 @@ readstat_error_t sas_write_header(readstat_writer_t *writer, sas_header_info_t *
 sas_header_info_t *sas_header_info_init(readstat_writer_t *writer, int is_64bit) {
     sas_header_info_t *hinfo = calloc(1, sizeof(sas_header_info_t));
     hinfo->creation_time = writer->timestamp;
-    hinfo->modification_time = writer->timestamp;
+    hinfo->modification_time = writer->modified_timestamp_set ? writer->modified_timestamp : writer->timestamp;
     hinfo->page_size = SAS_DEFAULT_PAGE_SIZE;
     hinfo->u64 = !!is_64bit;
 

@@ -16,6 +16,14 @@ time_t readstat_get_modified_time(readstat_metadata_t *metadata) {
     return metadata->modified_time;
 }
 
+int readstat_has_creation_time(readstat_metadata_t *metadata) {
+    return metadata->creation_time_present;
+}
+
+int readstat_has_modified_time(readstat_metadata_t *metadata) {
+    return metadata->modified_time_present;
+}
+
 int readstat_get_file_format_version(readstat_metadata_t *metadata) {
     return metadata->file_format_version;
 }

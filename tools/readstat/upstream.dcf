@@ -28,7 +28,7 @@ VendoredSHA256: 667881da6f75656bce1991314d688c721923e6efd76f7468e135b41a92e7bfa7
 File: readstat.h
 Source: src/readstat.h
 UpstreamSHA256: e28624d134fc33cf4fed7e69db3a5efd11b9ca8ef32d0e4dc64443822426cca9
-VendoredSHA256: b0301e6cc977536b7e2e4ededac594b0ac7142db40844ce34876942b1b81e799
+VendoredSHA256: 9230e93a5db056806b483e1d05ed01d9ebfc9cfe75b99cb6f82e42e384c72046
 
 File: readstat_bits.c
 Source: src/readstat_bits.c
@@ -83,7 +83,7 @@ VendoredSHA256: 2e83d9603544195b7ffc0dddced111352411da7bc1c8f1dcf30623ee1e58ad69
 File: readstat_metadata.c
 Source: src/readstat_metadata.c
 UpstreamSHA256: 38f71d04aa9e333fa567ea994595732a2501d20dfc452be28842f044ff22b744
-VendoredSHA256: 38f71d04aa9e333fa567ea994595732a2501d20dfc452be28842f044ff22b744
+VendoredSHA256: 1fd496a00f48b9891d7fe205f9a5311e55d2a8548e9ebb55453577fa4cb35833
 
 File: readstat_parser.c
 Source: src/readstat_parser.c
@@ -108,7 +108,7 @@ VendoredSHA256: cbb71938a8ff314ad78c1252e7f82e445e9370d8b1b90c9884fc78bf6aea8adb
 File: readstat_writer.c
 Source: src/readstat_writer.c
 UpstreamSHA256: 38b0aff1d9d8e4797807a6c9fb4dca8220aec15c6e8836467cb8c145c344a3d8
-VendoredSHA256: 8135246d102ea9cfce0f17687d383865ff0502999f967d1130b709df88d8fda5
+VendoredSHA256: d187a16e40c1402597702fb5ea8d397336a390e0d75bfcb124505904688b5dd2
 
 File: readstat_writer.h
 Source: src/readstat_writer.h
@@ -128,32 +128,32 @@ VendoredSHA256: efd0c8c92b1d34b1411cc9d10735fb609f78ee5fc4ed5b9a6732864eb7ce3b44
 File: sas/readstat_sas.c
 Source: src/sas/readstat_sas.c
 UpstreamSHA256: d415aaf1f1c5b0cb402cd36dc86930d38c1822e676d5d4c5f4dbaa8509fcb711
-VendoredSHA256: d415aaf1f1c5b0cb402cd36dc86930d38c1822e676d5d4c5f4dbaa8509fcb711
+VendoredSHA256: 8d8addc25df6e9f0c09bbb0ee8493b009e045c798740821d178fbd772eaa3a21
 
 File: sas/readstat_sas.h
 Source: src/sas/readstat_sas.h
 UpstreamSHA256: 1ece05d762e11075ccaa70795d2dfaeb0eefe48e1dbe7e862b23291be5c5ae63
-VendoredSHA256: 1ece05d762e11075ccaa70795d2dfaeb0eefe48e1dbe7e862b23291be5c5ae63
+VendoredSHA256: e0217262c839153a922066aa5516068bddbd401ee623e9948ff8b330ef9498b1
 
 File: sas/readstat_sas7bcat_read.c
 Source: src/sas/readstat_sas7bcat_read.c
 UpstreamSHA256: cdc00346efb402ab73ffc0c528b98576309f9492d3dcb44f2edbaa26fac59f37
-VendoredSHA256: cdc00346efb402ab73ffc0c528b98576309f9492d3dcb44f2edbaa26fac59f37
+VendoredSHA256: f66676f4db89e8a6ad12f2fab1ef3b84045a81f7b17942fa49d8d80a9edbe66b
 
 File: sas/readstat_sas7bcat_write.c
 Source: src/sas/readstat_sas7bcat_write.c
 UpstreamSHA256: 025c645afe7b78d306d5b46b9b064aefba2df37e280a4067666014eee4761a26
-VendoredSHA256: 025c645afe7b78d306d5b46b9b064aefba2df37e280a4067666014eee4761a26
+VendoredSHA256: 6f09dd779643274544c69a3eaa86f45fb3f3b6509641ec6e6c97ca3907979f46
 
 File: sas/readstat_sas7bdat_read.c
 Source: src/sas/readstat_sas7bdat_read.c
 UpstreamSHA256: c3bd65f3019b5b725f96b5a770fdab058847bb2f410d885501561dd55e88c171
-VendoredSHA256: c3bd65f3019b5b725f96b5a770fdab058847bb2f410d885501561dd55e88c171
+VendoredSHA256: 3a2cc116311d3074c28e84ad7d4ddf2e3b415e85abbed2924ca259c0a629286e
 
 File: sas/readstat_sas7bdat_write.c
 Source: src/sas/readstat_sas7bdat_write.c
 UpstreamSHA256: 5fa00b3f7bf4b6b89ee87e9fb12aa42299a81a1bba3fc4c895a96a38833eabb2
-VendoredSHA256: 5fa00b3f7bf4b6b89ee87e9fb12aa42299a81a1bba3fc4c895a96a38833eabb2
+VendoredSHA256: 9c525862cd6174e602be094518be7a828920ebd0b26311d9cb965fd3241a5a5e
 
 File: sas/readstat_sas_rle.c
 Source: src/sas/readstat_sas_rle.c
@@ -193,12 +193,12 @@ VendoredSHA256: 3e8e5f1bb82d4011665b6d666f1ba54a92396ddd4aa10e1f7685939821576329
 File: sas/readstat_xport_read.c
 Source: src/sas/readstat_xport_read.c
 UpstreamSHA256: 077b5d052dddd424011af7af89165fdb9549f8c6a2f086dbd36892d450d3e689
-VendoredSHA256: 077b5d052dddd424011af7af89165fdb9549f8c6a2f086dbd36892d450d3e689
+VendoredSHA256: a9af2bf553d9b3b07cb9c4db2cbb7f1001199dd7c37da8d08e52ccf16c8ee431
 
 File: sas/readstat_xport_write.c
 Source: src/sas/readstat_xport_write.c
 UpstreamSHA256: 8255ee6de531dc845d13bf9565e82848b50c78df1f418490bda4ce9b86ea42ee
-VendoredSHA256: 8255ee6de531dc845d13bf9565e82848b50c78df1f418490bda4ce9b86ea42ee
+VendoredSHA256: b44acee5c84d4adc16482b5ed9d7b1d2b4566ca7e455f19eb075d71d84406a27
 
 File: spss/readstat_por.c
 Source: src/spss/readstat_por.c
@@ -228,7 +228,7 @@ VendoredSHA256: 801799a917d6bc365807c4dee4308c2471ab50e6ce4e060b549c7d41207f65f7
 File: spss/readstat_por_read.c
 Source: src/spss/readstat_por_read.c
 UpstreamSHA256: 66c80ae165181953b4c09288c34cfec979d4c942a0ffb876be31d118cdb654f0
-VendoredSHA256: 66c80ae165181953b4c09288c34cfec979d4c942a0ffb876be31d118cdb654f0
+VendoredSHA256: 69c5564ba0b953ebdb1275a4d1048c3760f855846a1bdb74d152b78f14b7d52b
 
 File: spss/readstat_por_write.c
 Source: src/spss/readstat_por_write.c
@@ -238,12 +238,12 @@ VendoredSHA256: 0312e019cc8c743a310d9c9ebba26a70db9bc983587642279bb528bc89cd70f9
 File: spss/readstat_sav.c
 Source: src/spss/readstat_sav.c
 UpstreamSHA256: dd8c063e180b8d9439968bf6d6d73a87adbfed031f6ef29253b9f952e42c0e47
-VendoredSHA256: 78b1b824f895c98380186574cfc407715502012470db3ef0034f940635229fa1
+VendoredSHA256: 69f86bb84be7ade8bc21713bd7a06d4d4e50c5fc69cb4be3338cc8e8e853ad95
 
 File: spss/readstat_sav.h
 Source: src/spss/readstat_sav.h
 UpstreamSHA256: 1d5b52210cc67bcc77dfe5492a273bf65e59b00c3a307cb72a0f01a73f01ab31
-VendoredSHA256: fe895ed6b2feb8db26037a46b224b9ceca895b63bf69ea0169d902f53709cb1e
+VendoredSHA256: 020c12d20465f6a623db40d98d1984ab83690013111e7d9c7d597cda4584d5bd
 
 File: spss/readstat_sav_compress.c
 Source: src/spss/readstat_sav_compress.c
@@ -273,7 +273,7 @@ VendoredSHA256: 087a601082ef231cad69379ae6e48041b91a980af24b8a4a762ae700fdd37976
 File: spss/readstat_sav_parse_mr_name.c
 Source: src/spss/readstat_sav_parse_mr_name.c
 UpstreamSHA256: 23d52be93a88555ac7074d86bd621221d67f70a38ce516d2c67d8dc17f151723
-VendoredSHA256: 23d52be93a88555ac7074d86bd621221d67f70a38ce516d2c67d8dc17f151723
+VendoredSHA256: c65f2e656184e97acc446b080d58f9e9b10da7ebeb5e67b7d1ee81cd8efbbcb0
 
 File: spss/readstat_sav_parse_mr_name.h
 Source: src/spss/readstat_sav_parse_mr_name.h
@@ -298,12 +298,12 @@ VendoredSHA256: 3d4bafe5f9391fb25981ea546c8357c9105d94283a01e4e91af16bffa85f8120
 File: spss/readstat_sav_read.c
 Source: src/spss/readstat_sav_read.c
 UpstreamSHA256: ba0152ed0b9178bd34fb386a75a265e357adae38e1eb13385b18c3cfecc655f2
-VendoredSHA256: 5576adeb70d72d0d3835c9ba7de3dd1fe2d56fd015f4af0f28b9e9694e82988d
+VendoredSHA256: 8cc8d426a98b5b30c9eb93d1fa5f9c74bd4bf09e89af5a9ae9d76ac8df79e5bf
 
 File: spss/readstat_sav_write.c
 Source: src/spss/readstat_sav_write.c
 UpstreamSHA256: 71566b001737a4fd54407db62db8ced6b74a50188aed2a598b3c9af7ed5fb9fd
-VendoredSHA256: afeff3a87ad96985cc015c8fd75a8220100c7175a8dfad50db1a994fae7c1f99
+VendoredSHA256: e13a12c597293935fa0b21a1ec0c93b668fe7f6e2e5b37e6a7e9975a954842cb
 
 File: spss/readstat_spss.c
 Source: src/spss/readstat_spss.c
@@ -368,7 +368,7 @@ VendoredSHA256: a188b7c622188ef23ceb1dcf679d136f799a4263f8503293d8a0f412b85bf85d
 File: stata/readstat_dta.h
 Source: src/stata/readstat_dta.h
 UpstreamSHA256: fe47c5b4bc1a1fe6cb75fa27cc65b3432463ef538a09f36797047280a5359a92
-VendoredSHA256: 40248493567161e277dc31a6ae07d35c04df4456d11a272d666ee8ab18d61813
+VendoredSHA256: 0a97b9aa5a2bd695394d05f3dcf1a5b6a489b4288609d14cdc297344fc2a18a3
 
 File: stata/readstat_dta_parse_timestamp.c
 Source: src/stata/readstat_dta_parse_timestamp.c
@@ -388,12 +388,12 @@ VendoredSHA256: 3781fefd222e13b1cfa1877961e0ba78fee27f3672bd5504c0fbe386bc1ee079
 File: stata/readstat_dta_read.c
 Source: src/stata/readstat_dta_read.c
 UpstreamSHA256: 1f81328da7d8f9ce4a9ded6a1ce0a680761cb6a0fc7e53c8b0cd31709566fa31
-VendoredSHA256: 9c1948b6e5eeb3be2d830c0b0a5ea23595379b474bf62db03a071e6d2269e374
+VendoredSHA256: 95ce8bdf6cacb29454cdea14582e112f500c2b359bb6a88539eecbae490b3802
 
 File: stata/readstat_dta_write.c
 Source: src/stata/readstat_dta_write.c
 UpstreamSHA256: 592e0ca524117d3e281b9af8610af2cc172121ae27a94c47fad77df526b43977
-VendoredSHA256: 8832b75f3f1a483515649bbf5b394d1ea4040060dda93b5dde6fdbd5ff413c5f
+VendoredSHA256: 46076e592b2725e2fc1e446762b454911fe0b97ead11ffa2d4b911d01d19f709
 
 File: txt/commands_util.c
 Source: src/txt/commands_util.c

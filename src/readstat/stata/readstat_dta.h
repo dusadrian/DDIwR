@@ -57,6 +57,7 @@ typedef struct dta_ctx_s {
     size_t         data_label_len;
     size_t         data_label_len_len;
     time_t         timestamp;
+    int            timestamp_present;
     size_t         timestamp_len;
     char           typlist_version;
     size_t         typlist_entry_len;

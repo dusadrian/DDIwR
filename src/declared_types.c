@@ -1,5 +1,6 @@
 #include <string.h>
 #include <math.h>
+#include <ctype.h>
 
 #include "declared_types.h"
 
@@ -130,6 +131,25 @@ VarType numTypeFromFormat(FileVendor vendor, const char *var_format) {
             else                                        return DECLARED_DEFAULT;
     }
     return DECLARED_DEFAULT;
+}
+
+/* A custom SAS label format can retain its temporal meaning in the informat.
+ * A recognized display format always takes precedence. */
+VarType numTypeFromMetadata(FileVendor vendor, const char *format, const char *informat) {
+    VarType type = numTypeFromFormat(vendor, format);
+    if (type != DECLARED_DEFAULT || vendor != DECLARED_SAS || !informat)
+        return type;
+
+    char upper[64];
+    size_t length = strlen(informat);
+    if (length >= sizeof(upper))
+        return DECLARED_DEFAULT;
+    for (size_t i=0; i<=length; i++)
+        upper[i] = toupper((unsigned char)informat[i]);
+    if (hasPrefix(upper, "ANYDTDTE")) return DECLARED_DATE;
+    if (hasPrefix(upper, "ANYDTTME")) return DECLARED_TIME;
+    if (hasPrefix(upper, "ANYDTDTM") || hasPrefix(upper, "YMDDTTM")) return DECLARED_DATETIME;
+    return numTypeFromFormat(vendor, upper);
 }
 
 static int daysOffset(FileVendor vendor) {

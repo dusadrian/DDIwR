@@ -11,6 +11,13 @@
 #' factor. It should be an object of class `"declared"` with a specific
 #' attribute called `"labels"` that stores the value labels.
 #'
+#' Variable labels, display widths, custom SPSS attributes and Stata
+#' characteristics are retained. String formats and storage widths are removed
+#' when the values become numeric; subsequent exports derive numeric formats.
+#' The `spss_metadata`, `stata_metadata` and `sas_metadata` lists are also
+#' retained, except for their string storage fields (`format`, `width`, SAS
+#' `informat` and Stata `type`).
+#'
 #' @return
 #' A numeric categorical variable of the same class as the input.
 #'
@@ -55,7 +62,7 @@
         return(x)
     }
 
-
+    template <- x
     x <- declared::undeclare(x, drop = TRUE)
 
     label <- getElement(metadata, "label")
@@ -115,19 +122,12 @@
         na_values <- NULL
     }
 
-    if (xdeclared) {
-        return(declared::declared(
-            x,
-            label = label,
-            labels = labels,
-            na_values = na_values
-        ))
-    }
-
-    return(declared::declared(
+    out <- declared::declared(
         x,
         label = label,
         labels = labels,
         na_values = na_values
-    ))
+    )
+
+    return(restore_variable_metadata(out, template))
 }

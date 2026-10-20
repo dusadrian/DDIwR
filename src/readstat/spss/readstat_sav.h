@@ -80,6 +80,7 @@ typedef struct sav_ctx_s {
     char           charset_name[64];  /* from record 7 subtype 20 */
     char           file_label[4*64+1];
     time_t         timestamp;
+    int            timestamp_present;
     uint32_t      *variable_display_values;
     size_t         variable_display_values_count;
     iconv_t        converter;
@@ -87,6 +88,7 @@ typedef struct sav_ctx_s {
     int            var_offset;
     int            var_count;
     int            record_count;
+    int64_t        source_record_count;
     int            row_limit;
     int            row_offset;
     int            current_row;

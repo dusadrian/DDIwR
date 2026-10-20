@@ -149,10 +149,8 @@ static readstat_error_t dta_emit_header_time_stamp(readstat_writer_t *writer, dt
         goto cleanup;
     }
 
-    /* A timestamp of zero means "no timestamp": Stata writes a blank stamp
-     * (all NULs in the old formats, a zero-length string in 117 and later)
-     * rather than the epoch in the local time zone. */
-    if (writer->timestamp != 0) {
+    /* Preserve an explicitly supplied epoch zero; an unset zero stays blank. */
+    if (writer->timestamp != 0 || writer->timestamp_set) {
         time_t now = writer->timestamp;
         struct tm time_buf;
 #if !defined(_WIN32)

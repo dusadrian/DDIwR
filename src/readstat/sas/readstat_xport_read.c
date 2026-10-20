@@ -24,9 +24,12 @@ typedef struct xport_ctx_s {
     iconv_t        converter;
 
     readstat_io_t *io;
-    time_t         timestamp;
+    time_t         creation_time;
+    time_t         modified_time;
+    int            creation_time_present;
+    int            modified_time_present;
 
-    long           obs_count; /* from OBSV8 header; 0 if unknown */
+    int64_t        obs_count; /* from OBSV8 header; -1 if unknown */
     int            var_count;
     int            row_limit;
     int            row_offset;
@@ -69,14 +72,6 @@ static void xport_ctx_free(xport_ctx_t *ctx) {
 static ssize_t read_bytes(xport_ctx_t *ctx, void *dst, size_t dst_len) {
     readstat_io_t *io = (readstat_io_t *)ctx->io;
     return io->read(dst, dst_len, io->io_ctx);
-}
-
-static readstat_error_t xport_skip_record(xport_ctx_t *ctx) {
-    readstat_io_t *io = (readstat_io_t *)ctx->io;
-    if (io->seek(LINE_LEN, READSTAT_SEEK_CUR, io->io_ctx) == -1)
-        return READSTAT_ERROR_SEEK;
-
-    return READSTAT_OK;
 }
 
 static readstat_error_t xport_skip_rest_of_record(xport_ctx_t *ctx) {
@@ -122,18 +117,19 @@ static readstat_error_t xport_read_header_record(xport_ctx_t *ctx, xport_header_
         return READSTAT_ERROR_PARSE;
     }
 
-    /* V8 files store the observation count as a 15-character field
-     * immediately after the 48-character header prefix. Older writers
-     * may leave it blank or zero, in which case it stays unknown. */
+    /* All-zero reserved fields mean unknown; a space-padded zero is explicit. */
     if (strcmp(xrecord->name, "OBSV8") == 0) {
         char obs_count[16];
         memcpy(obs_count, &line[48], 15);
         obs_count[15] = '\0';
 
         char *end = NULL;
-        long count = strtol(obs_count, &end, 10);
-        if (end != obs_count && count > 0) {
-            ctx->obs_count = count;
+        int64_t count = strtoll(obs_count, &end, 10);
+        if (end != obs_count) {
+            while (*end == ' ') end++;
+            if (!*end && count >= 0 && strcmp(obs_count, "000000000000000")) {
+                ctx->obs_count = count;
+            }
         }
     }
 
@@ -161,6 +157,50 @@ cleanup:
     return retval;
 }
 
+static readstat_error_t xport_parse_timestamp(const char *text, time_t *timestamp, int *present) {
+    char stamp[17], month[4] = { 0 };
+    struct tm ts = { .tm_isdst = -1 };
+    int consumed = 0, nonblank = 0;
+    memcpy(stamp, text, 16);
+    stamp[16] = '\0';
+    for (int i = 0; i < 16; i++) {
+        if (stamp[i] != ' ' && stamp[i] != '\0') {
+            nonblank = 1;
+        }
+    }
+    /* Blank member stamps retain the corresponding library timestamp. */
+    if (!nonblank) {
+        return READSTAT_OK;
+    }
+    if (sscanf(stamp, "%2d%3s%2d:%2d:%2d:%2d%n", &ts.tm_mday, month,
+            &ts.tm_year, &ts.tm_hour, &ts.tm_min, &ts.tm_sec, &consumed) != 6 || consumed != 16) {
+        return READSTAT_ERROR_BAD_TIMESTAMP_STRING;
+    }
+    ts.tm_mon = -1;
+    for (int i = 0; i < sizeof(_xport_months) / sizeof(_xport_months[0]); i++) {
+        if (!strcmp(month, _xport_months[i])) {
+            ts.tm_mon = i;
+            break;
+        }
+    }
+    if (ts.tm_mon < 0 || ts.tm_year < 0 || ts.tm_year > 99 || ts.tm_mday < 1 || ts.tm_mday > 31 ||
+            ts.tm_hour < 0 || ts.tm_hour > 23 || ts.tm_min < 0 || ts.tm_min > 59 || ts.tm_sec < 0 || ts.tm_sec > 59) {
+        return READSTAT_ERROR_BAD_TIMESTAMP_STRING;
+    }
+    if (ts.tm_year < 60) {
+        ts.tm_year += 100;
+    }
+    const int month_days[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
+    int year = ts.tm_year + 1900;
+    int leap = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
+    if (ts.tm_mday > month_days[ts.tm_mon] + (ts.tm_mon == 1 && leap)) {
+        return READSTAT_ERROR_BAD_TIMESTAMP_STRING;
+    }
+    *timestamp = mktime(&ts);
+    *present = 1;
+    return READSTAT_OK;
+}
+
 static readstat_error_t xport_read_table_name_record(xport_ctx_t *ctx) {
     char line[LINE_LEN+1];
     readstat_error_t retval = READSTAT_OK;
@@ -174,6 +214,8 @@ static readstat_error_t xport_read_table_name_record(xport_ctx_t *ctx) {
     if (retval != READSTAT_OK)
         goto cleanup;
 
+    retval = xport_parse_timestamp(&line[64], &ctx->creation_time, &ctx->creation_time_present);
+
 cleanup:
     return retval;
 }
@@ -183,6 +225,10 @@ static readstat_error_t xport_read_file_label_record(xport_ctx_t *ctx) {
     readstat_error_t retval = READSTAT_OK;
 
     retval = xport_read_record(ctx, line);
+    if (retval != READSTAT_OK)
+        goto cleanup;
+
+    retval = xport_parse_timestamp(line, &ctx->modified_time, &ctx->modified_time_present);
     if (retval != READSTAT_OK)
         goto cleanup;
 
@@ -214,33 +260,19 @@ cleanup:
     return retval;
 }
 
-static readstat_error_t xport_read_timestamp_record(xport_ctx_t *ctx) {
+static readstat_error_t xport_read_timestamp_record(xport_ctx_t *ctx, int modified) {
     char line[LINE_LEN+1];
     readstat_error_t retval = READSTAT_OK;
-    struct tm ts = { .tm_isdst = -1 };
-    char month[4];
-    int i;
 
     retval = xport_read_record(ctx, line);
     if (retval != READSTAT_OK)
         goto cleanup;
 
-    sscanf(line,
-            "%02d%3s%02d:%02d:%02d:%02d",
-            &ts.tm_mday, month, &ts.tm_year, &ts.tm_hour, &ts.tm_min, &ts.tm_sec);
-
-    for (i=0; i<sizeof(_xport_months)/sizeof(_xport_months[0]); i++) {
-        if (strcmp(month, _xport_months[i]) == 0) {
-            ts.tm_mon = i;
-            break;
-        }
+    if (modified) {
+        retval = xport_parse_timestamp(line, &ctx->modified_time, &ctx->modified_time_present);
+    } else {
+        retval = xport_parse_timestamp(&line[64], &ctx->creation_time, &ctx->creation_time_present);
     }
-
-    if (ts.tm_year < 60) {
-        ts.tm_year += 100;
-    }
-
-    ctx->timestamp = mktime(&ts);
 
 cleanup:
     return retval;
@@ -269,24 +301,29 @@ static readstat_error_t xport_read_namestr_header_record(xport_ctx_t *ctx) {
         goto cleanup;
     }
 
+cleanup:
+    return retval;
+}
+
+static readstat_error_t xport_submit_metadata(xport_ctx_t *ctx) {
     if (ctx->handle.metadata) {
         readstat_metadata_t metadata = {
-            .row_count = -1,
+            .row_count = ctx->handle.value ? -1 : ctx->obs_count,
             .var_count = ctx->var_count,
             .file_label = ctx->file_label,
             .table_name = ctx->table_name,
-            .creation_time = ctx->timestamp,
-            .modified_time = ctx->timestamp,
+            .creation_time = ctx->creation_time,
+            .modified_time = ctx->modified_time,
+            .creation_time_present = ctx->creation_time_present,
+            .modified_time_present = ctx->modified_time_present,
             .file_format_version = ctx->version
         };
         if (ctx->handle.metadata(&metadata, ctx->user_ctx) != READSTAT_HANDLER_OK) {
-            retval = READSTAT_ERROR_USER_ABORT;
-            goto cleanup;
+            return READSTAT_ERROR_USER_ABORT;
         }
     }
 
-cleanup:
-    return retval;
+    return READSTAT_OK;
 }
 
 static readstat_error_t xport_read_obs_header_record(xport_ctx_t *ctx) {
@@ -546,6 +583,10 @@ static readstat_error_t xport_read_variables(xport_ctx_t *ctx) {
             goto cleanup;
     }
 
+    retval = xport_submit_metadata(ctx);
+    if (retval != READSTAT_OK)
+        goto cleanup;
+
     ctx->row_length = 0;
 
     int index_after_skipping = 0;
@@ -652,7 +693,7 @@ static readstat_error_t xport_read_data(xport_ctx_t *ctx) {
     char *row = readstat_malloc(ctx->row_length);
     char *blank_row = readstat_malloc(ctx->row_length);
     int num_blank_rows = 0;
-    long rows_read = 0;
+    int64_t rows_read = 0;
 
     if (row == NULL || blank_row == NULL) {
         retval = READSTAT_ERROR_MALLOC;
@@ -661,7 +702,7 @@ static readstat_error_t xport_read_data(xport_ctx_t *ctx) {
 
     memset(blank_row, ' ', ctx->row_length);
     while (1) {
-        if (ctx->obs_count > 0 && rows_read == ctx->obs_count)
+        if (ctx->obs_count >= 0 && rows_read == ctx->obs_count)
             break;
 
         ssize_t bytes_read = read_bytes(ctx, row, ctx->row_length);
@@ -677,7 +718,7 @@ static readstat_error_t xport_read_data(xport_ctx_t *ctx) {
 
         /* When the row count is known, blank rows are real data rather
          * than potential end-of-file padding */
-        int row_is_blank = ctx->obs_count <= 0;
+        int row_is_blank = ctx->obs_count < 0;
 
         for (pos=0; pos<ctx->row_length; pos++) {
             if (row[pos] != ' ') {
@@ -733,6 +774,7 @@ readstat_error_t readstat_parse_xport(readstat_parser_t *parser, const char *pat
     ctx->user_ctx = user_ctx;
     ctx->io = io;
     ctx->row_limit = parser->row_limit;
+    ctx->obs_count = -1;
     if (parser->row_offset > 0)
         ctx->row_offset = parser->row_offset;
 
@@ -764,11 +806,11 @@ readstat_error_t readstat_parse_xport(readstat_parser_t *parser, const char *pat
     if (retval != READSTAT_OK)
         goto cleanup;
 
-    retval = xport_skip_record(ctx);
+    retval = xport_read_timestamp_record(ctx, 0);
     if (retval != READSTAT_OK)
         goto cleanup;
 
-    retval = xport_read_timestamp_record(ctx);
+    retval = xport_read_timestamp_record(ctx, 1);
     if (retval != READSTAT_OK)
         goto cleanup;
 

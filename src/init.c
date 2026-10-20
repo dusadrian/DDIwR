@@ -50,7 +50,9 @@ extern SEXP declared_df_parse_sav_file(SEXP spec, SEXP encoding, SEXP user_na, S
 extern SEXP declared_df_parse_xpt_file(SEXP spec, SEXP cols_skip, SEXP n_max, SEXP rows_skip);
 extern SEXP declared_write_dta_(SEXP data, SEXP path, SEXP version, SEXP label, SEXP strl_threshold, SEXP dictionary);
 extern SEXP declared_write_sas_(SEXP data, SEXP path, SEXP dictionary);
+extern SEXP declared_write_sas_catalog_(SEXP data, SEXP path, SEXP formats, SEXP dictionary);
 extern SEXP declared_write_sav_(SEXP data, SEXP path, SEXP compress);
+extern SEXP ddiwr_inspect_file(SEXP spec, SEXP ext, SEXP encoding, SEXP spec_cat, SEXP catalog_encoding);
 extern SEXP declared_write_xpt_(SEXP data, SEXP path, SEXP version, SEXP name, SEXP label, SEXP dictionary);
 
 extern SEXP metadata_snapshot_create(SEXP records);
@@ -62,6 +64,7 @@ extern SEXP metadata_snapshot_close(SEXP pointer);
 extern SEXP metadata_values_copy(SEXP data, SEXP columns);
 
 static const R_CallMethodDef CallEntries[] = {
+    {"ddiwr_inspect_file", (DL_FUNC) &ddiwr_inspect_file, 5},
     {"metadata_snapshot_create", (DL_FUNC) &metadata_snapshot_create, 1},
     {"metadata_clean_text", (DL_FUNC) &metadata_clean_text, 1},
     {"metadata_snapshot_normalized", (DL_FUNC) &metadata_snapshot_normalized, 4},
@@ -90,6 +93,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"declared_df_parse_xpt_file", (DL_FUNC) &declared_df_parse_xpt_file, 4},
     {"declared_write_dta_", (DL_FUNC) &declared_write_dta_, 6},
     {"declared_write_sas_", (DL_FUNC) &declared_write_sas_, 3},
+    {"declared_write_sas_catalog_", (DL_FUNC) &declared_write_sas_catalog_, 4},
     {"declared_write_sav_", (DL_FUNC) &declared_write_sav_, 3},
     {"declared_write_xpt_", (DL_FUNC) &declared_write_xpt_, 6},
     {NULL, NULL, 0}

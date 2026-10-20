@@ -1575,6 +1575,23 @@ static readstat_error_t sav_parse_records_pass2(sav_ctx_t *ctx) {
                 }
                 
                 switch (subtype) {
+                    case SAV_RECORD_SUBTYPE_NUMBER_OF_CASES: {
+                        if (size != 8 || count != 2) {
+                            retval = READSTAT_ERROR_PARSE;
+                            goto cleanup;
+                        }
+                        uint64_t version, cases;
+                        memcpy(&version, data_buf, 8);
+                        memcpy(&cases, data_buf + 8, 8);
+                        if (ctx->bswap) {
+                            version = byteswap8(version);
+                            cases = byteswap8(cases);
+                        }
+                        if (version == 1 && cases <= INT64_MAX) {
+                            ctx->source_record_count = cases;
+                        }
+                        break;
+                    }
                     case SAV_RECORD_SUBTYPE_DATA_FILE_ATTRS:
                     case SAV_RECORD_SUBTYPE_VARIABLE_ATTRS:
                         if (size != 1) {
@@ -1845,6 +1862,8 @@ readstat_error_t sav_parse_timestamp(sav_ctx_t *ctx, sav_file_header_record_t *h
     readstat_error_t retval = READSTAT_OK;
     struct tm timestamp = { .tm_isdst = -1 };
 
+    ctx->timestamp_present = 0;
+
     if ((retval = sav_parse_time(header->creation_time, sizeof(header->creation_time),
                     &timestamp, ctx->handle.error, ctx->user_ctx)) 
             != READSTAT_OK)
@@ -1856,6 +1875,7 @@ readstat_error_t sav_parse_timestamp(sav_ctx_t *ctx, sav_file_header_record_t *h
         goto cleanup;
 
     ctx->timestamp = mktime(&timestamp);
+    ctx->timestamp_present = 1;
 
 cleanup:
     return retval;
@@ -1949,12 +1969,13 @@ readstat_error_t readstat_parse_sav(readstat_parser_t *parser, const char *path,
     if (ctx->handle.metadata) {
         readstat_metadata_t metadata = {
             .spss_attributes = ctx->spss_attributes,
-            .row_count = ctx->record_count < 0 ? -1 : ctx->row_limit,
+            .row_count = ctx->handle.value ? (ctx->record_count < 0 ? -1 : ctx->row_limit) : ctx->source_record_count,
             .var_count = ctx->var_count,
             .file_encoding = ctx->input_encoding,
             .file_format_version = ctx->format_version,
             .creation_time = ctx->timestamp,
             .modified_time = ctx->timestamp,
+            .creation_time_present = ctx->timestamp_present,
             .compression = ctx->compression,
             .endianness = ctx->endianness
         };

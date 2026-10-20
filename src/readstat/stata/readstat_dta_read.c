@@ -967,6 +967,8 @@ static readstat_error_t dta_read_label_and_timestamp(dta_ctx_t *ctx) {
     char last_data_label_char = 0;
     struct tm timestamp = { .tm_isdst = -1 };
 
+    ctx->timestamp_present = 0;
+
     if (ctx->file_is_xmlish) {
         if ((retval = dta_read_tag(ctx, "<label>")) != READSTAT_OK) {
             goto cleanup;
@@ -1055,6 +1057,7 @@ static readstat_error_t dta_read_label_and_timestamp(dta_ctx_t *ctx) {
             if (dta_parse_timestamp(timestamp_buffer, timestamp_len,
                         &timestamp, ctx->handle.error, ctx->user_ctx) == READSTAT_OK) {
                 ctx->timestamp = mktime(&timestamp);
+                ctx->timestamp_present = 1;
             }
         }
     }
@@ -1384,6 +1387,7 @@ readstat_error_t readstat_parse_dta(readstat_parser_t *parser, const char *path,
             .file_label = ctx->data_label,
             .creation_time = ctx->timestamp,
             .modified_time = ctx->timestamp,
+            .creation_time_present = ctx->timestamp_present,
             .file_format_version = ctx->ds_format,
             .is64bit = ctx->ds_format >= 118,
             .endianness = ctx->endianness
@@ -1431,7 +1435,7 @@ readstat_error_t readstat_parse_dta(readstat_parser_t *parser, const char *path,
         ctx->value_labels_offset = ctx->data_offset + ctx->record_len * ctx->nobs;
     }
 
-    if ((retval = dta_read_strls(ctx)) != READSTAT_OK)
+    if (ctx->handle.value && (retval = dta_read_strls(ctx)) != READSTAT_OK)
         goto cleanup;
 
     if ((retval = dta_read_data(ctx)) != READSTAT_OK)

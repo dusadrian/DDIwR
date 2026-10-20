@@ -151,6 +151,8 @@ typedef struct readstat_metadata_s {
     int64_t     var_count;
     time_t      creation_time;
     time_t      modified_time;
+    int         creation_time_present;
+    int         modified_time_present;
     int64_t     file_format_version;
     readstat_compress_t compression;
     readstat_endian_t endianness;
@@ -171,6 +173,9 @@ int readstat_get_row_count(readstat_metadata_t *metadata);
 int readstat_get_var_count(readstat_metadata_t *metadata);
 time_t readstat_get_creation_time(readstat_metadata_t *metadata);
 time_t readstat_get_modified_time(readstat_metadata_t *metadata);
+/* Presence is independent of the numeric timestamp; zero is a valid instant. */
+int readstat_has_creation_time(readstat_metadata_t *metadata);
+int readstat_has_modified_time(readstat_metadata_t *metadata);
 int readstat_get_file_format_version(readstat_metadata_t *metadata);
 int readstat_get_file_format_is_64bit(readstat_metadata_t *metadata);
 readstat_compress_t readstat_get_compression(readstat_metadata_t *metadata);
@@ -199,6 +204,12 @@ typedef struct readstat_value_s {
 /* Internal data structures */
 typedef struct readstat_value_label_s {
     double      double_key;
+    double      end_key;
+    char        end_tag;
+    char       *string_end;
+    size_t      string_end_len;
+    unsigned    sas_rule_flags;
+    unsigned    sas_is_rule;
     int32_t     int32_key;
     char        tag;
 
@@ -216,6 +227,8 @@ typedef struct readstat_label_set_s {
     readstat_value_label_t     *value_labels;
     long                        value_labels_count;
     long                        value_labels_capacity;
+    int                         sas_default_width;
+    double                      sas_fuzz;
 
     void                       *variables;
     long                        variables_count;
@@ -344,6 +357,10 @@ typedef int (*readstat_value_handler)(int obs_index, readstat_variable_t *variab
         readstat_value_t value, void *ctx);
 typedef int (*readstat_value_label_handler)(const char *val_labels, 
         readstat_value_t value, const char *label, void *ctx);
+/* SAS format rules retain ranges, endpoint exclusions and OTHER separately
+ * from ordinary exact value labels. Flags: LOW=1 HIGH=2 SEXCL=4 EEXCL=8 OTHER=16. */
+typedef int (*readstat_catalog_rule_handler)(const char *name, readstat_value_t start,
+        readstat_value_t end, unsigned flags, int default_width, double fuzz, const char *label, void *ctx);
 typedef void (*readstat_error_handler)(const char *error_message, void *ctx);
 typedef int (*readstat_progress_handler)(double progress, void *ctx);
 
@@ -391,6 +408,7 @@ typedef struct readstat_callbacks_s {
     readstat_error_handler         error;
     readstat_progress_handler      progress;
     readstat_characteristic_handler characteristic;
+    readstat_catalog_rule_handler catalog_rule;
 } readstat_callbacks_t;
 
 typedef struct readstat_parser_s {
@@ -517,6 +535,9 @@ typedef struct readstat_writer_s {
     readstat_compress_t         compression;
     time_t                      timestamp;
     double                      timestamp_fraction; // sub-second part of timestamp
+    int                         timestamp_set;
+    time_t                      modified_timestamp;
+    int                         modified_timestamp_set;
 
     readstat_variable_t       **variables;
     long                        variables_count;
@@ -532,6 +553,9 @@ typedef struct readstat_writer_s {
 
     readstat_attribute_t        *spss_attributes;
     readstat_attribute_t        *stata_characteristics;
+
+    mr_set_t                   *mr_sets;
+    size_t                      mr_sets_count;
 
     readstat_string_ref_t    **string_refs;
     long                       string_refs_count;
@@ -603,6 +627,9 @@ readstat_variable_t *readstat_get_variable(readstat_writer_t *writer, int index)
 // produce a write error if a note is longer than this limit.
 void readstat_add_note(readstat_writer_t *writer, const char *note);
 
+/* Copy an SPSS multiple-response definition before the first row, using long variable names. */
+readstat_error_t readstat_writer_add_mr_set(readstat_writer_t *writer, const mr_set_t *set);
+
 /* Register SPSS custom attributes before the first row. */
 readstat_error_t readstat_writer_add_spss_attribute(readstat_writer_t *writer,
         const readstat_variable_t *variable, const char *name,
@@ -627,6 +654,8 @@ readstat_string_ref_t *readstat_get_string_ref(readstat_writer_t *writer, int in
 // Optional metadata
 readstat_error_t readstat_writer_set_file_label(readstat_writer_t *writer, const char *file_label);
 readstat_error_t readstat_writer_set_file_timestamp(readstat_writer_t *writer, time_t timestamp);
+/* SAS formats only; without an override, modification follows creation time. */
+readstat_error_t readstat_writer_set_file_modified_timestamp(readstat_writer_t *writer, time_t timestamp);
 readstat_error_t readstat_writer_set_fweight_variable(readstat_writer_t *writer, const readstat_variable_t *variable);
 
 readstat_error_t readstat_writer_set_file_format_version(readstat_writer_t *writer, 

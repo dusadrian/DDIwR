@@ -277,7 +277,9 @@ specification
 
 \code{getFiles}: Get information about the files in a given directory
 
-\code{getFormat}: Determine the SPSS / Stata variable format
+\code{getFormat}: Use the vendor list format, then the legacy
+attribute, then infer the SPSS / Stata format. A present NULL list field
+suppresses legacy fallback.
 
 \code{getHashes}: Compute hashes of XML nodes
 

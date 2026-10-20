@@ -170,7 +170,17 @@ static size_t sas7bdat_variable_width(readstat_type_t type, size_t user_width) {
     if (type == READSTAT_TYPE_STRING) {
         return user_width;
     }
-    return 8;
+    return user_width == 0 ? 8 : user_width;
+}
+
+static readstat_error_t sas7bdat_validate_variable(const readstat_variable_t *variable) {
+    if (readstat_variable_get_type_class(variable) == READSTAT_TYPE_CLASS_NUMERIC &&
+            variable->user_width != 0 &&
+            (variable->user_width < 3 || variable->user_width > 8)) {
+        return READSTAT_ERROR_ROW_WIDTH_MISMATCH;
+    }
+
+    return sas_validate_variable(variable);
 }
 
 static size_t sas7bdat_variable_size_overhead(sas7bdat_write_ctx_t *ctx) {
@@ -1343,7 +1353,14 @@ static void sas7bdat_module_ctx_free(void *module_ctx) {
 }
 
 static readstat_error_t sas7bdat_write_double(void *row, const readstat_variable_t *var, double value) {
-    memcpy(row, &value, sizeof(double));
+    size_t width = readstat_variable_get_storage_width(var);
+    const char *bytes = (const char *)&value;
+
+    /* SAS truncates the least significant bytes, retaining the exponent and tags. */
+    if (machine_is_little_endian()) {
+        bytes += sizeof(double) - width;
+    }
+    memcpy(row, bytes, width);
     return READSTAT_OK;
 }
 
@@ -1364,14 +1381,13 @@ static readstat_error_t sas7bdat_write_int8(void *row, const readstat_variable_t
 }
 
 static readstat_error_t sas7bdat_write_missing_tagged_raw(void *row, const readstat_variable_t *var, char tag) {
-    union {
-        double dval;
-        char   chars[8];
-    } nan_value;
-
-    nan_value.dval = NAN;
-    nan_value.chars[machine_is_little_endian() ? 5 : 2] = ~tag;
-    return sas7bdat_write_double(row, var, nan_value.dval);
+    /* SAS uses ordinal codes: 0 for ._, 1 for ., and 2 through 27 for .A-.Z.
+     * Its negative NaN prefix and complemented code must survive width truncation. */
+    uint8_t code = tag == '_' ? 0 : tag == '.' ? 1 : tag - 'A' + 2;
+    uint64_t bits = UINT64_C(0xffff000000000000) | ((uint64_t)(0xff - code) << 40);
+    double missing;
+    memcpy(&missing, &bits, sizeof(missing));
+    return sas7bdat_write_double(row, var, missing);
 }
 
 static readstat_error_t sas7bdat_write_missing_tagged(void *row, const readstat_variable_t *var, char tag) {
@@ -1521,7 +1537,7 @@ readstat_error_t readstat_begin_writing_sas7bdat(readstat_writer_t *writer, void
     writer->callbacks.write_missing_tagged = &sas7bdat_write_missing_tagged;
 
     writer->callbacks.variable_width = &sas7bdat_variable_width;
-    writer->callbacks.variable_ok = &sas_validate_variable;
+    writer->callbacks.variable_ok = &sas7bdat_validate_variable;
 
     writer->callbacks.begin_data = &sas7bdat_begin_data;
     writer->callbacks.end_data = &sas7bdat_end_data;

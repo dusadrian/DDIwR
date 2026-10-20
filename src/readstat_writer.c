@@ -5,6 +5,7 @@
 #include <ctype.h>
 #include <float.h>
 #include <math.h>
+#include <float.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,6 +15,7 @@
 #include "readstat_convert.h"
 #include "declared_types.h"
 #include "tagged_na.h"
+#include "vendor_metadata.h"
 
 #define DTA_113_MAX_INT16 0x7fe4
 #define DTA_113_MAX_INT32 0x7fffffe4
@@ -54,6 +56,8 @@ typedef struct {
     int strl_threshold;
     SEXP data;
     FILE *out;
+    const char *path;
+    SEXP dictionary;
     readstat_writer_t *writer;
     StringRefEntry *string_refs;
     size_t string_ref_n;
@@ -307,7 +311,7 @@ static void foreign_map_add_code(double *codes, R_xlen_t *n_codes, R_xlen_t cap,
     }
 }
 
-static void init_foreign_missing_map(ForeignMissingMap *map, SEXP x) {
+static void init_foreign_missing_map(ForeignMissingMap *map, SEXP x, int preserve_sas_tags) {
     SEXP na_index = Rf_getAttrib(x, Rf_install("na_index"));
     SEXP na_values = Rf_getAttrib(x, Rf_install("na_values"));
     SEXP names;
@@ -379,9 +383,23 @@ static void init_foreign_missing_map(ForeignMissingMap *map, SEXP x) {
 
     map->entries = (ForeignMissingCode *) R_Calloc((size_t) n_codes, ForeignMissingCode);
     map->length = n_codes;
+    int used[26] = { 0 };
     for (i = 0; i < n_codes; ++i) {
         map->entries[i].code = codes[i];
-        map->entries[i].tag = (char) ('a' + i);
+        if (preserve_sas_tags && codes[i] >= -116 && codes[i] <= -91 && codes[i] == trunc(codes[i])) {
+            int tag = (int)(-91 - codes[i]);
+            map->entries[i].tag = 'a' + tag;
+            used[tag] = 1;
+        }
+    }
+    int next_tag = 0;
+    for (i = 0; i < n_codes; ++i) {
+        if (map->entries[i].tag)
+            continue;
+        while (used[next_tag])
+            next_tag++;
+        map->entries[i].tag = 'a' + next_tag;
+        used[next_tag] = 1;
     }
 }
 
@@ -399,7 +417,8 @@ static void init_foreign_missing_maps(WriterCtx *ctx) {
 
     ctx->foreign_maps = (ForeignMissingMap *) R_Calloc((size_t) ctx->foreign_map_n, ForeignMissingMap);
     for (j = 0; j < ctx->foreign_map_n; ++j) {
-        init_foreign_missing_map(&ctx->foreign_maps[j], VECTOR_ELT(ctx->data, j));
+        init_foreign_missing_map(&ctx->foreign_maps[j], VECTOR_ELT(ctx->data, j),
+            ctx->vendor == DECLARED_SAS);
     }
 }
 
@@ -533,6 +552,29 @@ static int scalar_int_attr(SEXP x, const char *name) {
     return 0;
 }
 
+static void set_vendor_variable_metadata(WriterCtx *ctx, readstat_variable_t *var, SEXP x) {
+    SEXP value;
+    if (ctx->vendor == DECLARED_SPSS) {
+        value = ddiwr_metadata_field(x, ctx->vendor, "measure");
+        if (TYPEOF(value) == STRSXP && XLENGTH(value) == 1) {
+            const char *measure = string_utf8_elt(value, 0);
+            readstat_variable_set_measure(var, !strcmp(measure, "nominal") ? READSTAT_MEASURE_NOMINAL :
+                !strcmp(measure, "ordinal") ? READSTAT_MEASURE_ORDINAL : READSTAT_MEASURE_SCALE);
+        }
+        value = ddiwr_metadata_field(x, ctx->vendor, "alignment");
+        if (TYPEOF(value) == STRSXP && XLENGTH(value) == 1) {
+            const char *alignment = string_utf8_elt(value, 0);
+            readstat_variable_set_alignment(var, !strcmp(alignment, "left") ? READSTAT_ALIGNMENT_LEFT :
+                !strcmp(alignment, "center") ? READSTAT_ALIGNMENT_CENTER : READSTAT_ALIGNMENT_RIGHT);
+        }
+    } else if (ctx->vendor == DECLARED_SAS) {
+        value = ddiwr_metadata_field(x, ctx->vendor, "informat");
+        if (TYPEOF(value) == STRSXP && XLENGTH(value) == 1) {
+            readstat_variable_set_informat(var, string_utf8_elt(value, 0));
+        }
+    }
+}
+
 static const char *var_label(SEXP x) {
     SEXP label = Rf_getAttrib(x, Rf_install("label"));
     if (TYPEOF(label) == STRSXP && Rf_length(label) > 0) {
@@ -657,18 +699,13 @@ static ssize_t data_writer(const void *data, size_t len, void *ctx_) {
 }
 
 static void writer_ctx_init(WriterCtx *ctx, FileExt ext, SEXP data, SEXP path) {
-    const char *path_c;
     memset(ctx, 0, sizeof(*ctx));
     ctx->ext = ext;
     ctx->vendor = extVendor(ext);
     ctx->version = 0;
     ctx->strl_threshold = 2045;
     ctx->data = data;
-    path_c = CHAR(STRING_ELT(path, 0));
-    ctx->out = fopen(path_c, "wb");
-    if (ctx->out == NULL) {
-        Rf_error("Failed to open '%s' for writing.", path_c);
-    }
+    ctx->path = CHAR(STRING_ELT(path, 0));
     ctx->writer = readstat_writer_init();
     check_status(readstat_set_data_writer(ctx->writer, data_writer), "Failed to initialize writer");
 }
@@ -825,6 +862,41 @@ static readstat_type_t dta_numeric_type_for_column(WriterCtx *ctx, SEXP x) {
     return READSTAT_TYPE_DOUBLE;
 }
 
+static readstat_type_t requested_dta_type(WriterCtx *ctx, SEXP x, readstat_type_t fallback) {
+    SEXP field = ddiwr_metadata_field(x, DECLARED_STATA, "type");
+    if (ctx->ext != DECLARED_DTA || TYPEOF(field) != STRSXP || XLENGTH(field) != 1) {
+        return fallback;
+    }
+    const char *type = string_utf8_elt(field, 0);
+    readstat_type_t result = READSTAT_TYPE_DOUBLE;
+    double minimum = -0x1.fffffffffffffp+1022, maximum = 0x1.fffffffffffffp+1022;
+    int integer = 0;
+    if (!strcmp(type, "byte")) {
+        result = READSTAT_TYPE_INT8; minimum = -127; maximum = 100; integer = 1;
+    } else if (!strcmp(type, "int")) {
+        result = READSTAT_TYPE_INT16; minimum = -32767; maximum = DTA_113_MAX_INT16; integer = 1;
+    } else if (!strcmp(type, "long")) {
+        result = READSTAT_TYPE_INT32; minimum = -2147483647; maximum = DTA_113_MAX_INT32; integer = 1;
+    } else if (!strcmp(type, "float")) {
+        result = READSTAT_TYPE_FLOAT; minimum = -0x1.fffffep+126; maximum = 0x1.fffffep+126;
+    }
+
+    for (R_xlen_t i = 0; i < XLENGTH(x); i++) {
+        double value = TYPEOF(x) == REALSXP ? REAL(x)[i] :
+            TYPEOF(x) == LGLSXP ? LOGICAL(x)[i] : INTEGER(x)[i];
+        if ((TYPEOF(x) != REALSXP && value == NA_INTEGER) || !R_finite(value)) {
+            continue;
+        }
+        value = adjustDatetimeFromR(ctx->vendor, x, value);
+        if (value < minimum || value > maximum ||
+            (integer && value != trunc(value)) ||
+            (result == READSTAT_TYPE_FLOAT && (double)(float)value != value)) {
+            Rf_error("'stata_metadata$type = %s' cannot represent the exported values without loss. Clear 'type' to select storage automatically.", type);
+        }
+    }
+    return result;
+}
+
 static readstat_label_set_t *build_string_label_set(WriterCtx *ctx, SEXP x, const char *name) {
     SEXP labels = Rf_getAttrib(x, Rf_install("labels"));
     SEXP nms;
@@ -888,6 +960,8 @@ static readstat_error_t define_variable_int(WriterCtx *ctx, SEXP x, const char *
         }
     }
 
+    variable_type = requested_dta_type(ctx, x, variable_type);
+
     if (Rf_inherits(x, "factor")) {
         SEXP levels = Rf_getAttrib(x, Rf_install("levels"));
         R_xlen_t i;
@@ -896,7 +970,8 @@ static readstat_error_t define_variable_int(WriterCtx *ctx, SEXP x, const char *
             readstat_label_int32_value(label_set, (int) i + 1, string_utf8_elt(levels, i));
         }
     } else {
-        label_set = build_numeric_label_set(ctx, x, name, variable_type != READSTAT_TYPE_DOUBLE, column);
+        label_set = build_numeric_label_set(ctx, x, name,
+            variable_type != READSTAT_TYPE_DOUBLE && variable_type != READSTAT_TYPE_FLOAT, column);
     }
 
     var = readstat_add_variable(ctx->writer, name, variable_type, scalar_int_attr(x, "width"));
@@ -905,6 +980,7 @@ static readstat_error_t define_variable_int(WriterCtx *ctx, SEXP x, const char *
     readstat_variable_set_label_set(var, label_set);
     readstat_variable_set_measure(var, measureType(x));
     readstat_variable_set_display_width(var, scalar_int_attr(x, "display_width"));
+    set_vendor_variable_metadata(ctx, var, x);
     add_missing_definition(ctx, var, x);
     return readstat_validate_variable(ctx->writer, var);
 }
@@ -916,7 +992,7 @@ static readstat_error_t define_variable_double(WriterCtx *ctx, SEXP x, const cha
     readstat_variable_t *var;
 
     if (ctx->ext == DECLARED_DTA) {
-        variable_type = dta_numeric_type_for_column(ctx, x);
+        variable_type = requested_dta_type(ctx, x, dta_numeric_type_for_column(ctx, x));
         as_int = variable_type == READSTAT_TYPE_INT8 ||
             variable_type == READSTAT_TYPE_INT16 ||
             variable_type == READSTAT_TYPE_INT32;
@@ -929,6 +1005,7 @@ static readstat_error_t define_variable_double(WriterCtx *ctx, SEXP x, const cha
     readstat_variable_set_label_set(var, label_set);
     readstat_variable_set_measure(var, measureType(x));
     readstat_variable_set_display_width(var, scalar_int_attr(x, "display_width"));
+    set_vendor_variable_metadata(ctx, var, x);
     add_missing_definition(ctx, var, x);
     return readstat_validate_variable(ctx->writer, var);
 }
@@ -960,7 +1037,10 @@ static readstat_error_t define_variable_string(WriterCtx *ctx, SEXP x, const cha
         user_width = max_length;
     }
 
-    if (ctx->ext == DECLARED_DTA && ctx->version >= 117 && user_width > ctx->strl_threshold) {
+    SEXP storage_type = ddiwr_metadata_field(x, ctx->vendor, "type");
+    int force_strl = TYPEOF(storage_type) == STRSXP && XLENGTH(storage_type) == 1 &&
+        !strcmp(string_utf8_elt(storage_type, 0), "strL");
+    if (ctx->ext == DECLARED_DTA && ctx->version >= 117 && (force_strl || user_width > ctx->strl_threshold)) {
         var = readstat_add_variable(ctx->writer, name, READSTAT_TYPE_STRING_REF, user_width);
 
         /* Upstream measures strL records before writing the first data row. */
@@ -983,6 +1063,7 @@ static readstat_error_t define_variable_string(WriterCtx *ctx, SEXP x, const cha
     readstat_variable_set_label_set(var, label_set);
     readstat_variable_set_measure(var, measureType(x));
     readstat_variable_set_display_width(var, scalar_int_attr(x, "display_width"));
+    set_vendor_variable_metadata(ctx, var, x);
     add_missing_definition(ctx, var, x);
     return readstat_validate_variable(ctx->writer, var);
 }
@@ -990,6 +1071,9 @@ static readstat_error_t define_variable_string(WriterCtx *ctx, SEXP x, const cha
 static readstat_error_t insert_int_value(WriterCtx *ctx, readstat_variable_t *var, int value, int missing) {
     if (missing) {
         return readstat_insert_missing_value(ctx->writer, var);
+    }
+    if (var->type == READSTAT_TYPE_FLOAT) {
+        return readstat_insert_float_value(ctx->writer, var, (float)value);
     }
     if (var->type == READSTAT_TYPE_INT8) {
         return readstat_insert_int8_value(ctx->writer, var, (int8_t) value);
@@ -1010,6 +1094,9 @@ static readstat_error_t insert_double_value(WriterCtx *ctx, readstat_variable_t 
             return readstat_insert_tagged_missing_value(ctx->writer, var, tag);
         }
         return readstat_insert_missing_value(ctx->writer, var);
+    }
+    if (var->type == READSTAT_TYPE_FLOAT) {
+        return readstat_insert_float_value(ctx->writer, var, (float)value);
     }
     return readstat_insert_double_value(ctx->writer, var, value);
 }
@@ -1040,6 +1127,33 @@ static void register_spss_attributes(WriterCtx *ctx, SEXP object, readstat_varia
         check_status(readstat_writer_add_spss_attribute(ctx->writer, variable,
                 string_utf8_elt(names, i), strings, XLENGTH(values)),
                 "Failed to register SPSS custom attributes");
+    }
+}
+
+static void register_spss_mr_sets(WriterCtx *ctx) {
+    SEXP sets = ddiwr_metadata_field(ctx->data, DECLARED_SPSS, "mr_sets");
+    if (sets == R_NilValue) {
+        return;
+    }
+    SEXP names = Rf_getAttrib(sets, R_NamesSymbol);
+    for (R_xlen_t i = 0; i < XLENGTH(sets); i++) {
+        /* prepare_spss_mr_sets supplies these seven fields in canonical order. */
+        SEXP entry = VECTOR_ELT(sets, i);
+        SEXP counted = VECTOR_ELT(entry, 4);
+        SEXP variables = VECTOR_ELT(entry, 5);
+        mr_set_t set = { .name = (char *)string_utf8_elt(names, i),
+            .type = string_utf8_elt(VECTOR_ELT(entry, 0), 0)[0],
+            .label = (char *)string_utf8_elt(VECTOR_ELT(entry, 1), 0),
+            .is_dichotomy = Rf_asLogical(VECTOR_ELT(entry, 2)),
+            .counted_string = counted == R_NilValue ? NULL : (char *)string_utf8_elt(counted, 0),
+            .num_subvars = XLENGTH(variables),
+            .label_from_var_label = Rf_asLogical(VECTOR_ELT(entry, 6)) };
+        set.subvariables = (char **)R_alloc(set.num_subvars, sizeof(char *));
+        for (int j = 0; j < set.num_subvars; j++) {
+            set.subvariables[j] = (char *)string_utf8_elt(variables, j);
+        }
+        check_status(readstat_writer_add_mr_set(ctx->writer, &set),
+            "Failed to register spss_metadata$mr_sets");
     }
 }
 
@@ -1093,6 +1207,26 @@ static void writer_write(WriterCtx *ctx, SEXP dictionary) {
     int j;
     int i;
 
+    SEXP created = ddiwr_metadata_field(ctx->data, ctx->vendor, "created");
+    if (created != R_NilValue) {
+        check_status(readstat_writer_set_file_timestamp(ctx->writer, (time_t)Rf_asReal(created)),
+            "Failed to set creation timestamp");
+    }
+    if (ctx->vendor == DECLARED_SAS) {
+        SEXP modified = ddiwr_metadata_field(ctx->data, ctx->vendor, "modified");
+        if (modified != R_NilValue) {
+            check_status(readstat_writer_set_file_modified_timestamp(ctx->writer, (time_t)Rf_asReal(modified)),
+                "Failed to set modification timestamp");
+        }
+    }
+    if (ctx->ext == DECLARED_SAS7BDAT) {
+        SEXP table_name = ddiwr_metadata_field(ctx->data, ctx->vendor, "table_name");
+        if (TYPEOF(table_name) == STRSXP && XLENGTH(table_name) == 1) {
+            check_status(readstat_writer_set_table_name(ctx->writer, string_utf8_elt(table_name, 0)),
+                "Failed to set SAS table name");
+        }
+    }
+
     switch (ctx->ext) {
         case DECLARED_SAV:
             status = readstat_begin_writing_sav(ctx->writer, ctx, n);
@@ -1135,7 +1269,14 @@ static void writer_write(WriterCtx *ctx, SEXP dictionary) {
     }
 
     if (ctx->ext == DECLARED_SAV) {
+        SEXP notes = Rf_getAttrib(ctx->data, Rf_install("notes"));
+        if (notes != R_NilValue) {
+            for (R_xlen_t k = 0; k < XLENGTH(notes); k++) {
+                readstat_add_note(ctx->writer, string_utf8_elt(notes, k));
+            }
+        }
         register_spss_attributes(ctx, ctx->data, NULL);
+        register_spss_mr_sets(ctx);
         for (j = 0; j < p; j++) {
             register_spss_attributes(ctx, VECTOR_ELT(ctx->data, j),
                     readstat_get_variable(ctx->writer, j));
@@ -1158,6 +1299,12 @@ static void writer_write(WriterCtx *ctx, SEXP dictionary) {
     }
 
     check_status(readstat_validate_metadata(ctx->writer), "Failed to validate metadata");
+
+    /* Define and validate columns before touching the destination. */
+    ctx->out = fopen(ctx->path, "wb");
+    if (ctx->out == NULL) {
+        Rf_error("Failed to open '%s' for writing.", ctx->path);
+    }
 
     for (i = 0; i < n; ++i) {
         check_status(readstat_begin_row(ctx->writer), "Failed to begin row");
@@ -1185,12 +1332,12 @@ static void writer_write(WriterCtx *ctx, SEXP dictionary) {
                     if (missing && foreign_tag_from_code(ctx, j, code, &export_tag, 1)) {
                         check_status(readstat_insert_tagged_missing_value(ctx->writer, var, export_tag), "Failed to insert integer value");
                     } else if (missing && parse_code_int(code, &code_int)) {
-                        if (var->type == READSTAT_TYPE_DOUBLE) {
+                        if (var->type == READSTAT_TYPE_DOUBLE || var->type == READSTAT_TYPE_FLOAT) {
                             check_status(insert_double_value(ctx, var, code_int, 0), "Failed to insert integer value");
                         } else {
                             check_status(insert_int_value(ctx, var, code_int, 0), "Failed to insert integer value");
                         }
-                    } else if (var->type == READSTAT_TYPE_DOUBLE) {
+                    } else if (var->type == READSTAT_TYPE_DOUBLE || var->type == READSTAT_TYPE_FLOAT) {
                         check_status(insert_double_value(ctx, var, missing ? NA_REAL : adjustDatetimeFromR(ctx->vendor, col, value), missing), "Failed to insert integer value");
                     } else {
                         check_status(insert_int_value(ctx, var, (int) adjustDatetimeFromR(ctx->vendor, col, value), missing), "Failed to insert integer value");
@@ -1234,15 +1381,404 @@ static void writer_write(WriterCtx *ctx, SEXP dictionary) {
     }
 
     check_status(readstat_end_writing(ctx->writer), "Failed to finalize writing");
+    if (ctx->ext == DECLARED_SAS7BDAT) {
+        FILE *out = ctx->out;
+        ctx->out = NULL;
+        if (fclose(out) != 0)
+            Rf_error("Failed to close SAS data output '%s'.", ctx->path);
+    }
+}
+
+static SEXP writer_write_call(void *data) {
+    WriterCtx *ctx = (WriterCtx *)data;
+    writer_write(ctx, ctx->dictionary);
+    return R_NilValue;
+}
+
+static void writer_cleanup(void *data) {
+    writer_ctx_free((WriterCtx *)data);
+}
+
+static uint64_t sas_catalog_key(double value, char tag) {
+    uint64_t key;
+    if (tag)
+        return UINT64_C(0x7ff8000000000000) | (unsigned char)tag;
+    if (value == 0)
+        value = 0; /* Positive and negative zero select the same SAS value. */
+    memcpy(&key, &value, sizeof(key));
+    return key;
+}
+
+static int sas_catalog_key_compare(const void *left, const void *right) {
+    uint64_t a = *(const uint64_t *)left, b = *(const uint64_t *)right;
+    return (a > b) - (a < b);
+}
+
+static int sas_catalog_is_missing_code(WriterCtx *ctx, int column, double value) {
+    ForeignMissingMap *map = &ctx->foreign_maps[column];
+    for (R_xlen_t i=0; i<map->length; i++) {
+        if (map->entries[i].code == value)
+            return 1;
+    }
+    return 0;
+}
+
+static void sas_catalog_labels(WriterCtx *ctx, SEXP x, const char *name, int column) {
+    if (numTypeFromFormat(DECLARED_SAS, name) != DECLARED_DEFAULT)
+        Rf_error("Temporal format names are not supported for numeric SAS catalog labels; use clearFormats().");
+    VarType temporal = numTypeFromSEXP(x);
+    if (temporal != DECLARED_DEFAULT) {
+        SEXP informat = ddiwr_metadata_field(x, DECLARED_SAS, "informat");
+        if (TYPEOF(informat) != STRSXP || XLENGTH(informat) != 1 ||
+                numTypeFromMetadata(DECLARED_SAS, NULL, string_utf8_elt(informat, 0)) != temporal)
+            Rf_error("Labelled temporal SAS columns require an informat matching their date/time class.");
+    }
+    SEXP labels = Rf_getAttrib(x, Rf_install("labels"));
+    SEXP texts = Rf_getAttrib(labels, R_NamesSymbol);
+    R_xlen_t count = XLENGTH(labels);
+    if ((TYPEOF(labels) != INTSXP && TYPEOF(labels) != REALSXP) ||
+            TYPEOF(texts) != STRSXP || XLENGTH(texts) != count)
+        Rf_error("SAS catalog labels must be named numeric vectors.");
+
+    SEXP tags = ddiwr_metadata_field(x, DECLARED_SAS, "label_tags");
+    int has_tags = tags != R_NilValue;
+    if (has_tags && (TYPEOF(tags) != STRSXP || XLENGTH(tags) != count))
+        Rf_error("'sas_metadata$label_tags' must match the value-label vector.");
+
+    readstat_label_set_t *set = NULL;
+    for (int i=0; i<ctx->writer->label_sets_count; i++) {
+        if (!strcmp(ctx->writer->label_sets[i]->name, name)) {
+            set = ctx->writer->label_sets[i];
+            break;
+        }
+    }
+    int shared = set != NULL;
+    if (shared && set->value_labels_count != count)
+        Rf_error("Conflicting value-label definitions for SAS format '%s'.", name);
+    if (!shared)
+        set = readstat_add_label_set(ctx->writer, READSTAT_TYPE_DOUBLE, name);
+
+    uint64_t *keys = (uint64_t *)R_alloc(count, sizeof(uint64_t));
+    int width = scalar_int_attr(x, "width");
+    if (width != 0 && (width < 3 || width > 8))
+        Rf_error("Numeric SAS catalog storage width must be 0 or 3 through 8.");
+
+    for (R_xlen_t i=0; i<count; i++) {
+        double value = TYPEOF(labels) == REALSXP ? REAL(labels)[i] :
+            INTEGER(labels)[i] == NA_INTEGER ? NA_REAL : INTEGER(labels)[i];
+        char tag = 0;
+        if (has_tags) {
+            const char *definition = string_utf8_elt(tags, i);
+            tag = definition[0];
+            if (strlen(definition) > 1 ||
+                    (tag && tag != '.' && tag != '_' && !(tag >= 'A' && tag <= 'Z')))
+                Rf_error("Invalid SAS catalog label tag definition.");
+            if (tag && R_FINITE(value)) {
+                char code[64], mapped = 0;
+                snprintf(code, sizeof(code), "%.17g", value);
+                if (foreign_tag_from_code(ctx, column, code, &mapped, ctx->has_foreign_dictionary)) {
+                    tag = mapped;
+                } else if (!(tag >= 'A' && tag <= 'Z') || value != -91 - (tag - 'A')) {
+                    Rf_error("Stale 'sas_metadata$label_tags'; label keys no longer match their missing tags.");
+                }
+            } else if ((!tag && ISNAN(value)) || (tag && !ISNAN(value))) {
+                Rf_error("Stale 'sas_metadata$label_tags'; label keys no longer match their missing tags.");
+            }
+            if (tag && ISNAN(value)) {
+                char actual = tagged_na_value(value);
+                actual = actual ? toupper((unsigned char)actual) : '.';
+                if (tag != actual)
+                    Rf_error("Stale 'sas_metadata$label_tags'; missing label payload does not match its tag.");
+            }
+        } else if (ISNAN(value)) {
+            tag = tagged_na_value(value);
+            tag = tag ? toupper((unsigned char)tag) : '.';
+            if (tag != '.' && tag != '_' && !(tag >= 'A' && tag <= 'Z'))
+                Rf_error("Invalid SAS missing-value label tag.");
+        } else if (!R_FINITE(value)) {
+            Rf_error("SAS catalog label keys must be finite or missing values.");
+        } else {
+            char code[64];
+            snprintf(code, sizeof(code), "%.17g", value);
+            if (sas_catalog_is_missing_code(ctx, column, value))
+                foreign_tag_from_code(ctx, column, code, &tag, 1);
+        }
+        if (!tag) {
+            if (!R_FINITE(value))
+                Rf_error("SAS catalog label keys must be finite or missing values.");
+            value = adjustDatetimeFromR(DECLARED_SAS, x, value);
+            if (!R_FINITE(value))
+                Rf_error("SAS temporal value-label keys overflow their exported units.");
+            if (width && width < 8) {
+                uint64_t bits;
+                double stored;
+                memcpy(&bits, &value, 8);
+                bits &= UINT64_MAX << ((8 - width) * 8);
+                memcpy(&stored, &bits, 8);
+                if (stored != value)
+                    Rf_error("Reduced SAS numeric width cannot represent a value-label key exactly.");
+            }
+        }
+        keys[i] = sas_catalog_key(value, tag);
+        if (STRING_ELT(texts, i) == NA_STRING)
+            Rf_error("SAS catalog label text must not be missing.");
+        const char *text = string_utf8_elt(texts, i);
+        if (strlen(text) > 32767)
+            Rf_error("SAS catalog label text exceeds 32767 UTF-8 bytes.");
+
+        if (shared) {
+            int matched = 0;
+            for (int j=0; j<set->value_labels_count; j++) {
+                readstat_value_label_t *entry = &set->value_labels[j];
+                if (keys[i] == sas_catalog_key(entry->double_key, entry->tag) &&
+                        strlen(text) == entry->label_len &&
+                        (entry->label_len == 0 || !memcmp(text, entry->label, entry->label_len))) {
+                    matched = 1;
+                    break;
+                }
+            }
+            if (!matched)
+                Rf_error("Conflicting value-label definitions for SAS format '%s'.", name);
+        } else if (tag) {
+            readstat_label_tagged_value(set, tag, text);
+        } else {
+            readstat_label_double_value(set, value, text);
+        }
+    }
+    qsort(keys, count, sizeof(uint64_t), sas_catalog_key_compare);
+    for (R_xlen_t i=1; i<count; i++) {
+        if (keys[i] == keys[i-1])
+            Rf_error("Duplicate exported value-label keys for SAS format '%s'.", name);
+    }
+}
+
+static int sas_catalog_string_compare(const void *left, const void *right) {
+    return strcmp(*(const char *const *)left, *(const char *const *)right);
+}
+
+static void sas_catalog_string_labels(WriterCtx *ctx, SEXP x, const char *name) {
+    SEXP labels = Rf_getAttrib(x, Rf_install("labels"));
+    SEXP texts = Rf_getAttrib(labels, R_NamesSymbol);
+    R_xlen_t count = XLENGTH(labels);
+    if (TYPEOF(x) != STRSXP || TYPEOF(labels) != STRSXP ||
+            TYPEOF(texts) != STRSXP || XLENGTH(texts) != count)
+        Rf_error("Character SAS catalog labels must be named character vectors.");
+    if (ddiwr_metadata_field(x, DECLARED_SAS, "label_tags") != R_NilValue)
+        Rf_error("'sas_metadata$label_tags' applies only to numeric SAS catalogs.");
+
+    readstat_label_set_t *set = NULL;
+    for (int i=0; i<ctx->writer->label_sets_count; i++) {
+        if (!strcmp(ctx->writer->label_sets[i]->name, name)) {
+            set = ctx->writer->label_sets[i];
+            break;
+        }
+    }
+    int shared = set != NULL;
+    if (shared && (set->type != READSTAT_TYPE_STRING || set->value_labels_count != count))
+        Rf_error("Conflicting value-label definitions for SAS format '%s'.", name);
+    if (!shared)
+        set = readstat_add_label_set(ctx->writer, READSTAT_TYPE_STRING, name);
+
+    const char **keys = (const char **)R_alloc(count, sizeof(char *));
+    for (R_xlen_t i=0; i<count; i++) {
+        if (STRING_ELT(labels, i) == NA_STRING || STRING_ELT(texts, i) == NA_STRING)
+            Rf_error("Character SAS catalog keys and label text must not be missing.");
+        const char *value = string_utf8_elt(labels, i);
+        size_t length = strlen(value);
+        if (length > 32767)
+            Rf_error("Character SAS catalog key exceeds 32767 UTF-8 bytes.");
+        while (length && value[length-1] == ' ') length--;
+        char *key = R_alloc(length + 1, 1);
+        memcpy(key, value, length);
+        key[length] = '\0';
+        keys[i] = key;
+        const char *text = string_utf8_elt(texts, i);
+        if (strlen(text) > 32767)
+            Rf_error("SAS catalog label text exceeds 32767 UTF-8 bytes.");
+
+        if (shared) {
+            int matched = 0;
+            for (int j=0; j<set->value_labels_count; j++) {
+                readstat_value_label_t *entry = &set->value_labels[j];
+                if (length == entry->string_key_len &&
+                        (!length || !memcmp(key, entry->string_key, length)) &&
+                        strlen(text) == entry->label_len &&
+                        (!entry->label_len || !memcmp(text, entry->label, entry->label_len))) {
+                    matched = 1;
+                    break;
+                }
+            }
+            if (!matched)
+                Rf_error("Conflicting value-label definitions for SAS format '%s'.", name);
+        } else {
+            readstat_label_string_value(set, key, text);
+        }
+    }
+    qsort(keys, count, sizeof(char *), sas_catalog_string_compare);
+    for (R_xlen_t i=1; i<count; i++) {
+        if (!strcmp(keys[i], keys[i-1]))
+            Rf_error("Duplicate exported value-label keys for SAS format '%s'.", name);
+    }
+}
+
+/* R validates the rule table before staging either destination. Recheck the
+ * primitive representation here because the native entry point is callable. */
+static double sas_rule_number(const char *text, char *tag) {
+    *tag = 0;
+    if (!strcmp(text, "LOW")) return -DBL_MAX;
+    if (!strcmp(text, "HIGH")) return DBL_MAX;
+    if (text[0] == '.' && (!text[1] || (!text[2] &&
+            (text[1] == '_' || (text[1] >= 'A' && text[1] <= 'Z'))))) {
+        *tag = text[1] ? text[1] : '.';
+        return NAN;
+    }
+    char *end; double value = strtod(text, &end);
+    if (end == text || *end || !R_FINITE(value)) Rf_error("Invalid SAS catalog rule endpoint.");
+    return value;
+}
+
+static void sas_catalog_rules(WriterCtx *ctx, SEXP column, const char *name) {
+    VarType temporal = numTypeFromSEXP(column);
+    if (temporal != DECLARED_DEFAULT) {
+        SEXP informat = ddiwr_metadata_field(column, DECLARED_SAS, "informat");
+        if (TYPEOF(informat) != STRSXP || XLENGTH(informat) != 1 ||
+                numTypeFromMetadata(DECLARED_SAS, NULL, string_utf8_elt(informat, 0)) != temporal)
+            Rf_error("Temporal SAS rules require an informat matching the column's date/time class.");
+    }
+    SEXP rules = ddiwr_metadata_field(column, DECLARED_SAS, "catalog_rules");
+    const char *fields[] = { "start", "end", "label", "hlo", "sexcl", "eexcl", "default", "fuzz" };
+    if (TYPEOF(rules) != VECSXP || XLENGTH(rules) != 8)
+        Rf_error("SAS catalog rules must be a validated eight-column table.");
+    SEXP values[8]; SEXP names = Rf_getAttrib(rules, R_NamesSymbol);
+    if (TYPEOF(names) != STRSXP || XLENGTH(names) != 8) Rf_error("Invalid SAS catalog rule fields.");
+    R_xlen_t count = XLENGTH(VECTOR_ELT(rules, 0));
+    if (!count) Rf_error("SAS catalog rules must not be empty.");
+    for (int j=0; j<8; j++) {
+        if (strcmp(string_utf8_elt(names,j), fields[j])) Rf_error("Invalid SAS catalog rule fields.");
+        values[j] = VECTOR_ELT(rules,j);
+        if (TYPEOF(values[j]) != (j == 7 ? REALSXP : j == 6 ? INTSXP : STRSXP) || XLENGTH(values[j]) != count)
+            Rf_error("Invalid SAS catalog rule column.");
+    }
+    for (int i=0; i<ctx->writer->label_sets_count; i++) {
+        if (!strcmp(ctx->writer->label_sets[i]->name,name))
+            Rf_error("Rule-based SAS formats need distinct format names per column.");
+    }
+    int string = TYPEOF(column) == STRSXP;
+    readstat_label_set_t *set = readstat_add_label_set(ctx->writer,
+            string ? READSTAT_TYPE_STRING : READSTAT_TYPE_DOUBLE, name);
+    set->sas_default_width = INTEGER(values[6])[0];
+    set->sas_fuzz = REAL(values[7])[0];
+    if (set->sas_default_width < 1 || set->sas_default_width > 32767 ||
+            !R_FINITE(set->sas_fuzz) || set->sas_fuzz < 0 || (string && set->sas_fuzz != 0))
+        Rf_error("Invalid SAS catalog rule default width or fuzz.");
+    for (R_xlen_t i=0; i<count; i++) {
+        if (INTEGER(values[6])[i] != set->sas_default_width || REAL(values[7])[i] != set->sas_fuzz)
+            Rf_error("SAS catalog rule default width and fuzz must be shared within a format.");
+        for (int j=0; j<6; j++) if (STRING_ELT(values[j],i) == NA_STRING)
+            Rf_error("SAS catalog rules must not contain missing strings.");
+        const char *start = string_utf8_elt(values[0],i), *end = string_utf8_elt(values[1],i);
+        const char *text = string_utf8_elt(values[2],i), *hlo = string_utf8_elt(values[3],i);
+        unsigned flags = (strchr(hlo,'L') ? 1 : 0) | (strchr(hlo,'H') ? 2 : 0) |
+            (strchr(hlo,'O') ? 16 : 0) | (!strcmp(string_utf8_elt(values[4],i),"Y") ? 4 : 0) |
+            (!strcmp(string_utf8_elt(values[5],i),"Y") ? 8 : 0);
+        if (strlen(text) > 32767) Rf_error("SAS catalog rule label exceeds 32767 bytes.");
+        if (string) {
+            if (strlen(start) > 32767 || strlen(end) > 32767 || strlen(start)+strlen(end) > 65500)
+                Rf_error("Character SAS range endpoints exceed the native record capacity.");
+            readstat_label_string_value(set,flags & 1 ? "" : start,text);
+        } else {
+            readstat_label_double_value(set,0,text);
+        }
+        readstat_value_label_t *entry = &set->value_labels[set->value_labels_count-1];
+        entry->sas_is_rule = 1; entry->sas_rule_flags = flags;
+        if (string) {
+            entry->string_end_len = flags & 2 ? 0 : strlen(end);
+            entry->string_end = strdup(flags & 2 ? "" : end);
+            if (!entry->string_end) Rf_error("Could not allocate SAS rule endpoint.");
+        } else if (!(flags & 16)) {
+            entry->double_key = sas_rule_number(flags & 1 ? "LOW" : start, &entry->tag);
+            entry->end_key = sas_rule_number(flags & 2 ? "HIGH" : end, &entry->end_tag);
+        }
+    }
+}
+
+typedef struct {
+    WriterCtx writer;
+    SEXP formats;
+} SASCatalogCtx;
+
+static SEXP sas_catalog_write_call(void *data) {
+    SASCatalogCtx *catalog = data;
+    WriterCtx *ctx = &catalog->writer;
+    if (TYPEOF(catalog->formats) != STRSXP || XLENGTH(catalog->formats) != XLENGTH(ctx->data))
+        Rf_error("SAS catalog format names must match the data columns.");
+    init_missing_maps(ctx);
+    init_foreign_dictionary(ctx, ctx->dictionary);
+    init_foreign_missing_maps(ctx);
+    /* SAS catalogs use the native 64-bit host layout; CEDA cannot translate them. */
+    readstat_writer_set_file_format_is_64bit(ctx->writer, 1);
+    for (R_xlen_t i=0; i<XLENGTH(ctx->data); i++) {
+        if (STRING_ELT(catalog->formats, i) == NA_STRING)
+            Rf_error("SAS catalog format names must not be missing.");
+        const char *name = string_utf8_elt(catalog->formats, i);
+        size_t length = strlen(name);
+        SEXP column = VECTOR_ELT(ctx->data, i);
+        int character_keys = TYPEOF(column) == STRSXP;
+        const char *base = name + (name[0] == '$');
+        size_t base_length = strlen(base);
+        if (length && (length > 32 || base_length == 0 ||
+                (name[0] == '$') != character_keys ||
+                strspn(base, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_") != base_length ||
+                isdigit((unsigned char)base[0]) || isdigit((unsigned char)base[base_length-1])))
+            Rf_error("Invalid SAS catalog format name.");
+        if (length) {
+            if (ddiwr_metadata_field(column, DECLARED_SAS, "catalog_rules") != R_NilValue) {
+                int shared = 0;
+                for (R_xlen_t j=0; j<i; j++) {
+                    if (!strcmp(name,string_utf8_elt(catalog->formats,j))) {
+                        SEXP previous = VECTOR_ELT(ctx->data,j);
+                        if (TYPEOF(previous) != TYPEOF(column) ||
+                                !R_compute_identical(ddiwr_metadata_field(previous, DECLARED_SAS, "catalog_rules"),
+                                    ddiwr_metadata_field(column, DECLARED_SAS, "catalog_rules"), 0))
+                            Rf_error("Conflicting SAS catalog rules for format '%s'.",name);
+                        shared = 1; break;
+                    }
+                }
+                if (!shared) sas_catalog_rules(ctx, column, name);
+            }
+            else if (character_keys)
+                sas_catalog_string_labels(ctx, column, name);
+            else
+                sas_catalog_labels(ctx, column, name, i);
+        }
+    }
+    check_status(readstat_begin_writing_sas7bcat(ctx->writer, ctx), "Failed to initialize SAS catalog");
+    ctx->out = fopen(ctx->path, "wb");
+    if (!ctx->out)
+        Rf_error("Failed to open '%s' for writing.", ctx->path);
+    check_status(readstat_end_writing(ctx->writer), "Failed to write SAS catalog");
+    FILE *out = ctx->out;
+    ctx->out = NULL;
+    if (fclose(out) != 0)
+        Rf_error("Failed to close SAS catalog output '%s'.", ctx->path);
+    return R_NilValue;
+}
+
+SEXP declared_write_sas_catalog_(SEXP data, SEXP path, SEXP formats, SEXP dictionary) {
+    SASCatalogCtx catalog;
+    writer_ctx_init(&catalog.writer, DECLARED_SAS7BCAT, data, path);
+    catalog.writer.dictionary = dictionary;
+    catalog.formats = formats;
+    return R_ExecWithCleanup(sas_catalog_write_call, &catalog, writer_cleanup, &catalog.writer);
 }
 
 SEXP declared_write_sav_(SEXP data, SEXP path, SEXP compress) {
     WriterCtx ctx;
     writer_ctx_init(&ctx, DECLARED_SAV, data, path);
     set_compression(&ctx, CHAR(STRING_ELT(compress, 0)));
-    writer_write(&ctx, R_NilValue);
-    writer_ctx_free(&ctx);
-    return R_NilValue;
+    set_file_label(&ctx, Rf_getAttrib(data, Rf_install("label")));
+    ctx.dictionary = R_NilValue;
+    return R_ExecWithCleanup(writer_write_call, &ctx, writer_cleanup, &ctx);
 }
 
 SEXP declared_write_dta_(SEXP data, SEXP path, SEXP version, SEXP label, SEXP strl_threshold, SEXP dictionary) {
@@ -1252,17 +1788,16 @@ SEXP declared_write_dta_(SEXP data, SEXP path, SEXP version, SEXP label, SEXP st
     ctx.strl_threshold = Rf_asInteger(strl_threshold);
     readstat_writer_set_file_format_version(ctx.writer, ctx.version);
     set_file_label(&ctx, label);
-    writer_write(&ctx, dictionary);
-    writer_ctx_free(&ctx);
-    return R_NilValue;
+    ctx.dictionary = dictionary;
+    return R_ExecWithCleanup(writer_write_call, &ctx, writer_cleanup, &ctx);
 }
 
 SEXP declared_write_sas_(SEXP data, SEXP path, SEXP dictionary) {
     WriterCtx ctx;
     writer_ctx_init(&ctx, DECLARED_SAS7BDAT, data, path);
-    writer_write(&ctx, dictionary);
-    writer_ctx_free(&ctx);
-    return R_NilValue;
+    set_file_label(&ctx, Rf_getAttrib(data, Rf_install("label")));
+    ctx.dictionary = dictionary;
+    return R_ExecWithCleanup(writer_write_call, &ctx, writer_cleanup, &ctx);
 }
 
 SEXP declared_write_xpt_(SEXP data, SEXP path, SEXP version, SEXP name, SEXP label, SEXP dictionary) {
@@ -1274,7 +1809,6 @@ SEXP declared_write_xpt_(SEXP data, SEXP path, SEXP version, SEXP name, SEXP lab
         readstat_writer_set_table_name(ctx.writer, string_utf8_elt(name, 0));
     }
     set_file_label(&ctx, label);
-    writer_write(&ctx, dictionary);
-    writer_ctx_free(&ctx);
-    return R_NilValue;
+    ctx.dictionary = dictionary;
+    return R_ExecWithCleanup(writer_write_call, &ctx, writer_cleanup, &ctx);
 }

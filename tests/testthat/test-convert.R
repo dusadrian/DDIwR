@@ -9,8 +9,10 @@ convert(dfm, to = file.path(tmp, "dfm.sav"))
 dfmspss <- convert(file.path(tmp, "dfm.sav"))
 
 dfmspss[] <- lapply(dfmspss, function(x) {
-  attr(x, "format.spss") <- NULL
-  return(x)
+    attr(x, "format.spss") <- NULL
+    attr(x, "spss_metadata") <- NULL
+
+    return(x)
 })
 
 test_that("convert() works from R to SPSS and return", {
@@ -24,10 +26,12 @@ test_that("convert() works from R to SPSS and return", {
 
 convert(dfm, to = file.path(tmp, "dfm.dta"), chartonum = TRUE)
 dfmstata <- convert(file.path(tmp, "dfm.dta"))
-stataformat <- lapply(dfmstata, function(x) attr(x, "format.stata"))
+stataformat <- lapply(dfmstata, function(x) attr(x, "stata_metadata")$format)
 dfmstata[] <- lapply(dfmstata, function(x) {
-  attr(x, "format.stata") <- NULL
-  return(x)
+    attr(x, "format.stata") <- NULL
+    attr(x, "stata_metadata") <- NULL
+
+    return(x)
 })
 
 test_that("convert() works from R to Stata and return", {
@@ -60,9 +64,10 @@ convert(dfm, to = file.path(tmp, "dfm.rds"))
 dfmrds <- readRDS(file.path(tmp, "dfm.rds"))
 
 dfmddi[] <- lapply(dfmddi, function(x) {
-  attr(x, "format.spss") <- NULL
-  attr(x, "ID") <- NULL
-  return(x)
+    attr(x, "spss_metadata") <- NULL
+    attr(x, "ID") <- NULL
+
+    return(x)
 })
 
 

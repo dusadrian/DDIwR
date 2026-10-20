@@ -9,6 +9,7 @@
 #include <limits.h>
 
 #include "variable_analysis.h"
+#include "vendor_metadata.h"
 #include "variable_threads.h"
 
 
@@ -1353,15 +1354,21 @@ SEXP collect_xml_metadata(SEXP data, SEXP include_formats) {
         SET_STRING_ELT(item_names, idx++, mkChar("na_range"));
 
         if (do_formats) {
-            if (results[i].is_date) {
+            SEXP spss = ddiwr_metadata_effective_field(results[i].x, DECLARED_SPSS, "format", "format.spss");
+            SEXP stata = ddiwr_metadata_effective_field(results[i].x, DECLARED_STATA, "format", "format.stata");
+            int has_spss = TYPEOF(spss) == STRSXP && XLENGTH(spss) == 1 && STRING_ELT(spss, 0) != NA_STRING;
+            int has_stata = TYPEOF(stata) == STRSXP && XLENGTH(stata) == 1 && STRING_ELT(stata, 0) != NA_STRING;
+            if (results[i].is_date && !has_spss && !has_stata) {
                 SEXP fmt = PROTECT(mkString("date"));
                 SET_VECTOR_ELT(item, idx, fmt);
                 UNPROTECT(1);
             }
             else {
                 SEXP fmt = PROTECT(allocVector(STRSXP, 2));
-                SET_STRING_ELT(fmt, 0, mkChar(results[i].format_spss));
-                SET_STRING_ELT(fmt, 1, mkChar(results[i].format_stata));
+                SET_STRING_ELT(fmt, 0, has_spss ? STRING_ELT(spss, 0) :
+                    mkChar(results[i].is_date ? "DATE" : results[i].format_spss));
+                SET_STRING_ELT(fmt, 1, has_stata ? STRING_ELT(stata, 0) :
+                    mkChar(results[i].is_date ? "%td" : results[i].format_stata));
                 SET_VECTOR_ELT(item, idx, fmt);
                 UNPROTECT(1);
             }

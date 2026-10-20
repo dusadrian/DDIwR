@@ -276,6 +276,7 @@ static readstat_error_t read_variable_count_record(por_ctx_t *ctx) {
             .var_count = ctx->var_count,
             .creation_time = ctx->timestamp,
             .modified_time = ctx->timestamp,
+            .creation_time_present = 1,
             .file_format_version = ctx->version,
             .file_label = ctx->file_label
         };

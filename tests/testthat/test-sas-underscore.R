@@ -16,9 +16,12 @@ sas_missing_io <- function(format) {
 
 sas_missing_bytes <- function(format, tag) {
     if (identical(format, "sas7bdat")) {
-        bytes <- writeBin(NaN, raw(), size = 8L, endian = .Platform$endian)
-        tag_byte <- if (.Platform$endian == "little") { 6L } else { 3L }
-        bytes[tag_byte] <- as.raw(bitwXor(utf8ToInt(tag), 255L))
+        code <- match(tag, c("_", ".", LETTERS)) - 1L
+        bytes <- as.raw(c(255L, 255L, 255L - code, rep(0L, 5L)))
+
+        if (identical(.Platform$endian, "little")) {
+            bytes <- rev(bytes)
+        }
 
         return(bytes)
     }
@@ -31,7 +34,8 @@ test_that("SAS readers distinguish underscore tags from system missing values", 
         number = c(0, NA_real_, NA_real_, NaN),
         day = structure(c(0, NA_real_, NA_real_, NaN), class = "Date"),
         moment = structure(c(0, NA_real_, NA_real_, NaN),
-            class = c("POSIXct", "POSIXt"), tzone = "UTC")
+            class = c("POSIXct", "POSIXt"), tzone = "UTC"),
+        marker = sprintf("r%06d!", 1:4)
     )
     paths <- character()
     on.exit(unlink(paths), add = TRUE)
@@ -42,19 +46,19 @@ test_that("SAS readers distinguish underscore tags from system missing values", 
         paths <- c(paths, path)
         io$write(data, path)
         bytes <- readBin(path, "raw", n = file.info(path)$size)
-        positions <- grepRaw(sas_missing_bytes(format, "."), bytes, fixed = TRUE, all = TRUE)
-        expect_length(positions, 9L)
+        position <- grepRaw(charToRaw(data$marker[2L]), bytes, fixed = TRUE, all = TRUE)
+        expect_length(position, 1L)
+        fields <- position - 24:1
+        expect_identical(bytes[fields], rep(sas_missing_bytes(format, "."), 3L))
 
-        # Inject the on-disk ._ encoding independently of DDIwR's tag writer.
-        for (position in head(positions, 3L)) {
-            bytes[position + 0:7] <- sas_missing_bytes(format, "_")
-        }
+        # Patch only the second observation, without matching metadata byte patterns.
+        bytes[fields] <- rep(sas_missing_bytes(format, "_"), 3L)
 
         writeBin(bytes, path)
         imported <- io$read(path)
         window <- io$read(path, skip = 1L, n_max = 2L)
 
-        for (name in names(data)) {
+        for (name in c("number", "day", "moment")) {
             expected <- as.numeric(data[[name]])
             expected[is.na(expected)] <- NA_real_
             expect_identical(as.numeric(imported[[name]]), expected, info = format)
@@ -82,6 +86,7 @@ test_that("SAS writers preserve underscore alongside all 26 letter tags", {
         attr(data[[name]], "na_values") <- as.numeric(-91:-116)
     }
 
+    data$marker <- sprintf("r%06d!", seq_along(values))
     paths <- character()
     on.exit(unlink(paths), add = TRUE)
 
@@ -94,16 +99,18 @@ test_that("SAS writers preserve underscore alongside all 26 letter tags", {
         for (dictionary in list(NULL, buildDictionary(data, to = "SAS"))) {
             io$write(data, path, dictionary = dictionary)
             bytes <- readBin(path, "raw", n = file.info(path)$size)
-            expect_length(grepRaw(sas_missing_bytes(format, "_"), bytes, fixed = TRUE, all = TRUE), 3L)
-            expect_length(grepRaw(sas_missing_bytes(format, "."), bytes, fixed = TRUE, all = TRUE), 3L)
+            tags <- c(".", "_", LETTERS)
+            matches <- vapply(seq_along(tags), function(index) {
+                row <- c(rep(sas_missing_bytes(format, tags[index]), 3L),
+                    charToRaw(data$marker[index + 1L]))
 
-            for (tag in LETTERS) {
-                expect_length(grepRaw(sas_missing_bytes(format, tag), bytes, fixed = TRUE, all = TRUE), 3L)
-            }
+                return(length(grepRaw(row, bytes, fixed = TRUE, all = TRUE)))
+            }, integer(1))
+            expect_identical(matches, rep(1L, length(tags)))
 
             imported <- io$read(path)
 
-            for (name in names(data)) {
+            for (name in c("number", "day", "moment")) {
                 expect_identical(as.numeric(imported[[name]]), values, info = format)
                 expect_identical(attr(imported[[name]], "na_index"), expected_index, info = format)
                 expect_identical(attr(imported[[name]], "na_values"), as.numeric(-91:-116))

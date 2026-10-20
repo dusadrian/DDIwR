@@ -158,7 +158,18 @@
         type <- classes[[1]]
     }
 
-    width <- suppressWarnings(as.integer(.metadataText(attributes$width, NA_character_)))
+    width_value <- attributes$width
+
+    for (attribute in c("spss_metadata", "stata_metadata", "sas_metadata")) {
+        metadata <- vendor_metadata(column, attribute)
+
+        if (is.element("width", names(metadata))) {
+            width_value <- metadata[["width", exact = TRUE]]
+            break
+        }
+    }
+
+    width <- suppressWarnings(as.integer(.metadataText(width_value, NA_character_)))
 
     if (!is.finite(width) || width <= 0L) {
         sample <- tryCatch(utils::head(as.character(stats::na.omit(source)), 100L),
@@ -1124,14 +1135,16 @@ metadataNormalizeText <- function(text) {
 # A NULL entry means that attribute was absent; an empty vector stays empty.
 metadataSnapshotRaw <- function(from, fields = c("position", "storage", "length",
     "classes", "label", "labels", "levels", "measurement", "nature", "na_values",
-    "na_range", "xmlang", "ID", "format.spss", "format.stata", "tzone")) {
+    "na_range", "xmlang", "ID", "format.spss", "format.stata", "tzone",
+    "spss_metadata", "stata_metadata", "sas_metadata")) {
     if (!is.data.frame(from)) {
         stop("The input must be a data frame.")
     }
 
     available <- c("position", "storage", "length", "classes", "label", "labels",
         "levels", "measurement", "nature", "na_values", "na_range", "xmlang",
-        "ID", "format.spss", "format.stata", "tzone")
+        "ID", "format.spss", "format.stata", "tzone",
+        "spss_metadata", "stata_metadata", "sas_metadata")
 
     if (!is.character(fields) || anyNA(fields) || anyDuplicated(fields) ||
         any(!is.element(fields, available))) {

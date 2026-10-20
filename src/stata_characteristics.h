@@ -4,6 +4,7 @@
 #include <limits.h>
 #include <stdlib.h>
 #include <string.h>
+#include "vendor_metadata.h"
 
 static int ddiwr_stata_note_name(const char *name) {
     char *end;
@@ -55,7 +56,7 @@ static void ddiwr_attach_stata_characteristics(SEXP output, SEXP column_names,
         }
     }
 
-    /* Keep the existing dataset notes view identical in serial and parallel
+    /* Keep the canonical dataset notes view identical in serial and parallel
      * imports. Raw note characteristics above retain their exact contents. */
     if (note_count > 0) {
         SEXP notes = PROTECT(Rf_allocVector(STRSXP, note_count));
@@ -72,7 +73,7 @@ static void ddiwr_attach_stata_characteristics(SEXP output, SEXP column_names,
                 }
             }
         }
-        Rf_setAttrib(output, Rf_install("notes"), notes);
+        ddiwr_metadata_set_field(output, DECLARED_STATA, "notes", notes);
         UNPROTECT(1);
     }
 }

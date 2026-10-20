@@ -49,6 +49,8 @@ typedef struct sas_header_info_s {
     uint32_t page_number_mask;
     time_t   creation_time;
     time_t   modification_time;
+    int      creation_time_present;
+    int      modification_time_present;
     char     table_name[32];
     char     file_label[256];
     char    *encoding;

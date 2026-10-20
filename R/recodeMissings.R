@@ -15,6 +15,13 @@
 #' absent from the recoding dictionary. Columns with missing metadata alone
 #' are accepted, even without variable or value labels.
 #'
+#' Recoding retains variable formats, widths, temporal classes and units, custom
+#' SPSS attributes, Stata characteristics, the `spss_metadata`, `stata_metadata`
+#' and `sas_metadata` lists, and dataset labels and notes. Labels and missing-value
+#' definitions are updated to match the recoded values. Character-to-numeric
+#' recoding clears obsolete string storage fields in these lists, as described
+#' in [recodeCharcat()].
+#'
 #' When no dictionary is provided, export-oriented recoding can be performed
 #' either by scanning the entire dataset for a harmonized mapping, or by
 #' recoding each variable independently. The package now defaults to the faster
@@ -338,7 +345,7 @@
                     template = template
                 )
             }
-            else if (is.numeric(x)) {
+            else if (is.element(typeof(x), c("integer", "double"))) {
                 # it makes sense to check for character variables, since neither
                 # Stata nor SAS do not accept missing values for chars technically,
                 # a char var with missing value would be "valid" in SPSS but it doesn't

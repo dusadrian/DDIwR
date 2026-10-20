@@ -1,6 +1,8 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
+#include <limits.h>
 #include "../readstat.h"
 #include "../readstat_malloc.h"
 #include "../readstat_iconv.h"
@@ -136,8 +138,12 @@ static readstat_error_t parse_mr_line(const char *line, size_t line_len, mr_set_
         if ((retval = mr_convert(&result->counted_string, str, str_len, ctx)) != READSTAT_OK)
             goto cleanup;
         /* readstat_convert trims trailing spaces; older SPSS pads to 8 bytes */
-        if (result->counted_string[0] >= '0' && result->counted_string[0] <= '9') {
-            result->counted_value = (int)strtol(result->counted_string, NULL, 10);
+        char *number_end = NULL;
+        errno = 0;
+        long counted_value = strtol(result->counted_string, &number_end, 10);
+        if (number_end != result->counted_string && *number_end == '\0' &&
+                errno != ERANGE && counted_value >= -INT_MAX && counted_value <= INT_MAX) {
+            result->counted_value = (int)counted_value;
         }
         if (p == end || *p != ' ') {
             retval = READSTAT_ERROR_BAD_MR_STRING;

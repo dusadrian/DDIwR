@@ -1510,6 +1510,140 @@ static readstat_error_t sav_emit_attributes_record(readstat_writer_t *writer, in
     return READSTAT_OK;
 }
 
+static long sav_mr_variable_index(readstat_writer_t *writer, const char *name) {
+    for (long i = 0; i < writer->variables_count; i++) {
+        if (!strcmp(writer->variables[i]->name, name)) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+static readstat_error_t sav_validate_mr_sets(readstat_writer_t *writer) {
+    uint64_t lengths[2] = { 0, 0 };
+    for (size_t i = 0; i < writer->mr_sets_count; i++) {
+        const mr_set_t *set = &writer->mr_sets[i];
+        const char *counted = set->counted_string;
+        int string_set = -1;
+        if (set->name[0] != '$' || strlen(set->name) > 64 ||
+                sav_validate_name_chars(set->name + 1, 1) != READSTAT_OK ||
+                strchr(set->label, '\n') || strchr(set->label, '\r') ||
+                strlen(set->label) > MAX_LABEL_SIZE ||
+                set->is_dichotomy != (set->type != 'C') ||
+                (set->label_from_var_label != 0 && set->label_from_var_label != 1) ||
+                (set->label_from_var_label && (set->type != 'E' || set->label[0])) ||
+                (set->type == 'C' && counted)) {
+            return READSTAT_ERROR_BAD_MR_STRING;
+        }
+        if (counted && (strchr(counted, '\n') || strchr(counted, '\r'))) {
+            return READSTAT_ERROR_BAD_MR_STRING;
+        }
+        for (int j = 0; j < set->num_subvars; j++) {
+            long index = sav_mr_variable_index(writer, set->subvariables[j]);
+            if (index < 0) {
+                return READSTAT_ERROR_BAD_MR_STRING;
+            }
+            for (int k = 0; k < j; k++) {
+                if (!strcmp(set->subvariables[j], set->subvariables[k])) {
+                    return READSTAT_ERROR_BAD_MR_STRING;
+                }
+            }
+            readstat_variable_t *variable = writer->variables[index];
+            int is_string = variable->type == READSTAT_TYPE_STRING;
+            if (string_set != -1 && string_set != is_string) {
+                return READSTAT_ERROR_BAD_MR_STRING;
+            }
+            string_set = is_string;
+            if (counted && is_string && strlen(counted) > variable->user_width) {
+                return READSTAT_ERROR_BAD_MR_STRING;
+            }
+        }
+        if (counted && !string_set) {
+            const char *p = counted;
+            if (*p == '-' || *p == '+') {
+                p++;
+            }
+            if (!*p) {
+                return READSTAT_ERROR_BAD_MR_STRING;
+            }
+            while (*p >= '0' && *p <= '9') {
+                p++;
+            }
+            if (*p || !isfinite(strtod(counted, NULL))) {
+                return READSTAT_ERROR_BAD_MR_STRING;
+            }
+        }
+        /* Bound both record sizes before opening the destination in the adapter. */
+        int group = set->type == 'E';
+        lengths[group] += strlen(set->name) + strlen(set->label) +
+            (counted ? strlen(counted) : 0) + (uint64_t)set->num_subvars * 9 + 128;
+        if (lengths[group] > INT32_MAX) {
+            return READSTAT_ERROR_BAD_MR_STRING;
+        }
+    }
+    return READSTAT_OK;
+}
+
+static readstat_error_t sav_emit_mr_sets(readstat_writer_t *writer, sav_varnames_t *varnames, int extended) {
+    sav_info_record_t header = { .rec_type = SAV_RECORD_TYPE_HAS_DATA,
+        .subtype = extended ? SAV_RECORD_SUBTYPE_MULTIPLE_RESPONSE_SETS_V14 :
+            SAV_RECORD_SUBTYPE_MULTIPLE_RESPONSE_SETS, .size = 1 };
+    for (int pass = 0; pass < 2; pass++) {
+        for (size_t i = 0; i < writer->mr_sets_count; i++) {
+            const mr_set_t *set = &writer->mr_sets[i];
+            if ((set->type == 'E') != extended) {
+                continue;
+            }
+            const char *counted = set->counted_string;
+            size_t capacity = strlen(set->name) + strlen(set->label) +
+                (counted ? strlen(counted) : 0) + (size_t)set->num_subvars * 9 + 128;
+            char *line = malloc(capacity);
+            if (!line) {
+                return READSTAT_ERROR_MALLOC;
+            }
+            size_t offset = snprintf(line, capacity, "%s=%c", set->name, set->type);
+            if (extended) {
+                offset += snprintf(line + offset, capacity - offset, " %d ",
+                    set->label_from_var_label ? 11 : 1);
+            }
+            if (counted) {
+                offset += snprintf(line + offset, capacity - offset, "%zu %s", strlen(counted), counted);
+            }
+            offset += snprintf(line + offset, capacity - offset, " %zu %s", strlen(set->label), set->label);
+            for (int j = 0; j < set->num_subvars; j++) {
+                long index = sav_mr_variable_index(writer, set->subvariables[j]);
+                const char *shortname = varnames[index].shortname;
+                line[offset++] = ' ';
+                for (size_t k = 0; shortname[k]; k++) {
+                    unsigned char ch = shortname[k];
+                    line[offset++] = ch >= 'A' && ch <= 'Z' ? ch - 'A' + 'a' : ch;
+                }
+            }
+            line[offset++] = '\n';
+            readstat_error_t status = READSTAT_OK;
+            if (pass == 0) {
+                header.count += offset;
+            } else {
+                status = readstat_write_bytes(writer, line, offset);
+            }
+            free(line);
+            if (status != READSTAT_OK) {
+                return status;
+            }
+        }
+        if (pass == 0) {
+            if (!header.count) {
+                return READSTAT_OK;
+            }
+            readstat_error_t status = readstat_write_bytes(writer, &header, sizeof(header));
+            if (status != READSTAT_OK) {
+                return status;
+            }
+        }
+    }
+    return READSTAT_OK;
+}
+
 static readstat_error_t sav_begin_data(void *writer_ctx) {
     readstat_writer_t *writer = (readstat_writer_t *)writer_ctx;
     readstat_error_t retval = READSTAT_OK;
@@ -1580,6 +1714,15 @@ static readstat_error_t sav_begin_data(void *writer_ctx) {
         goto cleanup;
     }
 
+    retval = sav_emit_mr_sets(writer, varnames, 0);
+    if (retval != READSTAT_OK) {
+        goto cleanup;
+    }
+    retval = sav_emit_mr_sets(writer, varnames, 1);
+    if (retval != READSTAT_OK) {
+        goto cleanup;
+    }
+
     retval = sav_emit_termination_record(writer);
     if (retval != READSTAT_OK)
         goto cleanup;
@@ -1620,7 +1763,7 @@ static readstat_error_t sav_metadata_ok(void *writer_ctx) {
     if (writer->version != 2 && writer->version != 3)
         return READSTAT_ERROR_UNSUPPORTED_FILE_FORMAT_VERSION;
 
-    return READSTAT_OK;
+    return sav_validate_mr_sets(writer);
 }
 
 readstat_error_t readstat_begin_writing_sav(readstat_writer_t *writer, void *user_ctx, long row_count) {

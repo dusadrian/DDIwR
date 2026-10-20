@@ -26,6 +26,7 @@
 #include "readstat_iconv.h"
 #include "readstat_convert.h"
 #include "declared_types.h"
+#include "vendor_metadata.h"
 #include "tagged_na.h"
 #include "spss/readstat_sav.h"
 #include "spss/readstat_sav_compress.h"
@@ -66,6 +67,7 @@ typedef struct {
     char *label;
     char *format;
     char *val_labels_name;
+    SEXP vendor_metadata;
     int has_display_width;
     int display_width;
     size_t storage_width;
@@ -85,6 +87,9 @@ typedef struct {
     long total_rows;
     int ncols;
     char *file_label;
+    SEXP vendor_metadata;
+    char **notes;
+    size_t notes_n;
     readstat_attribute_t *spss_attributes;
     readstat_attribute_t *stata_characteristics;
     SCColumnSchema *cols;
@@ -346,6 +351,15 @@ static void sc_free_schema(SCSchema *schema) {
     if (schema == NULL) {
         return;
     }
+    if (schema->vendor_metadata != NULL) {
+        R_ReleaseObject(schema->vendor_metadata);
+    }
+    for (j = 0; j < schema->notes_n; j++) {
+        R_Free(schema->notes[j]);
+    }
+    if (schema->notes != NULL) {
+        R_Free(schema->notes);
+    }
     readstat_attributes_free(schema->spss_attributes);
     readstat_attributes_free(schema->stata_characteristics);
     if (schema->file_label != NULL) {
@@ -354,6 +368,9 @@ static void sc_free_schema(SCSchema *schema) {
     if (schema->cols != NULL) {
         for (i = 0; i < schema->ncols; ++i) {
             int k;
+            if (schema->cols[i].vendor_metadata != NULL) {
+                R_ReleaseObject(schema->cols[i].vendor_metadata);
+            }
             R_Free(schema->cols[i].name);
             R_Free(schema->cols[i].label);
             R_Free(schema->cols[i].format);
@@ -640,6 +657,29 @@ static void sc_add_na_index(SCChunkColumn *col, int pos, char tag) {
     col->na_index_n++;
 }
 
+static int sc_probe_note_handler(int index, const char *note, void *ctx_) {
+    SCParseState *state = (SCParseState *)ctx_;
+    SCSchema *schema = state->schema;
+    (void)index;
+    if (note != NULL) {
+        schema->notes = (char **)R_Realloc(schema->notes, schema->notes_n + 1, char *);
+        schema->notes[schema->notes_n++] = sc_strdup(note);
+    }
+    return READSTAT_HANDLER_OK;
+}
+
+static void sc_attach_dataset_metadata(SEXP output, const SCSchema *schema) {
+    Rf_setAttrib(output, Rf_install(ddiwr_metadata_attribute(schema->vendor)), schema->vendor_metadata);
+    if (schema->notes_n > 0) {
+        SEXP notes = PROTECT(Rf_allocVector(STRSXP, schema->notes_n));
+        for (size_t i = 0; i < schema->notes_n; i++) {
+            SET_STRING_ELT(notes, i, Rf_mkCharCE(schema->notes[i], CE_UTF8));
+        }
+        ddiwr_metadata_set_field(output, schema->vendor, "notes", notes);
+        UNPROTECT(1);
+    }
+}
+
 static int sc_probe_metadata_handler(readstat_metadata_t *metadata, void *ctx_) {
     SCParseState *state = (SCParseState *) ctx_;
     int var_count = readstat_get_var_count(metadata);
@@ -650,6 +690,11 @@ static int sc_probe_metadata_handler(readstat_metadata_t *metadata, void *ctx_) 
     if (kept < 0) {
         kept = 0;
     }
+    /* The metadata probe runs on the R thread, before workers start. */
+    SEXP vendor_metadata = PROTECT(ddiwr_dataset_metadata(metadata, state->schema->ext));
+    state->schema->vendor_metadata = vendor_metadata;
+    R_PreserveObject(vendor_metadata);
+    UNPROTECT(1);
     state->schema->total_rows = readstat_get_row_count(metadata);
     state->schema->ncols = kept;
     state->schema->cols = (SCColumnSchema *) R_Calloc((size_t) kept, SCColumnSchema);
@@ -677,7 +722,8 @@ static int sc_probe_variable_handler(int index, readstat_variable_t *variable, c
     col->source_index = index;
     col->kept_index = kept_index;
     col->readstat_type = readstat_variable_get_type(variable);
-    col->var_type = numTypeFromFormat(schema->vendor, readstat_variable_get_format(variable));
+    col->var_type = numTypeFromMetadata(schema->vendor, readstat_variable_get_format(variable),
+        readstat_variable_get_informat(variable));
     name = readstat_variable_get_name(variable);
     label = readstat_variable_get_label(variable);
     format = readstat_variable_get_format(variable);
@@ -685,6 +731,10 @@ static int sc_probe_variable_handler(int index, readstat_variable_t *variable, c
     col->label = (label != NULL && *label != '\0') ? sc_strdup(label) : NULL;
     col->format = (format != NULL && *format != '\0') ? sc_strdup(format) : NULL;
     col->val_labels_name = (val_labels != NULL && *val_labels != '\0') ? sc_strdup(val_labels) : NULL;
+    SEXP vendor_metadata = PROTECT(ddiwr_column_metadata(variable, schema->vendor));
+    col->vendor_metadata = vendor_metadata;
+    R_PreserveObject(vendor_metadata);
+    UNPROTECT(1);
     col->storage_width = readstat_variable_get_storage_width(variable);
     if (schema->vendor == DECLARED_SPSS && readstat_variable_get_display_width(variable) != 8) {
         col->has_display_width = 1;
@@ -793,6 +843,7 @@ static readstat_error_t sc_probe_readstat_metadata(FileExt ext, const char *path
     state.schema = schema;
 
     readstat_set_metadata_handler(parser, sc_probe_metadata_handler);
+    readstat_set_note_handler(parser, sc_probe_note_handler);
     readstat_set_variable_handler(parser, sc_probe_variable_handler);
     readstat_set_value_label_handler(parser, sc_probe_value_label_handler);
     readstat_set_characteristic_handler(parser, sc_probe_characteristic_handler);
@@ -1442,16 +1493,7 @@ static SEXP sc_build_r_output(const SCSchema *schema, const SCMergedTable *merge
         if (col_schema->label != NULL) {
             Rf_setAttrib(col, Rf_install("label"), Rf_mkString(col_schema->label));
         }
-        if (col_schema->format != NULL) {
-            Rf_setAttrib(col, Rf_install(formatAttribute(schema->vendor)), Rf_mkString(col_schema->format));
-        }
-        if (col_schema->readstat_type == READSTAT_TYPE_STRING ||
-            col_schema->readstat_type == READSTAT_TYPE_STRING_REF) {
-            Rf_setAttrib(col, Rf_install("width"), Rf_ScalarInteger((int) col_schema->storage_width));
-        }
-        if (col_schema->has_display_width) {
-            Rf_setAttrib(col, Rf_install("display_width"), Rf_ScalarInteger(col_schema->display_width));
-        }
+        Rf_setAttrib(col, Rf_install(ddiwr_metadata_attribute(schema->vendor)), col_schema->vendor_metadata);
         if (user_na && col_schema->num_na_values_n > 0) {
             SEXP na_values = PROTECT(Rf_allocVector(REALSXP, col_schema->num_na_values_n));
             int k;
@@ -1499,6 +1541,8 @@ static SEXP sc_build_r_output(const SCSchema *schema, const SCMergedTable *merge
         SET_VECTOR_ELT(output, i, col);
         UNPROTECT(1);
     }
+
+    sc_attach_dataset_metadata(output, schema);
 
     if (schema->file_label != NULL) {
         Rf_setAttrib(output, Rf_install("label"), Rf_mkString(schema->file_label));
@@ -2166,12 +2210,7 @@ static SEXP sc_build_sav_output_from_rows(const SCSchema *schema, const ddiwr_sa
         if (col_schema->label != NULL) {
             Rf_setAttrib(col, Rf_install("label"), Rf_mkString(col_schema->label));
         }
-        if (col_schema->format != NULL) {
-            Rf_setAttrib(col, Rf_install(formatAttribute(schema->vendor)), Rf_mkString(col_schema->format));
-        }
-        if (col_schema->has_display_width) {
-            Rf_setAttrib(col, Rf_install("display_width"), Rf_ScalarInteger(col_schema->display_width));
-        }
+        Rf_setAttrib(col, Rf_install(ddiwr_metadata_attribute(schema->vendor)), col_schema->vendor_metadata);
         if (col_schema->var_type != DECLARED_DEFAULT) {
             sc_set_vector_class(col, col_schema->var_type);
         }
@@ -2219,6 +2258,8 @@ static SEXP sc_build_sav_output_from_rows(const SCSchema *schema, const ddiwr_sa
         SET_STRING_ELT(names, i, Rf_mkCharCE(col_schema->name == NULL ? "" : col_schema->name, CE_UTF8));
         UNPROTECT(1);
     }
+
+    sc_attach_dataset_metadata(output, schema);
 
     if (schema->file_label != NULL) {
         Rf_setAttrib(output, Rf_install("label"), Rf_mkString(schema->file_label));

@@ -148,6 +148,65 @@ readstat_error_t readstat_writer_add_spss_attribute(readstat_writer_t *writer,
             variable ? variable->name : NULL, name, values, count);
 }
 
+static void readstat_writer_mr_set_free(mr_set_t *set) {
+    free(set->name);
+    free(set->label);
+    free(set->counted_string);
+    for (int i = 0; i < set->num_subvars; i++) {
+        free(set->subvariables[i]);
+    }
+    free(set->subvariables);
+}
+
+readstat_error_t readstat_writer_add_mr_set(readstat_writer_t *writer, const mr_set_t *set) {
+    if (writer->current_row || writer->row || !set || !set->name || !set->label ||
+            (set->type != 'C' && set->type != 'D' && set->type != 'E') ||
+            set->num_subvars < 2 || !set->subvariables ||
+            (set->type != 'C' && !set->counted_string)) {
+        return READSTAT_ERROR_BAD_MR_STRING;
+    }
+    for (size_t i = 0; i < writer->mr_sets_count; i++) {
+        if (!strcasecmp(set->name, writer->mr_sets[i].name)) {
+            return READSTAT_ERROR_BAD_MR_STRING;
+        }
+    }
+    for (int i = 0; i < set->num_subvars; i++) {
+        if (!set->subvariables[i]) {
+            return READSTAT_ERROR_BAD_MR_STRING;
+        }
+    }
+    if (writer->mr_sets_count >= SIZE_MAX / sizeof(mr_set_t) - 1) {
+        return READSTAT_ERROR_MALLOC;
+    }
+    mr_set_t *sets = realloc(writer->mr_sets, (writer->mr_sets_count + 1) * sizeof(mr_set_t));
+    if (!sets) {
+        return READSTAT_ERROR_MALLOC;
+    }
+    writer->mr_sets = sets;
+    mr_set_t copy = { .type = set->type, .is_dichotomy = set->is_dichotomy,
+        .counted_value = set->counted_value, .label_from_var_label = set->label_from_var_label };
+    copy.name = strdup(set->name);
+    copy.label = strdup(set->label);
+    copy.counted_string = set->counted_string ? strdup(set->counted_string) : NULL;
+    copy.subvariables = calloc(set->num_subvars, sizeof(char *));
+    if (!copy.name || !copy.label || (set->counted_string && !copy.counted_string) || !copy.subvariables) {
+        goto allocation_error;
+    }
+    for (int i = 0; i < set->num_subvars; i++) {
+        copy.subvariables[i] = strdup(set->subvariables[i]);
+        if (!copy.subvariables[i]) {
+            goto allocation_error;
+        }
+        copy.num_subvars++;
+    }
+    writer->mr_sets[writer->mr_sets_count++] = copy;
+    return READSTAT_OK;
+
+allocation_error:
+    readstat_writer_mr_set_free(&copy);
+    return READSTAT_ERROR_MALLOC;
+}
+
 static readstat_error_t readstat_write_row_default_callback(void *writer_ctx, void *bytes, size_t len) {
     return readstat_write_bytes((readstat_writer_t *)writer_ctx, bytes, len);
 }
@@ -217,6 +276,7 @@ static void readstat_label_set_free(readstat_label_set_t *label_set) {
             free(value_label->label);
         if (value_label->string_key)
             free(value_label->string_key);
+        if (value_label->string_end) free(value_label->string_end);
     }
     free(label_set->value_labels);
     free(label_set->variables);
@@ -302,6 +362,10 @@ void readstat_writer_free(readstat_writer_t *writer) {
     if (writer) {
         readstat_attributes_free(writer->spss_attributes);
         readstat_attributes_free(writer->stata_characteristics);
+        for (size_t j = 0; j < writer->mr_sets_count; j++) {
+            readstat_writer_mr_set_free(&writer->mr_sets[j]);
+        }
+        free(writer->mr_sets);
         if (writer->callbacks.module_ctx_free && writer->module_ctx) {
             writer->callbacks.module_ctx_free(writer->module_ctx);
         }
@@ -505,7 +569,8 @@ readstat_variable_t *readstat_get_label_set_variable(readstat_label_set_t *label
 void readstat_label_double_value(readstat_label_set_t *label_set, double value, const char *label) {
     readstat_value_label_t *new_value_label = readstat_add_value_label(label_set, label);
     new_value_label->double_key = value;
-    new_value_label->int32_key = value;
+    /* Double label sets can contain missing or out-of-int32-range keys. */
+    new_value_label->int32_key = value >= INT32_MIN && value <= INT32_MAX ? (int32_t)value : 0;
 }
 
 void readstat_label_int32_value(readstat_label_set_t *label_set, int32_t value, const char *label) {
@@ -665,6 +730,13 @@ readstat_error_t readstat_writer_set_file_label(readstat_writer_t *writer, const
 readstat_error_t readstat_writer_set_file_timestamp(readstat_writer_t *writer, time_t timestamp) {
     writer->timestamp = timestamp;
     writer->timestamp_fraction = 0.0;
+    writer->timestamp_set = 1;
+    return READSTAT_OK;
+}
+
+readstat_error_t readstat_writer_set_file_modified_timestamp(readstat_writer_t *writer, time_t timestamp) {
+    writer->modified_timestamp = timestamp;
+    writer->modified_timestamp_set = 1;
     return READSTAT_OK;
 }
 

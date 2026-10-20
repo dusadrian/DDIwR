@@ -22,6 +22,13 @@ variable.
 For this function, a categorical variable is something else than a base
 factor. It should be an object of class \code{"declared"} with a specific
 attribute called \code{"labels"} that stores the value labels.
+
+Variable labels, display widths, custom SPSS attributes and Stata
+characteristics are retained. String formats and storage widths are removed
+when the values become numeric; subsequent exports derive numeric formats.
+The \code{spss_metadata}, \code{stata_metadata} and \code{sas_metadata} lists are also
+retained, except for their string storage fields (\code{format}, \code{width}, SAS
+\code{informat} and Stata \code{type}).
 }
 \examples{
 x <- declared(

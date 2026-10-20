@@ -427,8 +427,14 @@ static readstat_error_t xport_begin_data(void *writer_ctx) {
     readstat_writer_t *writer = (readstat_writer_t *)writer_ctx;
     readstat_error_t retval = READSTAT_OK;
     char timestamp[17];
+    char modified_timestamp[17];
 
     retval = xport_format_timestamp(timestamp, sizeof(timestamp), writer->timestamp);
+    if (retval != READSTAT_OK)
+        goto cleanup;
+
+    retval = xport_format_timestamp(modified_timestamp, sizeof(modified_timestamp),
+            writer->modified_timestamp_set ? writer->modified_timestamp : writer->timestamp);
     if (retval != READSTAT_OK)
         goto cleanup;
 
@@ -440,7 +446,7 @@ static readstat_error_t xport_begin_data(void *writer_ctx) {
     if (retval != READSTAT_OK)
         goto cleanup;
 
-    retval = xport_write_record(writer, timestamp);
+    retval = xport_write_record(writer, modified_timestamp);
     if (retval != READSTAT_OK)
         goto cleanup;
 
@@ -456,7 +462,7 @@ static readstat_error_t xport_begin_data(void *writer_ctx) {
     if (retval != READSTAT_OK)
         goto cleanup;
 
-    retval = xport_write_file_label_record(writer, timestamp);
+    retval = xport_write_file_label_record(writer, modified_timestamp);
     if (retval != READSTAT_OK)
         goto cleanup;
 

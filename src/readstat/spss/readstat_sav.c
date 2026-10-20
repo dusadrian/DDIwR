@@ -44,6 +44,7 @@ sav_ctx_t *sav_ctx_init(sav_file_header_record_t *header, readstat_io_t *io) {
         ctx->compression = READSTAT_COMPRESS_BINARY;
     }
     ctx->record_count = ctx->bswap ? byteswap4(header->ncases) : header->ncases;
+    ctx->source_record_count = ctx->record_count < 0 ? -1 : ctx->record_count;
     if (ctx->record_count < 0 || ctx->record_count > INT32_MAX / 2) {
         /* -1 means unknown; PSPP also treats implausibly large counts as unknown */
         ctx->record_count = -1;

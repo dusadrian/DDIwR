@@ -980,7 +980,9 @@ NULL
 }
 
 
-#' @description `getFormat`: Determine the SPSS / Stata variable format
+#' @description `getFormat`: Use the vendor list format, then the legacy
+#' attribute, then infer the SPSS / Stata format. A present NULL list field
+#' suppresses legacy fallback.
 #' @return `getFormat`: Character scalar
 #' @rdname DDIwR_internal
 #' @keywords internal
@@ -989,6 +991,14 @@ NULL
 
     dots <- list(...)
     type <- toupper(match.arg(type))
+
+    format_value <- effective_vendor_metadata(x,
+        switch(type, SPSS = "spss_metadata", STATA = "stata_metadata"),
+        "format", switch(type, SPSS = "format.spss", STATA = "format.stata"))
+
+    if (!is.null(format_value)) {
+        return(format_value)
+    }
 
     if (inherits(x, "POSIXct")) {
         return(if (type == "SPSS") "DATETIME" else "%tc")
@@ -1557,10 +1567,18 @@ NULL
 
 
 
-        # this is always about format.spss since both "declared" and "labelled_spss"
-        # are not using Stata type extended missing values, and by consequence
-        # not using the Stata format type
-        attr(x[[i]], "format.spss") <- variables[[i]]$.extra[["varFormat"]][1]
+        # XML variable formats use SPSS syntax.
+        format_value <- getElement(variables[[i]], "varFormat")
+
+        if (is.null(format_value)) {
+            format_value <- variables[[i]]$.extra[["varFormat"]]
+        }
+
+        format_value <- format_value[1]
+
+        if (!is.null(format_value)) {
+            attr(x[[i]], "spss_metadata") <- list(format = format_value)
+        }
 
     }
 

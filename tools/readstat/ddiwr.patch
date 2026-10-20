@@ -1,8 +1,8 @@
 diff --git a/readstat.h b/readstat.h
-index aaafd7d..942e9bb 100644
+index aaafd7d..273538d 100644
 --- a/readstat.h
 +++ b/readstat.h
-@@ -127,6 +127,25 @@ typedef struct mr_set_s {
+@@ -127,11 +127,32 @@ typedef struct mr_set_s {
      int    label_from_var_label; /* subtype 19 sets with LABELSOURCE=VARLABEL */
  } mr_set_t;
  
@@ -28,7 +28,14 @@ index aaafd7d..942e9bb 100644
  typedef struct readstat_metadata_s {
      int64_t     row_count;
      int64_t     var_count;
-@@ -141,6 +160,7 @@ typedef struct readstat_metadata_s {
+     time_t      creation_time;
+     time_t      modified_time;
++    int         creation_time_present;
++    int         modified_time_present;
+     int64_t     file_format_version;
+     readstat_compress_t compression;
+     readstat_endian_t endianness;
+@@ -141,6 +162,7 @@ typedef struct readstat_metadata_s {
      unsigned int is64bit:1;
      size_t multiple_response_sets_length;
      mr_set_t *mr_sets;
@@ -36,7 +43,39 @@ index aaafd7d..942e9bb 100644
  } readstat_metadata_t;
  
  /* If the row count is unknown (e.g. it's an XPORT or POR file, or an SAV
-@@ -313,6 +333,10 @@ readstat_value_t readstat_variable_get_missing_range_hi(const readstat_variable_
+@@ -151,6 +173,9 @@ int readstat_get_row_count(readstat_metadata_t *metadata);
+ int readstat_get_var_count(readstat_metadata_t *metadata);
+ time_t readstat_get_creation_time(readstat_metadata_t *metadata);
+ time_t readstat_get_modified_time(readstat_metadata_t *metadata);
++/* Presence is independent of the numeric timestamp; zero is a valid instant. */
++int readstat_has_creation_time(readstat_metadata_t *metadata);
++int readstat_has_modified_time(readstat_metadata_t *metadata);
+ int readstat_get_file_format_version(readstat_metadata_t *metadata);
+ int readstat_get_file_format_is_64bit(readstat_metadata_t *metadata);
+ readstat_compress_t readstat_get_compression(readstat_metadata_t *metadata);
+@@ -179,6 +204,12 @@ typedef struct readstat_value_s {
+ /* Internal data structures */
+ typedef struct readstat_value_label_s {
+     double      double_key;
++    double      end_key;
++    char        end_tag;
++    char       *string_end;
++    size_t      string_end_len;
++    unsigned    sas_rule_flags;
++    unsigned    sas_is_rule;
+     int32_t     int32_key;
+     char        tag;
+ 
+@@ -196,6 +227,8 @@ typedef struct readstat_label_set_s {
+     readstat_value_label_t     *value_labels;
+     long                        value_labels_count;
+     long                        value_labels_capacity;
++    int                         sas_default_width;
++    double                      sas_fuzz;
+ 
+     void                       *variables;
+     long                        variables_count;
+@@ -313,6 +346,10 @@ readstat_value_t readstat_variable_get_missing_range_hi(const readstat_variable_
   */
  typedef int (*readstat_metadata_handler)(readstat_metadata_t *metadata, void *ctx);
  typedef int (*readstat_note_handler)(int note_index, const char *note, void *ctx);
@@ -47,15 +86,27 @@ index aaafd7d..942e9bb 100644
  typedef int (*readstat_variable_handler)(int index, readstat_variable_t *variable, 
          const char *val_labels, void *ctx);
  typedef int (*readstat_fweight_handler)(readstat_variable_t *variable, void *ctx);
-@@ -366,6 +390,7 @@ typedef struct readstat_callbacks_s {
+@@ -320,6 +357,10 @@ typedef int (*readstat_value_handler)(int obs_index, readstat_variable_t *variab
+         readstat_value_t value, void *ctx);
+ typedef int (*readstat_value_label_handler)(const char *val_labels, 
+         readstat_value_t value, const char *label, void *ctx);
++/* SAS format rules retain ranges, endpoint exclusions and OTHER separately
++ * from ordinary exact value labels. Flags: LOW=1 HIGH=2 SEXCL=4 EEXCL=8 OTHER=16. */
++typedef int (*readstat_catalog_rule_handler)(const char *name, readstat_value_t start,
++        readstat_value_t end, unsigned flags, int default_width, double fuzz, const char *label, void *ctx);
+ typedef void (*readstat_error_handler)(const char *error_message, void *ctx);
+ typedef int (*readstat_progress_handler)(double progress, void *ctx);
+ 
+@@ -366,6 +407,8 @@ typedef struct readstat_callbacks_s {
      readstat_value_label_handler   value_label;
      readstat_error_handler         error;
      readstat_progress_handler      progress;
 +    readstat_characteristic_handler characteristic;
++    readstat_catalog_rule_handler catalog_rule;
  } readstat_callbacks_t;
  
  typedef struct readstat_parser_s {
-@@ -383,6 +408,8 @@ void readstat_io_free(readstat_io_t *io);
+@@ -383,6 +426,8 @@ void readstat_io_free(readstat_io_t *io);
  
  readstat_error_t readstat_set_metadata_handler(readstat_parser_t *parser, readstat_metadata_handler metadata_handler);
  readstat_error_t readstat_set_note_handler(readstat_parser_t *parser, readstat_note_handler note_handler);
@@ -64,20 +115,36 @@ index aaafd7d..942e9bb 100644
  readstat_error_t readstat_set_variable_handler(readstat_parser_t *parser, readstat_variable_handler variable_handler);
  readstat_error_t readstat_set_fweight_handler(readstat_parser_t *parser, readstat_fweight_handler fweight_handler);
  readstat_error_t readstat_set_value_handler(readstat_parser_t *parser, readstat_value_handler value_handler);
-@@ -503,6 +530,9 @@ typedef struct readstat_writer_s {
+@@ -490,6 +535,9 @@ typedef struct readstat_writer_s {
+     readstat_compress_t         compression;
+     time_t                      timestamp;
+     double                      timestamp_fraction; // sub-second part of timestamp
++    int                         timestamp_set;
++    time_t                      modified_timestamp;
++    int                         modified_timestamp_set;
+ 
+     readstat_variable_t       **variables;
+     long                        variables_count;
+@@ -503,6 +551,12 @@ typedef struct readstat_writer_s {
      long                        notes_count;
      long                        notes_capacity;
  
 +    readstat_attribute_t        *spss_attributes;
 +    readstat_attribute_t        *stata_characteristics;
 +
++    mr_set_t                   *mr_sets;
++    size_t                      mr_sets_count;
++
      readstat_string_ref_t    **string_refs;
      long                       string_refs_count;
      long                       string_refs_capacity;
-@@ -573,6 +603,14 @@ readstat_variable_t *readstat_get_variable(readstat_writer_t *writer, int index)
+@@ -573,6 +627,17 @@ readstat_variable_t *readstat_get_variable(readstat_writer_t *writer, int index)
  // produce a write error if a note is longer than this limit.
  void readstat_add_note(readstat_writer_t *writer, const char *note);
  
++/* Copy an SPSS multiple-response definition before the first row, using long variable names. */
++readstat_error_t readstat_writer_add_mr_set(readstat_writer_t *writer, const mr_set_t *set);
++
 +/* Register SPSS custom attributes before the first row. */
 +readstat_error_t readstat_writer_add_spss_attribute(readstat_writer_t *writer,
 +        const readstat_variable_t *variable, const char *name,
@@ -89,6 +156,15 @@ index aaafd7d..942e9bb 100644
  // String refs are used for creating a READSTAT_TYPE_STRING_REF column,
  // which is only supported in Stata. String references can be shared
  // across columns, and inserted with readstat_insert_string_ref().
+@@ -589,6 +654,8 @@ readstat_string_ref_t *readstat_get_string_ref(readstat_writer_t *writer, int in
+ // Optional metadata
+ readstat_error_t readstat_writer_set_file_label(readstat_writer_t *writer, const char *file_label);
+ readstat_error_t readstat_writer_set_file_timestamp(readstat_writer_t *writer, time_t timestamp);
++/* SAS formats only; without an override, modification follows creation time. */
++readstat_error_t readstat_writer_set_file_modified_timestamp(readstat_writer_t *writer, time_t timestamp);
+ readstat_error_t readstat_writer_set_fweight_variable(readstat_writer_t *writer, const readstat_variable_t *variable);
+ 
+ readstat_error_t readstat_writer_set_file_format_version(readstat_writer_t *writer, 
 diff --git a/readstat_iconv.h b/readstat_iconv.h
 index 38fb981..1327fc8 100644
 --- a/readstat_iconv.h
@@ -109,6 +185,25 @@ index 38fb981..1327fc8 100644
  #endif
  
  typedef ICONV_CONST char ** readstat_iconv_inbuf_t;
+diff --git a/readstat_metadata.c b/readstat_metadata.c
+index 9787765..d43679a 100644
+--- a/readstat_metadata.c
++++ b/readstat_metadata.c
+@@ -16,6 +16,14 @@ time_t readstat_get_modified_time(readstat_metadata_t *metadata) {
+     return metadata->modified_time;
+ }
+ 
++int readstat_has_creation_time(readstat_metadata_t *metadata) {
++    return metadata->creation_time_present;
++}
++
++int readstat_has_modified_time(readstat_metadata_t *metadata) {
++    return metadata->modified_time_present;
++}
++
+ int readstat_get_file_format_version(readstat_metadata_t *metadata) {
+     return metadata->file_format_version;
+ }
 diff --git a/readstat_parser.c b/readstat_parser.c
 index e5c4625..d4a40c9 100644
 --- a/readstat_parser.c
@@ -127,7 +222,7 @@ index e5c4625..d4a40c9 100644
      parser->handlers.variable = variable_handler;
      return READSTAT_OK;
 diff --git a/readstat_writer.c b/readstat_writer.c
-index 9777e2a..6af825c 100644
+index 9777e2a..8c7e23a 100644
 --- a/readstat_writer.c
 +++ b/readstat_writer.c
 @@ -1,8 +1,10 @@
@@ -141,7 +236,7 @@ index 9777e2a..6af825c 100644
  
  #define VARIABLES_INITIAL_CAPACITY    50
  #define LABEL_SETS_INITIAL_CAPACITY   50
-@@ -11,6 +13,141 @@
+@@ -11,6 +13,200 @@
  #define STRING_REFS_INITIAL_CAPACITY 100
  #define LABEL_SET_VARIABLES_INITIAL_CAPACITY 2
  
@@ -280,23 +375,1626 @@ index 9777e2a..6af825c 100644
 +            variable ? variable->name : NULL, name, values, count);
 +}
 +
++static void readstat_writer_mr_set_free(mr_set_t *set) {
++    free(set->name);
++    free(set->label);
++    free(set->counted_string);
++    for (int i = 0; i < set->num_subvars; i++) {
++        free(set->subvariables[i]);
++    }
++    free(set->subvariables);
++}
++
++readstat_error_t readstat_writer_add_mr_set(readstat_writer_t *writer, const mr_set_t *set) {
++    if (writer->current_row || writer->row || !set || !set->name || !set->label ||
++            (set->type != 'C' && set->type != 'D' && set->type != 'E') ||
++            set->num_subvars < 2 || !set->subvariables ||
++            (set->type != 'C' && !set->counted_string)) {
++        return READSTAT_ERROR_BAD_MR_STRING;
++    }
++    for (size_t i = 0; i < writer->mr_sets_count; i++) {
++        if (!strcasecmp(set->name, writer->mr_sets[i].name)) {
++            return READSTAT_ERROR_BAD_MR_STRING;
++        }
++    }
++    for (int i = 0; i < set->num_subvars; i++) {
++        if (!set->subvariables[i]) {
++            return READSTAT_ERROR_BAD_MR_STRING;
++        }
++    }
++    if (writer->mr_sets_count >= SIZE_MAX / sizeof(mr_set_t) - 1) {
++        return READSTAT_ERROR_MALLOC;
++    }
++    mr_set_t *sets = realloc(writer->mr_sets, (writer->mr_sets_count + 1) * sizeof(mr_set_t));
++    if (!sets) {
++        return READSTAT_ERROR_MALLOC;
++    }
++    writer->mr_sets = sets;
++    mr_set_t copy = { .type = set->type, .is_dichotomy = set->is_dichotomy,
++        .counted_value = set->counted_value, .label_from_var_label = set->label_from_var_label };
++    copy.name = strdup(set->name);
++    copy.label = strdup(set->label);
++    copy.counted_string = set->counted_string ? strdup(set->counted_string) : NULL;
++    copy.subvariables = calloc(set->num_subvars, sizeof(char *));
++    if (!copy.name || !copy.label || (set->counted_string && !copy.counted_string) || !copy.subvariables) {
++        goto allocation_error;
++    }
++    for (int i = 0; i < set->num_subvars; i++) {
++        copy.subvariables[i] = strdup(set->subvariables[i]);
++        if (!copy.subvariables[i]) {
++            goto allocation_error;
++        }
++        copy.num_subvars++;
++    }
++    writer->mr_sets[writer->mr_sets_count++] = copy;
++    return READSTAT_OK;
++
++allocation_error:
++    readstat_writer_mr_set_free(&copy);
++    return READSTAT_ERROR_MALLOC;
++}
++
  static readstat_error_t readstat_write_row_default_callback(void *writer_ctx, void *bytes, size_t len) {
      return readstat_write_bytes((readstat_writer_t *)writer_ctx, bytes, len);
  }
-@@ -163,6 +300,8 @@ cleanup:
+@@ -80,6 +276,7 @@ static void readstat_label_set_free(readstat_label_set_t *label_set) {
+             free(value_label->label);
+         if (value_label->string_key)
+             free(value_label->string_key);
++        if (value_label->string_end) free(value_label->string_end);
+     }
+     free(label_set->value_labels);
+     free(label_set->variables);
+@@ -163,6 +360,12 @@ cleanup:
  void readstat_writer_free(readstat_writer_t *writer) {
      int i;
      if (writer) {
 +        readstat_attributes_free(writer->spss_attributes);
 +        readstat_attributes_free(writer->stata_characteristics);
++        for (size_t j = 0; j < writer->mr_sets_count; j++) {
++            readstat_writer_mr_set_free(&writer->mr_sets[j]);
++        }
++        free(writer->mr_sets);
          if (writer->callbacks.module_ctx_free && writer->module_ctx) {
              writer->callbacks.module_ctx_free(writer->module_ctx);
          }
+@@ -366,7 +569,8 @@ readstat_variable_t *readstat_get_label_set_variable(readstat_label_set_t *label
+ void readstat_label_double_value(readstat_label_set_t *label_set, double value, const char *label) {
+     readstat_value_label_t *new_value_label = readstat_add_value_label(label_set, label);
+     new_value_label->double_key = value;
+-    new_value_label->int32_key = value;
++    /* Double label sets can contain missing or out-of-int32-range keys. */
++    new_value_label->int32_key = value >= INT32_MIN && value <= INT32_MAX ? (int32_t)value : 0;
+ }
+ 
+ void readstat_label_int32_value(readstat_label_set_t *label_set, int32_t value, const char *label) {
+@@ -526,6 +730,13 @@ readstat_error_t readstat_writer_set_file_label(readstat_writer_t *writer, const
+ readstat_error_t readstat_writer_set_file_timestamp(readstat_writer_t *writer, time_t timestamp) {
+     writer->timestamp = timestamp;
+     writer->timestamp_fraction = 0.0;
++    writer->timestamp_set = 1;
++    return READSTAT_OK;
++}
++
++readstat_error_t readstat_writer_set_file_modified_timestamp(readstat_writer_t *writer, time_t timestamp) {
++    writer->modified_timestamp = timestamp;
++    writer->modified_timestamp_set = 1;
+     return READSTAT_OK;
+ }
+ 
+diff --git a/sas/readstat_sas.c b/sas/readstat_sas.c
+index 8cd78cb..25d2112 100644
+--- a/sas/readstat_sas.c
++++ b/sas/readstat_sas.c
+@@ -246,6 +246,8 @@ readstat_error_t sas_read_header(readstat_io_t *io, sas_header_info_t *hinfo,
+     
+     hinfo->creation_time = sas_convert_time(creation_time, creation_time_diff, epoch);
+     hinfo->modification_time = sas_convert_time(modification_time, modification_time_diff, epoch);
++    hinfo->creation_time_present = isfinite(creation_time) && isfinite(creation_time_diff);
++    hinfo->modification_time_present = isfinite(modification_time) && isfinite(modification_time_diff);
+ 
+     uint32_t header_size, page_size;
+ 
+@@ -447,15 +449,17 @@ readstat_error_t sas_write_header(readstat_writer_t *writer, sas_header_info_t *
+ 
+     memcpy(&header[156], header_start.file_info, sizeof(header_start.file_info));
+ 
+-    double utc_offset = sas_local_utc_offset(writer->timestamp);
++    double utc_offset = sas_local_utc_offset(hinfo->creation_time);
++    double modified_utc_offset = sas_local_utc_offset(hinfo->modification_time);
++    double modified_fraction = writer->modified_timestamp_set ? 0.0 : writer->timestamp_fraction;
+     double creation_time = (double)(hinfo->creation_time - epoch) + utc_offset + writer->timestamp_fraction;
+-    double modification_time = (double)(hinfo->modification_time - epoch) + utc_offset + writer->timestamp_fraction;
++    double modification_time = (double)(hinfo->modification_time - epoch) + modified_utc_offset + modified_fraction;
+ 
+     off = 164 + a1;
+     memcpy(&header[off], &creation_time, sizeof(double));
+     memcpy(&header[off+8], &modification_time, sizeof(double));
+     memcpy(&header[off+16], &utc_offset, sizeof(double));
+-    memcpy(&header[off+24], &utc_offset, sizeof(double));
++    memcpy(&header[off+24], &modified_utc_offset, sizeof(double));
+ 
+     uint32_t header_size = hinfo->header_size;
+     uint32_t page_size = hinfo->page_size;
+@@ -517,7 +521,7 @@ readstat_error_t sas_write_header(readstat_writer_t *writer, sas_header_info_t *
+ sas_header_info_t *sas_header_info_init(readstat_writer_t *writer, int is_64bit) {
+     sas_header_info_t *hinfo = calloc(1, sizeof(sas_header_info_t));
+     hinfo->creation_time = writer->timestamp;
+-    hinfo->modification_time = writer->timestamp;
++    hinfo->modification_time = writer->modified_timestamp_set ? writer->modified_timestamp : writer->timestamp;
+     hinfo->page_size = SAS_DEFAULT_PAGE_SIZE;
+     hinfo->u64 = !!is_64bit;
+ 
+diff --git a/sas/readstat_sas.h b/sas/readstat_sas.h
+index 80eb046..266b74f 100644
+--- a/sas/readstat_sas.h
++++ b/sas/readstat_sas.h
+@@ -49,6 +49,8 @@ typedef struct sas_header_info_s {
+     uint32_t page_number_mask;
+     time_t   creation_time;
+     time_t   modification_time;
++    int      creation_time_present;
++    int      modification_time_present;
+     char     table_name[32];
+     char     file_label[256];
+     char    *encoding;
+diff --git a/sas/readstat_sas7bcat_read.c b/sas/readstat_sas7bcat_read.c
+index c4ee717..7b0c9ee 100644
+--- a/sas/readstat_sas7bcat_read.c
++++ b/sas/readstat_sas7bcat_read.c
+@@ -14,6 +14,7 @@
+ typedef struct sas7bcat_ctx_s {
+     readstat_metadata_handler      metadata_handler;
+     readstat_value_label_handler   value_label_handler;
++    readstat_catalog_rule_handler  catalog_rule_handler;
+     void          *user_ctx;
+     readstat_io_t *io;
+     int            u64;
+@@ -44,6 +45,7 @@ static void sas7bcat_ctx_free(sas7bcat_ctx_t *ctx) {
+ 
+ static readstat_error_t sas7bcat_parse_value_labels(const char *value_start, size_t value_labels_len, 
+         int label_count_used, int label_count_capacity, int default_label_pos, int string_offset,
++        int default_width, double fuzz,
+         const char *name, sas7bcat_ctx_t *ctx) {
+     readstat_error_t retval = READSTAT_OK;
+     int i;
+@@ -54,6 +56,7 @@ static readstat_error_t sas7bcat_parse_value_labels(const char *value_start, siz
+     int is_string = 0;
+     char *label = NULL;
+     char *string_val = NULL;
++    char *end_string = NULL;
+ 
+     if (name[0] == '$') {
+         is_string = 1;
+@@ -97,7 +100,9 @@ static readstat_error_t sas7bcat_parse_value_labels(const char *value_start, siz
+ 
+     /* Pass 2 -- parse pairs of values & labels */
+     for (i=0; i<label_count_used; i++) {
+-        readstat_value_t value = { 0 };
++        readstat_value_t value = { 0 }, end_value = { 0 };
++        unsigned rule_flags = 0;
++        int range = 0;
+         int is_default_label = default_label_pos > 0 && i == default_label_pos - 1;
+         if (!is_default_label) {
+             /* A non-default label with no value entry pointing at it would
+@@ -113,27 +118,51 @@ static readstat_error_t sas7bcat_parse_value_labels(const char *value_start, siz
+                 goto cleanup;
+             }
+             value.type = is_string ? READSTAT_TYPE_STRING : READSTAT_TYPE_DOUBLE;
++            rule_flags = (unsigned char)lbp1[7];
++            range = is_string ? ((unsigned char)lbp1[6] == 11 || (unsigned char)lbp1[6] == 4) :
++                (sas_read2(lbp1+2, ctx->bswap) >= 48 &&
++                    (memcmp(lbp1+22, lbp1+30, 8) != 0 || rule_flags != 0));
+             if (is_string) {
+                 size_t value_entry_len = 6 + sas_read2(&lbp1[2], ctx->bswap);
+-                size_t string_start = 22 + string_offset;
++                size_t string_start = range ? 22 : 22 + string_offset;
+                 if (string_start > value_entry_len ||
+                         &lbp1[value_entry_len] - value_start > value_labels_len) {
+                     retval = READSTAT_ERROR_PARSE;
+                     goto cleanup;
+                 }
+-                size_t string_len = value_entry_len - string_start;
++                int long_range = range && (unsigned char)lbp1[6] == 4;
++                size_t string_len = range ? (long_range ? sas_read2(lbp1+8,ctx->bswap) : 16) : value_entry_len - string_start;
++                if (string_len > value_entry_len-string_start) { retval = READSTAT_ERROR_PARSE; goto cleanup; }
+                 char *new_string_val = realloc(string_val, 4 * string_len + 1);
+                 if (new_string_val == NULL) {
+                     retval = READSTAT_ERROR_MALLOC;
+                     goto cleanup;
+                 }
+                 string_val = new_string_val;
+-                retval = readstat_convert(string_val, 4 * string_len + 1,
++                if (rule_flags & 1) { string_val[0] = 0; retval = READSTAT_OK; }
++                else retval = readstat_convert(string_val, 4 * string_len + 1,
+                         &lbp1[string_start], string_len, ctx->converter);
+                 if (retval != READSTAT_OK)
+                     goto cleanup;
+ 
+                 value.v.string_value = string_val;
++                end_value.type = READSTAT_TYPE_STRING;
++                if (range) {
++                    size_t end_len = long_range ? sas_read2(lbp1+10,ctx->bswap) : 16;
++                    size_t end_start = long_range ? string_start+string_len : 38;
++                    if (end_start > value_entry_len || end_len > value_entry_len-end_start) {
++                        retval = READSTAT_ERROR_PARSE; goto cleanup;
++                    }
++                    char *new_end = realloc(end_string, 4*end_len+1);
++                    if (!new_end) { retval = READSTAT_ERROR_MALLOC; goto cleanup; }
++                    end_string = new_end;
++                    if (rule_flags & 2) { end_string[0] = 0; retval = READSTAT_OK; }
++                    else retval = readstat_convert(end_string, 4*end_len+1, lbp1+end_start, end_len, ctx->converter);
++                    if (retval != READSTAT_OK) goto cleanup;
++                    end_value.v.string_value = end_string;
++                } else {
++                    end_value.v.string_value = string_val;
++                }
+             } else {
+                 uint64_t val = sas_read8(&lbp1[22], bswap_doubles);
+                 double dval = NAN;
+@@ -150,6 +179,20 @@ static readstat_error_t sas7bcat_parse_value_labels(const char *value_start, siz
+                 }
+ 
+                 value.v.double_value = dval;
++                if (range) {
++                    uint64_t end_bits = sas_read8(lbp1+30, bswap_doubles);
++                    end_value.type = READSTAT_TYPE_DOUBLE;
++                    if ((end_bits | UINT64_C(0xFF0000000000)) == UINT64_C(0xFFFFFFFFFFFF)) {
++                        sas_assign_tag(&end_value, end_bits >> 40);
++                        end_value.v.double_value = NAN;
++                    } else {
++                        double end;
++                        memcpy(&end, &end_bits, 8);
++                        if (end > 0) { end_bits = ~end_bits; memcpy(&end, &end_bits, 8); }
++                        else end *= -1;
++                        end_value.v.double_value = end;
++                    }
++                } else { end_value = value; }
+             }
+         }
+         if (&lbp2[10] > value_start + value_labels_len) {
+@@ -162,14 +205,28 @@ static readstat_error_t sas7bcat_parse_value_labels(const char *value_start, siz
+         if (label_len > value_start + value_labels_len - &lbp2[10]) {
+             label_len = value_start + value_labels_len - &lbp2[10];
+         }
+-        if (ctx->value_label_handler && !is_default_label) {
+-            label = realloc(label, 4 * label_len + 1);
+-            retval = readstat_convert(label, 4 * label_len + 1,
+-                    &lbp2[10], label_len, ctx->converter);
++        if (ctx->value_label_handler || ctx->catalog_rule_handler) {
++            char *new_label = realloc(label, 4 * label_len + 1);
++            if (!new_label) { retval = READSTAT_ERROR_MALLOC; goto cleanup; }
++            label = new_label;
++            /* Character label text has an explicit length; spaces are content. */
++            if (is_string) {
++                retval = readstat_convert_notrim(label, 4 * label_len + 1,
++                        &lbp2[10], label_len, ctx->converter);
++            } else {
++                retval = readstat_convert(label, 4 * label_len + 1,
++                        &lbp2[10], label_len, ctx->converter);
++            }
+             if (retval != READSTAT_OK)
+                 goto cleanup;
+ 
+-            if (ctx->value_label_handler(name, value, label, ctx->user_ctx) != READSTAT_HANDLER_OK) {
++            if (ctx->catalog_rule_handler && ctx->catalog_rule_handler(name, value, end_value,
++                    is_default_label ? 16 : rule_flags, default_width, fuzz, label, ctx->user_ctx) != READSTAT_HANDLER_OK) {
++                retval = READSTAT_ERROR_USER_ABORT;
++                goto cleanup;
++            }
++            if (ctx->value_label_handler && !is_default_label && !range &&
++                    ctx->value_label_handler(name, value, label, ctx->user_ctx) != READSTAT_HANDLER_OK) {
+                 retval = READSTAT_ERROR_USER_ABORT;
+                 goto cleanup;
+             }
+@@ -181,6 +238,7 @@ static readstat_error_t sas7bcat_parse_value_labels(const char *value_start, siz
+ cleanup:
+     free(label);
+     free(string_val);
++    free(end_string);
+     free(value_offset);
+     return retval;
+ }
+@@ -250,8 +308,13 @@ static readstat_error_t sas7bcat_parse_block(const char *data, size_t data_size,
+     if (label_count_used == 0)
+         goto cleanup;
+ 
++    double fuzz = 0;
++    uint64_t fuzz_bits = sas_read8(data+(ctx->u64 ? 62 : 46), ctx->bswap);
++    memcpy(&fuzz, &fuzz_bits, 8);
++
+     if ((retval = sas7bcat_parse_value_labels(&data[payload_offset+pad], data_size - payload_offset - pad,
+-            label_count_used, label_count_capacity, default_label_pos, string_offset, name, ctx)) != READSTAT_OK)
++            label_count_used, label_count_capacity, default_label_pos, string_offset,
++            sas_read2(data+32+(ctx->u64 ? 4 : 0), ctx->bswap), fuzz, name, ctx)) != READSTAT_OK)
+         goto cleanup;
+ 
+ cleanup:
+@@ -439,6 +502,7 @@ readstat_error_t readstat_parse_sas7bcat(readstat_parser_t *parser, const char *
+     ctx->block_pointers = malloc((ctx->block_pointers_capacity = 200) * sizeof(uint64_t));
+ 
+     ctx->value_label_handler = parser->handlers.value_label;
++    ctx->catalog_rule_handler = parser->handlers.catalog_rule;
+     ctx->metadata_handler = parser->handlers.metadata;
+     ctx->input_encoding = parser->input_encoding;
+     ctx->output_encoding = parser->output_encoding;
+@@ -488,6 +552,8 @@ readstat_error_t readstat_parse_sas7bcat(readstat_parser_t *parser, const char *
+             .file_encoding = ctx->input_encoding, /* orig encoding? */
+             .modified_time = hinfo->modification_time,
+             .creation_time = hinfo->creation_time,
++            .modified_time_present = hinfo->modification_time_present,
++            .creation_time_present = hinfo->creation_time_present,
+             .file_format_version = hinfo->major_version,
+             .endianness = hinfo->little_endian ? READSTAT_ENDIAN_LITTLE : READSTAT_ENDIAN_BIG,
+             .is64bit = ctx->u64
+diff --git a/sas/readstat_sas7bcat_write.c b/sas/readstat_sas7bcat_write.c
+index 3528634..3d50a63 100644
+--- a/sas/readstat_sas7bcat_write.c
++++ b/sas/readstat_sas7bcat_write.c
+@@ -1,275 +1,496 @@
+-
+ #include <stdio.h>
+ #include <stdlib.h>
+-#include <time.h>
+-#include <iconv.h>
++#include <string.h>
++#include <math.h>
++#include <float.h>
+ 
+ #include "../readstat.h"
+ #include "../readstat_writer.h"
+ #include "readstat_sas.h"
+-#include "readstat_sas_rle.h"
+ 
++/* Native 64-bit catalog records have six-byte type/length headers. The catalog
++ * directory and XLSR records are required by SAS even though import only needs
++ * the value/label pairs. All offsets below are relative to those native records. */
+ typedef struct sas7bcat_block_s {
+-    size_t  len;
+-    char    data[1]; // Flexible array; use [1] for C++-98 compatibility
++    size_t len, records, content_len;
++    uint32_t page;
++    char *data;
+ } sas7bcat_block_t;
+ 
+-static sas7bcat_block_t *sas7bcat_block_for_label_set(
+-        readstat_label_set_t *r_label_set, readstat_writer_t *writer) {
+-    size_t len = 106;
+-    size_t name_len = strlen(r_label_set->name);
+-    int j;
+-    char name[32];
++static void cat_w2(char *p, uint16_t n) { memcpy(p, &n, 2); }
++static void cat_w4(char *p, uint32_t n) { memcpy(p, &n, 4); }
++static void cat_w8(char *p, uint64_t n) { memcpy(p, &n, 8); }
++static void cat_double(char *p, double n) { memcpy(p, &n, 8); }
++
++static uint64_t sas7bcat_key(readstat_value_label_t *label) {
++    double value = label->double_key;
++    uint64_t key;
++    if (label->tag || isnan(value)) {
++        unsigned char tag = label->tag;
++        unsigned char code = tag == '_' ? 0 :
++            tag >= 'A' && tag <= 'Z' ? tag - 'A' + 2 : 1;
++        key = UINT64_C(0x000000ffffffffff) | ((uint64_t)code << 40);
++    } else if (value >= 0) {
++        value = -value;
++        memcpy(&key, &value, 8);
++    } else {
++        memcpy(&key, &value, 8);
++        key = ~key;
++    }
++    return machine_is_little_endian() ? byteswap8(key) : key;
++}
+ 
+-    if (name_len > 8) {
+-        len += 32; // long name
+-        if (name_len > 32) {
+-            name_len = 32;
++static int sas7bcat_compare_labels(const void *a, const void *b) {
++    readstat_value_label_t *left = *(readstat_value_label_t **)a;
++    readstat_value_label_t *right = *(readstat_value_label_t **)b;
++    if (left->string_key || right->string_key) {
++        if ((left->sas_rule_flags & 1) != (right->sas_rule_flags & 1))
++            return left->sas_rule_flags & 1 ? -1 : 1;
++        size_t n = left->string_key_len > right->string_key_len ? left->string_key_len : right->string_key_len;
++        for (size_t i=0; i<n; i++) {
++            unsigned char l = i < left->string_key_len ? left->string_key[i] : ' ';
++            unsigned char r = i < right->string_key_len ? right->string_key[i] : ' ';
++            if (l != r) return (l > r) - (l < r);
+         }
++        return 0;
+     }
+-    if (writer->is_64bit) {
+-        len += 32;
+-    }
+-
+-    memcpy(&name[0], r_label_set->name, name_len);
+-
+-    int is_string = (r_label_set->type == READSTAT_TYPE_STRING);
+-    /* String values sit at offset 22 (a 22-byte header), numeric doubles also
+-     * at offset 22 but in a shorter 30-byte entry */
+-    int value_entry_size = is_string ? 38 : 30;
++    uint64_t l = sas7bcat_key(left), r = sas7bcat_key(right);
++    return memcmp(&l, &r, 8);
++}
+ 
+-    for (j=0; j<r_label_set->value_labels_count; j++) {
+-        readstat_value_label_t *value_label = readstat_get_value_label(r_label_set, j);
+-        len += value_entry_size;
+-        if (r_label_set->type == READSTAT_TYPE_STRING && value_label->string_key_len > 16) {
+-            len += value_label->string_key_len - 16;
++static int sas7bcat_make_block(sas7bcat_block_t *block, readstat_label_set_t *set,
++        double timestamp, size_t *max_record) {
++    size_t count = set->value_labels_count, key_count = 0, default_position = 0;
++    int rich = 0;
++    int string = set->type == READSTAT_TYPE_STRING;
++    size_t name_len = strlen(set->name), max_key = 16, max_label = 0;
++    size_t start = name_len > 8 ? 190 : 158;
++    size_t values_len = 0, labels_len = 0, values_storage = 0, labels_storage = 0;
++    readstat_value_label_t **sorted = calloc(count + 1, sizeof(*sorted));
++    if (!sorted)
++        return 0;
++    for (size_t i=0; i<count; i++) {
++        readstat_value_label_t *label = readstat_get_value_label(set, i);
++        if (label->sas_rule_flags & 16) default_position = i+1;
++        else sorted[key_count++] = label;
++        if (label->sas_is_rule) rich = 1;
++        if (label->string_key_len > max_key)
++            max_key = label->string_key_len;
++        if (label->string_end_len > max_key) max_key = label->string_end_len;
++        if (label->label_len > max_label)
++            max_label = label->label_len;
++    }
++    /* Keep short character keys in fixed 16-byte fields. Long keys use the
++     * native length-prefixed, NUL-padded variant. */
++    int long_string = string && max_key > 16;
++    for (size_t i=0; i<count; i++) {
++        readstat_value_label_t *label = readstat_get_value_label(set, i);
++        size_t size = string ? (rich ? (long_string ? 29 + (label->string_key_len ? label->string_key_len : 1) + (label->string_end_len ? label->string_end_len : 1) : 54) : long_string ? 29 + (label->string_key_len ? label->string_key_len : 1) : 38) : 54;
++        if (!(label->sas_rule_flags & 16)) {
++            values_len += size;
++            values_storage += (size-6+7) & ~(size_t)7;
++            if (size > *max_record) *max_record = size;
+         }
+-
+-        len += 8 + 2 + value_label->label_len + 1;
++        labels_len += 11 + label->label_len;
++        labels_storage += (5+label->label_len+7) & ~(size_t)7;
++        if (11 + label->label_len > *max_record) *max_record = 11 + label->label_len;
+     }
+-
+-    sas7bcat_block_t *block = calloc(1, sizeof(sas7bcat_block_t) + len);
+-    block->len = len;
+-
+-    off_t begin = 106;
+-    int64_t count = r_label_set->value_labels_count;
+-    if (writer->is_64bit) {
+-        memcpy(&block->data[42], &count, sizeof(int64_t));
+-        memcpy(&block->data[50], &count, sizeof(int64_t));
+-
+-        begin += 32;
+-    } else {
+-        int32_t count32 = (int32_t)count;
+-        memcpy(&block->data[38], &count32, sizeof(int32_t));
+-        memcpy(&block->data[42], &count32, sizeof(int32_t));
++    block->len = start + values_len + labels_len;
++    block->records = 1 + key_count + count;
++    block->content_len = block->len - 6 * block->records;
++    block->data = calloc(1, block->len);
++    if (!block->data) {
++        free(sorted);
++        return 0;
+     }
++    char *p = block->data;
++    cat_w2(p, 3);
++    cat_w2(p+2, 0x98 | (name_len > 8 ? 0x20 : 0));
++    memset(p+8, ' ', 8);
++    memcpy(p+8, set->name, name_len > 8 ? 8 : name_len);
++    cat_double(p+22, timestamp);
++    cat_w2(p+30, string ? 11 : 1);
++    cat_w2(p+32, 1);
++    cat_w2(p+34, 40);
++    cat_w2(p+36, set->sas_default_width ? set->sas_default_width : max_label);
++    cat_w2(p+38, max_label);
++    cat_w8(p+46, key_count);
++    cat_w8(p+54, count);
++    cat_double(p+62, rich ? set->sas_fuzz : string ? 0 : 1e-12);
++    cat_w8(p+78, default_position);
++    cat_w4(p+72, string ? 6 : 4);
++    cat_w8(p+86, labels_storage);
++    cat_w8(p+94, values_storage);
++    cat_w2(p+118, max_key);
++    cat_w2(p+120, max_key);
++    cat_w2(p+122, max_label);
++    cat_w2(p+124, 1);
++    p[127] = string && !rich ? 1 : 2;
++    cat_w4(p+128, long_string);
++    cat_w4(p+134, long_string ? 4 : 0);
+     if (name_len > 8) {
+-        int16_t flags = writer->is_64bit ? 0x20 : 0x80;
+-        memcpy(&block->data[2], &flags, sizeof(int16_t));
+-        memcpy(&block->data[8], name, 8);
+-
+-        memset(&block->data[begin], ' ', 32);
+-        memcpy(&block->data[begin], name, name_len);
+-
+-        begin += 32;
+-    } else {
+-        memset(&block->data[8], ' ', 8);
+-        memcpy(&block->data[8], name, name_len);
++        memset(p+158, ' ', 32);
++        memcpy(p+158, set->name, name_len);
+     }
+-
+-    char *lbp1 = &block->data[begin];
+-
+-    for (j=0; j<r_label_set->value_labels_count; j++) {
+-        readstat_value_label_t *value_label = readstat_get_value_label(r_label_set, j);
+-        int16_t value_entry_len = value_entry_size - 6;
+-        int32_t index = j;
+-        memcpy(&lbp1[10], &index, sizeof(int32_t));
+-        if (r_label_set->type == READSTAT_TYPE_STRING) {
+-            size_t string_len = value_label->string_key_len;
+-            if (string_len > 16) {
+-                value_entry_len += string_len - 16;
+-            }
+-            memset(&lbp1[22], ' ', 16);
+-            memcpy(&lbp1[22], value_label->string_key, string_len);
+-        } else {
+-            uint64_t big_endian_value;
+-            double double_value = value_label->double_key;
+-            if (double_value >= 0.0) {
+-                double_value *= -1.0;
+-                memcpy(&big_endian_value, &double_value, sizeof(double));
++    qsort(sorted, key_count, sizeof(*sorted), sas7bcat_compare_labels);
++    p += start;
++    for (size_t i=0; i<key_count; i++) {
++        readstat_value_label_t *label = sorted[i];
++        size_t size = string ? (rich ? (long_string ? 29 + (label->string_key_len ? label->string_key_len : 1) + (label->string_end_len ? label->string_end_len : 1) : 54) : long_string ? 29 + (label->string_key_len ? label->string_key_len : 1) : 38) : 54;
++        cat_w2(p, 4);
++        cat_w2(p+2, size-6);
++        cat_w2(p+6, string ? (rich ? (long_string ? 4 : 11) : long_string ? 3 : 10) : 1);
++        p[7] = label->sas_rule_flags & 15;
++        /* Labels remain in caller order; sorted keys point to their label slot. */
++        size_t index = label - set->value_labels;
++        cat_w4(p+14, index);
++        if (string) {
++            if (rich && long_string) {
++                size_t sl = label->string_key_len ? label->string_key_len : 1;
++                size_t el = label->string_end_len ? label->string_end_len : 1;
++                cat_w2(p+8,sl); cat_w2(p+10,el);
++                if (label->string_key_len) memcpy(p+22,label->string_key,sl);
++                else p[22] = ' ';
++                if (label->string_end_len) memcpy(p+22+sl,label->string_end,el);
++                else p[22+sl] = ' ';
++                if (label->sas_rule_flags & 1) p[22] = 0;
++                if (label->sas_rule_flags & 2) p[22+sl] = (char)0xff;
++            } else if (rich) {
++                memset(p+22, ' ', 32);
++                if (label->string_key_len) memcpy(p+22, label->string_key, label->string_key_len);
++                if (label->string_end_len) memcpy(p+38, label->string_end, label->string_end_len);
++                if (label->sas_rule_flags & 1) p[22] = 0;
++                if (label->sas_rule_flags & 2) p[38] = (char)0xff;
++            } else if (long_string) {
++                cat_w2(p+8, label->string_key_len ? label->string_key_len : 1);
++                if (label->string_key_len)
++                    memcpy(p+23, label->string_key, label->string_key_len);
++                else
++                    p[23] = ' ';
+             } else {
+-                memcpy(&big_endian_value, &double_value, sizeof(double));
+-                big_endian_value = ~big_endian_value;
++                memset(p+22, ' ', 16);
++                if (label->string_key_len)
++                    memcpy(p+22, label->string_key, label->string_key_len);
+             }
+-            if (machine_is_little_endian()) {
+-                big_endian_value = byteswap8(big_endian_value);
++        } else {
++            uint64_t key = sas7bcat_key(label);
++            /* Rules carry distinct endpoints and fuzz-expanded comparison bounds. */
++            readstat_value_label_t bound = *label;
++            if (label->sas_is_rule) { bound.double_key = label->end_key; bound.tag = label->end_tag; }
++            uint64_t end = sas7bcat_key(&bound);
++            memcpy(p+22, &key, 8); memcpy(p+30, &end, 8);
++            uint64_t lower = key, upper = end;
++            if (label->sas_is_rule && set->sas_fuzz > 0) {
++                if (!label->tag) {
++                    bound.double_key = fmax(-DBL_MAX, label->double_key-set->sas_fuzz);
++                    bound.tag = 0; lower = sas7bcat_key(&bound);
++                }
++                if (!label->end_tag) {
++                    bound.double_key = fmin(DBL_MAX, label->end_key+set->sas_fuzz);
++                    bound.tag = 0; upper = sas7bcat_key(&bound);
++                }
+             }
+-            memcpy(&lbp1[22], &big_endian_value, sizeof(uint64_t));
++            memcpy(p+38, &lower, 8); memcpy(p+46, &upper, 8);
+         }
+-
+-        memcpy(&lbp1[2], &value_entry_len, sizeof(int16_t));
+-        lbp1 += 6 + value_entry_len;
++        p += size;
+     }
+-
+-    char *lbp2 = lbp1;
+-    for (j=0; j<r_label_set->value_labels_count; j++) {
+-        readstat_value_label_t *value_label = readstat_get_value_label(r_label_set, j);
+-
+-        int16_t label_len = value_label->label_len;
+-        memcpy(&lbp2[8], &label_len, sizeof(int16_t));
+-        memcpy(&lbp2[10], value_label->label, label_len);
+-
+-        lbp2 += 8 + 2 + value_label->label_len + 1;
++    for (size_t i=0; i<count; i++) {
++        readstat_value_label_t *label = readstat_get_value_label(set, i);
++        cat_w2(p, 5);
++        cat_w2(p+2, 5+label->label_len);
++        cat_w2(p+6, 6);
++        cat_w2(p+8, label->label_len);
++        memcpy(p+10, label->label, label->label_len);
++        p += 11+label->label_len;
+     }
++    free(sorted);
++    return 1;
++}
+ 
+-    return block;
++static void sas7bcat_page(char *page, size_t size, uint32_t mask, uint32_t number) {
++    memset(page, 0, size);
++    cat_w4(page, mask ^ number);
+ }
+ 
+-static readstat_error_t sas7bcat_emit_header(readstat_writer_t *writer, sas_header_info_t *hinfo) {
+-    sas_header_start_t header_start = {
+-        .a2 = hinfo->u64 ? SAS_ALIGNMENT_OFFSET_4 : SAS_ALIGNMENT_OFFSET_0,
+-        .a1 = SAS_ALIGNMENT_OFFSET_0,
+-        .endian = machine_is_little_endian() ? SAS_ENDIAN_LITTLE : SAS_ENDIAN_BIG,
+-        .file_format = SAS_FILE_FORMAT_UNIX,
+-        .encoding = 20, /* UTF-8 */
+-        .file_type = "SAS FILE",
+-        .file_info = "CATALOG "
+-    };
++static void sas7bcat_xlsr(char *p, uint32_t page, size_t records, size_t content,
++        unsigned flags, unsigned key_width, unsigned label_width, size_t page_size, double timestamp, int bitmap) {
++    memcpy(p, "XLSR", 4);
++    cat_w8(p+8, page);
++    cat_w2(p+16, 32);
++    cat_double(p+24, timestamp);
++    cat_double(p+32, timestamp);
++    cat_w8(p+40, bitmap ? 20 : 0);
++    cat_w8(p+48, records);
++    cat_w8(p+56, content);
++    cat_w8(p+64, flags);
++    cat_w2(p+72, page_size);
++    memset(p+78, ' ', 18);
++    if (!bitmap) {
++        char descriptor[19];
++        snprintf(descriptor, sizeof(descriptor), "O%04X%04X%04X0000 ",
++            key_width, key_width, label_width);
++        memcpy(p+78, descriptor, 18);
++    }
++    cat_w8(p+104, page);
++    cat_w2(p+112, 32);
++    memset(p+172, ' ', 8);
++    if (!bitmap)
++        p[171] = 'F';
++    cat_w8(p+184, 1);
++    cat_w8(p+192, 1);
++    if (!bitmap)
++        memset(p+244, ' ', 44);
++}
+ 
+-    memcpy(&header_start.magic, sas7bcat_magic_number, sizeof(header_start.magic));
++typedef struct sas7bcat_directory_s {
++    char **pages;
++    size_t used, capacity, page_size;
++    uint32_t first_page, mask, last_leaf;
++} sas7bcat_directory_t;
++
++/* Internal nodes have an ascending offset table of 40-byte upper-bound keys
++ * and eight-byte child pointers. Leaves hold fixed 56-byte catalog entries. */
++static uint32_t sas7bcat_directory_node(sas7bcat_directory_t *tree,
++        const char *entries, size_t count, size_t level, int root) {
++    if (tree->used == tree->capacity) {
++        size_t capacity = tree->capacity ? tree->capacity*2 : 8;
++        char **pages = realloc(tree->pages, capacity*sizeof(*pages));
++        if (!pages)
++            return 0;
++        tree->pages = pages;
++        tree->capacity = capacity;
++    }
++    size_t slot = tree->used++;
++    uint32_t number = root ? 1 : tree->first_page + slot-1;
++    char *page = calloc(1, tree->page_size);
++    tree->pages[slot] = page;
++    if (!page)
++        return 0;
++    cat_w4(page, tree->mask ^ number);
++    cat_w8(page+24, 1);
++    cat_w2(page+32, 0x1000);
++    cat_w4(page+40, level);
++    if (level == 0) {
++        cat_w2(page+32, tree->last_leaf ? 0 : 0x1000);
++        cat_w8(page+16, tree->last_leaf);
++        tree->last_leaf = number;
++        cat_w2(page+34, count+1);
++        cat_w2(page+36, count);
++        cat_w2(page+38, tree->page_size-56*count-48);
++        memcpy(page+tree->page_size-56*count, entries, 56*count);
++        return number;
++    }
++    size_t leaf_capacity = (tree->page_size-48)/56;
++    size_t branch_capacity = (tree->page_size-48)/50;
++    size_t child_capacity = leaf_capacity;
++    for (size_t i=1; i<level; i++)
++        child_capacity *= branch_capacity;
++    size_t children = (count+child_capacity-1)/child_capacity;
++    cat_w2(page+34, children+1);
++    cat_w2(page+36, children);
++    cat_w2(page+38, tree->page_size-48*children-48-2*children);
++    for (size_t child=0; child<children; child++) {
++        size_t offset = child*child_capacity;
++        size_t size = count-offset > child_capacity ? child_capacity : count-offset;
++        uint32_t target = sas7bcat_directory_node(tree, entries+56*offset, size, level-1, 0);
++        if (!target)
++            return 0;
++        size_t record_offset = tree->page_size-48*(children-child);
++        char *record = page+record_offset;
++        if (child == 0)
++            memset(record, 0xff, 40);
++        else
++            memcpy(record, entries+56*offset, 40);
++        cat_w8(record+40, target);
++        cat_w2(page+48+2*(children-child-1), record_offset);
++    }
++    return number;
++}
+ 
+-    return sas_write_header(writer, hinfo, header_start);
++static int sas7bcat_directory_compare(const void *a, const void *b) {
++    return memcmp(b, a, 40);
+ }
+ 
+ static readstat_error_t sas7bcat_begin_data(void *writer_ctx) {
+-    readstat_writer_t *writer = (readstat_writer_t *)writer_ctx;
++    readstat_writer_t *writer = writer_ctx;
+     readstat_error_t retval = READSTAT_OK;
+-
+-    int i;
+-    sas_header_info_t *hinfo = sas_header_info_init(writer, writer->is_64bit);
+-    sas7bcat_block_t **blocks = malloc(writer->label_sets_count * sizeof(sas7bcat_block_t));
+-    char *page = malloc(hinfo->page_size);
+-
+-    for (i=0; i<writer->label_sets_count; i++) {
+-        blocks[i] = sas7bcat_block_for_label_set(writer->label_sets[i], writer);
++    size_t count = writer->label_sets_count;
++    sas_header_info_t *hinfo = sas_header_info_init(writer, 1);
++    sas7bcat_block_t *blocks = calloc(count+1, sizeof(*blocks));
++    char *page = NULL, *entries = NULL;
++    sas7bcat_directory_t tree = { 0 };
++    if (!hinfo || !blocks) {
++        retval = READSTAT_ERROR_MALLOC;
++        goto cleanup;
+     }
+-
+-    hinfo->page_count = 4;
+-
+-    // Header
+-    retval = sas7bcat_emit_header(writer, hinfo);
+-    if (retval != READSTAT_OK)
++    double timestamp = (double)writer->timestamp + 315619200.0;
++    size_t max_record = 190;
++    for (size_t i=0; i<count; i++) {
++        if (!sas7bcat_make_block(&blocks[i], writer->label_sets[i], timestamp, &max_record)) {
++            retval = READSTAT_ERROR_MALLOC;
++            goto cleanup;
++        }
++    }
++    /* Each individual record must fit on a page. The directory and index
++     * have independent overflow pages, so the number of formats is not capped. */
++    hinfo->header_size = 8192;
++    while (hinfo->page_size < 64 + max_record) {
++        hinfo->page_size *= 2;
++    }
++    if (hinfo->page_size > 65536) {
++        retval = READSTAT_ERROR_ROW_IS_TOO_WIDE_FOR_PAGE;
+         goto cleanup;
+-
+-    // Page 0
+-    retval = readstat_write_zeros(writer, hinfo->page_size);
+-    if (retval != READSTAT_OK)
++    }
++    hinfo->page_number_mask = UINT32_C(0x12345678);
++    page = malloc(hinfo->page_size);
++    if (!page) {
++        retval = READSTAT_ERROR_MALLOC;
+         goto cleanup;
+-
+-    memset(page, '\0', hinfo->page_size);
+-
+-    // Page 1
+-    int64_t xlsr_size = 212;
+-    int64_t xlsr_offset = 856;
+-    int64_t xlsr_O_offset = 50;
+-    size_t block_header_size = 16;
+-    if (writer->is_64bit) {
+-        xlsr_size += 72;
+-        xlsr_offset += 144;
+-        xlsr_O_offset += 24;
+-        block_header_size += 16;
+     }
+-
+-    char *xlsr = &page[xlsr_offset];
+-    int64_t block_idx = 4;
+-    int16_t block_off = 16;
+-    for (i=0; i<writer->label_sets_count; i++) {
+-        if (xlsr + xlsr_size > page + hinfo->page_size)
+-            break;
+-
+-        memcpy(&xlsr[0], "XLSR", 4);
+-
+-        if (writer->is_64bit) {
+-            memcpy(&xlsr[8], &block_idx, sizeof(int64_t));
+-            memcpy(&xlsr[16], &block_off, sizeof(int16_t));
+-        } else {
+-            int32_t block_idx32 = (int32_t)block_idx;
+-            memcpy(&xlsr[4], &block_idx32, sizeof(int32_t));
+-            memcpy(&xlsr[8], &block_off, sizeof(int16_t));
+-        }
+-
+-        xlsr[xlsr_O_offset] = 'O';
+-
+-        /* Each block on the data page is preceded by a 16-byte block header,
+-         * which the offsets stored in the XLSR entries must account for */
+-        block_off += block_header_size + blocks[i]->len;
+-
+-        xlsr += xlsr_size;
++    size_t first_capacity = (hinfo->page_size-1296)/288;
++    size_t extra_capacity = (hinfo->page_size-32)/288;
++    size_t extra_pages = count > first_capacity ?
++        (count-first_capacity+extra_capacity-1)/extra_capacity : 0;
++    entries = calloc(count+1, 56);
++    if (!entries) {
++        retval = READSTAT_ERROR_MALLOC;
++        goto cleanup;
+     }
+-
+-    retval = readstat_write_bytes(writer, page, hinfo->page_size);
+-    if (retval != READSTAT_OK)
++    memcpy(entries, "SYSRESR PGBITMAP", 16);
++    cat_w8(entries+40, 2);
++    cat_w2(entries+48, 1008);
++    cat_w2(entries+50, 0x810);
++    for (size_t i=0; i<count; i++) {
++        readstat_label_set_t *set = writer->label_sets[i];
++        char *entry = entries+56*(i+1);
++        int string = set->type == READSTAT_TYPE_STRING;
++        memcpy(entry, string ? "FORMATC " : "FORMAT  ", 8);
++        memcpy(entry+8, set->name+string, strlen(set->name)-string);
++        cat_w8(entry+40, i < first_capacity ? 2 : 4+(i-first_capacity)/extra_capacity);
++        cat_w2(entry+48, i < first_capacity ? 1296+288*i : 32+288*((i-first_capacity)%extra_capacity));
++        entry[51] = strlen(set->name)-string;
++    }
++    qsort(entries, count+1, 56, sas7bcat_directory_compare);
++    tree.page_size = hinfo->page_size;
++    tree.first_page = 4+extra_pages;
++    tree.mask = hinfo->page_number_mask;
++    size_t level = 0, capacity = (hinfo->page_size-48)/56;
++    while (capacity < count+1) {
++        level++;
++        capacity *= (hinfo->page_size-48)/50;
++    }
++    if (!sas7bcat_directory_node(&tree, entries, count+1, level, 1)) {
++        retval = READSTAT_ERROR_MALLOC;
+         goto cleanup;
+-
+-    // Page 2
+-    retval = readstat_write_zeros(writer, hinfo->page_size);
++    }
++    size_t chunk = hinfo->page_size-64;
++    hinfo->page_count = 3+extra_pages+tree.used-1;
++    for (size_t i=0; i<count; i++) {
++        blocks[i].page = hinfo->page_count+1;
++        hinfo->page_count += (blocks[i].len+chunk-1)/chunk;
++    }
++    sas_header_start_t header = {
++        .a1 = SAS_ALIGNMENT_OFFSET_4, .a2 = SAS_ALIGNMENT_OFFSET_4,
++        .endian = machine_is_little_endian() ? SAS_ENDIAN_LITTLE : SAS_ENDIAN_BIG,
++        .file_format = SAS_FILE_FORMAT_UNIX, .encoding = 20,
++        .file_type = "SAS FILE", .file_info = "CATALOG "
++    };
++    memcpy(header.magic, sas7bcat_magic_number, sizeof(header.magic));
++    char table_name[sizeof(writer->table_name)];
++    memcpy(table_name, writer->table_name, sizeof(table_name));
++    memset(writer->table_name, ' ', 32);
++    writer->table_name[32] = 0;
++    retval = sas_write_header(writer, hinfo, header);
++    memcpy(writer->table_name, table_name, sizeof(table_name));
+     if (retval != READSTAT_OK)
+         goto cleanup;
+ 
+-    // Page 3
+-    memset(page, '\0', hinfo->page_size);
++    if ((retval = readstat_write_bytes(writer, tree.pages[0], hinfo->page_size)) != READSTAT_OK)
++        goto cleanup;
+ 
+-    char block_header[32];
+-    block_off = 16;
+-    for (i=0; i<writer->label_sets_count; i++) {
+-        if (block_off + block_header_size + blocks[i]->len > hinfo->page_size)
+-            break;
++    sas7bcat_page(page, hinfo->page_size, hinfo->page_number_mask, 2);
++    memcpy(page+32, "XLCH", 4);
++    cat_w8(page+300, 32);
++    cat_w8(page+312, hinfo->page_size);
++    cat_w8(page+320, hinfo->page_count);
++    cat_w8(page+336, 1);
++    cat_w8(page+344, extra_pages ? 3+extra_pages : 2);
++    cat_w8(page+352, extra_pages ? 32+288*((count-first_capacity-1)%extra_capacity+1) : 1296+288*count);
++    cat_w8(page+376, 1);
++    cat_w4(page+384, 0x280000);
++    cat_w8(page+392, count);
++    cat_w8(page+400, count);
++    sas7bcat_xlsr(page+1008, 3, 1, 256, 256, 0, 0, hinfo->page_size, timestamp, 1);
++    for (size_t i=0; i<count && i<first_capacity; i++)
++        sas7bcat_xlsr(page+1296+288*i, blocks[i].page, blocks[i].records,
++            blocks[i].content_len, (unsigned char)blocks[i].data[2],
++            sas_read2(blocks[i].data+118, 0), sas_read2(blocks[i].data+122, 0), hinfo->page_size, timestamp, 0);
++    if ((retval = readstat_write_bytes(writer, page, hinfo->page_size)) != READSTAT_OK)
++        goto cleanup;
+ 
+-        memset(block_header, '\0', block_header_size);
++    sas7bcat_page(page, hinfo->page_size, hinfo->page_number_mask, 3);
++    cat_w2(page+42, 262);
++    cat_w8(page+48, 3);
++    cat_w2(page+56, 32);
++    cat_w2(page+58, hinfo->page_size-32);
++    cat_w2(page+64, 106);
++    cat_w2(page+66, 256);
++    if ((retval = readstat_write_bytes(writer, page, hinfo->page_size)) != READSTAT_OK)
++        goto cleanup;
+ 
+-        size_t next_page_offset = 0;
+-        size_t next_page_pos_offset = 4;
+-        size_t block_len_offset = 6;
+-        if (writer->is_64bit) {
+-            next_page_pos_offset += 4;
+-            block_len_offset += 4;
++    for (size_t index=0; index<extra_pages; index++) {
++        sas7bcat_page(page, hinfo->page_size, hinfo->page_number_mask, 4+index);
++        for (size_t item=0; item<extra_capacity; item++) {
++            size_t i = first_capacity+index*extra_capacity+item;
++            if (i == count)
++                break;
++            sas7bcat_xlsr(page+32+288*item, blocks[i].page, blocks[i].records,
++                blocks[i].content_len, (unsigned char)blocks[i].data[2],
++                sas_read2(blocks[i].data+118, 0), sas_read2(blocks[i].data+122, 0), hinfo->page_size, timestamp, 0);
++        }
++        if ((retval = readstat_write_bytes(writer, page, hinfo->page_size)) != READSTAT_OK)
++            goto cleanup;
++    }
++    for (size_t i=1; i<tree.used; i++) {
++        if ((retval = readstat_write_bytes(writer, tree.pages[i], hinfo->page_size)) != READSTAT_OK)
++            goto cleanup;
++    }
++    for (size_t i=0; i<count; i++) {
++        for (size_t offset=0; offset<blocks[i].len; offset+=chunk) {
++            size_t remaining = blocks[i].len-offset;
++            size_t length = remaining > chunk ? chunk : remaining;
++            uint32_t number = blocks[i].page + offset/chunk;
++            sas7bcat_page(page, hinfo->page_size, hinfo->page_number_mask, number);
++            cat_w8(page+32, remaining > chunk ? number+1 : 0);
++            cat_w2(page+40, remaining > chunk ? 32 : 0);
++            cat_w2(page+42, length);
++            cat_w8(page+48, number);
++            cat_w2(page+56, 32);
++            cat_w2(page+58, hinfo->page_size-32);
++            memcpy(page+64, blocks[i].data+offset, length);
++            if ((retval = readstat_write_bytes(writer, page, hinfo->page_size)) != READSTAT_OK)
++                goto cleanup;
+         }
+-
+-        int32_t next_page = 0;
+-        int16_t next_off = 0;
+-        int16_t block_len = blocks[i]->len;
+-        memcpy(&block_header[next_page_offset], &next_page, sizeof(int32_t));
+-        memcpy(&block_header[next_page_pos_offset], &next_off, sizeof(int16_t));
+-        memcpy(&block_header[block_len_offset], &block_len, sizeof(int16_t));
+-
+-        memcpy(&page[block_off], block_header, block_header_size);
+-        block_off += block_header_size;
+-
+-        memcpy(&page[block_off], blocks[i]->data, blocks[i]->len);
+-        block_off += blocks[i]->len;
+     }
+-
+-    retval = readstat_write_bytes(writer, page, hinfo->page_size);
+-    if (retval != READSTAT_OK)
+-        goto cleanup;
+-
+ cleanup:
+-    for (i=0; i<writer->label_sets_count; i++) {
+-        free(blocks[i]);
++    if (blocks) {
++        for (size_t i=0; i<count; i++)
++            free(blocks[i].data);
+     }
+     free(blocks);
+-    free(hinfo);
++    for (size_t i=0; i<tree.used; i++)
++        free(tree.pages[i]);
++    free(tree.pages);
++    free(entries);
+     free(page);
+-
++    free(hinfo);
+     return retval;
+ }
+ 
+ readstat_error_t readstat_begin_writing_sas7bcat(readstat_writer_t *writer, void *user_ctx) {
+-
+     if (writer->version == 0)
+         writer->version = SAS_DEFAULT_FILE_VERSION;
+-
+-    writer->callbacks.begin_data = &sas7bcat_begin_data;
+-
++    writer->is_64bit = 1;
++    writer->callbacks.begin_data = sas7bcat_begin_data;
+     return readstat_begin_writing_file(writer, user_ctx, 0);
+ }
+diff --git a/sas/readstat_sas7bdat_read.c b/sas/readstat_sas7bdat_read.c
+index 559dc1b..858824a 100644
+--- a/sas/readstat_sas7bdat_read.c
++++ b/sas/readstat_sas7bdat_read.c
+@@ -49,12 +49,12 @@ typedef struct sas7bdat_ctx_s {
+ 
+     uint32_t        row_length;
+     uint32_t        page_row_count;
+-    uint32_t        total_row_count;
++    uint64_t        total_row_count;
+     uint32_t        parsed_row_count;
+     uint32_t        parsed_deleted_row_count;
+     uint32_t        column_count;
+     uint32_t        row_limit;
+-    uint32_t        deleted_row_count;
++    uint64_t        deleted_row_count;
+     uint32_t        row_offset;
+ 
+     uint64_t        header_size;
+@@ -93,6 +93,8 @@ typedef struct sas7bdat_ctx_s {
+ 
+     time_t         ctime;
+     time_t         mtime;
++    int            ctime_present;
++    int            mtime_present;
+     int            version;
+     char           table_name[4*32+1];
+     char           file_label[4*256+1];
+@@ -290,10 +292,12 @@ static readstat_error_t sas7bdat_parse_row_size_subheader(const char *subheader,
+     }
+ 
+     ctx->row_length = row_length;
+-    ctx->row = readstat_realloc(ctx->row, ctx->row_length);
+-    if (ctx->row == NULL) {
+-        retval = READSTAT_ERROR_MALLOC;
+-        goto cleanup;
++    if (ctx->handle.value) {
++        ctx->row = readstat_realloc(ctx->row, ctx->row_length);
++        if (ctx->row == NULL) {
++            retval = READSTAT_ERROR_MALLOC;
++            goto cleanup;
++        }
+     }
+ 
+     ctx->page_row_count = page_row_count;
+@@ -816,13 +820,15 @@ static readstat_error_t sas7bdat_submit_columns(sas7bdat_ctx_t *ctx, int compres
+     readstat_error_t retval = READSTAT_OK;
+     if (ctx->handle.metadata) {
+         readstat_metadata_t metadata = {
+-            .row_count = ctx->row_limit,
++            .row_count = ctx->handle.value ? ctx->row_limit : ctx->total_row_count - ctx->deleted_row_count,
+             .var_count = ctx->column_count,
+             .table_name = ctx->table_name,
+             .file_label = ctx->file_label,
+             .file_encoding = ctx->input_encoding, /* orig encoding? */
+             .creation_time = ctx->ctime,
+             .modified_time = ctx->mtime,
++            .creation_time_present = ctx->ctime_present,
++            .modified_time_present = ctx->mtime_present,
+             .file_format_version = ctx->version,
+             .compression = READSTAT_COMPRESS_NONE,
+             .endianness = ctx->little_endian ? READSTAT_ENDIAN_LITTLE : READSTAT_ENDIAN_BIG,
+@@ -856,7 +862,12 @@ static readstat_error_t sas7bdat_submit_columns(sas7bdat_ctx_t *ctx, int compres
+ 
+         int cb_retval = READSTAT_HANDLER_OK;
+         if (ctx->handle.variable) {
+-            cb_retval = ctx->handle.variable(i, ctx->variables[i], ctx->variables[i]->format, ctx->user_ctx);
++            char label_set[sizeof(ctx->variables[i]->format)];
++            /* Catalog entries use the format name without its display width. */
++            retval = sas7bdat_copy_text_ref(label_set, sizeof(label_set), ctx->col_info[i].format_ref, ctx);
++            if (retval != READSTAT_OK)
++                goto cleanup;
++            cb_retval = ctx->handle.variable(i, ctx->variables[i], label_set, ctx->user_ctx);
+         }
+         if (cb_retval == READSTAT_HANDLER_ABORT) {
+             retval = READSTAT_ERROR_USER_ABORT;
+@@ -1212,7 +1223,7 @@ static readstat_error_t sas7bdat_parse_page_pass2(const char *page, size_t page_
+             if (shp_info.len > 0 && shp_info.compression == SAS_COMPRESSION_REFERENCE) {
+                 uint64_t page_index = shp_info.offset - 1;
+                 uint64_t subheader_index = shp_info.len - 1;
+-                if ((retval = sas7bdat_parse_moved_row(page_index, subheader_index, ctx)) != READSTAT_OK) {
++                if (ctx->handle.value && (retval = sas7bdat_parse_moved_row(page_index, subheader_index, ctx)) != READSTAT_OK) {
+                     goto cleanup;
+                 }
+             } else if (shp_info.len > 0 && shp_info.compression != SAS_COMPRESSION_TRUNC) {
+@@ -1222,6 +1233,10 @@ static readstat_error_t sas7bdat_parse_page_pass2(const char *page, size_t page_
+                 if (shp_info.compression == SAS_COMPRESSION_NONE) {
+                     sas_subheader_type_t subheader_type = sas7bdat_parse_subheader_type(page + shp_info.offset, ctx);
+                     if (shp_info.is_compressed_data && subheader_type == SAS_SUBHEADER_TYPE_DATA) {
++                        if (!ctx->handle.value) {
++                            shp += lshp;
++                            continue;
++                        }
+                         if (shp_info.len != ctx->row_length) {
+                             retval = READSTAT_ERROR_ROW_WIDTH_MISMATCH;
+                             goto cleanup;
+@@ -1240,6 +1255,10 @@ static readstat_error_t sas7bdat_parse_page_pass2(const char *page, size_t page_
+                         }
+                     }
+                 } else if (shp_info.compression == SAS_COMPRESSION_ROW) {
++                    if (!ctx->handle.value) {
++                        shp += lshp;
++                        continue;
++                    }
+                     if ((retval = sas7bdat_submit_columns_if_needed(ctx, 1)) != READSTAT_OK) {
+                         goto cleanup;
+                     }
+@@ -1247,7 +1266,7 @@ static readstat_error_t sas7bdat_parse_page_pass2(const char *page, size_t page_
+                         goto cleanup;
+                     }
+                 } else if (shp_info.compression == SAS_COMPRESSION_DELETED_ROW) {
+-                    if ((retval = sas7bdat_register_deleted_row(ctx)) != READSTAT_OK) {
++                    if (ctx->handle.value && (retval = sas7bdat_register_deleted_row(ctx)) != READSTAT_OK) {
+                         goto cleanup;
+                     }
+                 } else if (sas7bdat_is_moved_row(shp_info.compression)) {
+@@ -1434,6 +1453,23 @@ static readstat_error_t sas7bdat_parse_all_pages_pass2(sas7bdat_ctx_t *ctx) {
+         if ((retval = sas7bdat_update_progress(ctx)) != READSTAT_OK) {
+             goto cleanup;
+         }
++        if (!ctx->handle.value) {
++            /* Inspect page headers, seeking past observation-only payloads. */
++            size_t head_len = ctx->u64 ? 34 : 18;
++            if (io->seek(ctx->header_size + i*ctx->page_size, READSTAT_SEEK_SET, io->io_ctx) == -1 ||
++                    io->read(ctx->page, head_len, io->io_ctx) < head_len) {
++                retval = READSTAT_ERROR_READ;
++                goto cleanup;
++            }
++            uint16_t page_type = sas_read2(&ctx->page[head_len-2], ctx->bswap);
++            if ((page_type & SAS_PAGE_TYPE_MASK) == SAS_PAGE_TYPE_DATA || (page_type & SAS_PAGE_TYPE_COMP)) {
++                continue;
++            }
++            if (io->seek(ctx->header_size + i*ctx->page_size, READSTAT_SEEK_SET, io->io_ctx) == -1) {
++                retval = READSTAT_ERROR_SEEK;
++                goto cleanup;
++            }
++        }
+         if (io->read(ctx->page, ctx->page_size, io->io_ctx) < ctx->page_size) {
+             retval = READSTAT_ERROR_READ;
+             goto cleanup;
+@@ -1519,6 +1555,8 @@ readstat_error_t readstat_parse_sas7bdat(readstat_parser_t *parser, const char *
+     ctx->subheader_signature_size = ctx->u64 ? 8 : 4;
+     ctx->ctime = hinfo->creation_time;
+     ctx->mtime = hinfo->modification_time;
++    ctx->ctime_present = hinfo->creation_time_present;
++    ctx->mtime_present = hinfo->modification_time_present;
+     ctx->version = hinfo->major_version;
+     if (ctx->input_encoding == NULL) {
+         ctx->input_encoding = hinfo->encoding;
+diff --git a/sas/readstat_sas7bdat_write.c b/sas/readstat_sas7bdat_write.c
+index f77fe58..c43aebb 100644
+--- a/sas/readstat_sas7bdat_write.c
++++ b/sas/readstat_sas7bdat_write.c
+@@ -170,7 +170,17 @@ static size_t sas7bdat_variable_width(readstat_type_t type, size_t user_width) {
+     if (type == READSTAT_TYPE_STRING) {
+         return user_width;
+     }
+-    return 8;
++    return user_width == 0 ? 8 : user_width;
++}
++
++static readstat_error_t sas7bdat_validate_variable(const readstat_variable_t *variable) {
++    if (readstat_variable_get_type_class(variable) == READSTAT_TYPE_CLASS_NUMERIC &&
++            variable->user_width != 0 &&
++            (variable->user_width < 3 || variable->user_width > 8)) {
++        return READSTAT_ERROR_ROW_WIDTH_MISMATCH;
++    }
++
++    return sas_validate_variable(variable);
+ }
+ 
+ static size_t sas7bdat_variable_size_overhead(sas7bdat_write_ctx_t *ctx) {
+@@ -1343,7 +1353,14 @@ static void sas7bdat_module_ctx_free(void *module_ctx) {
+ }
+ 
+ static readstat_error_t sas7bdat_write_double(void *row, const readstat_variable_t *var, double value) {
+-    memcpy(row, &value, sizeof(double));
++    size_t width = readstat_variable_get_storage_width(var);
++    const char *bytes = (const char *)&value;
++
++    /* SAS truncates the least significant bytes, retaining the exponent and tags. */
++    if (machine_is_little_endian()) {
++        bytes += sizeof(double) - width;
++    }
++    memcpy(row, bytes, width);
+     return READSTAT_OK;
+ }
+ 
+@@ -1364,14 +1381,13 @@ static readstat_error_t sas7bdat_write_int8(void *row, const readstat_variable_t
+ }
+ 
+ static readstat_error_t sas7bdat_write_missing_tagged_raw(void *row, const readstat_variable_t *var, char tag) {
+-    union {
+-        double dval;
+-        char   chars[8];
+-    } nan_value;
+-
+-    nan_value.dval = NAN;
+-    nan_value.chars[machine_is_little_endian() ? 5 : 2] = ~tag;
+-    return sas7bdat_write_double(row, var, nan_value.dval);
++    /* SAS uses ordinal codes: 0 for ._, 1 for ., and 2 through 27 for .A-.Z.
++     * Its negative NaN prefix and complemented code must survive width truncation. */
++    uint8_t code = tag == '_' ? 0 : tag == '.' ? 1 : tag - 'A' + 2;
++    uint64_t bits = UINT64_C(0xffff000000000000) | ((uint64_t)(0xff - code) << 40);
++    double missing;
++    memcpy(&missing, &bits, sizeof(missing));
++    return sas7bdat_write_double(row, var, missing);
+ }
+ 
+ static readstat_error_t sas7bdat_write_missing_tagged(void *row, const readstat_variable_t *var, char tag) {
+@@ -1521,7 +1537,7 @@ readstat_error_t readstat_begin_writing_sas7bdat(readstat_writer_t *writer, void
+     writer->callbacks.write_missing_tagged = &sas7bdat_write_missing_tagged;
+ 
+     writer->callbacks.variable_width = &sas7bdat_variable_width;
+-    writer->callbacks.variable_ok = &sas_validate_variable;
++    writer->callbacks.variable_ok = &sas7bdat_validate_variable;
+ 
+     writer->callbacks.begin_data = &sas7bdat_begin_data;
+     writer->callbacks.end_data = &sas7bdat_end_data;
+diff --git a/sas/readstat_xport_read.c b/sas/readstat_xport_read.c
+index 26e339e..d8420d7 100644
+--- a/sas/readstat_xport_read.c
++++ b/sas/readstat_xport_read.c
+@@ -24,9 +24,12 @@ typedef struct xport_ctx_s {
+     iconv_t        converter;
+ 
+     readstat_io_t *io;
+-    time_t         timestamp;
++    time_t         creation_time;
++    time_t         modified_time;
++    int            creation_time_present;
++    int            modified_time_present;
+ 
+-    long           obs_count; /* from OBSV8 header; 0 if unknown */
++    int64_t        obs_count; /* from OBSV8 header; -1 if unknown */
+     int            var_count;
+     int            row_limit;
+     int            row_offset;
+@@ -71,14 +74,6 @@ static ssize_t read_bytes(xport_ctx_t *ctx, void *dst, size_t dst_len) {
+     return io->read(dst, dst_len, io->io_ctx);
+ }
+ 
+-static readstat_error_t xport_skip_record(xport_ctx_t *ctx) {
+-    readstat_io_t *io = (readstat_io_t *)ctx->io;
+-    if (io->seek(LINE_LEN, READSTAT_SEEK_CUR, io->io_ctx) == -1)
+-        return READSTAT_ERROR_SEEK;
+-
+-    return READSTAT_OK;
+-}
+-
+ static readstat_error_t xport_skip_rest_of_record(xport_ctx_t *ctx) {
+     readstat_io_t *io = (readstat_io_t *)ctx->io;
+     off_t pos = io->seek(0, READSTAT_SEEK_CUR, io->io_ctx);
+@@ -122,18 +117,19 @@ static readstat_error_t xport_read_header_record(xport_ctx_t *ctx, xport_header_
+         return READSTAT_ERROR_PARSE;
+     }
+ 
+-    /* V8 files store the observation count as a 15-character field
+-     * immediately after the 48-character header prefix. Older writers
+-     * may leave it blank or zero, in which case it stays unknown. */
++    /* All-zero reserved fields mean unknown; a space-padded zero is explicit. */
+     if (strcmp(xrecord->name, "OBSV8") == 0) {
+         char obs_count[16];
+         memcpy(obs_count, &line[48], 15);
+         obs_count[15] = '\0';
+ 
+         char *end = NULL;
+-        long count = strtol(obs_count, &end, 10);
+-        if (end != obs_count && count > 0) {
+-            ctx->obs_count = count;
++        int64_t count = strtoll(obs_count, &end, 10);
++        if (end != obs_count) {
++            while (*end == ' ') end++;
++            if (!*end && count >= 0 && strcmp(obs_count, "000000000000000")) {
++                ctx->obs_count = count;
++            }
+         }
+     }
+ 
+@@ -161,6 +157,50 @@ cleanup:
+     return retval;
+ }
+ 
++static readstat_error_t xport_parse_timestamp(const char *text, time_t *timestamp, int *present) {
++    char stamp[17], month[4] = { 0 };
++    struct tm ts = { .tm_isdst = -1 };
++    int consumed = 0, nonblank = 0;
++    memcpy(stamp, text, 16);
++    stamp[16] = '\0';
++    for (int i = 0; i < 16; i++) {
++        if (stamp[i] != ' ' && stamp[i] != '\0') {
++            nonblank = 1;
++        }
++    }
++    /* Blank member stamps retain the corresponding library timestamp. */
++    if (!nonblank) {
++        return READSTAT_OK;
++    }
++    if (sscanf(stamp, "%2d%3s%2d:%2d:%2d:%2d%n", &ts.tm_mday, month,
++            &ts.tm_year, &ts.tm_hour, &ts.tm_min, &ts.tm_sec, &consumed) != 6 || consumed != 16) {
++        return READSTAT_ERROR_BAD_TIMESTAMP_STRING;
++    }
++    ts.tm_mon = -1;
++    for (int i = 0; i < sizeof(_xport_months) / sizeof(_xport_months[0]); i++) {
++        if (!strcmp(month, _xport_months[i])) {
++            ts.tm_mon = i;
++            break;
++        }
++    }
++    if (ts.tm_mon < 0 || ts.tm_year < 0 || ts.tm_year > 99 || ts.tm_mday < 1 || ts.tm_mday > 31 ||
++            ts.tm_hour < 0 || ts.tm_hour > 23 || ts.tm_min < 0 || ts.tm_min > 59 || ts.tm_sec < 0 || ts.tm_sec > 59) {
++        return READSTAT_ERROR_BAD_TIMESTAMP_STRING;
++    }
++    if (ts.tm_year < 60) {
++        ts.tm_year += 100;
++    }
++    const int month_days[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
++    int year = ts.tm_year + 1900;
++    int leap = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
++    if (ts.tm_mday > month_days[ts.tm_mon] + (ts.tm_mon == 1 && leap)) {
++        return READSTAT_ERROR_BAD_TIMESTAMP_STRING;
++    }
++    *timestamp = mktime(&ts);
++    *present = 1;
++    return READSTAT_OK;
++}
++
+ static readstat_error_t xport_read_table_name_record(xport_ctx_t *ctx) {
+     char line[LINE_LEN+1];
+     readstat_error_t retval = READSTAT_OK;
+@@ -174,6 +214,8 @@ static readstat_error_t xport_read_table_name_record(xport_ctx_t *ctx) {
+     if (retval != READSTAT_OK)
+         goto cleanup;
+ 
++    retval = xport_parse_timestamp(&line[64], &ctx->creation_time, &ctx->creation_time_present);
++
+ cleanup:
+     return retval;
+ }
+@@ -186,6 +228,10 @@ static readstat_error_t xport_read_file_label_record(xport_ctx_t *ctx) {
+     if (retval != READSTAT_OK)
+         goto cleanup;
+ 
++    retval = xport_parse_timestamp(line, &ctx->modified_time, &ctx->modified_time_present);
++    if (retval != READSTAT_OK)
++        goto cleanup;
++
+     retval = readstat_convert(ctx->file_label, sizeof(ctx->file_label), &line[32],
+             40, ctx->converter);
+     if (retval != READSTAT_OK)
+@@ -214,34 +260,20 @@ cleanup:
+     return retval;
+ }
+ 
+-static readstat_error_t xport_read_timestamp_record(xport_ctx_t *ctx) {
++static readstat_error_t xport_read_timestamp_record(xport_ctx_t *ctx, int modified) {
+     char line[LINE_LEN+1];
+     readstat_error_t retval = READSTAT_OK;
+-    struct tm ts = { .tm_isdst = -1 };
+-    char month[4];
+-    int i;
+ 
+     retval = xport_read_record(ctx, line);
+     if (retval != READSTAT_OK)
+         goto cleanup;
+ 
+-    sscanf(line,
+-            "%02d%3s%02d:%02d:%02d:%02d",
+-            &ts.tm_mday, month, &ts.tm_year, &ts.tm_hour, &ts.tm_min, &ts.tm_sec);
+-
+-    for (i=0; i<sizeof(_xport_months)/sizeof(_xport_months[0]); i++) {
+-        if (strcmp(month, _xport_months[i]) == 0) {
+-            ts.tm_mon = i;
+-            break;
+-        }
+-    }
+-
+-    if (ts.tm_year < 60) {
+-        ts.tm_year += 100;
++    if (modified) {
++        retval = xport_parse_timestamp(line, &ctx->modified_time, &ctx->modified_time_present);
++    } else {
++        retval = xport_parse_timestamp(&line[64], &ctx->creation_time, &ctx->creation_time_present);
+     }
+ 
+-    ctx->timestamp = mktime(&ts);
+-
+ cleanup:
+     return retval;
+ }
+@@ -269,24 +301,29 @@ static readstat_error_t xport_read_namestr_header_record(xport_ctx_t *ctx) {
+         goto cleanup;
+     }
+ 
++cleanup:
++    return retval;
++}
++
++static readstat_error_t xport_submit_metadata(xport_ctx_t *ctx) {
+     if (ctx->handle.metadata) {
+         readstat_metadata_t metadata = {
+-            .row_count = -1,
++            .row_count = ctx->handle.value ? -1 : ctx->obs_count,
+             .var_count = ctx->var_count,
+             .file_label = ctx->file_label,
+             .table_name = ctx->table_name,
+-            .creation_time = ctx->timestamp,
+-            .modified_time = ctx->timestamp,
++            .creation_time = ctx->creation_time,
++            .modified_time = ctx->modified_time,
++            .creation_time_present = ctx->creation_time_present,
++            .modified_time_present = ctx->modified_time_present,
+             .file_format_version = ctx->version
+         };
+         if (ctx->handle.metadata(&metadata, ctx->user_ctx) != READSTAT_HANDLER_OK) {
+-            retval = READSTAT_ERROR_USER_ABORT;
+-            goto cleanup;
++            return READSTAT_ERROR_USER_ABORT;
+         }
+     }
+ 
+-cleanup:
+-    return retval;
++    return READSTAT_OK;
+ }
+ 
+ static readstat_error_t xport_read_obs_header_record(xport_ctx_t *ctx) {
+@@ -546,6 +583,10 @@ static readstat_error_t xport_read_variables(xport_ctx_t *ctx) {
+             goto cleanup;
+     }
+ 
++    retval = xport_submit_metadata(ctx);
++    if (retval != READSTAT_OK)
++        goto cleanup;
++
+     ctx->row_length = 0;
+ 
+     int index_after_skipping = 0;
+@@ -652,7 +693,7 @@ static readstat_error_t xport_read_data(xport_ctx_t *ctx) {
+     char *row = readstat_malloc(ctx->row_length);
+     char *blank_row = readstat_malloc(ctx->row_length);
+     int num_blank_rows = 0;
+-    long rows_read = 0;
++    int64_t rows_read = 0;
+ 
+     if (row == NULL || blank_row == NULL) {
+         retval = READSTAT_ERROR_MALLOC;
+@@ -661,7 +702,7 @@ static readstat_error_t xport_read_data(xport_ctx_t *ctx) {
+ 
+     memset(blank_row, ' ', ctx->row_length);
+     while (1) {
+-        if (ctx->obs_count > 0 && rows_read == ctx->obs_count)
++        if (ctx->obs_count >= 0 && rows_read == ctx->obs_count)
+             break;
+ 
+         ssize_t bytes_read = read_bytes(ctx, row, ctx->row_length);
+@@ -677,7 +718,7 @@ static readstat_error_t xport_read_data(xport_ctx_t *ctx) {
+ 
+         /* When the row count is known, blank rows are real data rather
+          * than potential end-of-file padding */
+-        int row_is_blank = ctx->obs_count <= 0;
++        int row_is_blank = ctx->obs_count < 0;
+ 
+         for (pos=0; pos<ctx->row_length; pos++) {
+             if (row[pos] != ' ') {
+@@ -733,6 +774,7 @@ readstat_error_t readstat_parse_xport(readstat_parser_t *parser, const char *pat
+     ctx->user_ctx = user_ctx;
+     ctx->io = io;
+     ctx->row_limit = parser->row_limit;
++    ctx->obs_count = -1;
+     if (parser->row_offset > 0)
+         ctx->row_offset = parser->row_offset;
+ 
+@@ -764,11 +806,11 @@ readstat_error_t readstat_parse_xport(readstat_parser_t *parser, const char *pat
+     if (retval != READSTAT_OK)
+         goto cleanup;
+ 
+-    retval = xport_skip_record(ctx);
++    retval = xport_read_timestamp_record(ctx, 0);
+     if (retval != READSTAT_OK)
+         goto cleanup;
+ 
+-    retval = xport_read_timestamp_record(ctx);
++    retval = xport_read_timestamp_record(ctx, 1);
+     if (retval != READSTAT_OK)
+         goto cleanup;
+ 
+diff --git a/sas/readstat_xport_write.c b/sas/readstat_xport_write.c
+index 9199625..70b0500 100644
+--- a/sas/readstat_xport_write.c
++++ b/sas/readstat_xport_write.c
+@@ -427,11 +427,17 @@ static readstat_error_t xport_begin_data(void *writer_ctx) {
+     readstat_writer_t *writer = (readstat_writer_t *)writer_ctx;
+     readstat_error_t retval = READSTAT_OK;
+     char timestamp[17];
++    char modified_timestamp[17];
+ 
+     retval = xport_format_timestamp(timestamp, sizeof(timestamp), writer->timestamp);
+     if (retval != READSTAT_OK)
+         goto cleanup;
+ 
++    retval = xport_format_timestamp(modified_timestamp, sizeof(modified_timestamp),
++            writer->modified_timestamp_set ? writer->modified_timestamp : writer->timestamp);
++    if (retval != READSTAT_OK)
++        goto cleanup;
++
+     retval = xport_write_first_header_record(writer);
+     if (retval != READSTAT_OK)
+         goto cleanup;
+@@ -440,7 +446,7 @@ static readstat_error_t xport_begin_data(void *writer_ctx) {
+     if (retval != READSTAT_OK)
+         goto cleanup;
+ 
+-    retval = xport_write_record(writer, timestamp);
++    retval = xport_write_record(writer, modified_timestamp);
+     if (retval != READSTAT_OK)
+         goto cleanup;
+ 
+@@ -456,7 +462,7 @@ static readstat_error_t xport_begin_data(void *writer_ctx) {
+     if (retval != READSTAT_OK)
+         goto cleanup;
+ 
+-    retval = xport_write_file_label_record(writer, timestamp);
++    retval = xport_write_file_label_record(writer, modified_timestamp);
+     if (retval != READSTAT_OK)
+         goto cleanup;
+ 
+diff --git a/spss/readstat_por_read.c b/spss/readstat_por_read.c
+index b6a00ce..23a2749 100644
+--- a/spss/readstat_por_read.c
++++ b/spss/readstat_por_read.c
+@@ -276,6 +276,7 @@ static readstat_error_t read_variable_count_record(por_ctx_t *ctx) {
+             .var_count = ctx->var_count,
+             .creation_time = ctx->timestamp,
+             .modified_time = ctx->timestamp,
++            .creation_time_present = 1,
+             .file_format_version = ctx->version,
+             .file_label = ctx->file_label
+         };
 diff --git a/spss/readstat_sav.c b/spss/readstat_sav.c
-index 629e1e9..44c13f9 100644
+index 629e1e9..3dd3b71 100644
 --- a/spss/readstat_sav.c
 +++ b/spss/readstat_sav.c
-@@ -72,6 +72,7 @@ sav_ctx_t *sav_ctx_init(sav_file_header_record_t *header, readstat_io_t *io) {
+@@ -44,6 +44,7 @@ sav_ctx_t *sav_ctx_init(sav_file_header_record_t *header, readstat_io_t *io) {
+         ctx->compression = READSTAT_COMPRESS_BINARY;
+     }
+     ctx->record_count = ctx->bswap ? byteswap4(header->ncases) : header->ncases;
++    ctx->source_record_count = ctx->record_count < 0 ? -1 : ctx->record_count;
+     if (ctx->record_count < 0 || ctx->record_count > INT32_MAX / 2) {
+         /* -1 means unknown; PSPP also treats implausibly large counts as unknown */
+         ctx->record_count = -1;
+@@ -72,6 +73,7 @@ sav_ctx_t *sav_ctx_init(sav_file_header_record_t *header, readstat_io_t *io) {
  }
  
  void sav_ctx_free(sav_ctx_t *ctx) {
@@ -305,10 +2003,26 @@ index 629e1e9..44c13f9 100644
          int i;
          for (i=0; i<ctx->var_index; i++) {
 diff --git a/spss/readstat_sav.h b/spss/readstat_sav.h
-index 75f69c6..ac8a591 100644
+index 75f69c6..2d57310 100644
 --- a/spss/readstat_sav.h
 +++ b/spss/readstat_sav.h
-@@ -105,6 +105,7 @@ typedef struct sav_ctx_s {
+@@ -80,6 +80,7 @@ typedef struct sav_ctx_s {
+     char           charset_name[64];  /* from record 7 subtype 20 */
+     char           file_label[4*64+1];
+     time_t         timestamp;
++    int            timestamp_present;
+     uint32_t      *variable_display_values;
+     size_t         variable_display_values_count;
+     iconv_t        converter;
+@@ -87,6 +88,7 @@ typedef struct sav_ctx_s {
+     int            var_offset;
+     int            var_count;
+     int            record_count;
++    int64_t        source_record_count;
+     int            row_limit;
+     int            row_offset;
+     int            current_row;
+@@ -105,6 +107,7 @@ typedef struct sav_ctx_s {
  
      size_t         multiple_response_sets_length;
      mr_set_t      *mr_sets;
@@ -316,7 +2030,7 @@ index 75f69c6..ac8a591 100644
  
      double         bias;
      int            format_version;
-@@ -114,6 +115,23 @@ typedef struct sav_ctx_s {
+@@ -114,6 +117,23 @@ typedef struct sav_ctx_s {
      unsigned int   bswap:1;
  } sav_ctx_t;
  
@@ -340,15 +2054,43 @@ index 75f69c6..ac8a591 100644
  #define SAV_RECORD_TYPE_VARIABLE                2
  #define SAV_RECORD_TYPE_VALUE_LABEL             3
  #define SAV_RECORD_TYPE_VALUE_LABEL_VARIABLES   4
-@@ -147,3 +165,6 @@ typedef struct sav_ctx_s {
+@@ -147,3 +167,6 @@ typedef struct sav_ctx_s {
  
  sav_ctx_t *sav_ctx_init(sav_file_header_record_t *header, readstat_io_t *io);
  void sav_ctx_free(sav_ctx_t *ctx);
 +readstat_error_t sav_row_stream_info(const char *path, const char *input_encoding, ddiwr_sav_row_stream_info_t *out);
 +readstat_error_t sav_prepare(const char *path, const char *input_encoding, ddiwr_sav_prepared_t *out);
 +void sav_prepared_free(ddiwr_sav_prepared_t *prepared);
+diff --git a/spss/readstat_sav_parse_mr_name.c b/spss/readstat_sav_parse_mr_name.c
+index a80755c..e898060 100644
+--- a/spss/readstat_sav_parse_mr_name.c
++++ b/spss/readstat_sav_parse_mr_name.c
+@@ -1,6 +1,8 @@
+ #include <string.h>
+ #include <stdio.h>
+ #include <stdlib.h>
++#include <errno.h>
++#include <limits.h>
+ #include "../readstat.h"
+ #include "../readstat_malloc.h"
+ #include "../readstat_iconv.h"
+@@ -136,8 +138,12 @@ static readstat_error_t parse_mr_line(const char *line, size_t line_len, mr_set_
+         if ((retval = mr_convert(&result->counted_string, str, str_len, ctx)) != READSTAT_OK)
+             goto cleanup;
+         /* readstat_convert trims trailing spaces; older SPSS pads to 8 bytes */
+-        if (result->counted_string[0] >= '0' && result->counted_string[0] <= '9') {
+-            result->counted_value = (int)strtol(result->counted_string, NULL, 10);
++        char *number_end = NULL;
++        errno = 0;
++        long counted_value = strtol(result->counted_string, &number_end, 10);
++        if (number_end != result->counted_string && *number_end == '\0' &&
++                errno != ERANGE && counted_value >= -INT_MAX && counted_value <= INT_MAX) {
++            result->counted_value = (int)counted_value;
+         }
+         if (p == end || *p != ' ') {
+             retval = READSTAT_ERROR_BAD_MR_STRING;
 diff --git a/spss/readstat_sav_read.c b/spss/readstat_sav_read.c
-index ab8ec9a..15c42ee 100644
+index ab8ec9a..66cf37f 100644
 --- a/spss/readstat_sav_read.c
 +++ b/spss/readstat_sav_read.c
 @@ -14,6 +14,7 @@
@@ -369,10 +2111,27 @@ index ab8ec9a..15c42ee 100644
  static readstat_error_t sav_parse_records_pass2(sav_ctx_t *ctx) {
      void *data_buf = NULL;
      size_t data_buf_capacity = 4096;
-@@ -1571,6 +1575,18 @@ static readstat_error_t sav_parse_records_pass2(sav_ctx_t *ctx) {
+@@ -1571,6 +1575,35 @@ static readstat_error_t sav_parse_records_pass2(sav_ctx_t *ctx) {
                  }
                  
                  switch (subtype) {
++                    case SAV_RECORD_SUBTYPE_NUMBER_OF_CASES: {
++                        if (size != 8 || count != 2) {
++                            retval = READSTAT_ERROR_PARSE;
++                            goto cleanup;
++                        }
++                        uint64_t version, cases;
++                        memcpy(&version, data_buf, 8);
++                        memcpy(&cases, data_buf + 8, 8);
++                        if (ctx->bswap) {
++                            version = byteswap8(version);
++                            cases = byteswap8(cases);
++                        }
++                        if (version == 1 && cases <= INT64_MAX) {
++                            ctx->source_record_count = cases;
++                        }
++                        break;
++                    }
 +                    case SAV_RECORD_SUBTYPE_DATA_FILE_ATTRS:
 +                    case SAV_RECORD_SUBTYPE_VARIABLE_ATTRS:
 +                        if (size != 1) {
@@ -388,7 +2147,7 @@ index ab8ec9a..15c42ee 100644
                      case SAV_RECORD_SUBTYPE_INTEGER_INFO:
                      case SAV_RECORD_SUBTYPE_FP_INFO:
                      case SAV_RECORD_SUBTYPE_CHAR_ENCODING:
-@@ -1625,6 +1641,99 @@ cleanup:
+@@ -1625,6 +1658,99 @@ cleanup:
      return retval;
  }
  
@@ -488,7 +2247,7 @@ index ab8ec9a..15c42ee 100644
  static readstat_error_t sav_set_n_segments_and_var_count(sav_ctx_t *ctx) {
      int i;
      ctx->var_count = 0;
-@@ -1642,6 +1751,34 @@ static readstat_error_t sav_set_n_segments_and_var_count(sav_ctx_t *ctx) {
+@@ -1642,6 +1768,34 @@ static readstat_error_t sav_set_n_segments_and_var_count(sav_ctx_t *ctx) {
      return READSTAT_OK;
  }
  
@@ -523,7 +2282,24 @@ index ab8ec9a..15c42ee 100644
  static readstat_error_t sav_handle_variables(sav_ctx_t *ctx) {
      int i;
      int index_after_skipping = 0;
-@@ -1800,6 +1937,10 @@ readstat_error_t readstat_parse_sav(readstat_parser_t *parser, const char *path,
+@@ -1708,6 +1862,8 @@ readstat_error_t sav_parse_timestamp(sav_ctx_t *ctx, sav_file_header_record_t *h
+     readstat_error_t retval = READSTAT_OK;
+     struct tm timestamp = { .tm_isdst = -1 };
+ 
++    ctx->timestamp_present = 0;
++
+     if ((retval = sav_parse_time(header->creation_time, sizeof(header->creation_time),
+                     &timestamp, ctx->handle.error, ctx->user_ctx)) 
+             != READSTAT_OK)
+@@ -1719,6 +1875,7 @@ readstat_error_t sav_parse_timestamp(sav_ctx_t *ctx, sav_file_header_record_t *h
+         goto cleanup;
+ 
+     ctx->timestamp = mktime(&timestamp);
++    ctx->timestamp_present = 1;
+ 
+ cleanup:
+     return retval;
+@@ -1800,6 +1957,10 @@ readstat_error_t readstat_parse_sav(readstat_parser_t *parser, const char *path,
      if ((retval = sav_set_n_segments_and_var_count(ctx)) != READSTAT_OK)
          goto cleanup;
  
@@ -534,15 +2310,23 @@ index ab8ec9a..15c42ee 100644
      if (ctx->var_count == 0) {
          retval = READSTAT_ERROR_PARSE;
          goto cleanup;
-@@ -1807,6 +1948,7 @@ readstat_error_t readstat_parse_sav(readstat_parser_t *parser, const char *path,
+@@ -1807,12 +1968,14 @@ readstat_error_t readstat_parse_sav(readstat_parser_t *parser, const char *path,
  
      if (ctx->handle.metadata) {
          readstat_metadata_t metadata = {
+-            .row_count = ctx->record_count < 0 ? -1 : ctx->row_limit,
 +            .spss_attributes = ctx->spss_attributes,
-             .row_count = ctx->record_count < 0 ? -1 : ctx->row_limit,
++            .row_count = ctx->handle.value ? (ctx->record_count < 0 ? -1 : ctx->row_limit) : ctx->source_record_count,
              .var_count = ctx->var_count,
              .file_encoding = ctx->input_encoding,
-@@ -1891,3 +2033,228 @@ cleanup:
+             .file_format_version = ctx->format_version,
+             .creation_time = ctx->timestamp,
+             .modified_time = ctx->timestamp,
++            .creation_time_present = ctx->timestamp_present,
+             .compression = ctx->compression,
+             .endianness = ctx->endianness
+         };
+@@ -1891,3 +2054,228 @@ cleanup:
      
      return retval;
  }
@@ -772,10 +2556,10 @@ index ab8ec9a..15c42ee 100644
 +    prepared->ctx = NULL;
 +}
 diff --git a/spss/readstat_sav_write.c b/spss/readstat_sav_write.c
-index 4f3a35e..3441d47 100644
+index 4f3a35e..9125bbd 100644
 --- a/spss/readstat_sav_write.c
 +++ b/spss/readstat_sav_write.c
-@@ -1421,6 +1421,95 @@ static sav_varnames_t *sav_varnames_init(readstat_writer_t *writer) {
+@@ -1421,6 +1421,229 @@ static sav_varnames_t *sav_varnames_init(readstat_writer_t *writer) {
      return varnames;
  }
  
@@ -868,10 +2652,144 @@ index 4f3a35e..3441d47 100644
 +    return READSTAT_OK;
 +}
 +
++static long sav_mr_variable_index(readstat_writer_t *writer, const char *name) {
++    for (long i = 0; i < writer->variables_count; i++) {
++        if (!strcmp(writer->variables[i]->name, name)) {
++            return i;
++        }
++    }
++    return -1;
++}
++
++static readstat_error_t sav_validate_mr_sets(readstat_writer_t *writer) {
++    uint64_t lengths[2] = { 0, 0 };
++    for (size_t i = 0; i < writer->mr_sets_count; i++) {
++        const mr_set_t *set = &writer->mr_sets[i];
++        const char *counted = set->counted_string;
++        int string_set = -1;
++        if (set->name[0] != '$' || strlen(set->name) > 64 ||
++                sav_validate_name_chars(set->name + 1, 1) != READSTAT_OK ||
++                strchr(set->label, '\n') || strchr(set->label, '\r') ||
++                strlen(set->label) > MAX_LABEL_SIZE ||
++                set->is_dichotomy != (set->type != 'C') ||
++                (set->label_from_var_label != 0 && set->label_from_var_label != 1) ||
++                (set->label_from_var_label && (set->type != 'E' || set->label[0])) ||
++                (set->type == 'C' && counted)) {
++            return READSTAT_ERROR_BAD_MR_STRING;
++        }
++        if (counted && (strchr(counted, '\n') || strchr(counted, '\r'))) {
++            return READSTAT_ERROR_BAD_MR_STRING;
++        }
++        for (int j = 0; j < set->num_subvars; j++) {
++            long index = sav_mr_variable_index(writer, set->subvariables[j]);
++            if (index < 0) {
++                return READSTAT_ERROR_BAD_MR_STRING;
++            }
++            for (int k = 0; k < j; k++) {
++                if (!strcmp(set->subvariables[j], set->subvariables[k])) {
++                    return READSTAT_ERROR_BAD_MR_STRING;
++                }
++            }
++            readstat_variable_t *variable = writer->variables[index];
++            int is_string = variable->type == READSTAT_TYPE_STRING;
++            if (string_set != -1 && string_set != is_string) {
++                return READSTAT_ERROR_BAD_MR_STRING;
++            }
++            string_set = is_string;
++            if (counted && is_string && strlen(counted) > variable->user_width) {
++                return READSTAT_ERROR_BAD_MR_STRING;
++            }
++        }
++        if (counted && !string_set) {
++            const char *p = counted;
++            if (*p == '-' || *p == '+') {
++                p++;
++            }
++            if (!*p) {
++                return READSTAT_ERROR_BAD_MR_STRING;
++            }
++            while (*p >= '0' && *p <= '9') {
++                p++;
++            }
++            if (*p || !isfinite(strtod(counted, NULL))) {
++                return READSTAT_ERROR_BAD_MR_STRING;
++            }
++        }
++        /* Bound both record sizes before opening the destination in the adapter. */
++        int group = set->type == 'E';
++        lengths[group] += strlen(set->name) + strlen(set->label) +
++            (counted ? strlen(counted) : 0) + (uint64_t)set->num_subvars * 9 + 128;
++        if (lengths[group] > INT32_MAX) {
++            return READSTAT_ERROR_BAD_MR_STRING;
++        }
++    }
++    return READSTAT_OK;
++}
++
++static readstat_error_t sav_emit_mr_sets(readstat_writer_t *writer, sav_varnames_t *varnames, int extended) {
++    sav_info_record_t header = { .rec_type = SAV_RECORD_TYPE_HAS_DATA,
++        .subtype = extended ? SAV_RECORD_SUBTYPE_MULTIPLE_RESPONSE_SETS_V14 :
++            SAV_RECORD_SUBTYPE_MULTIPLE_RESPONSE_SETS, .size = 1 };
++    for (int pass = 0; pass < 2; pass++) {
++        for (size_t i = 0; i < writer->mr_sets_count; i++) {
++            const mr_set_t *set = &writer->mr_sets[i];
++            if ((set->type == 'E') != extended) {
++                continue;
++            }
++            const char *counted = set->counted_string;
++            size_t capacity = strlen(set->name) + strlen(set->label) +
++                (counted ? strlen(counted) : 0) + (size_t)set->num_subvars * 9 + 128;
++            char *line = malloc(capacity);
++            if (!line) {
++                return READSTAT_ERROR_MALLOC;
++            }
++            size_t offset = snprintf(line, capacity, "%s=%c", set->name, set->type);
++            if (extended) {
++                offset += snprintf(line + offset, capacity - offset, " %d ",
++                    set->label_from_var_label ? 11 : 1);
++            }
++            if (counted) {
++                offset += snprintf(line + offset, capacity - offset, "%zu %s", strlen(counted), counted);
++            }
++            offset += snprintf(line + offset, capacity - offset, " %zu %s", strlen(set->label), set->label);
++            for (int j = 0; j < set->num_subvars; j++) {
++                long index = sav_mr_variable_index(writer, set->subvariables[j]);
++                const char *shortname = varnames[index].shortname;
++                line[offset++] = ' ';
++                for (size_t k = 0; shortname[k]; k++) {
++                    unsigned char ch = shortname[k];
++                    line[offset++] = ch >= 'A' && ch <= 'Z' ? ch - 'A' + 'a' : ch;
++                }
++            }
++            line[offset++] = '\n';
++            readstat_error_t status = READSTAT_OK;
++            if (pass == 0) {
++                header.count += offset;
++            } else {
++                status = readstat_write_bytes(writer, line, offset);
++            }
++            free(line);
++            if (status != READSTAT_OK) {
++                return status;
++            }
++        }
++        if (pass == 0) {
++            if (!header.count) {
++                return READSTAT_OK;
++            }
++            readstat_error_t status = readstat_write_bytes(writer, &header, sizeof(header));
++            if (status != READSTAT_OK) {
++                return status;
++            }
++        }
++    }
++    return READSTAT_OK;
++}
++
  static readstat_error_t sav_begin_data(void *writer_ctx) {
      readstat_writer_t *writer = (readstat_writer_t *)writer_ctx;
      readstat_error_t retval = READSTAT_OK;
-@@ -1481,6 +1570,16 @@ static readstat_error_t sav_begin_data(void *writer_ctx) {
+@@ -1481,6 +1704,25 @@ static readstat_error_t sav_begin_data(void *writer_ctx) {
      if (retval != READSTAT_OK)
          goto cleanup;
  
@@ -885,14 +2803,40 @@ index 4f3a35e..3441d47 100644
 +        goto cleanup;
 +    }
 +
++    retval = sav_emit_mr_sets(writer, varnames, 0);
++    if (retval != READSTAT_OK) {
++        goto cleanup;
++    }
++    retval = sav_emit_mr_sets(writer, varnames, 1);
++    if (retval != READSTAT_OK) {
++        goto cleanup;
++    }
++
      retval = sav_emit_termination_record(writer);
      if (retval != READSTAT_OK)
          goto cleanup;
+@@ -1521,7 +1763,7 @@ static readstat_error_t sav_metadata_ok(void *writer_ctx) {
+     if (writer->version != 2 && writer->version != 3)
+         return READSTAT_ERROR_UNSUPPORTED_FILE_FORMAT_VERSION;
+ 
+-    return READSTAT_OK;
++    return sav_validate_mr_sets(writer);
+ }
+ 
+ readstat_error_t readstat_begin_writing_sav(readstat_writer_t *writer, void *user_ctx, long row_count) {
 diff --git a/stata/readstat_dta.h b/stata/readstat_dta.h
-index 61e2bf8..f007f1f 100644
+index 61e2bf8..46def38 100644
 --- a/stata/readstat_dta.h
 +++ b/stata/readstat_dta.h
-@@ -190,3 +190,13 @@ void dta_ctx_free(dta_ctx_t *ctx);
+@@ -57,6 +57,7 @@ typedef struct dta_ctx_s {
+     size_t         data_label_len;
+     size_t         data_label_len_len;
+     time_t         timestamp;
++    int            timestamp_present;
+     size_t         timestamp_len;
+     char           typlist_version;
+     size_t         typlist_entry_len;
+@@ -190,3 +191,13 @@ void dta_ctx_free(dta_ctx_t *ctx);
  
  readstat_error_t dta_type_info(uint16_t typecode, dta_ctx_t *ctx,
          size_t *max_len, readstat_type_t *out_type);
@@ -907,7 +2851,7 @@ index 61e2bf8..f007f1f 100644
 +void dta_prepared_free(ddiwr_dta_prepared_t *prepared);
 +const char *dta_lookup_string_ref(dta_ctx_t *ctx, const unsigned char *bytes);
 diff --git a/stata/readstat_dta_read.c b/stata/readstat_dta_read.c
-index 210d4f9..8c024e0 100644
+index 210d4f9..da971ca 100644
 --- a/stata/readstat_dta_read.c
 +++ b/stata/readstat_dta_read.c
 @@ -7,6 +7,7 @@
@@ -1022,7 +2966,41 @@ index 210d4f9..8c024e0 100644
                      retval = READSTAT_ERROR_USER_ABORT;
                      goto cleanup;
                  }
-@@ -1395,3 +1447,181 @@ cleanup:
+@@ -915,6 +967,8 @@ static readstat_error_t dta_read_label_and_timestamp(dta_ctx_t *ctx) {
+     char last_data_label_char = 0;
+     struct tm timestamp = { .tm_isdst = -1 };
+ 
++    ctx->timestamp_present = 0;
++
+     if (ctx->file_is_xmlish) {
+         if ((retval = dta_read_tag(ctx, "<label>")) != READSTAT_OK) {
+             goto cleanup;
+@@ -1003,6 +1057,7 @@ static readstat_error_t dta_read_label_and_timestamp(dta_ctx_t *ctx) {
+             if (dta_parse_timestamp(timestamp_buffer, timestamp_len,
+                         &timestamp, ctx->handle.error, ctx->user_ctx) == READSTAT_OK) {
+                 ctx->timestamp = mktime(&timestamp);
++                ctx->timestamp_present = 1;
+             }
+         }
+     }
+@@ -1332,6 +1387,7 @@ readstat_error_t readstat_parse_dta(readstat_parser_t *parser, const char *path,
+             .file_label = ctx->data_label,
+             .creation_time = ctx->timestamp,
+             .modified_time = ctx->timestamp,
++            .creation_time_present = ctx->timestamp_present,
+             .file_format_version = ctx->ds_format,
+             .is64bit = ctx->ds_format >= 118,
+             .endianness = ctx->endianness
+@@ -1379,7 +1435,7 @@ readstat_error_t readstat_parse_dta(readstat_parser_t *parser, const char *path,
+         ctx->value_labels_offset = ctx->data_offset + ctx->record_len * ctx->nobs;
+     }
+ 
+-    if ((retval = dta_read_strls(ctx)) != READSTAT_OK)
++    if (ctx->handle.value && (retval = dta_read_strls(ctx)) != READSTAT_OK)
+         goto cleanup;
+ 
+     if ((retval = dta_read_data(ctx)) != READSTAT_OK)
+@@ -1395,3 +1451,181 @@ cleanup:
  
      return retval;
  }
@@ -1205,7 +3183,7 @@ index 210d4f9..8c024e0 100644
 +    return NULL;
 +}
 diff --git a/stata/readstat_dta_write.c b/stata/readstat_dta_write.c
-index b73b848..ba06405 100644
+index b73b848..ca6e71c 100644
 --- a/stata/readstat_dta_write.c
 +++ b/stata/readstat_dta_write.c
 @@ -42,7 +42,7 @@
@@ -1217,7 +3195,20 @@ index b73b848..ba06405 100644
  #define DTA_MAX_NOTE_LEN       67784
  
  /* Stata's smallest non-missing integers. The largest are in readstat_dta.h;
-@@ -618,7 +618,7 @@ static void dta_note_count_string(readstat_writer_t *writer, char *buffer, size_
+@@ -149,10 +149,8 @@ static readstat_error_t dta_emit_header_time_stamp(readstat_writer_t *writer, dt
+         goto cleanup;
+     }
+ 
+-    /* A timestamp of zero means "no timestamp": Stata writes a blank stamp
+-     * (all NULs in the old formats, a zero-length string in 117 and later)
+-     * rather than the epoch in the local time zone. */
+-    if (writer->timestamp != 0) {
++    /* Preserve an explicitly supplied epoch zero; an unset zero stays blank. */
++    if (writer->timestamp != 0 || writer->timestamp_set) {
+         time_t now = writer->timestamp;
+         struct tm time_buf;
+ #if !defined(_WIN32)
+@@ -618,7 +616,7 @@ static void dta_note_count_string(readstat_writer_t *writer, char *buffer, size_
  }
  
  static readstat_error_t dta_emit_characteristic(readstat_writer_t *writer, dta_ctx_t *ctx,
@@ -1226,7 +3217,7 @@ index b73b848..ba06405 100644
      readstat_error_t error = READSTAT_OK;
      size_t len = strlen(contents);
  
-@@ -642,7 +642,7 @@ static readstat_error_t dta_emit_characteristic(readstat_writer_t *writer, dta_c
+@@ -642,7 +640,7 @@ static readstat_error_t dta_emit_characteristic(readstat_writer_t *writer, dta_c
          goto cleanup;
  
      memset(buffer, '\0', ctx->ch_metadata_len);
@@ -1235,7 +3226,7 @@ index b73b848..ba06405 100644
  
      error = readstat_write_bytes(writer, buffer, ctx->ch_metadata_len);
      if (error != READSTAT_OK)
-@@ -671,6 +671,7 @@ static readstat_error_t dta_emit_characteristics(readstat_writer_t *writer, dta_
+@@ -671,6 +669,7 @@ static readstat_error_t dta_emit_characteristics(readstat_writer_t *writer, dta_
      char *buffer = NULL;
      char name[32];
      char count[32];
@@ -1243,7 +3234,7 @@ index b73b848..ba06405 100644
  
      if (ctx->expansion_len_len == 0)
          return READSTAT_OK;
-@@ -683,16 +684,25 @@ static readstat_error_t dta_emit_characteristics(readstat_writer_t *writer, dta_
+@@ -683,16 +682,25 @@ static readstat_error_t dta_emit_characteristics(readstat_writer_t *writer, dta_
  
      if (writer->notes_count > 0) {
          dta_note_count_string(writer, count, sizeof(count));
@@ -1271,7 +3262,7 @@ index b73b848..ba06405 100644
      if (ctx->file_is_xmlish) {
          error = dta_write_tag(writer, ctx, "</characteristics>");
      } else {
-@@ -1212,6 +1222,7 @@ static size_t dta_measure_characteristic(dta_ctx_t *ctx, size_t contents_len) {
+@@ -1212,6 +1220,7 @@ static size_t dta_measure_characteristic(dta_ctx_t *ctx, size_t contents_len) {
  static size_t dta_measure_characteristics(readstat_writer_t *writer, dta_ctx_t *ctx) {
      size_t characteristics_len = 0;
      int i;
@@ -1279,7 +3270,7 @@ index b73b848..ba06405 100644
      if (writer->notes_count > 0) {
          char count[32];
          dta_note_count_string(writer, count, sizeof(count));
-@@ -1220,6 +1231,9 @@ static size_t dta_measure_characteristics(readstat_writer_t *writer, dta_ctx_t *
+@@ -1220,6 +1229,9 @@ static size_t dta_measure_characteristics(readstat_writer_t *writer, dta_ctx_t *
      for (i=0; i<writer->notes_count; i++) {
          characteristics_len += dta_measure_characteristic(ctx, strlen(writer->notes[i]));
      }
@@ -1289,7 +3280,7 @@ index b73b848..ba06405 100644
      return (dta_measure_tag(ctx, "<characteristics>")
              + characteristics_len
              + dta_measure_tag(ctx, "</characteristics>"));
-@@ -1368,7 +1382,7 @@ static readstat_error_t dta_validate_label_set(readstat_writer_t *writer, dta_ct
+@@ -1368,7 +1380,7 @@ static readstat_error_t dta_validate_label_set(readstat_writer_t *writer, dta_ct
  
  static readstat_error_t dta_validate_note(dta_ctx_t *ctx, const char *note) {
      size_t len = strlen(note);
@@ -1298,7 +3289,7 @@ index b73b848..ba06405 100644
          return READSTAT_ERROR_NOTE_IS_TOO_LONG;
  
      /* Formats 105 through 109 store the expansion-field length in two bytes */
-@@ -1385,6 +1399,7 @@ static readstat_error_t dta_validate_metadata(readstat_writer_t *writer, dta_ctx
+@@ -1385,6 +1397,7 @@ static readstat_error_t dta_validate_metadata(readstat_writer_t *writer, dta_ctx
      readstat_error_t error = READSTAT_OK;
      int unicode = (writer->version >= 118);
      int i;
@@ -1306,7 +3297,7 @@ index b73b848..ba06405 100644
  
      error = dta_validate_label(writer->file_label, ctx->data_label_len, unicode);
      if (error != READSTAT_OK)
-@@ -1417,6 +1432,33 @@ static readstat_error_t dta_validate_metadata(readstat_writer_t *writer, dta_ctx
+@@ -1417,6 +1430,33 @@ static readstat_error_t dta_validate_metadata(readstat_writer_t *writer, dta_ctx
              return error;
      }
  

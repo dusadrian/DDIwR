@@ -221,14 +221,14 @@ test_that("Stata parallel import retains notes, characteristics and strL data", 
     expect_identical(parallel, serial)
     expect_identical(attr(parallel, "stata.characteristics"), attr(data, "stata.characteristics"))
     expect_identical(attr(parallel$answer, "stata.characteristics"), attr(data$answer, "stata.characteristics"))
-    expect_identical(attr(parallel, "notes"), c("dataset note", "last note"))
+    expect_identical(attr(parallel, "stata_metadata")$notes, c("dataset note", "last note"))
     expect_identical(as.vector(parallel$text), as.vector(data$text))
 
     attr(serial, "notes") <- "edited convenience view"
     write_dta(serial, path, version = 15L, strl_threshold = 4L)
     repeated <- read_dta(path, num_threads = 1L)
     expect_identical(attr(repeated, "stata.characteristics"), attr(data, "stata.characteristics"))
-    expect_identical(attr(repeated, "notes"), attr(parallel, "notes"))
+    expect_identical(attr(repeated, "stata_metadata")$notes, attr(parallel, "stata_metadata")$notes)
 })
 
 test_that("Stata characteristics survive empty imports, Unicode names and recoding", {
@@ -347,5 +347,5 @@ test_that("dataset notes can be written without raw note characteristics", {
     result <- read_dta(path, num_threads = 1L)
 
     expect_identical(attr(result, "stata.characteristics"), list(note0 = "2", note1 = "first café", note2 = "second note ", Source = "Archive"))
-    expect_identical(attr(result, "notes"), c("first café", "second note"))
+    expect_identical(attr(result, "stata_metadata")$notes, c("first café", "second note"))
 })

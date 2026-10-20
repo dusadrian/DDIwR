@@ -49,12 +49,12 @@ typedef struct sas7bdat_ctx_s {
 
     uint32_t        row_length;
     uint32_t        page_row_count;
-    uint32_t        total_row_count;
+    uint64_t        total_row_count;
     uint32_t        parsed_row_count;
     uint32_t        parsed_deleted_row_count;
     uint32_t        column_count;
     uint32_t        row_limit;
-    uint32_t        deleted_row_count;
+    uint64_t        deleted_row_count;
     uint32_t        row_offset;
 
     uint64_t        header_size;
@@ -93,6 +93,8 @@ typedef struct sas7bdat_ctx_s {
 
     time_t         ctime;
     time_t         mtime;
+    int            ctime_present;
+    int            mtime_present;
     int            version;
     char           table_name[4*32+1];
     char           file_label[4*256+1];
@@ -290,10 +292,12 @@ static readstat_error_t sas7bdat_parse_row_size_subheader(const char *subheader,
     }
 
     ctx->row_length = row_length;
-    ctx->row = readstat_realloc(ctx->row, ctx->row_length);
-    if (ctx->row == NULL) {
-        retval = READSTAT_ERROR_MALLOC;
-        goto cleanup;
+    if (ctx->handle.value) {
+        ctx->row = readstat_realloc(ctx->row, ctx->row_length);
+        if (ctx->row == NULL) {
+            retval = READSTAT_ERROR_MALLOC;
+            goto cleanup;
+        }
     }
 
     ctx->page_row_count = page_row_count;
@@ -816,13 +820,15 @@ static readstat_error_t sas7bdat_submit_columns(sas7bdat_ctx_t *ctx, int compres
     readstat_error_t retval = READSTAT_OK;
     if (ctx->handle.metadata) {
         readstat_metadata_t metadata = {
-            .row_count = ctx->row_limit,
+            .row_count = ctx->handle.value ? ctx->row_limit : ctx->total_row_count - ctx->deleted_row_count,
             .var_count = ctx->column_count,
             .table_name = ctx->table_name,
             .file_label = ctx->file_label,
             .file_encoding = ctx->input_encoding, /* orig encoding? */
             .creation_time = ctx->ctime,
             .modified_time = ctx->mtime,
+            .creation_time_present = ctx->ctime_present,
+            .modified_time_present = ctx->mtime_present,
             .file_format_version = ctx->version,
             .compression = READSTAT_COMPRESS_NONE,
             .endianness = ctx->little_endian ? READSTAT_ENDIAN_LITTLE : READSTAT_ENDIAN_BIG,
@@ -856,7 +862,12 @@ static readstat_error_t sas7bdat_submit_columns(sas7bdat_ctx_t *ctx, int compres
 
         int cb_retval = READSTAT_HANDLER_OK;
         if (ctx->handle.variable) {
-            cb_retval = ctx->handle.variable(i, ctx->variables[i], ctx->variables[i]->format, ctx->user_ctx);
+            char label_set[sizeof(ctx->variables[i]->format)];
+            /* Catalog entries use the format name without its display width. */
+            retval = sas7bdat_copy_text_ref(label_set, sizeof(label_set), ctx->col_info[i].format_ref, ctx);
+            if (retval != READSTAT_OK)
+                goto cleanup;
+            cb_retval = ctx->handle.variable(i, ctx->variables[i], label_set, ctx->user_ctx);
         }
         if (cb_retval == READSTAT_HANDLER_ABORT) {
             retval = READSTAT_ERROR_USER_ABORT;
@@ -1212,7 +1223,7 @@ static readstat_error_t sas7bdat_parse_page_pass2(const char *page, size_t page_
             if (shp_info.len > 0 && shp_info.compression == SAS_COMPRESSION_REFERENCE) {
                 uint64_t page_index = shp_info.offset - 1;
                 uint64_t subheader_index = shp_info.len - 1;
-                if ((retval = sas7bdat_parse_moved_row(page_index, subheader_index, ctx)) != READSTAT_OK) {
+                if (ctx->handle.value && (retval = sas7bdat_parse_moved_row(page_index, subheader_index, ctx)) != READSTAT_OK) {
                     goto cleanup;
                 }
             } else if (shp_info.len > 0 && shp_info.compression != SAS_COMPRESSION_TRUNC) {
@@ -1222,6 +1233,10 @@ static readstat_error_t sas7bdat_parse_page_pass2(const char *page, size_t page_
                 if (shp_info.compression == SAS_COMPRESSION_NONE) {
                     sas_subheader_type_t subheader_type = sas7bdat_parse_subheader_type(page + shp_info.offset, ctx);
                     if (shp_info.is_compressed_data && subheader_type == SAS_SUBHEADER_TYPE_DATA) {
+                        if (!ctx->handle.value) {
+                            shp += lshp;
+                            continue;
+                        }
                         if (shp_info.len != ctx->row_length) {
                             retval = READSTAT_ERROR_ROW_WIDTH_MISMATCH;
                             goto cleanup;
@@ -1240,6 +1255,10 @@ static readstat_error_t sas7bdat_parse_page_pass2(const char *page, size_t page_
                         }
                     }
                 } else if (shp_info.compression == SAS_COMPRESSION_ROW) {
+                    if (!ctx->handle.value) {
+                        shp += lshp;
+                        continue;
+                    }
                     if ((retval = sas7bdat_submit_columns_if_needed(ctx, 1)) != READSTAT_OK) {
                         goto cleanup;
                     }
@@ -1247,7 +1266,7 @@ static readstat_error_t sas7bdat_parse_page_pass2(const char *page, size_t page_
                         goto cleanup;
                     }
                 } else if (shp_info.compression == SAS_COMPRESSION_DELETED_ROW) {
-                    if ((retval = sas7bdat_register_deleted_row(ctx)) != READSTAT_OK) {
+                    if (ctx->handle.value && (retval = sas7bdat_register_deleted_row(ctx)) != READSTAT_OK) {
                         goto cleanup;
                     }
                 } else if (sas7bdat_is_moved_row(shp_info.compression)) {
@@ -1434,6 +1453,23 @@ static readstat_error_t sas7bdat_parse_all_pages_pass2(sas7bdat_ctx_t *ctx) {
         if ((retval = sas7bdat_update_progress(ctx)) != READSTAT_OK) {
             goto cleanup;
         }
+        if (!ctx->handle.value) {
+            /* Inspect page headers, seeking past observation-only payloads. */
+            size_t head_len = ctx->u64 ? 34 : 18;
+            if (io->seek(ctx->header_size + i*ctx->page_size, READSTAT_SEEK_SET, io->io_ctx) == -1 ||
+                    io->read(ctx->page, head_len, io->io_ctx) < head_len) {
+                retval = READSTAT_ERROR_READ;
+                goto cleanup;
+            }
+            uint16_t page_type = sas_read2(&ctx->page[head_len-2], ctx->bswap);
+            if ((page_type & SAS_PAGE_TYPE_MASK) == SAS_PAGE_TYPE_DATA || (page_type & SAS_PAGE_TYPE_COMP)) {
+                continue;
+            }
+            if (io->seek(ctx->header_size + i*ctx->page_size, READSTAT_SEEK_SET, io->io_ctx) == -1) {
+                retval = READSTAT_ERROR_SEEK;
+                goto cleanup;
+            }
+        }
         if (io->read(ctx->page, ctx->page_size, io->io_ctx) < ctx->page_size) {
             retval = READSTAT_ERROR_READ;
             goto cleanup;
@@ -1519,6 +1555,8 @@ readstat_error_t readstat_parse_sas7bdat(readstat_parser_t *parser, const char *
     ctx->subheader_signature_size = ctx->u64 ? 8 : 4;
     ctx->ctime = hinfo->creation_time;
     ctx->mtime = hinfo->modification_time;
+    ctx->ctime_present = hinfo->creation_time_present;
+    ctx->mtime_present = hinfo->modification_time_present;
     ctx->version = hinfo->major_version;
     if (ctx->input_encoding == NULL) {
         ctx->input_encoding = hinfo->encoding;

@@ -31,6 +31,7 @@ const char *formatAttribute(FileVendor vendor);
 int hasPrefix(const char *x, const char *prefix);
 VarType numTypeFromSEXP(SEXP x);
 VarType numTypeFromFormat(FileVendor vendor, const char *var_format);
+VarType numTypeFromMetadata(FileVendor vendor, const char *format, const char *informat);
 double adjustDatetimeToR(FileVendor vendor, VarType var, double value);
 double adjustDatetimeFromR(FileVendor vendor, SEXP col, double value);
 

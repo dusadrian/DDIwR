@@ -2,8 +2,56 @@ source_file <- function(file) {
     list(normalizePath(file, mustWork = FALSE))
 }
 
+restore_variable_metadata <- function(x, template) {
+    storage_attributes <- c("format.spss", "format.stata", "format.sas", "width")
+    preserved <- c(storage_attributes, "display_width", "spss.attributes",
+        "stata.characteristics", "spss_metadata", "sas_metadata", "stata_metadata")
+    changed_storage <- is.character(x) != is.character(template)
+
+    # String formats and storage lengths cannot describe numeric category codes.
+    if (changed_storage) {
+        for (name in storage_attributes) {
+            attr(x, name) <- NULL
+        }
+
+        preserved <- setdiff(preserved, storage_attributes)
+    }
+
+    for (name in preserved) {
+        attr(x, name) <- attr(template, name, exact = TRUE)
+    }
+
+    if (changed_storage) {
+        storage_fields <- list(
+            spss_metadata = c("format", "width"),
+            sas_metadata = c("format", "informat", "width", "label_tags", "catalog_rules"),
+            stata_metadata = c("format", "width", "type")
+        )
+
+        for (name in names(storage_fields)) {
+            if (!is.null(attr(template, name, exact = TRUE))) {
+                metadata <- vendor_metadata(template, name)
+                metadata[intersect(names(metadata), storage_fields[[name]])] <- NULL
+                attr(x, name) <- metadata
+            }
+        }
+    }
+
+    temporal_classes <- intersect(class(template), c("Date", "POSIXct", "POSIXt",
+        "hms", "difftime"))
+
+    if (length(temporal_classes) > 0L && is.element(typeof(x), c("integer", "double"))) {
+        class(x) <- c(intersect(class(x), "declared"), temporal_classes)
+        attr(x, "tzone") <- attr(template, "tzone", exact = TRUE)
+        attr(x, "units") <- attr(template, "units", exact = TRUE)
+    }
+
+    return(x)
+}
+
 as_declared <- function(data, trusted = FALSE) {
     data[] <- lapply(data, function(x) {
+        template <- x
         labels <- attr(x, "labels", exact = TRUE)
         na_values <- attr(x, "na_values", exact = TRUE)
         na_range <- attr(x, "na_range", exact = TRUE)
@@ -50,7 +98,7 @@ as_declared <- function(data, trusted = FALSE) {
             attr(x, "date") <- inherits(x, "Date")
             class(x) <- unique(c("declared", class(x)))
 
-            return(x)
+            return(restore_variable_metadata(x, template))
         }
 
         out <- declared::direct_declared(
@@ -61,30 +109,25 @@ as_declared <- function(data, trusted = FALSE) {
             labels = labels,
             label = label
         )
-        attr(out, "format.spss") <- attr(x, "format.spss", exact = TRUE)
-        attr(out, "format.stata") <- attr(x, "format.stata", exact = TRUE)
-        attr(out, "format.sas") <- attr(x, "format.sas", exact = TRUE)
-        attr(out, "spss.attributes") <- attr(x, "spss.attributes", exact = TRUE)
-        attr(out, "stata.characteristics") <- attr(x, "stata.characteristics", exact = TRUE)
-        out
+
+        return(restore_variable_metadata(out, template))
     })
     class(data) <- "data.frame"
     data
 }
 
 as_declared_dataset <- function(data) {
-    spss_attributes <- lapply(data, attr, which = "spss.attributes", exact = TRUE)
-    stata_characteristics <- lapply(data, attr, which = "stata.characteristics", exact = TRUE)
-
-    out <- declared::as.declared(data)
+    out <- data
 
     for (index in seq_along(out)) {
-        attr(out[[index]], "spss.attributes") <- spss_attributes[[index]]
-        attr(out[[index]], "stata.characteristics") <- stata_characteristics[[index]]
+        # Re-declaring an empty character column can change its storage type.
+        if (!declared::is.declared(data[[index]])) {
+            out[[index]] <- restore_variable_metadata(
+                declared::as.declared(data[[index]]), data[[index]]
+            )
+        }
     }
 
-    attr(out, "spss.attributes") <- attr(data, "spss.attributes", exact = TRUE)
-    attr(out, "stata.characteristics") <- attr(data, "stata.characteristics", exact = TRUE)
     class(out) <- "data.frame"
 
     return(out)
@@ -97,9 +140,6 @@ make_declared <- function(
     xclass <- class(x)
     xdate <- isTRUE(attr(template, "date", exact = TRUE)) || inherits(x, "Date")
     measurement <- attr(template, "measurement", exact = TRUE)
-    format_spss <- attr(template, "format.spss", exact = TRUE)
-    format_stata <- attr(template, "format.stata", exact = TRUE)
-    format_sas <- attr(template, "format.sas", exact = TRUE)
 
     attributes(x) <- NULL
     attr(x, "na_index") <- na_index
@@ -109,13 +149,9 @@ make_declared <- function(
     attr(x, "label") <- label
     attr(x, "date") <- xdate
     attr(x, "measurement") <- measurement
-    attr(x, "format.spss") <- format_spss
-    attr(x, "format.stata") <- format_stata
-    attr(x, "format.sas") <- format_sas
-    attr(x, "spss.attributes") <- attr(template, "spss.attributes", exact = TRUE)
-    attr(x, "stata.characteristics") <- attr(template, "stata.characteristics", exact = TRUE)
     class(x) <- unique(c("declared", xclass))
-    x
+
+    return(restore_variable_metadata(x, template))
 }
 
 var_metadata <- function(x) {
@@ -145,7 +181,8 @@ plain_values <- function(x) {
     attrs[c(
         "labels", "na_values", "na_range", "label", "na_index",
         "measurement", "format.spss", "format.stata", "format.sas", "date",
-        "spss.attributes", "stata.characteristics"
+        "width", "display_width", "spss.attributes", "stata.characteristics",
+        "spss_metadata", "sas_metadata", "stata_metadata"
     )] <- NULL
 
     attributes(x) <- attrs
@@ -166,20 +203,24 @@ plain_values <- function(x) {
 
 ensure_format <- function(x, type = c("SPSS", "Stata", "SAS")) {
     type <- match.arg(type)
-    attr_name <- switch(
-        type,
-        SPSS = "format.spss",
-        Stata = "format.stata",
-        SAS = "format.sas"
+    attribute <- switch(type,
+        SPSS = "spss_metadata", Stata = "stata_metadata", SAS = "sas_metadata"
     )
+    metadata <- vendor_metadata(x, attribute)
 
-    format_value <- attr(x, attr_name, exact = TRUE)
-    if (is.null(format_value)) {
-        format_value <- getFormat(x, type = type)
-        attr(x, attr_name) <- format_value
+    if (!is.element("format", names(metadata))) {
+        format_value <- effective_vendor_metadata(x, attribute, "format",
+            switch(type, SPSS = "format.spss", Stata = "format.stata", SAS = "format.sas"))
+
+        if (is.null(format_value)) {
+            format_value <- getFormat(x, type = type)
+        }
+
+        metadata["format"] <- list(format_value)
+        attr(x, attribute) <- metadata
     }
 
-    x
+    return(x)
 }
 
 recode_vector <- function(x, old, new) {
@@ -536,6 +577,230 @@ stata_file_format <- function(version) {
     }
 }
 
+vendor_metadata <- function(object, attribute, scope = "Variable") {
+    metadata <- attr(object, attribute, exact = TRUE)
+
+    if (is.null(metadata)) {
+        return(list())
+    }
+
+    if (!is.list(metadata) || is.object(metadata)) {
+        stop(scope, ": '", attribute, "' must be a named list.", call. = FALSE)
+    }
+
+    field_names <- names(metadata)
+
+    if (length(metadata) > 0L && (
+        is.null(field_names) || anyNA(field_names) ||
+        any(!nzchar(field_names)) || anyDuplicated(field_names) > 0L
+    )) {
+        stop(scope, ": '", attribute,
+            "' fields must have nonempty, unique names.", call. = FALSE)
+    }
+
+    return(metadata)
+}
+
+effective_vendor_metadata <- function(object, attribute, field, legacy = NULL) {
+    metadata <- vendor_metadata(object, attribute)
+
+    if (is.element(field, names(metadata))) {
+        return(metadata[[field, exact = TRUE]])
+    }
+
+    if (!is.null(legacy)) {
+        return(attr(object, legacy, exact = TRUE))
+    }
+
+    return(NULL)
+}
+
+prepare_vendor_metadata <- function(data, target, overrides = character()) {
+    attribute <- switch(target,
+        sav = "spss_metadata", dta = "stata_metadata",
+        sas7bdat = "sas_metadata", xpt = "sas_metadata"
+    )
+    column_fields <- switch(target,
+        sav = c(format = "format.spss", width = "width", display_width = "display_width"),
+        dta = c(format = "format.stata", width = "width"),
+        sas7bdat = c(format = "format.sas", width = "width"),
+        xpt = c(format = "format.sas", width = "width")
+    )
+    dataset_fields <- switch(target,
+        sav = c("notes", "mr_sets"), dta = c("notes", "version"),
+        sas7bdat = "table_name", xpt = c("table_name", "version")
+    )
+    dataset_fields <- c(dataset_fields, "created", "modified")
+    supported_columns <- c(names(column_fields), switch(target,
+        sav = c("measure", "alignment"), dta = "type",
+        sas7bdat = c("informat", "label_tags", "catalog_rules"), xpt = c("informat", "label_tags")
+    ))
+    unsupported <- character()
+
+    validate <- function(metadata, supported, scope) {
+        for (field in names(metadata)) {
+            value <- metadata[[field, exact = TRUE]]
+
+            if (is.null(value)) {
+                next
+            }
+
+            if (!is.element(field, supported)) {
+                unsupported <<- c(unsupported, paste0(scope, ": ", attribute, "$", field))
+                next
+            }
+
+            if (identical(field, "modified") && !is.element(target, c("sas7bdat", "xpt"))) {
+                next
+            }
+
+            valid <- switch(field,
+                format =, informat =, table_name = {
+                    is.character(value) && length(value) == 1L &&
+                        !is.na(value) && nzchar(value)
+                },
+                width =, display_width = {
+                    is.element(typeof(value), c("integer", "double")) &&
+                        !is.object(value) && length(value) == 1L &&
+                        is.finite(value) && value >= 0 &&
+                        value <= .Machine$integer.max && value == trunc(value)
+                },
+                notes = {
+                    is.character(value) && !anyNA(value)
+                },
+                label_tags = {
+                    is.character(value) && !is.object(value) && !anyNA(value) &&
+                        all(is.element(value, c("", ".", "_", LETTERS)))
+                },
+                catalog_rules = {
+                    is.data.frame(value)
+                },
+                mr_sets = {
+                    is.list(value) && !is.object(value)
+                },
+                created =, modified = {
+                    inherits(value, "POSIXct") && length(value) == 1L &&
+                        is.finite(as.numeric(value)) &&
+                        as.numeric(value) >= -62135596800 &&
+                        as.numeric(value) <= 253402300799 &&
+                        as.numeric(value) == trunc(as.numeric(value))
+                },
+                measure =, alignment =, type = {
+                    choices <- switch(field,
+                        measure = c("nominal", "ordinal", "scale"),
+                        alignment = c("left", "right", "center"),
+                        type = c("byte", "int", "long", "float", "double", "strL")
+                    )
+
+                    is.character(value) && length(value) == 1L &&
+                        !is.na(value) && is.element(value, choices)
+                },
+                version = {
+                    versions <- 8:15
+
+                    if (target == "xpt") {
+                        versions <- c(5, 8)
+                    }
+
+                    is.element(typeof(value), c("integer", "double")) &&
+                        !is.object(value) && length(value) == 1L &&
+                        !is.na(value) && is.element(value, versions)
+                }
+            )
+
+            if (!isTRUE(valid)) {
+                stop(scope, ": invalid '", attribute, "$", field, "'.", call. = FALSE)
+            }
+
+            if (is.element(field, c("created", "modified")) &&
+                is.element(target, c("sav", "xpt"))) {
+                year <- as.integer(format(value, "%Y", tz = ""))
+                first_year <- switch(target, sav = 1970L, xpt = 1960L)
+
+                if (is.na(year) || year < first_year || year >= first_year + 100L) {
+                    stop(scope, ": '", attribute, "$", field, "' must use a year from ",
+                        first_year, " through ", first_year + 99L, ".", call. = FALSE)
+                }
+            }
+        }
+
+        return(invisible(NULL))
+    }
+
+    options <- vendor_metadata(data, attribute, "Dataset")
+    options[intersect(names(options), overrides)] <- NULL
+    validate(options, dataset_fields, "Dataset")
+
+    if (is.element(target, c("sav", "dta")) && is.element("notes", names(options))) {
+        attr(data, "notes") <- options[["notes", exact = TRUE]]
+    }
+
+    if (target == "dta" && is.element("notes", names(options))) {
+        characteristics <- attr(data, "stata.characteristics", exact = TRUE)
+        note_names <- grepl("^note[1-9][0-9]*$", names(characteristics))
+        note_indices <- suppressWarnings(as.numeric(sub("^note", "", names(characteristics))))
+        note_names <- note_names & !is.na(note_indices) & note_indices <= .Machine$integer.max
+        raw_notes <- sub(" +$", "", unname(characteristics[note_names]))
+        raw_notes <- raw_notes[nzchar(raw_notes)]
+
+        # Preserve original numbering when the imported notes are unchanged.
+        if (!identical(options[["notes", exact = TRUE]], raw_notes)) {
+            characteristics <- characteristics[!grepl("^note[0-9]+$", names(characteristics))]
+            attr(data, "stata.characteristics") <- characteristics
+        }
+    }
+
+    for (index in seq_along(data)) {
+        scope <- paste0("Variable '", names(data)[index], "'")
+        metadata <- vendor_metadata(data[[index]], attribute, scope)
+        validate(metadata, supported_columns, scope)
+
+        type <- metadata[["type", exact = TRUE]]
+
+        if (target == "dta" && !is.null(type) &&
+            (identical(type, "strL") != is.character(data[[index]]))) {
+            stop(scope, ": 'stata_metadata$type' does not match the column's storage type.",
+                call. = FALSE)
+        }
+
+        for (field in intersect(names(metadata), names(column_fields))) {
+            attr(data[[index]], column_fields[[field]]) <- metadata[[field, exact = TRUE]]
+        }
+
+        width <- metadata[["width", exact = TRUE]]
+
+        if (target == "sas7bdat" && !is.character(data[[index]])) {
+            width <- attr(data[[index]], "width", exact = TRUE)
+
+            if (!is.null(width) &&
+                !(is.element(typeof(width), c("integer", "double")) &&
+                    !is.object(width) && length(width) == 1L &&
+                    !is.na(width) && is.element(width, c(0, 3:8)))) {
+                stop(scope, ": numeric SAS7BDAT 'sas_metadata$width' or legacy 'width' ",
+                    "must be 0 or 3 through 8.", call. = FALSE)
+            }
+        }
+
+        if (!is.null(width) && !is.character(data[[index]]) && target == "xpt" &&
+            !is.element(width, c(0, 3:8))) {
+            stop(scope, ": 'sas_metadata$width' for numeric XPT data must be 0 or 3 through 8.",
+                call. = FALSE)
+        }
+
+        if (!is.null(width) && !is.character(data[[index]]) &&
+            target == "sav" && !is.element(width, c(0, 8))) {
+            unsupported <- c(unsupported, paste0(scope, ": ", attribute, "$width (numeric storage)"))
+        }
+    }
+
+    if (length(unsupported) > 0L) {
+        warning("Vendor metadata not yet supported by the ", target, " writer: ",
+            paste(unsupported, collapse = "; "), ".", call. = FALSE)
+    }
+
+    return(list(data = data, options = options))
+}
+
 validate_spss_attributes <- function(data) {
     validate <- function(object, scope) {
         attributes <- attr(object, "spss.attributes", exact = TRUE)
@@ -590,8 +855,147 @@ validate_spss_attributes <- function(data) {
     return(invisible(NULL))
 }
 
-write_sav <- function(data, path, compress = "byte", adjust_tz = TRUE) {
-    validate_spss_attributes(data)
+prepare_spss_mr_sets <- function(data) {
+    metadata <- attr(data, "spss_metadata", exact = TRUE)
+    sets <- metadata[["mr_sets", exact = TRUE]]
+
+    if (is.null(sets) || length(sets) == 0L) {
+        return(data)
+    }
+
+    scalar_string <- function(value) {
+        return(is.character(value) && length(value) == 1L && !is.na(value) &&
+            !grepl("[\r\n]", value))
+    }
+
+    set_names <- names(sets)
+
+    if (is.null(set_names) || anyNA(set_names) || any(!nzchar(set_names)) ||
+        anyDuplicated(toupper(set_names)) > 0L) {
+        stop("'spss_metadata$mr_sets' must have nonempty, case-insensitively unique set names.",
+            call. = FALSE)
+    }
+
+    fields <- c("type", "label", "is_dichotomy", "counted_value", "counted_string",
+        "variables", "label_from_var_label")
+
+    for (name in set_names) {
+        scope <- paste0("'spss_metadata$mr_sets[[\"", name, "\"]]' ")
+        entry <- sets[[name]]
+        if (!is.list(entry) || is.object(entry) || is.null(names(entry)) ||
+            anyNA(names(entry)) || anyDuplicated(names(entry)) > 0L ||
+            any(!is.element(names(entry), fields))) {
+            stop(scope, "must be a named list of supported fields.", call. = FALSE)
+        }
+
+        type <- entry[["type", exact = TRUE]]
+        variables <- entry[["variables", exact = TRUE]]
+
+        if (!scalar_string(type) || !is.element(type, c("C", "D", "E"))) {
+            stop(scope, "requires type 'C', 'D' or 'E'.", call. = FALSE)
+        }
+
+        if (!is.character(variables) || length(variables) < 2L || anyNA(variables) ||
+            anyDuplicated(variables) > 0L || any(!is.element(variables, names(data)))) {
+            stop(scope, "requires at least two distinct, existing variable names.", call. = FALSE)
+        }
+
+        string_variables <- unname(vapply(data[variables], is.character, logical(1L)))
+
+        if (any(string_variables) && !all(string_variables)) {
+            stop(scope, "cannot mix string and numeric variables.", call. = FALSE)
+        }
+
+        label <- entry[["label", exact = TRUE]]
+        label_source <- entry[["label_from_var_label", exact = TRUE]]
+        dichotomy <- entry[["is_dichotomy", exact = TRUE]]
+
+        if (is.null(label)) {
+            label <- ""
+        }
+
+        if (is.null(label_source)) {
+            label_source <- FALSE
+        }
+
+        if (!scalar_string(label) || nchar(enc2utf8(label), type = "bytes") > 256L ||
+            !is.logical(label_source) || length(label_source) != 1L || is.na(label_source) ||
+            (label_source && (type != "E" || nzchar(label)))) {
+            stop(scope, "has an invalid label or label_from_var_label flag.", call. = FALSE)
+        }
+
+        if (!is.null(dichotomy) && !identical(dichotomy, type != "C")) {
+            stop(scope, "has is_dichotomy inconsistent with type.", call. = FALSE)
+        }
+
+        counted <- entry[["counted_string", exact = TRUE]]
+        counted_value <- entry[["counted_value", exact = TRUE]]
+
+        if (!is.null(counted_value) && (!is.numeric(counted_value) ||
+            length(counted_value) != 1L || !is.finite(counted_value) ||
+            counted_value != trunc(counted_value))) {
+            stop(scope, "requires a finite whole-number counted_value.", call. = FALSE)
+        }
+
+        if (type == "C") {
+            if (!is.null(counted) || !is.null(counted_value)) {
+                stop(scope, "cannot specify a counted value for a category set.", call. = FALSE)
+            }
+        }
+        else {
+            if (is.null(counted) && !any(string_variables) && !is.null(counted_value)) {
+                counted <- sprintf("%.0f", counted_value)
+            }
+
+            if (!scalar_string(counted)) {
+                stop(scope, "requires counted_string (or counted_value for numeric variables).",
+                    call. = FALSE)
+            }
+
+            counted <- sub(" +$", "", counted)
+
+            if (!any(string_variables) && (!grepl("^[+-]?[0-9]+$", counted) ||
+                !is.finite(suppressWarnings(as.numeric(counted))))) {
+                stop(scope, "requires an integer counted value for numeric variables.", call. = FALSE)
+            }
+        }
+
+        sets[[name]] <- list(type = type, label = label, is_dichotomy = type != "C",
+            counted_value = counted_value, counted_string = counted, variables = variables,
+            label_from_var_label = label_source)
+    }
+
+    metadata$mr_sets <- sets
+    attr(data, "spss_metadata") <- metadata
+
+    return(data)
+}
+
+validate_dataset_label <- function(label, vendor, max_bytes) {
+    valid <- is.null(label) || (is.character(label) && length(label) == 1L &&
+        !is.na(label) && nchar(enc2utf8(label), type = "bytes") <= max_bytes)
+
+    if (!isTRUE(valid)) {
+        stop("Dataset: ", vendor, " label must be NULL or one non-missing character string ",
+            "of at most ", max_bytes, " UTF-8 bytes.", call. = FALSE)
+    }
+
+    return(invisible(NULL))
+}
+
+write_sav <- function(data, path, compress = "byte", adjust_tz = TRUE,
+    label = attr(data, "label", exact = TRUE)) {
+    validate_dataset_label(label, "SPSS", 64L)
+    data_out <- prepare_vendor_metadata(data, "sav")$data
+    attr(data_out, "label") <- label
+    validate_spss_attributes(data_out)
+    notes <- attr(data_out, "notes", exact = TRUE)
+
+    if (!is.null(notes) && (!is.character(notes) || anyNA(notes) ||
+        any(nchar(enc2utf8(notes), type = "bytes") > 80L))) {
+        stop("Dataset: SPSS notes must be non-missing strings of at most 80 UTF-8 bytes each.",
+            call. = FALSE)
+    }
 
     if (isTRUE(compress)) {
         compress <- "zsav"
@@ -599,8 +1003,12 @@ write_sav <- function(data, path, compress = "byte", adjust_tz = TRUE) {
         compress <- "none"
     }
 
-    data_out <- if (isTRUE(adjust_tz)) adjust_tz(data) else data
+    if (isTRUE(adjust_tz)) {
+        data_out <- adjust_tz(data_out)
+    }
+
     data_out <- as_declared(data_out)
+    data_out <- prepare_spss_mr_sets(data_out)
     invisible(.Call(
         "declared_write_sav_",
         data_out,
@@ -707,10 +1115,37 @@ write_dta <- function(
     data, path, version = 14, label = attr(data, "label"), strl_threshold = 2045,
     adjust_tz = TRUE, dictionary = NULL
 ) {
-    file_format <- stata_file_format(version)
-    validate_stata_characteristics(data, file_format)
+    overrides <- character()
 
-    data_out <- if (isTRUE(adjust_tz)) adjust_tz(data) else data
+    if (!missing(version)) {
+        overrides <- "version"
+    }
+
+    prepared <- prepare_vendor_metadata(data, "dta", overrides)
+
+    if (missing(version) && !is.null(prepared$options[["version", exact = TRUE]])) {
+        version <- prepared$options[["version", exact = TRUE]]
+    }
+
+    file_format <- stata_file_format(version)
+    data_out <- prepared$data
+    validate_stata_characteristics(data_out, file_format)
+
+    if (file_format < 117L) {
+        for (name in names(data_out)) {
+            metadata <- vendor_metadata(data_out[[name]], "stata_metadata")
+
+            if (identical(metadata[["type", exact = TRUE]], "strL")) {
+                stop("Variable '", name, "': 'stata_metadata$type = strL' requires Stata 13 or later.",
+                    call. = FALSE)
+            }
+        }
+    }
+
+    if (isTRUE(adjust_tz)) {
+        data_out <- adjust_tz(data_out)
+    }
+
     data_out <- as_declared(data_out)
     invisible(.Call(
         "declared_write_dta_",
@@ -725,27 +1160,89 @@ write_dta <- function(
     invisible(data)
 }
 
-write_sas <- function(data, path, dictionary = NULL) {
-    data <- as_declared(data)
+write_sas <- function(data, path, dictionary = NULL, catalog_file = NULL) {
+    validate_dataset_label(attr(data, "label", exact = TRUE), "SAS7BDAT", 256L)
+    data_out <- prepare_vendor_metadata(data, "sas7bdat")$data
+    data_out <- as_declared(data_out)
+
+    if (!is.null(catalog_file)) {
+        destinations <- c(path, catalog_file)
+
+        if (!is.character(path) || length(path) != 1L || is.na(path) || !nzchar(path) ||
+            !is.character(catalog_file) || length(catalog_file) != 1L ||
+            is.na(catalog_file) || !nzchar(catalog_file)) {
+            stop("path and catalog_file must be single non-missing file paths.", call. = FALSE)
+        }
+
+        destinations <- normalizePath(path.expand(destinations), mustWork = FALSE)
+        destinations <- file.path(normalizePath(dirname(destinations), mustWork = FALSE),
+            basename(destinations))
+
+        if (anyDuplicated(destinations) > 0L || any(dir.exists(destinations)) ||
+            any(!dir.exists(dirname(destinations)))) {
+            stop("SAS data and catalog destinations must be distinct files in existing directories.",
+                call. = FALSE)
+        }
+
+        prepared <- prepare_sas_catalog(data_out)
+        data_out <- prepared$data
+        staged <- vapply(dirname(destinations), function(directory) {
+            return(tempfile(".ddiwr-sas-", tmpdir = directory))
+        }, character(1))
+        on.exit(unlink(staged), add = TRUE)
+
+        .Call("declared_write_sas_catalog_", data_out, staged[2], prepared$formats,
+            dictionary, PACKAGE = "DDIwR")
+        .Call("declared_write_sas_", data_out, staged[1], dictionary, PACKAGE = "DDIwR")
+        publish_sas_pair(staged, destinations)
+
+        return(invisible(data_out))
+    }
+
     invisible(.Call(
         "declared_write_sas_",
-        data,
+        data_out,
         normalizePath(path, mustWork = FALSE),
         dictionary,
         PACKAGE = "DDIwR"
     ))
-    invisible(data)
+    invisible(data_out)
 }
 
 write_xpt <- function(
     data, path, version = 8, name = NULL, label = attr(data, "label"),
     adjust_tz = TRUE, dictionary = NULL
 ) {
+    overrides <- character()
+
+    if (!missing(version)) {
+        overrides <- c(overrides, "version")
+    }
+
+    if (!missing(name)) {
+        overrides <- c(overrides, "table_name")
+    }
+
+    prepared <- prepare_vendor_metadata(data, "xpt", overrides)
+
+    if (missing(version) && !is.null(prepared$options[["version", exact = TRUE]])) {
+        version <- prepared$options[["version", exact = TRUE]]
+    }
+
+    if (missing(name)) {
+        name <- prepared$options[["table_name", exact = TRUE]]
+    }
+
     if (is.null(name)) {
         name <- tools::file_path_sans_ext(basename(path))
     }
 
-    data_out <- if (isTRUE(adjust_tz)) adjust_tz(data) else data
+    data_out <- prepared$data
+
+    if (isTRUE(adjust_tz)) {
+        data_out <- adjust_tz(data_out)
+    }
+
     data_out <- as_declared(data_out)
     invisible(.Call(
         "declared_write_xpt_",
