@@ -1,0 +1,12 @@
+proc printto; run;
+options source source2 nosyntaxcheck;
+%let root=%sysget(HOME);
+data _null_; path=dcreate('ddiwr_catalog_controls',"&root"); run;
+libname ctl "&root/ddiwr_catalog_controls";
+proc format library=ctl.one; value SIMPLE 1='One'; run;
+proc format library=ctl.two; value SIMPLE ._='Under' .='System' .A='A' .Z='Z' -2.5='Negative' 0='Zero' 1.25='Fraction'; run;
+proc format library=ctl.text; value $CHARACTER_LONG_NAME ' '='Blank' ' A'='Lead' 'abcdefghijklmnopqrstuv'='Long' 'é'='Accent'; run;
+proc format library=ctl.many; value SHORT 1='One'; value SECOND 2='Two'; value THIRD 3='Three'; run;
+proc format library=ctl.one cntlout=ctl.one_labels; run;
+proc catalog catalog=ctl.one; contents; run; quit;
+%put DDIWR_CATALOG_CONTROLS SYSCC=&syscc;

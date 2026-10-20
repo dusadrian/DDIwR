@@ -1,0 +1,7 @@
+"file","md5"
+"R/readstat_internal.R","dc8567cfd9a4f23a5fa7c7fc4989f938"
+"R/sasCatalog.R","c74721e2c8baa4a64c583a6886e1948a"
+"R/convert.R","f76db35ecc71f280f87db45922429504"
+"src/readstat_writer.c","e6ae6d2d7822632f9fa505666e968d61"
+"src/readstat/sas/readstat_sas7bdat_write.c","eef9970f0cb2a466c767f611b411ec9d"
+"src/readstat/sas/readstat_sas7bcat_write.c","2c9088b7aea545980b4a2bd879436e5f"

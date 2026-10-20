@@ -1,0 +1,167 @@
+Results: validate_20261020_022723.sas
+Results: validate_20261020_022723.sas
+The Compare Procedure
+Datasets
+The COMPARE Procedure
+Comparison of WORK.EXPECTED_ROWS with WORK.ACTUAL_ROWS
+(Method=ABSOLUTE, Criterion=0)
+Data Set Summary
+Dataset Created Modified NVar NObs
+WORK.EXPECTED_ROWS 20OCT26:02:28:23 20OCT26:02:28:23 6 32
+WORK.ACTUAL_ROWS 20OCT26:02:28:23 20OCT26:02:28:23 6 32
+Variables Summary
+Number of Variables in Common: 6.
+Number of Variables with Differing Attributes: 3.
+Number of ID Variables: 1.
+Number of VAR Statement Variables: 5.
+Variables
+Listing of Common Variables with Differing Attributes
+Variable Dataset Type Length Informat
+day WORK.EXPECTED_ROWS Num 8
+WORK.ACTUAL_ROWS Num 8 DATE9.
+moment WORK.EXPECTED_ROWS Num 8
+WORK.ACTUAL_ROWS Num 8 DATETIME25.6
+clock WORK.EXPECTED_ROWS Num 8
+WORK.ACTUAL_ROWS Num 8 TIME20.6
+Summary
+Observation Summary
+Observation Base Compare ID
+First Obs 1 1 row_id=1
+Last Obs 32 32 row_id=32
+Number of Observations in Common: 32.
+Total Number of Observations Read from WORK.EXPECTED_ROWS: 32.
+Total Number of Observations Read from WORK.ACTUAL_ROWS: 32.
+Number of Observations with Some Compared Variables Unequal: 0.
+Number of Observations with All Compared Variables Equal: 32.
+NOTE: No unequal values were found. All values compared are exactly equal.
+The Compare Procedure
+Datasets
+The COMPARE Procedure
+Comparison of WORK.EXPECTED_LABELS with WORK.ACTUAL_LABELS
+(Method=ABSOLUTE, Criterion=0)
+Data Set Summary
+Dataset Created Modified NVar NObs
+WORK.EXPECTED_LABELS 20OCT26:02:28:23 20OCT26:02:28:23 5 135
+WORK.ACTUAL_LABELS 20OCT26:02:28:23 20OCT26:02:28:23 23 135
+Variables Summary
+Number of Variables in Common: 5.
+Number of Variables in WORK.ACTUAL_LABELS but not in WORK.EXPECTED_LABELS: 18.
+Number of Variables with Differing Attributes: 3.
+Number of ID Variables: 4.
+Number of VAR Statement Variables: 3.
+Variables
+Listing of Common Variables with Differing Attributes
+Variable Dataset Type Length Label
+label WORK.EXPECTED_LABELS Char 100
+WORK.ACTUAL_LABELS Char 100 Format value label
+Summary
+Observation Summary
+Observation Base Compare ID
+First Obs 1 1 fmtname=R20261020022723CALF type=N nstart=_ cstart=
+Last Obs 135 135 fmtname=R20261020022723TEXTF type=C nstart=. cstart=漢字
+Number of Observations in Common: 135.
+Total Number of Observations Read from WORK.EXPECTED_LABELS: 135.
+Total Number of Observations Read from WORK.ACTUAL_LABELS: 135.
+Number of Observations with Some Compared Variables Unequal: 0.
+Number of Observations with All Compared Variables Equal: 135.
+NOTE: No unequal values were found. All values compared are exactly equal.
+The Compare Procedure
+Datasets
+The COMPARE Procedure
+Comparison of WORK.EXPECTED_RENDERED with WORK.ACTUAL_RENDERED
+(Method=ABSOLUTE, Criterion=0)
+Data Set Summary
+Dataset Created Modified NVar NObs
+WORK.EXPECTED_RENDERED 20OCT26:02:28:23 20OCT26:02:28:23 6 32
+WORK.ACTUAL_RENDERED 20OCT26:02:28:23 20OCT26:02:28:23 11 32
+Variables Summary
+Number of Variables in Common: 6.
+Number of Variables in WORK.ACTUAL_RENDERED but not in WORK.EXPECTED_RENDERED: 5.
+Number of ID Variables: 1.
+Number of VAR Statement Variables: 5.
+Summary
+Observation Summary
+Observation Base Compare ID
+First Obs 1 1 row_id=1
+Last Obs 32 32 row_id=32
+Number of Observations in Common: 32.
+Total Number of Observations Read from WORK.EXPECTED_RENDERED: 32.
+Total Number of Observations Read from WORK.ACTUAL_RENDERED: 32.
+Number of Observations with Some Compared Variables Unequal: 0.
+Number of Observations with All Compared Variables Equal: 32.
+NOTE: No unequal values were found. All values compared are exactly equal.
+The Compare Procedure
+Datasets
+The COMPARE Procedure
+Comparison of WORK.EXPECTED_LABELS with WORK.ACTUAL_LABELS
+(Method=ABSOLUTE, Criterion=0)
+Data Set Summary
+Dataset Created Modified NVar NObs
+WORK.EXPECTED_LABELS 20OCT26:02:28:23 20OCT26:02:28:23 5 135
+WORK.ACTUAL_LABELS 20OCT26:02:28:23 20OCT26:02:28:23 23 135
+Variables Summary
+Number of Variables in Common: 5.
+Number of Variables in WORK.ACTUAL_LABELS but not in WORK.EXPECTED_LABELS: 18.
+Number of Variables with Differing Attributes: 3.
+Number of ID Variables: 4.
+Number of VAR Statement Variables: 3.
+Variables
+Listing of Common Variables with Differing Attributes
+Variable Dataset Type Length Label
+label WORK.EXPECTED_LABELS Char 100
+WORK.ACTUAL_LABELS Char 100 Format value label
+Summary
+Observation Summary
+Observation Base Compare ID
+First Obs 1 1 fmtname=R20261020022723CALF type=N nstart=_ cstart=
+Last Obs 135 135 fmtname=R20261020022723TEXTF type=C nstart=. cstart=漢字
+Number of Observations in Common: 135.
+Total Number of Observations Read from WORK.EXPECTED_LABELS: 135.
+Total Number of Observations Read from WORK.ACTUAL_LABELS: 135.
+Number of Observations with Some Compared Variables Unequal: 0.
+Number of Observations with All Compared Variables Equal: 135.
+NOTE: No unequal values were found. All values compared are exactly equal.
+The Compare Procedure
+Datasets
+The COMPARE Procedure
+Comparison of WORK.NARROW_EXPECTED with WORK.NARROW_ACTUAL
+(Method=ABSOLUTE, Criterion=0)
+Data Set Summary
+Dataset Created Modified NVar NObs
+WORK.NARROW_EXPECTED 20OCT26:02:28:23 20OCT26:02:28:23 5 2
+WORK.NARROW_ACTUAL 20OCT26:02:28:23 20OCT26:02:28:23 5 2
+Variables Summary
+Number of Variables in Common: 5.
+Number of Variables with Differing Attributes: 2.
+Number of ID Variables: 1.
+Number of VAR Statement Variables: 4.
+Variables
+Listing of Common Variables with Differing Attributes
+Variable Dataset Type Length Format Informat
+number WORK.NARROW_EXPECTED Num 8
+WORK.NARROW_ACTUAL Num 3 R20261020022723SMALLF.
+day WORK.NARROW_EXPECTED Num 8
+WORK.NARROW_ACTUAL Num 3 R20261020022723SHORTF. DATE9.
+Summary
+Observation Summary
+Observation Base Compare ID
+First Obs 1 1 row_id=1
+Last Obs 2 2 row_id=2
+Number of Observations in Common: 2.
+Total Number of Observations Read from WORK.NARROW_EXPECTED: 2.
+Total Number of Observations Read from WORK.NARROW_ACTUAL: 2.
+Number of Observations with Some Compared Variables Unequal: 0.
+Number of Observations with All Compared Variables Equal: 2.
+NOTE: No unequal values were found. All values compared are exactly equal.
+The Print Procedure
+Data Set RESULTS.SUMMARY
+Obs
+sas_version
+platform
+encoding
+failures
+1
+9.04.01M9P06052025
+LIN X64 Linux
+UTF-8
+0

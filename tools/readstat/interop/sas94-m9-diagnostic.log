@@ -1,0 +1,568 @@
+.sasError {color: red;}.sasMessage{color:#000000;}.sasWarning{color:green;}.sasSource{color:#000000;}.sasNote {color:blue;}
+Log:diagnose.sas
+
+ 1          OPTIONS NONOTES NOSTIMER NOSOURCE NOSYNTAXCHECK;
+ 68
+ 69         proc printto; run;
+
+ NOTE: PROCEDURE PRINTTO used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              168.82k
+       OS Memory           18336.00k
+       Timestamp           10/20/2026 01:31:58 AM
+       Step Count                        18  Switch Count  0
+       Page Faults                       0
+       Page Reclaims                     16
+       Page Swaps                        0
+       Voluntary Context Switches        0
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           0
+
+
+ 70         options source source2 nosyntaxcheck nofmterr;
+ 71         %let root=%sysget(HOME);
+ 72         data _null_; path=dcreate('ddiwr_actual_diagnostic',"&root"); run;
+
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              482.03k
+       OS Memory           18336.00k
+       Timestamp           10/20/2026 01:31:58 AM
+       Step Count                        19  Switch Count  0
+       Page Faults                       0
+       Page Reclaims                     58
+       Page Swaps                        0
+       Voluntary Context Switches        4
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           0
+
+
+ 73         libname incoming "&root" access=readonly;
+ NOTE: Libref INCOMING was successfully assigned as follows:
+       Engine:        V9
+       Physical Name: /home/SAS_USER
+ 74         libname evidence "&root/ddiwr_actual_diagnostic";
+ NOTE: Libref EVIDENCE was successfully assigned as follows:
+       Engine:        V9
+       Physical Name: /home/SAS_USER/ddiwr_actual_diagnostic
+ 75         %let syscc=0;
+ 76         %let failures=0;
+ 77         %macro record(message);
+ 78             %let failures=%eval(&failures+1);
+ 79             %put ERROR: DDIWR_DIAGNOSTIC_FAIL &message;
+ 80         %mend;
+ 81         %macro compare_rows(base,actual,variables);
+ 82             proc sort data=&base; by row_id; run;
+ 83             proc sort data=&actual; by row_id; run;
+ 84             proc compare base=&base compare=&actual criterion=0 method=absolute;
+ 85                 id row_id; var &variables;
+ 86             run;
+ 87             %if &sysinfo >= 64 %then %record(Values differ SYSINFO=&sysinfo);
+ 88             %else %put DDIWR_RAW_VALUES_PASS &actual SYSINFO=&sysinfo;
+ 89         %mend;
+ 90         %put DDIWR_ACTUAL_SAS_VERSION=&sysvlong4;
+ DDIWR_ACTUAL_SAS_VERSION=9.04.01M9P06052025
+ 91         %put DDIWR_ACTUAL_SAS_PLATFORM=&sysscp &sysscpl;
+ DDIWR_ACTUAL_SAS_PLATFORM=LIN X64 Linux
+ 92         %put DDIWR_ACTUAL_SAS_ENCODING=%sysfunc(getoption(encoding));
+ DDIWR_ACTUAL_SAS_ENCODING=UTF-8
+ 93         /* First create and reopen a native SAS catalog using the same LIBRARY syntax. */
+ 94         proc format library=evidence.reference;
+ 95             value REFDATE -1='Before SAS epoch' 0='SAS epoch' 3653='R epoch'
+ 96                 .='System missing' ._='Underscore missing' .A='Missing A' .Z='Missing Z';
+ NOTE: Format REFDATE has been written to EVIDENCE.REFERENCE.
+ 97             value $REFTEXT '01'='ZeroOne' ' A'='Leading' 'é'='Accent' '漢字'='Unicode' ' '='Blank';
+ NOTE: Format $REFTEXT has been written to EVIDENCE.REFERENCE.
+ 98         run;
+
+ NOTE: PROCEDURE FORMAT used (Total process time):
+       real time           0.01 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              289.03k
+       OS Memory           18336.00k
+       Timestamp           10/20/2026 01:31:58 AM
+       Step Count                        20  Switch Count  1
+       Page Faults                       0
+       Page Reclaims                     39
+       Page Swaps                        0
+       Voluntary Context Switches        26
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           88
+
+
+ 99         proc format library=evidence.reference cntlout=evidence.reference_labels;
+ 99       !                                                                           run;
+
+ NOTE: PROCEDURE FORMAT used (Total process time):
+       real time           0.01 seconds
+       user cpu time       0.01 seconds
+       system cpu time     0.00 seconds
+       memory              611.67k
+       OS Memory           18596.00k
+       Timestamp           10/20/2026 01:31:58 AM
+       Step Count                        21  Switch Count  1
+       Page Faults                       0
+       Page Reclaims                     120
+       Page Swaps                        0
+       Voluntary Context Switches        35
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           264
+
+ NOTE: The data set EVIDENCE.REFERENCE_LABELS has 12 observations and 21 variables.
+
+ 100        data evidence.reference;
+ 101            length text $40; informat day date9.; format day REFDATE. text $REFTEXT.;
+                                                                 ________
+                                                                 484
+ NOTE 484-185: Format REFDATE was not found or could not be loaded.
+
+ 101      !     length text $40; informat day date9.; format day REFDATE. text $REFTEXT.;
+                                                                               _________
+                                                                               484
+ NOTE 484-185: Format $REFTEXT was not found or could not be loaded.
+
+ 102            day=3653; text='01'; output; day=.; text=' '; output;
+ 103            day=._; text=' A'; output; day=.A; text='é'; output; day=.Z; text='漢字'; output;
+ 104        run;
+
+ NOTE: The data set EVIDENCE.REFERENCE has 5 observations and 2 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              676.28k
+       OS Memory           18852.00k
+       Timestamp           10/20/2026 01:31:58 AM
+       Step Count                        22  Switch Count  2
+       Page Faults                       0
+       Page Reclaims                     110
+       Page Swaps                        0
+       Voluntary Context Switches        33
+       Involuntary Context Switches      1
+       Block Input Operations            0
+       Block Output Operations           264
+
+
+ 105        data work.expected_rows;
+ 106            length text $40;
+ 107            row_id=1; number=-2.5; day=-1; moment=-0.125; clock=-0.125; text='01'; output;
+ 108            row_id=2; number=0; day=0; moment=0; clock=0; text='1'; output;
+ 109            row_id=3; number=1.25; day=3653; moment=315619200; clock=1.25; text=' A'; output;
+ 110            row_id=4; number=42; day=24107; moment=2082844800.125; clock=90000.5; text='é'; output;
+ 111            row_id=5; number=.; day=.; moment=.; clock=.; text='漢字'; output;
+ 112            row_id=6; number=._; day=._; moment=._; clock=._; text=''; output;
+ 113            row_id=7; number=.A; day=.A; moment=.A; clock=.A; text='01'; output;
+ 114            row_id=8; number=.B; day=.B; moment=.B; clock=.B; text='1'; output;
+ 115            row_id=9; number=.C; day=.C; moment=.C; clock=.C; text=' A'; output;
+ 116            row_id=10; number=.D; day=.D; moment=.D; clock=.D; text='é'; output;
+ 117            row_id=11; number=.E; day=.E; moment=.E; clock=.E; text='漢字'; output;
+ 118            row_id=12; number=.F; day=.F; moment=.F; clock=.F; text=''; output;
+ 119            row_id=13; number=.G; day=.G; moment=.G; clock=.G; text='01'; output;
+ 120            row_id=14; number=.H; day=.H; moment=.H; clock=.H; text='1'; output;
+ 121            row_id=15; number=.I; day=.I; moment=.I; clock=.I; text=' A'; output;
+ 122            row_id=16; number=.J; day=.J; moment=.J; clock=.J; text='é'; output;
+ 123            row_id=17; number=.K; day=.K; moment=.K; clock=.K; text='漢字'; output;
+ 124            row_id=18; number=.L; day=.L; moment=.L; clock=.L; text=''; output;
+ 125            row_id=19; number=.M; day=.M; moment=.M; clock=.M; text='01'; output;
+ 126            row_id=20; number=.N; day=.N; moment=.N; clock=.N; text='1'; output;
+ 127            row_id=21; number=.O; day=.O; moment=.O; clock=.O; text=' A'; output;
+ 128            row_id=22; number=.P; day=.P; moment=.P; clock=.P; text='é'; output;
+ 129            row_id=23; number=.Q; day=.Q; moment=.Q; clock=.Q; text='漢字'; output;
+ 130            row_id=24; number=.R; day=.R; moment=.R; clock=.R; text=''; output;
+ 131            row_id=25; number=.S; day=.S; moment=.S; clock=.S; text='01'; output;
+ 132            row_id=26; number=.T; day=.T; moment=.T; clock=.T; text='1'; output;
+ 133            row_id=27; number=.U; day=.U; moment=.U; clock=.U; text=' A'; output;
+ 134            row_id=28; number=.V; day=.V; moment=.V; clock=.V; text='é'; output;
+ 135            row_id=29; number=.W; day=.W; moment=.W; clock=.W; text='漢字'; output;
+ 136            row_id=30; number=.X; day=.X; moment=.X; clock=.X; text=''; output;
+ 137            row_id=31; number=.Y; day=.Y; moment=.Y; clock=.Y; text='01'; output;
+ 138            row_id=32; number=.Z; day=.Z; moment=.Z; clock=.Z; text='1'; output;
+ 139        run;
+
+ NOTE: The data set WORK.EXPECTED_ROWS has 32 observations and 6 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.01 seconds
+       memory              758.59k
+       OS Memory           18852.00k
+       Timestamp           10/20/2026 01:31:58 AM
+       Step Count                        23  Switch Count  1
+       Page Faults                       0
+       Page Reclaims                     87
+       Page Swaps                        0
+       Voluntary Context Switches        7
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           272
+
+
+ 140
+ 141        data work.actual_rows; set incoming.mixed_20261020_012855; format _all_; run;
+
+ NOTE: There were 32 observations read from the data set INCOMING.MIXED_20261020_012855.
+ NOTE: The data set WORK.ACTUAL_ROWS has 32 observations and 6 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.01 seconds
+       system cpu time     0.00 seconds
+       memory              694.12k
+       OS Memory           18852.00k
+       Timestamp           10/20/2026 01:31:58 AM
+       Step Count                        24  Switch Count  1
+       Page Faults                       0
+       Page Reclaims                     91
+       Page Swaps                        0
+       Voluntary Context Switches        13
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           264
+
+
+ 142        %compare_rows(work.expected_rows,work.actual_rows,number day moment clock text);
+
+ NOTE: There were 32 observations read from the data set WORK.EXPECTED_ROWS.
+ NOTE: The data set WORK.EXPECTED_ROWS has 32 observations and 6 variables.
+ NOTE: PROCEDURE SORT used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              927.64k
+       OS Memory           19112.00k
+       Timestamp           10/20/2026 01:31:58 AM
+       Step Count                        25  Switch Count  1
+       Page Faults                       0
+       Page Reclaims                     141
+       Page Swaps                        0
+       Voluntary Context Switches        8
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           264
+
+
+
+ NOTE: There were 32 observations read from the data set WORK.ACTUAL_ROWS.
+ NOTE: The data set WORK.ACTUAL_ROWS has 32 observations and 6 variables.
+ NOTE: PROCEDURE SORT used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              924.06k
+       OS Memory           19112.00k
+       Timestamp           10/20/2026 01:31:58 AM
+       Step Count                        26  Switch Count  1
+       Page Faults                       0
+       Page Reclaims                     114
+       Page Swaps                        0
+       Voluntary Context Switches        9
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           264
+
+
+
+ NOTE: There were 32 observations read from the data set WORK.EXPECTED_ROWS.
+ NOTE: There were 32 observations read from the data set WORK.ACTUAL_ROWS.
+ NOTE: PROCEDURE COMPARE used (Total process time):
+       real time           0.02 seconds
+       user cpu time       0.02 seconds
+       system cpu time     0.00 seconds
+       memory              1699.78k
+       OS Memory           20140.00k
+       Timestamp           10/20/2026 01:31:58 AM
+       Step Count                        27  Switch Count  0
+       Page Faults                       0
+       Page Reclaims                     307
+       Page Swaps                        0
+       Voluntary Context Switches        0
+       Involuntary Context Switches      3
+       Block Input Operations            0
+       Block Output Operations           72
+
+
+ ERROR: DDIWR_DIAGNOSTIC_FAIL Values differ SYSINFO=4100
+ 143        data work.narrow_actual;
+ 144            set incoming.narrow_20261020_012855; format _all_;
+ 145        run;
+
+ NOTE: There were 2 observations read from the data set INCOMING.NARROW_20261020_012855.
+ NOTE: The data set WORK.NARROW_ACTUAL has 2 observations and 3 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              690.89k
+       OS Memory           19620.00k
+       Timestamp           10/20/2026 01:31:58 AM
+       Step Count                        28  Switch Count  1
+       Page Faults                       0
+       Page Reclaims                     83
+       Page Swaps                        0
+       Voluntary Context Switches        11
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           264
+
+
+ 146        data work.narrow_expected;
+ 147            row_id=1; number=4097; day=3653; output;
+ 148            row_id=2; number=0; day=3654; output;
+ 149        run;
+
+ NOTE: The data set WORK.NARROW_EXPECTED has 2 observations and 3 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              660.71k
+       OS Memory           19620.00k
+       Timestamp           10/20/2026 01:31:58 AM
+       Step Count                        29  Switch Count  1
+       Page Faults                       0
+       Page Reclaims                     78
+       Page Swaps                        0
+       Voluntary Context Switches        10
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           272
+
+
+ 150        %compare_rows(work.narrow_expected,work.narrow_actual,number day);
+
+ NOTE: There were 2 observations read from the data set WORK.NARROW_EXPECTED.
+ NOTE: The data set WORK.NARROW_EXPECTED has 2 observations and 3 variables.
+ NOTE: PROCEDURE SORT used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              937.78k
+       OS Memory           19880.00k
+       Timestamp           10/20/2026 01:31:58 AM
+       Step Count                        30  Switch Count  1
+       Page Faults                       0
+       Page Reclaims                     114
+       Page Swaps                        0
+       Voluntary Context Switches        9
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           272
+
+
+
+ NOTE: There were 2 observations read from the data set WORK.NARROW_ACTUAL.
+ NOTE: The data set WORK.NARROW_ACTUAL has 2 observations and 3 variables.
+ NOTE: PROCEDURE SORT used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              944.95k
+       OS Memory           20136.00k
+       Timestamp           10/20/2026 01:31:58 AM
+       Step Count                        31  Switch Count  1
+       Page Faults                       0
+       Page Reclaims                     128
+       Page Swaps                        0
+       Voluntary Context Switches        9
+       Involuntary Context Switches      1
+       Block Input Operations            0
+       Block Output Operations           264
+
+
+
+ NOTE: There were 2 observations read from the data set WORK.NARROW_EXPECTED.
+ NOTE: There were 2 observations read from the data set WORK.NARROW_ACTUAL.
+ NOTE: PROCEDURE COMPARE used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.01 seconds
+       system cpu time     0.00 seconds
+       memory              1117.98k
+       OS Memory           20396.00k
+       Timestamp           10/20/2026 01:31:58 AM
+       Step Count                        32  Switch Count  0
+       Page Faults                       0
+       Page Reclaims                     128
+       Page Swaps                        0
+       Voluntary Context Switches        0
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           8
+
+
+ DDIWR_RAW_VALUES_PASS work.narrow_actual SYSINFO=20
+ 151        proc contents data=incoming.mixed_20261020_012855 out=evidence.mixed_columns; run;
+
+ NOTE: The data set EVIDENCE.MIXED_COLUMNS has 6 observations and 41 variables.
+ NOTE: PROCEDURE CONTENTS used (Total process time):
+       real time           0.03 seconds
+       user cpu time       0.02 seconds
+       system cpu time     0.00 seconds
+       memory              1738.28k
+       OS Memory           20648.00k
+       Timestamp           10/20/2026 01:31:59 AM
+       Step Count                        33  Switch Count  1
+       Page Faults                       0
+       Page Reclaims                     399
+       Page Swaps                        0
+       Voluntary Context Switches        35
+       Involuntary Context Switches      1
+       Block Input Operations            0
+       Block Output Operations           288
+
+
+ 152        proc contents data=incoming.narrow_20261020_012855 out=evidence.narrow_columns; run;
+
+ NOTE: The data set EVIDENCE.NARROW_COLUMNS has 3 observations and 41 variables.
+ NOTE: PROCEDURE CONTENTS used (Total process time):
+       real time           0.03 seconds
+       user cpu time       0.02 seconds
+       system cpu time     0.01 seconds
+       memory              1087.70k
+       OS Memory           20648.00k
+       Timestamp           10/20/2026 01:31:59 AM
+       Step Count                        34  Switch Count  1
+       Page Faults                       0
+       Page Reclaims                     148
+       Page Swaps                        0
+       Voluntary Context Switches        35
+       Involuntary Context Switches      1
+       Block Input Operations            0
+       Block Output Operations           288
+
+
+ 153        data _null_; set evidence.narrow_columns;
+ 154            if name in ('number','day') and length ne 3 then call execute('%record(Narrow width differs);');
+ 155        run;
+
+ NOTE: There were 3 observations read from the data set EVIDENCE.NARROW_COLUMNS.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              758.73k
+       OS Memory           20644.00k
+       Timestamp           10/20/2026 01:31:59 AM
+       Step Count                        35  Switch Count  0
+       Page Faults                       0
+       Page Reclaims                     63
+       Page Swaps                        0
+       Voluntary Context Switches        9
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           0
+
+
+ 156        data _null_;
+ 157            dsid=open('incoming.empty_20261020_012855','I');
+ 158            if dsid then do;
+ 159                count=attrn(dsid,'NLOBS'); rc=close(dsid);
+ 160                if count ne 0 then call execute('%record(Empty row count differs);');
+ 161                else put 'DDIWR_EMPTY_ROWS_PASS';
+ 162            end;
+ 163            else call execute('%record(Cannot open empty data);');
+ 164        run;
+
+ DDIWR_EMPTY_ROWS_PASS
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              503.40k
+       OS Memory           20384.00k
+       Timestamp           10/20/2026 01:31:59 AM
+       Step Count                        36  Switch Count  0
+       Page Faults                       0
+       Page Reclaims                     14
+       Page Swaps                        0
+       Voluntary Context Switches        4
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           0
+
+
+ 165        %put DDIWR_RAW_DIAGNOSTIC_FAILURES=&failures;
+ DDIWR_RAW_DIAGNOSTIC_FAILURES=1
+ 166        /* Reproduce the exported catalog failure independently of FMTSEARCH. */
+ 167        proc catalog catalog=incoming.mixed_20261020_012855; contents; run;
+
+ ERROR: File INCOMING.MIXED_20261020_012855.CATALOG is not a SAS data set.
+ WARNING: Command CONTENTS not processed because of errors noted above.
+ 167      !                                                                     quit;
+
+ NOTE: The SAS System stopped processing this step because of errors.
+ NOTE: PROCEDURE CATALOG used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              1657.20k
+       OS Memory           21416.00k
+       Timestamp           10/20/2026 01:31:59 AM
+       Step Count                        37  Switch Count  0
+       Page Faults                       0
+       Page Reclaims                     136
+       Page Swaps                        0
+       Voluntary Context Switches        4
+       Involuntary Context Switches      1
+       Block Input Operations            0
+       Block Output Operations           0
+
+
+
+ 168        proc format library=incoming.mixed_20261020_012855 cntlout=work.exported_labels;
+ 168      !                                                                                  run;
+
+ NOTE: PROCEDURE FORMAT used (Total process time):
+       real time           0.00 seconds
+       user cpu time       0.00 seconds
+       system cpu time     0.00 seconds
+       memory              425.59k
+       OS Memory           21412.00k
+       Timestamp           10/20/2026 01:31:59 AM
+       Step Count                        38  Switch Count  1
+       Page Faults                       0
+       Page Reclaims                     50
+       Page Swaps                        0
+       Voluntary Context Switches        13
+       Involuntary Context Switches      0
+       Block Input Operations            0
+       Block Output Operations           160
+
+ ERROR: File INCOMING.MIXED_20261020_012855.CATALOG is not a SAS data set.
+ NOTE: The SAS System stopped processing this step because of errors.
+ WARNING: The data set WORK.EXPORTED_LABELS may be incomplete.  When this step was stopped there were 0 observations and 0 variables.
+ 169        %put DDIWR_EXPORTED_CATALOG_SYSERR=&syserr;
+ DDIWR_EXPORTED_CATALOG_SYSERR=1012
+
+
+ 170        proc print data=evidence.reference_labels; var fmtname type start end label; run;
+
+ NOTE: There were 12 observations read from the data set EVIDENCE.REFERENCE_LABELS.
+ NOTE: PROCEDURE PRINT used (Total process time):
+       real time           0.01 seconds
+       user cpu time       0.01 seconds
+       system cpu time     0.00 seconds
+       memory              661.40k
+       OS Memory           21672.00k
+       Timestamp           10/20/2026 01:31:59 AM
+       Step Count                        39  Switch Count  0
+       Page Faults                       0
+       Page Reclaims                     88
+       Page Swaps                        0
+       Voluntary Context Switches        9
+       Involuntary Context Switches      1
+       Block Input Operations            0
+       Block Output Operations           0
+
+
+ 171
+ 172
+ 173        OPTIONS NONOTES NOSTIMER NOSOURCE NOSYNTAXCHECK;
+ 183

@@ -1,0 +1,17 @@
+proc printto; run; options source source2 nosyntaxcheck;
+%let root=%sysget(HOME);libname ctl "&root/ddiwr_catalog_controls";
+data work.formats;
+ length fmtname $32 label $80 type $1;
+ type='N';
+ do f=1 to 80;
+  fmtname=cats('FORM',put(f,z3.),'F');
+  do start=1 to ifn(f=1,1000,2);
+   end=start; label=cats('Label ',start); output;
+  end;
+ end;
+ drop f;
+run;
+proc format library=ctl.large cntlin=work.formats;run;
+proc format library=ctl.empty;value DELETE_ME 1='One';run;
+proc catalog catalog=ctl.empty;delete DELETE_ME.format;run;quit;
+%put LARGE_DONE SYSCC=&syscc;

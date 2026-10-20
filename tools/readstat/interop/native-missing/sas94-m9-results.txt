@@ -1,0 +1,245 @@
+Results: missing_20261020_015222.sas
+Results: missing_20261020_015222.sas
+The Compare Procedure
+Datasets
+The COMPARE Procedure
+Comparison of WORK.NATIVE_EXPECTED with WORK.ACTUAL
+(Method=ABSOLUTE, Criterion=0)
+Data Set Summary
+Dataset Created Modified NVar NObs
+WORK.NATIVE_EXPECTED 20OCT26:01:53:15 20OCT26:01:53:15 2 5
+WORK.ACTUAL 20OCT26:01:53:15 20OCT26:01:53:15 2 5
+Variables Summary
+Number of Variables in Common: 2.
+Number of VAR Statement Variables: 2.
+Summary
+Observation Summary
+Observation Base Compare
+First Obs 1 1
+Last Obs 5 5
+Number of Observations in Common: 5.
+Total Number of Observations Read from WORK.NATIVE_EXPECTED: 5.
+Total Number of Observations Read from WORK.ACTUAL: 5.
+Number of Observations with Some Compared Variables Unequal: 0.
+Number of Observations with All Compared Variables Equal: 5.
+NOTE: No unequal values were found. All values compared are exactly equal.
+The Compare Procedure
+Datasets
+The COMPARE Procedure
+Comparison of WORK.NATIVE_EXPECTED with WORK.ACTUAL
+(Method=ABSOLUTE, Criterion=0)
+Data Set Summary
+Dataset Created Modified NVar NObs
+WORK.NATIVE_EXPECTED 20OCT26:01:53:15 20OCT26:01:53:15 2 5
+WORK.ACTUAL 20OCT26:01:53:15 20OCT26:01:53:15 2 5
+Variables Summary
+Number of Variables in Common: 2.
+Number of VAR Statement Variables: 2.
+Summary
+Observation Summary
+Observation Base Compare
+First Obs 1 1
+Last Obs 5 5
+Number of Observations in Common: 5.
+Total Number of Observations Read from WORK.NATIVE_EXPECTED: 5.
+Total Number of Observations Read from WORK.ACTUAL: 5.
+Number of Observations with Some Compared Variables Unequal: 0.
+Number of Observations with All Compared Variables Equal: 5.
+NOTE: No unequal values were found. All values compared are exactly equal.
+The Compare Procedure
+Datasets
+The COMPARE Procedure
+Comparison of EVIDENCE.EXPECTED_WIDTH3_20261020_015222 with WORK.ACTUAL
+(Method=ABSOLUTE, Criterion=0)
+Data Set Summary
+Dataset Created Modified NVar NObs
+EVIDENCE.EXPECTED_WIDTH3_20261020_015222 20OCT26:01:53:15 20OCT26:01:53:15 9 31
+WORK.ACTUAL 20OCT26:01:53:15 20OCT26:01:53:15 9 31
+Variables Summary
+Number of Variables in Common: 9.
+Number of VAR Statement Variables: 8.
+Summary
+Observation Summary
+Observation Base Compare
+First Obs 1 1
+Last Obs 31 31
+Number of Observations in Common: 31.
+Total Number of Observations Read from EVIDENCE.EXPECTED_WIDTH3_20261020_015222: 31.
+Total Number of Observations Read from WORK.ACTUAL: 31.
+Number of Observations with Some Compared Variables Unequal: 0.
+Number of Observations with All Compared Variables Equal: 31.
+NOTE: No unequal values were found. All values compared are exactly equal.
+The Compare Procedure
+Datasets
+The COMPARE Procedure
+Comparison of EVIDENCE.EXPECTED_WIDTH4_20261020_015222 with WORK.ACTUAL
+(Method=ABSOLUTE, Criterion=0)
+Data Set Summary
+Dataset Created Modified NVar NObs
+EVIDENCE.EXPECTED_WIDTH4_20261020_015222 20OCT26:01:53:15 20OCT26:01:53:15 9 31
+WORK.ACTUAL 20OCT26:01:53:15 20OCT26:01:53:15 9 31
+Variables Summary
+Number of Variables in Common: 9.
+Number of VAR Statement Variables: 8.
+Summary
+Observation Summary
+Observation Base Compare
+First Obs 1 1
+Last Obs 31 31
+Number of Observations in Common: 31.
+Total Number of Observations Read from EVIDENCE.EXPECTED_WIDTH4_20261020_015222: 31.
+Total Number of Observations Read from WORK.ACTUAL: 31.
+Number of Observations with Some Compared Variables Unequal: 0.
+Number of Observations with All Compared Variables Equal: 31.
+NOTE: No unequal values were found. All values compared are exactly equal.
+The Compare Procedure
+Datasets
+The COMPARE Procedure
+Comparison of EVIDENCE.EXPECTED_WIDTH5_20261020_015222 with WORK.ACTUAL
+(Method=ABSOLUTE, Criterion=0)
+Data Set Summary
+Dataset Created Modified NVar NObs
+EVIDENCE.EXPECTED_WIDTH5_20261020_015222 20OCT26:01:53:15 20OCT26:01:53:15 9 31
+WORK.ACTUAL 20OCT26:01:53:15 20OCT26:01:53:15 9 31
+Variables Summary
+Number of Variables in Common: 9.
+Number of VAR Statement Variables: 8.
+Summary
+Observation Summary
+Observation Base Compare
+First Obs 1 1
+Last Obs 31 31
+Number of Observations in Common: 31.
+Total Number of Observations Read from EVIDENCE.EXPECTED_WIDTH5_20261020_015222: 31.
+Total Number of Observations Read from WORK.ACTUAL: 31.
+Number of Observations with Some Compared Variables Unequal: 0.
+Number of Observations with All Compared Variables Equal: 31.
+NOTE: No unequal values were found. All values compared are exactly equal.
+The Compare Procedure
+Datasets
+The COMPARE Procedure
+Comparison of EVIDENCE.EXPECTED_WIDTH6_20261020_015222 with WORK.ACTUAL
+(Method=ABSOLUTE, Criterion=0)
+Data Set Summary
+Dataset Created Modified NVar NObs
+EVIDENCE.EXPECTED_WIDTH6_20261020_015222 20OCT26:01:53:15 20OCT26:01:53:15 9 31
+WORK.ACTUAL 20OCT26:01:53:15 20OCT26:01:53:15 9 31
+Variables Summary
+Number of Variables in Common: 9.
+Number of VAR Statement Variables: 8.
+Summary
+Observation Summary
+Observation Base Compare
+First Obs 1 1
+Last Obs 31 31
+Number of Observations in Common: 31.
+Total Number of Observations Read from EVIDENCE.EXPECTED_WIDTH6_20261020_015222: 31.
+Total Number of Observations Read from WORK.ACTUAL: 31.
+Number of Observations with Some Compared Variables Unequal: 0.
+Number of Observations with All Compared Variables Equal: 31.
+NOTE: No unequal values were found. All values compared are exactly equal.
+The Compare Procedure
+Datasets
+The COMPARE Procedure
+Comparison of EVIDENCE.EXPECTED_WIDTH7_20261020_015222 with WORK.ACTUAL
+(Method=ABSOLUTE, Criterion=0)
+Data Set Summary
+Dataset Created Modified NVar NObs
+EVIDENCE.EXPECTED_WIDTH7_20261020_015222 20OCT26:01:53:15 20OCT26:01:53:15 9 31
+WORK.ACTUAL 20OCT26:01:53:15 20OCT26:01:53:15 9 31
+Variables Summary
+Number of Variables in Common: 9.
+Number of VAR Statement Variables: 8.
+Summary
+Observation Summary
+Observation Base Compare
+First Obs 1 1
+Last Obs 31 31
+Number of Observations in Common: 31.
+Total Number of Observations Read from EVIDENCE.EXPECTED_WIDTH7_20261020_015222: 31.
+Total Number of Observations Read from WORK.ACTUAL: 31.
+Number of Observations with Some Compared Variables Unequal: 0.
+Number of Observations with All Compared Variables Equal: 31.
+NOTE: No unequal values were found. All values compared are exactly equal.
+The Compare Procedure
+Datasets
+The COMPARE Procedure
+Comparison of EVIDENCE.EXPECTED_WIDTH8_20261020_015222 with WORK.ACTUAL
+(Method=ABSOLUTE, Criterion=0)
+Data Set Summary
+Dataset Created Modified NVar NObs
+EVIDENCE.EXPECTED_WIDTH8_20261020_015222 20OCT26:01:53:15 20OCT26:01:53:15 9 31
+WORK.ACTUAL 20OCT26:01:53:15 20OCT26:01:53:15 9 31
+Variables Summary
+Number of Variables in Common: 9.
+Number of VAR Statement Variables: 8.
+Summary
+Observation Summary
+Observation Base Compare
+First Obs 1 1
+Last Obs 31 31
+Number of Observations in Common: 31.
+Total Number of Observations Read from EVIDENCE.EXPECTED_WIDTH8_20261020_015222: 31.
+Total Number of Observations Read from WORK.ACTUAL: 31.
+Number of Observations with Some Compared Variables Unequal: 0.
+Number of Observations with All Compared Variables Equal: 31.
+NOTE: No unequal values were found. All values compared are exactly equal.
+The Compare Procedure
+Datasets
+The COMPARE Procedure
+Comparison of EVIDENCE.EXPECTED_DICT_20261020_015222 with WORK.ACTUAL
+(Method=ABSOLUTE, Criterion=0)
+Data Set Summary
+Dataset Created Modified NVar NObs
+EVIDENCE.EXPECTED_DICT_20261020_015222 20OCT26:01:53:15 20OCT26:01:53:15 9 31
+WORK.ACTUAL 20OCT26:01:53:15 20OCT26:01:53:15 9 31
+Variables Summary
+Number of Variables in Common: 9.
+Number of VAR Statement Variables: 8.
+Summary
+Observation Summary
+Observation Base Compare
+First Obs 1 1
+Last Obs 31 31
+Number of Observations in Common: 31.
+Total Number of Observations Read from EVIDENCE.EXPECTED_DICT_20261020_015222: 31.
+Total Number of Observations Read from WORK.ACTUAL: 31.
+Number of Observations with Some Compared Variables Unequal: 0.
+Number of Observations with All Compared Variables Equal: 31.
+NOTE: No unequal values were found. All values compared are exactly equal.
+Native SAS missing values: 9.04.01M9P06052025 / LIN X64 / UTF-8
+The Print Procedure
+Data Set EVIDENCE.SUMMARY
+check
+status
+sysinfo
+SAS-native fixture via write_sas
+PASS
+0
+SAS-native fixture via convert
+PASS
+0
+width3_20261020_015222
+PASS
+0
+width4_20261020_015222
+PASS
+0
+width5_20261020_015222
+PASS
+0
+width6_20261020_015222
+PASS
+0
+width7_20261020_015222
+PASS
+0
+width8_20261020_015222
+PASS
+0
+dict_20261020_015222
+PASS
+0
+Empty data
+PASS
+0

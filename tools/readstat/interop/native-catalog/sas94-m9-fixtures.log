@@ -1,0 +1,1305 @@
+NOTE: PROCEDURE PRINTTO used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              282.17k
+      OS Memory           18336.00k
+      Timestamp           10/20/2026 02:25:29 AM
+      Step Count                        19  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     20
+      Page Swaps                        0
+      Voluntary Context Switches        7
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           0
+      
+
+74         options source source2 nosyntaxcheck fmterr; %let syscc=0; %let failures=0;
+75         libname incoming "&root" access=readonly;
+NOTE: Libref INCOMING was successfully assigned as follows: 
+      Engine:        V9 
+      Physical Name: /home/SAS_USER
+76         libname evidence "&root/ddiwr_catalog_&run_id";
+NOTE: Libref EVIDENCE was successfully assigned as follows: 
+      Engine:        V9 
+      Physical Name: /home/SAS_USER/ddiwr_catalog_20261020_022343
+77         data evidence.summary; length check $60 status $8 sysinfo 8; stop; run;
+
+NOTE: Variable check is uninitialized.
+NOTE: Variable status is uninitialized.
+NOTE: Variable sysinfo is uninitialized.
+2                                                          The SAS System                       Monday, October 19, 2026 07:25:29 PM
+
+NOTE: The data set EVIDENCE.SUMMARY has 0 observations and 3 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              518.04k
+      OS Memory           18596.00k
+      Timestamp           10/20/2026 02:25:29 AM
+      Step Count                        20  Switch Count  1
+      Page Faults                       0
+      Page Reclaims                     111
+      Page Swaps                        0
+      Voluntary Context Switches        27
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           264
+      
+
+78         %macro record(check,code);
+79             data work.check; length check $60 status $8 sysinfo 8;
+80                 check="&check"; sysinfo=&code; status=ifc(sysinfo < 64,'PASS','FAIL'); run;
+81             proc append base=evidence.summary data=work.check; run;
+82             %if &code >= 64 %then %do; %let failures=%eval(&failures+1);
+83                 %put ERROR: DDIWR_CATALOG_FAIL &check SYSINFO=&code; %end;
+84             %else %put DDIWR_CATALOG_PASS &check SYSINFO=&code;
+85         %mend;
+86         %macro compare(base,actual,variables,check);
+87             proc compare base=&base compare=&actual criterion=0 method=absolute; var &variables; run;
+88             %record(&check,&sysinfo);
+89         %mend;
+90         proc catalog catalog=incoming.out_reference_20261020_022343; contents; run;
+
+90       !                                                                             quit;
+
+NOTE: PROCEDURE CATALOG used (Total process time):
+      real time           0.01 seconds
+      user cpu time       0.01 seconds
+      system cpu time     0.00 seconds
+      memory              2278.92k
+      OS Memory           20392.00k
+      Timestamp           10/20/2026 02:25:29 AM
+      Step Count                        21  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     391
+      Page Swaps                        0
+      Voluntary Context Switches        5
+      Involuntary Context Switches      1
+      Block Input Operations            0
+      Block Output Operations           0
+      
+
+91         proc format library=incoming.base_reference_20261020_022343 cntlout=work.native;
+91       !                                                                                  run;
+
+NOTE: PROCEDURE FORMAT used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+3                                                          The SAS System                       Monday, October 19, 2026 07:25:29 PM
+
+      memory              470.68k
+      OS Memory           20648.00k
+      Timestamp           10/20/2026 02:25:29 AM
+      Step Count                        22  Switch Count  1
+      Page Faults                       0
+      Page Reclaims                     95
+      Page Swaps                        0
+      Voluntary Context Switches        12
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           264
+      
+NOTE: The data set WORK.NATIVE has 12 observations and 21 variables.
+
+92         data work.expected; set work.native; select(fmtname);
+93         when ('REFTEXT') fmtname='Z20261020022343_1F';
+94         when ('REFDATE') fmtname='Z20261020022343_2F';
+95         otherwise; end; run;
+
+NOTE: There were 12 observations read from the data set WORK.NATIVE.
+NOTE: The data set WORK.EXPECTED has 12 observations and 21 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              847.62k
+      OS Memory           20908.00k
+      Timestamp           10/20/2026 02:25:29 AM
+      Step Count                        23  Switch Count  1
+      Page Faults                       0
+      Page Reclaims                     136
+      Page Swaps                        0
+      Voluntary Context Switches        7
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           264
+      
+
+96         proc format library=incoming.out_reference_20261020_022343 cntlout=work.actual;
+96       !                                                                                 run;
+
+NOTE: PROCEDURE FORMAT used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              484.53k
+      OS Memory           20648.00k
+      Timestamp           10/20/2026 02:25:29 AM
+      Step Count                        24  Switch Count  1
+      Page Faults                       0
+      Page Reclaims                     78
+      Page Swaps                        0
+      Voluntary Context Switches        9
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           264
+      
+NOTE: The data set WORK.ACTUAL has 12 observations and 21 variables.
+4                                                          The SAS System                       Monday, October 19, 2026 07:25:29 PM
+
+
+97         proc sort data=work.expected; by fmtname type start; run;
+
+NOTE: There were 12 observations read from the data set WORK.EXPECTED.
+NOTE: The data set WORK.EXPECTED has 12 observations and 21 variables.
+NOTE: PROCEDURE SORT used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              813.98k
+      OS Memory           20908.00k
+      Timestamp           10/20/2026 02:25:29 AM
+      Step Count                        25  Switch Count  1
+      Page Faults                       0
+      Page Reclaims                     146
+      Page Swaps                        0
+      Voluntary Context Switches        7
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           264
+      
+
+98         proc sort data=work.actual; by fmtname type start; run;
+
+NOTE: There were 12 observations read from the data set WORK.ACTUAL.
+NOTE: The data set WORK.ACTUAL has 12 observations and 21 variables.
+NOTE: PROCEDURE SORT used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.01 seconds
+      system cpu time     0.00 seconds
+      memory              813.98k
+      OS Memory           20908.00k
+      Timestamp           10/20/2026 02:25:29 AM
+      Step Count                        26  Switch Count  1
+      Page Faults                       0
+      Page Reclaims                     113
+      Page Swaps                        0
+      Voluntary Context Switches        7
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           264
+      
+
+99         %compare(work.expected,work.actual,fmtname type start end label,reference native definitions);
+
+NOTE: There were 12 observations read from the data set WORK.EXPECTED.
+NOTE: There were 12 observations read from the data set WORK.ACTUAL.
+NOTE: PROCEDURE COMPARE used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              1107.78k
+      OS Memory           21168.00k
+      Timestamp           10/20/2026 02:25:29 AM
+      Step Count                        27  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     141
+      Page Swaps                        0
+5                                                          The SAS System                       Monday, October 19, 2026 07:25:29 PM
+
+      Voluntary Context Switches        0
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           8
+      
+
+
+NOTE: The data set WORK.CHECK has 1 observations and 3 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              519.17k
+      OS Memory           20648.00k
+      Timestamp           10/20/2026 02:25:29 AM
+      Step Count                        28  Switch Count  1
+      Page Faults                       0
+      Page Reclaims                     111
+      Page Swaps                        0
+      Voluntary Context Switches        9
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           264
+      
+
+
+NOTE: Appending WORK.CHECK to EVIDENCE.SUMMARY.
+NOTE: There were 1 observations read from the data set WORK.CHECK.
+NOTE: 1 observations added.
+NOTE: The data set EVIDENCE.SUMMARY has 1 observations and 3 variables.
+NOTE: PROCEDURE APPEND used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              862.60k
+      OS Memory           21168.00k
+      Timestamp           10/20/2026 02:25:29 AM
+      Step Count                        29  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     138
+      Page Swaps                        0
+      Voluntary Context Switches        15
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           280
+      
+
+DDIWR_CATALOG_PASS reference native definitions SYSINFO=0
+100        options fmtsearch=(incoming.base_reference_20261020_022343 work);
+101        data work.expected_rows; set incoming.base_reference_20261020_022343;
+102        length label1 label2 $32767;
+103        label1=vvalue(text);
+104        label2=vvalue(day);
+105        run;
+
+NOTE: There were 5 observations read from the data set INCOMING.BASE_REFERENCE_20261020_022343.
+NOTE: The data set WORK.EXPECTED_ROWS has 5 observations and 4 variables.
+NOTE: DATA statement used (Total process time):
+6                                                          The SAS System                       Monday, October 19, 2026 07:25:29 PM
+
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              1598.35k
+      OS Memory           22444.00k
+      Timestamp           10/20/2026 02:25:29 AM
+      Step Count                        30  Switch Count  1
+      Page Faults                       0
+      Page Reclaims                     375
+      Page Swaps                        0
+      Voluntary Context Switches        15
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           1296
+      
+
+106        options fmtsearch=(incoming.out_reference_20261020_022343 work);
+107        data work.actual_rows; set incoming.out_reference_20261020_022343;
+108        length label1 label2 $32767;
+109        label1=vvalue(text);
+110        label2=vvalue(day);
+111        run;
+
+NOTE: There were 5 observations read from the data set INCOMING.OUT_REFERENCE_20261020_022343.
+NOTE: The data set WORK.ACTUAL_ROWS has 5 observations and 4 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              1347.67k
+      OS Memory           22184.00k
+      Timestamp           10/20/2026 02:25:29 AM
+      Step Count                        31  Switch Count  1
+      Page Faults                       0
+      Page Reclaims                     63
+      Page Swaps                        0
+      Voluntary Context Switches        15
+      Involuntary Context Switches      1
+      Block Input Operations            0
+      Block Output Operations           1288
+      
+
+112        %compare(work.expected_rows,work.actual_rows,text day label1 label2,reference native rows and rendered labels);
+
+NOTE: There were 5 observations read from the data set WORK.EXPECTED_ROWS.
+NOTE: There were 5 observations read from the data set WORK.ACTUAL_ROWS.
+NOTE: PROCEDURE COMPARE used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.01 seconds
+      system cpu time     0.00 seconds
+      memory              2185.00k
+      OS Memory           23472.00k
+      Timestamp           10/20/2026 02:25:29 AM
+      Step Count                        32  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     336
+      Page Swaps                        0
+      Voluntary Context Switches        7
+7                                                          The SAS System                       Monday, October 19, 2026 07:25:29 PM
+
+      Involuntary Context Switches      1
+      Block Input Operations            0
+      Block Output Operations           24
+      
+
+
+NOTE: The data set WORK.CHECK has 1 observations and 3 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              519.48k
+      OS Memory           22184.00k
+      Timestamp           10/20/2026 02:25:29 AM
+      Step Count                        33  Switch Count  1
+      Page Faults                       0
+      Page Reclaims                     79
+      Page Swaps                        0
+      Voluntary Context Switches        9
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           264
+      
+
+
+NOTE: Appending WORK.CHECK to EVIDENCE.SUMMARY.
+NOTE: There were 1 observations read from the data set WORK.CHECK.
+NOTE: 1 observations added.
+NOTE: The data set EVIDENCE.SUMMARY has 2 observations and 3 variables.
+NOTE: PROCEDURE APPEND used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              863.46k
+      OS Memory           22704.00k
+      Timestamp           10/20/2026 02:25:29 AM
+      Step Count                        34  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     116
+      Page Swaps                        0
+      Voluntary Context Switches        15
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           280
+      
+
+DDIWR_CATALOG_PASS reference native rows and rendered labels SYSINFO=8
+113        proc catalog catalog=incoming.out_longkeys_20261020_022343; contents; run;
+
+113      !                                                                            quit;
+
+NOTE: PROCEDURE CATALOG used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.01 seconds
+      system cpu time     0.00 seconds
+      memory              922.15k
+      OS Memory           22184.00k
+      Timestamp           10/20/2026 02:25:29 AM
+8                                                          The SAS System                       Monday, October 19, 2026 07:25:29 PM
+
+      Step Count                        35  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     25
+      Page Swaps                        0
+      Voluntary Context Switches        5
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           0
+      
+
+114        proc format library=incoming.base_longkeys_20261020_022343 cntlout=work.native;
+114      !                                                                                 run;
+
+NOTE: PROCEDURE FORMAT used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              470.73k
+      OS Memory           22184.00k
+      Timestamp           10/20/2026 02:25:29 AM
+      Step Count                        36  Switch Count  1
+      Page Faults                       0
+      Page Reclaims                     78
+      Page Swaps                        0
+      Voluntary Context Switches        12
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           264
+      
+NOTE: The data set WORK.NATIVE has 4 observations and 21 variables.
+
+115        data work.expected; set work.native; select(fmtname);
+116        when ('CHARACTER_LONG_NAME') fmtname='Z20261020022343_LONG_KEY_FORMAT';
+117        otherwise; end; run;
+
+NOTE: There were 4 observations read from the data set WORK.NATIVE.
+NOTE: The data set WORK.EXPECTED has 4 observations and 21 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              846.17k
+      OS Memory           22444.00k
+      Timestamp           10/20/2026 02:25:29 AM
+      Step Count                        37  Switch Count  1
+      Page Faults                       0
+      Page Reclaims                     112
+      Page Swaps                        0
+      Voluntary Context Switches        9
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           264
+      
+
+118        proc format library=incoming.out_longkeys_20261020_022343 cntlout=work.actual;
+118      !                                                                                run;
+
+NOTE: PROCEDURE FORMAT used (Total process time):
+9                                                          The SAS System                       Monday, October 19, 2026 07:25:29 PM
+
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              470.73k
+      OS Memory           22184.00k
+      Timestamp           10/20/2026 02:25:29 AM
+      Step Count                        38  Switch Count  1
+      Page Faults                       0
+      Page Reclaims                     78
+      Page Swaps                        0
+      Voluntary Context Switches        9
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           264
+      
+NOTE: The data set WORK.ACTUAL has 4 observations and 21 variables.
+
+119        proc sort data=work.expected; by fmtname type start; run;
+
+NOTE: There were 4 observations read from the data set WORK.EXPECTED.
+NOTE: The data set WORK.EXPECTED has 4 observations and 21 variables.
+NOTE: PROCEDURE SORT used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              813.85k
+      OS Memory           22444.00k
+      Timestamp           10/20/2026 02:25:29 AM
+      Step Count                        39  Switch Count  1
+      Page Faults                       0
+      Page Reclaims                     113
+      Page Swaps                        0
+      Voluntary Context Switches        7
+      Involuntary Context Switches      1
+      Block Input Operations            0
+      Block Output Operations           264
+      
+
+120        proc sort data=work.actual; by fmtname type start; run;
+
+NOTE: There were 4 observations read from the data set WORK.ACTUAL.
+NOTE: The data set WORK.ACTUAL has 4 observations and 21 variables.
+NOTE: PROCEDURE SORT used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.01 seconds
+      system cpu time     0.00 seconds
+      memory              813.85k
+      OS Memory           22444.00k
+      Timestamp           10/20/2026 02:25:29 AM
+      Step Count                        40  Switch Count  1
+      Page Faults                       0
+      Page Reclaims                     113
+      Page Swaps                        0
+      Voluntary Context Switches        7
+      Involuntary Context Switches      1
+      Block Input Operations            0
+      Block Output Operations           264
+      
+10                                                         The SAS System                       Monday, October 19, 2026 07:25:29 PM
+
+
+121        %compare(work.expected,work.actual,fmtname type start end label,longkeys native definitions);
+
+NOTE: There were 4 observations read from the data set WORK.EXPECTED.
+NOTE: There were 4 observations read from the data set WORK.ACTUAL.
+NOTE: PROCEDURE COMPARE used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              993.06k
+      OS Memory           22704.00k
+      Timestamp           10/20/2026 02:25:29 AM
+      Step Count                        41  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     118
+      Page Swaps                        0
+      Voluntary Context Switches        0
+      Involuntary Context Switches      1
+      Block Input Operations            0
+      Block Output Operations           24
+      
+
+
+NOTE: The data set WORK.CHECK has 1 observations and 3 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              519.48k
+      OS Memory           22184.00k
+      Timestamp           10/20/2026 02:25:29 AM
+      Step Count                        42  Switch Count  1
+      Page Faults                       0
+      Page Reclaims                     78
+      Page Swaps                        0
+      Voluntary Context Switches        9
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           264
+      
+
+
+NOTE: Appending WORK.CHECK to EVIDENCE.SUMMARY.
+NOTE: There were 1 observations read from the data set WORK.CHECK.
+NOTE: 1 observations added.
+NOTE: The data set EVIDENCE.SUMMARY has 3 observations and 3 variables.
+NOTE: PROCEDURE APPEND used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              863.46k
+      OS Memory           22704.00k
+      Timestamp           10/20/2026 02:25:29 AM
+      Step Count                        43  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     116
+      Page Swaps                        0
+      Voluntary Context Switches        13
+11                                                         The SAS System                       Monday, October 19, 2026 07:25:29 PM
+
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           272
+      
+
+DDIWR_CATALOG_PASS longkeys native definitions SYSINFO=0
+122        options fmtsearch=(incoming.base_longkeys_20261020_022343 work);
+123        data work.expected_rows; set incoming.base_longkeys_20261020_022343;
+124        length label1 $32767;
+125        label1=vvalue(text);
+126        run;
+
+NOTE: There were 4 observations read from the data set INCOMING.BASE_LONGKEYS_20261020_022343.
+NOTE: The data set WORK.EXPECTED_ROWS has 4 observations and 2 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              735.17k
+      OS Memory           22184.00k
+      Timestamp           10/20/2026 02:25:29 AM
+      Step Count                        44  Switch Count  1
+      Page Faults                       0
+      Page Reclaims                     54
+      Page Swaps                        0
+      Voluntary Context Switches        14
+      Involuntary Context Switches      1
+      Block Input Operations            0
+      Block Output Operations           520
+      
+
+127        options fmtsearch=(incoming.out_longkeys_20261020_022343 work);
+128        data work.actual_rows; set incoming.out_longkeys_20261020_022343;
+129        length label1 $32767;
+130        label1=vvalue(text);
+131        run;
+
+NOTE: There were 4 observations read from the data set INCOMING.OUT_LONGKEYS_20261020_022343.
+NOTE: The data set WORK.ACTUAL_ROWS has 4 observations and 2 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              734.85k
+      OS Memory           22184.00k
+      Timestamp           10/20/2026 02:25:29 AM
+      Step Count                        45  Switch Count  1
+      Page Faults                       0
+      Page Reclaims                     54
+      Page Swaps                        0
+      Voluntary Context Switches        14
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           520
+      
+
+132        %compare(work.expected_rows,work.actual_rows,text label1,longkeys native rows and rendered labels);
+
+12                                                         The SAS System                       Monday, October 19, 2026 07:25:29 PM
+
+NOTE: There were 4 observations read from the data set WORK.EXPECTED_ROWS.
+NOTE: There were 4 observations read from the data set WORK.ACTUAL_ROWS.
+NOTE: PROCEDURE COMPARE used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.01 seconds
+      system cpu time     0.00 seconds
+      memory              1335.89k
+      OS Memory           22704.00k
+      Timestamp           10/20/2026 02:25:29 AM
+      Step Count                        46  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     121
+      Page Swaps                        0
+      Voluntary Context Switches        5
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           24
+      
+
+
+NOTE: The data set WORK.CHECK has 1 observations and 3 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              519.48k
+      OS Memory           22184.00k
+      Timestamp           10/20/2026 02:25:29 AM
+      Step Count                        47  Switch Count  1
+      Page Faults                       0
+      Page Reclaims                     78
+      Page Swaps                        0
+      Voluntary Context Switches        9
+      Involuntary Context Switches      1
+      Block Input Operations            0
+      Block Output Operations           264
+      
+
+
+NOTE: Appending WORK.CHECK to EVIDENCE.SUMMARY.
+NOTE: There were 1 observations read from the data set WORK.CHECK.
+NOTE: 1 observations added.
+NOTE: The data set EVIDENCE.SUMMARY has 4 observations and 3 variables.
+NOTE: PROCEDURE APPEND used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.01 seconds
+      memory              862.60k
+      OS Memory           22704.00k
+      Timestamp           10/20/2026 02:25:29 AM
+      Step Count                        48  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     117
+      Page Swaps                        0
+      Voluntary Context Switches        15
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           272
+13                                                         The SAS System                       Monday, October 19, 2026 07:25:29 PM
+
+      
+
+DDIWR_CATALOG_PASS longkeys native rows and rendered labels SYSINFO=8
+133        proc catalog catalog=incoming.out_many_20261020_022343; contents; run;
+
+133      !                                                                        quit;
+
+NOTE: PROCEDURE CATALOG used (Total process time):
+      real time           0.05 seconds
+      user cpu time       0.06 seconds
+      system cpu time     0.00 seconds
+      memory              921.03k
+      OS Memory           22184.00k
+      Timestamp           10/20/2026 02:25:29 AM
+      Step Count                        49  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     21
+      Page Swaps                        0
+      Voluntary Context Switches        5
+      Involuntary Context Switches      2
+      Block Input Operations            0
+      Block Output Operations           32
+      
+
+134        proc format library=incoming.base_many_20261020_022343 cntlout=work.native;
+134      !                                                                             run;
+
+NOTE: PROCEDURE FORMAT used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              743.79k
+      OS Memory           22184.00k
+      Timestamp           10/20/2026 02:25:29 AM
+      Step Count                        50  Switch Count  1
+      Page Faults                       0
+      Page Reclaims                     54
+      Page Swaps                        0
+      Voluntary Context Switches        14
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           520
+      
+NOTE: The data set WORK.NATIVE has 1158 observations and 21 variables.
+
+135        data work.expected; set work.native; select(fmtname);
+136        when ('FORM001F') fmtname='Z20261020022343_1F';
+137        when ('FORM002F') fmtname='Z20261020022343_2F';
+138        when ('FORM003F') fmtname='Z20261020022343_3F';
+139        when ('FORM004F') fmtname='Z20261020022343_4F';
+140        when ('FORM005F') fmtname='Z20261020022343_5F';
+141        when ('FORM006F') fmtname='Z20261020022343_6F';
+142        when ('FORM007F') fmtname='Z20261020022343_7F';
+143        when ('FORM008F') fmtname='Z20261020022343_8F';
+144        when ('FORM009F') fmtname='Z20261020022343_9F';
+145        when ('FORM010F') fmtname='Z20261020022343_10F';
+146        when ('FORM011F') fmtname='Z20261020022343_11F';
+147        when ('FORM012F') fmtname='Z20261020022343_12F';
+14                                                         The SAS System                       Monday, October 19, 2026 07:25:29 PM
+
+148        when ('FORM013F') fmtname='Z20261020022343_13F';
+149        when ('FORM014F') fmtname='Z20261020022343_14F';
+150        when ('FORM015F') fmtname='Z20261020022343_15F';
+151        when ('FORM016F') fmtname='Z20261020022343_16F';
+152        when ('FORM017F') fmtname='Z20261020022343_17F';
+153        when ('FORM018F') fmtname='Z20261020022343_18F';
+154        when ('FORM019F') fmtname='Z20261020022343_19F';
+155        when ('FORM020F') fmtname='Z20261020022343_20F';
+156        when ('FORM021F') fmtname='Z20261020022343_21F';
+157        when ('FORM022F') fmtname='Z20261020022343_22F';
+158        when ('FORM023F') fmtname='Z20261020022343_23F';
+159        when ('FORM024F') fmtname='Z20261020022343_24F';
+160        when ('FORM025F') fmtname='Z20261020022343_25F';
+161        when ('FORM026F') fmtname='Z20261020022343_26F';
+162        when ('FORM027F') fmtname='Z20261020022343_27F';
+163        when ('FORM028F') fmtname='Z20261020022343_28F';
+164        when ('FORM029F') fmtname='Z20261020022343_29F';
+165        when ('FORM030F') fmtname='Z20261020022343_30F';
+166        when ('FORM031F') fmtname='Z20261020022343_31F';
+167        when ('FORM032F') fmtname='Z20261020022343_32F';
+168        when ('FORM033F') fmtname='Z20261020022343_33F';
+169        when ('FORM034F') fmtname='Z20261020022343_34F';
+170        when ('FORM035F') fmtname='Z20261020022343_35F';
+171        when ('FORM036F') fmtname='Z20261020022343_36F';
+172        when ('FORM037F') fmtname='Z20261020022343_37F';
+173        when ('FORM038F') fmtname='Z20261020022343_38F';
+174        when ('FORM039F') fmtname='Z20261020022343_39F';
+175        when ('FORM040F') fmtname='Z20261020022343_40F';
+176        when ('FORM041F') fmtname='Z20261020022343_41F';
+177        when ('FORM042F') fmtname='Z20261020022343_42F';
+178        when ('FORM043F') fmtname='Z20261020022343_43F';
+179        when ('FORM044F') fmtname='Z20261020022343_44F';
+180        when ('FORM045F') fmtname='Z20261020022343_45F';
+181        when ('FORM046F') fmtname='Z20261020022343_46F';
+182        when ('FORM047F') fmtname='Z20261020022343_47F';
+183        when ('FORM048F') fmtname='Z20261020022343_48F';
+184        when ('FORM049F') fmtname='Z20261020022343_49F';
+185        when ('FORM050F') fmtname='Z20261020022343_50F';
+186        when ('FORM051F') fmtname='Z20261020022343_51F';
+187        when ('FORM052F') fmtname='Z20261020022343_52F';
+188        when ('FORM053F') fmtname='Z20261020022343_53F';
+189        when ('FORM054F') fmtname='Z20261020022343_54F';
+190        when ('FORM055F') fmtname='Z20261020022343_55F';
+191        when ('FORM056F') fmtname='Z20261020022343_56F';
+192        when ('FORM057F') fmtname='Z20261020022343_57F';
+193        when ('FORM058F') fmtname='Z20261020022343_58F';
+194        when ('FORM059F') fmtname='Z20261020022343_59F';
+195        when ('FORM060F') fmtname='Z20261020022343_60F';
+196        when ('FORM061F') fmtname='Z20261020022343_61F';
+197        when ('FORM062F') fmtname='Z20261020022343_62F';
+198        when ('FORM063F') fmtname='Z20261020022343_63F';
+199        when ('FORM064F') fmtname='Z20261020022343_64F';
+200        when ('FORM065F') fmtname='Z20261020022343_65F';
+201        when ('FORM066F') fmtname='Z20261020022343_66F';
+202        when ('FORM067F') fmtname='Z20261020022343_67F';
+203        when ('FORM068F') fmtname='Z20261020022343_68F';
+204        when ('FORM069F') fmtname='Z20261020022343_69F';
+205        when ('FORM070F') fmtname='Z20261020022343_70F';
+15                                                         The SAS System                       Monday, October 19, 2026 07:25:29 PM
+
+206        when ('FORM071F') fmtname='Z20261020022343_71F';
+207        when ('FORM072F') fmtname='Z20261020022343_72F';
+208        when ('FORM073F') fmtname='Z20261020022343_73F';
+209        when ('FORM074F') fmtname='Z20261020022343_74F';
+210        when ('FORM075F') fmtname='Z20261020022343_75F';
+211        when ('FORM076F') fmtname='Z20261020022343_76F';
+212        when ('FORM077F') fmtname='Z20261020022343_77F';
+213        when ('FORM078F') fmtname='Z20261020022343_78F';
+214        when ('FORM079F') fmtname='Z20261020022343_79F';
+215        when ('FORM080F') fmtname='Z20261020022343_80F';
+216        otherwise; end; run;
+
+NOTE: There were 1158 observations read from the data set WORK.NATIVE.
+NOTE: The data set WORK.EXPECTED has 1158 observations and 21 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.01 seconds
+      system cpu time     0.00 seconds
+      memory              1241.90k
+      OS Memory           22444.00k
+      Timestamp           10/20/2026 02:25:29 AM
+      Step Count                        51  Switch Count  1
+      Page Faults                       0
+      Page Reclaims                     85
+      Page Swaps                        0
+      Voluntary Context Switches        9
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           536
+      
+
+217        proc format library=incoming.out_many_20261020_022343 cntlout=work.actual;
+217      !                                                                            run;
+
+NOTE: PROCEDURE FORMAT used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              743.79k
+      OS Memory           22184.00k
+      Timestamp           10/20/2026 02:25:29 AM
+      Step Count                        52  Switch Count  1
+      Page Faults                       0
+      Page Reclaims                     48
+      Page Swaps                        0
+      Voluntary Context Switches        9
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           520
+      
+NOTE: The data set WORK.ACTUAL has 1158 observations and 21 variables.
+
+218        proc sort data=work.expected; by fmtname type start; run;
+
+NOTE: There were 1158 observations read from the data set WORK.EXPECTED.
+NOTE: The data set WORK.EXPECTED has 1158 observations and 21 variables.
+NOTE: PROCEDURE SORT used (Total process time):
+      real time           0.00 seconds
+16                                                         The SAS System                       Monday, October 19, 2026 07:25:29 PM
+
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              1577.89k
+      OS Memory           22964.00k
+      Timestamp           10/20/2026 02:25:29 AM
+      Step Count                        53  Switch Count  1
+      Page Faults                       0
+      Page Reclaims                     127
+      Page Swaps                        0
+      Voluntary Context Switches        7
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           520
+      
+
+219        proc sort data=work.actual; by fmtname type start; run;
+
+NOTE: There were 1158 observations read from the data set WORK.ACTUAL.
+NOTE: The data set WORK.ACTUAL has 1158 observations and 21 variables.
+NOTE: PROCEDURE SORT used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              1577.89k
+      OS Memory           22964.00k
+      Timestamp           10/20/2026 02:25:29 AM
+      Step Count                        54  Switch Count  1
+      Page Faults                       0
+      Page Reclaims                     113
+      Page Swaps                        0
+      Voluntary Context Switches        7
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           520
+      
+
+220        %compare(work.expected,work.actual,fmtname type start end label,many native definitions);
+
+NOTE: There were 1158 observations read from the data set WORK.EXPECTED.
+NOTE: There were 1158 observations read from the data set WORK.ACTUAL.
+NOTE: PROCEDURE COMPARE used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.01 seconds
+      system cpu time     0.00 seconds
+      memory              1282.34k
+      OS Memory           22704.00k
+      Timestamp           10/20/2026 02:25:29 AM
+      Step Count                        55  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     118
+      Page Swaps                        0
+      Voluntary Context Switches        0
+      Involuntary Context Switches      2
+      Block Input Operations            0
+      Block Output Operations           24
+      
+
+
+17                                                         The SAS System                       Monday, October 19, 2026 07:25:29 PM
+
+NOTE: The data set WORK.CHECK has 1 observations and 3 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              519.17k
+      OS Memory           22184.00k
+      Timestamp           10/20/2026 02:25:29 AM
+      Step Count                        56  Switch Count  1
+      Page Faults                       0
+      Page Reclaims                     78
+      Page Swaps                        0
+      Voluntary Context Switches        8
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           264
+      
+
+
+NOTE: Appending WORK.CHECK to EVIDENCE.SUMMARY.
+NOTE: There were 1 observations read from the data set WORK.CHECK.
+NOTE: 1 observations added.
+NOTE: The data set EVIDENCE.SUMMARY has 5 observations and 3 variables.
+NOTE: PROCEDURE APPEND used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              863.46k
+      OS Memory           22704.00k
+      Timestamp           10/20/2026 02:25:29 AM
+      Step Count                        57  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     116
+      Page Swaps                        0
+      Voluntary Context Switches        11
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           272
+      
+
+DDIWR_CATALOG_PASS many native definitions SYSINFO=0
+221        options fmtsearch=(incoming.base_many_20261020_022343 work);
+222        data work.expected_rows; set incoming.base_many_20261020_022343;
+223        length label1 label2 label3 label4 label5 label6 label7 label8 label9 label10 label11 label12 label13 label14 label15
+223      ! label16 label17 label18 label19 label20 label21 label22 label23 label24 label25 label26 label27 label28 label29 label30
+223      ! label31 label32 label33 label34 label35 label36 label37 label38 label39 label40 label41 label42 label43 label44 label45
+223      ! label46 label47 label48 label49 label50 label51 label52 label53 label54 label55 label56 label57 label58 label59 label60
+223      ! label61 label62 label63 label64 label65 label66 label67 label68 label69 label70 label71 label72 label73 label74 label75
+223      ! label76 label77 label78 label79 label80 $32767;
+224        label1=vvalue(v1);
+225        label2=vvalue(v2);
+226        label3=vvalue(v3);
+227        label4=vvalue(v4);
+228        label5=vvalue(v5);
+229        label6=vvalue(v6);
+230        label7=vvalue(v7);
+231        label8=vvalue(v8);
+232        label9=vvalue(v9);
+18                                                         The SAS System                       Monday, October 19, 2026 07:25:29 PM
+
+233        label10=vvalue(v10);
+234        label11=vvalue(v11);
+235        label12=vvalue(v12);
+236        label13=vvalue(v13);
+237        label14=vvalue(v14);
+238        label15=vvalue(v15);
+239        label16=vvalue(v16);
+240        label17=vvalue(v17);
+241        label18=vvalue(v18);
+242        label19=vvalue(v19);
+243        label20=vvalue(v20);
+244        label21=vvalue(v21);
+245        label22=vvalue(v22);
+246        label23=vvalue(v23);
+247        label24=vvalue(v24);
+248        label25=vvalue(v25);
+249        label26=vvalue(v26);
+250        label27=vvalue(v27);
+251        label28=vvalue(v28);
+252        label29=vvalue(v29);
+253        label30=vvalue(v30);
+254        label31=vvalue(v31);
+255        label32=vvalue(v32);
+256        label33=vvalue(v33);
+257        label34=vvalue(v34);
+258        label35=vvalue(v35);
+259        label36=vvalue(v36);
+260        label37=vvalue(v37);
+261        label38=vvalue(v38);
+262        label39=vvalue(v39);
+263        label40=vvalue(v40);
+264        label41=vvalue(v41);
+265        label42=vvalue(v42);
+266        label43=vvalue(v43);
+267        label44=vvalue(v44);
+268        label45=vvalue(v45);
+269        label46=vvalue(v46);
+270        label47=vvalue(v47);
+271        label48=vvalue(v48);
+272        label49=vvalue(v49);
+273        label50=vvalue(v50);
+274        label51=vvalue(v51);
+275        label52=vvalue(v52);
+276        label53=vvalue(v53);
+277        label54=vvalue(v54);
+278        label55=vvalue(v55);
+279        label56=vvalue(v56);
+280        label57=vvalue(v57);
+281        label58=vvalue(v58);
+282        label59=vvalue(v59);
+283        label60=vvalue(v60);
+284        label61=vvalue(v61);
+285        label62=vvalue(v62);
+286        label63=vvalue(v63);
+287        label64=vvalue(v64);
+288        label65=vvalue(v65);
+289        label66=vvalue(v66);
+290        label67=vvalue(v67);
+19                                                         The SAS System                       Monday, October 19, 2026 07:25:29 PM
+
+291        label68=vvalue(v68);
+292        label69=vvalue(v69);
+293        label70=vvalue(v70);
+294        label71=vvalue(v71);
+295        label72=vvalue(v72);
+296        label73=vvalue(v73);
+297        label74=vvalue(v74);
+298        label75=vvalue(v75);
+299        label76=vvalue(v76);
+300        label77=vvalue(v77);
+301        label78=vvalue(v78);
+302        label79=vvalue(v79);
+303        label80=vvalue(v80);
+304        run;
+
+NOTE: There were 2 observations read from the data set INCOMING.BASE_MANY_20261020_022343.
+NOTE: The data set WORK.EXPECTED_ROWS has 2 observations and 160 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.02 seconds
+      user cpu time       0.01 seconds
+      system cpu time     0.02 seconds
+      memory              13640.01k
+      OS Memory           34860.00k
+      Timestamp           10/20/2026 02:25:29 AM
+      Step Count                        58  Switch Count  1
+      Page Faults                       0
+      Page Reclaims                     1519
+      Page Swaps                        0
+      Voluntary Context Switches        93
+      Involuntary Context Switches      2
+      Block Input Operations            0
+      Block Output Operations           15384
+      
+
+305        options fmtsearch=(incoming.out_many_20261020_022343 work);
+306        data work.actual_rows; set incoming.out_many_20261020_022343;
+307        length label1 label2 label3 label4 label5 label6 label7 label8 label9 label10 label11 label12 label13 label14 label15
+307      ! label16 label17 label18 label19 label20 label21 label22 label23 label24 label25 label26 label27 label28 label29 label30
+307      ! label31 label32 label33 label34 label35 label36 label37 label38 label39 label40 label41 label42 label43 label44 label45
+307      ! label46 label47 label48 label49 label50 label51 label52 label53 label54 label55 label56 label57 label58 label59 label60
+307      ! label61 label62 label63 label64 label65 label66 label67 label68 label69 label70 label71 label72 label73 label74 label75
+307      ! label76 label77 label78 label79 label80 $32767;
+308        label1=vvalue(v1);
+309        label2=vvalue(v2);
+310        label3=vvalue(v3);
+311        label4=vvalue(v4);
+312        label5=vvalue(v5);
+313        label6=vvalue(v6);
+314        label7=vvalue(v7);
+315        label8=vvalue(v8);
+316        label9=vvalue(v9);
+317        label10=vvalue(v10);
+318        label11=vvalue(v11);
+319        label12=vvalue(v12);
+320        label13=vvalue(v13);
+321        label14=vvalue(v14);
+322        label15=vvalue(v15);
+323        label16=vvalue(v16);
+20                                                         The SAS System                       Monday, October 19, 2026 07:25:29 PM
+
+324        label17=vvalue(v17);
+325        label18=vvalue(v18);
+326        label19=vvalue(v19);
+327        label20=vvalue(v20);
+328        label21=vvalue(v21);
+329        label22=vvalue(v22);
+330        label23=vvalue(v23);
+331        label24=vvalue(v24);
+332        label25=vvalue(v25);
+333        label26=vvalue(v26);
+334        label27=vvalue(v27);
+335        label28=vvalue(v28);
+336        label29=vvalue(v29);
+337        label30=vvalue(v30);
+338        label31=vvalue(v31);
+339        label32=vvalue(v32);
+340        label33=vvalue(v33);
+341        label34=vvalue(v34);
+342        label35=vvalue(v35);
+343        label36=vvalue(v36);
+344        label37=vvalue(v37);
+345        label38=vvalue(v38);
+346        label39=vvalue(v39);
+347        label40=vvalue(v40);
+348        label41=vvalue(v41);
+349        label42=vvalue(v42);
+350        label43=vvalue(v43);
+351        label44=vvalue(v44);
+352        label45=vvalue(v45);
+353        label46=vvalue(v46);
+354        label47=vvalue(v47);
+355        label48=vvalue(v48);
+356        label49=vvalue(v49);
+357        label50=vvalue(v50);
+358        label51=vvalue(v51);
+359        label52=vvalue(v52);
+360        label53=vvalue(v53);
+361        label54=vvalue(v54);
+362        label55=vvalue(v55);
+363        label56=vvalue(v56);
+364        label57=vvalue(v57);
+365        label58=vvalue(v58);
+366        label59=vvalue(v59);
+367        label60=vvalue(v60);
+368        label61=vvalue(v61);
+369        label62=vvalue(v62);
+370        label63=vvalue(v63);
+371        label64=vvalue(v64);
+372        label65=vvalue(v65);
+373        label66=vvalue(v66);
+374        label67=vvalue(v67);
+375        label68=vvalue(v68);
+376        label69=vvalue(v69);
+377        label70=vvalue(v70);
+378        label71=vvalue(v71);
+379        label72=vvalue(v72);
+380        label73=vvalue(v73);
+381        label74=vvalue(v74);
+21                                                         The SAS System                       Monday, October 19, 2026 07:25:29 PM
+
+382        label75=vvalue(v75);
+383        label76=vvalue(v76);
+384        label77=vvalue(v77);
+385        label78=vvalue(v78);
+386        label79=vvalue(v79);
+387        label80=vvalue(v80);
+388        run;
+
+NOTE: There were 2 observations read from the data set INCOMING.OUT_MANY_20261020_022343.
+NOTE: The data set WORK.ACTUAL_ROWS has 2 observations and 160 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.02 seconds
+      user cpu time       0.01 seconds
+      system cpu time     0.01 seconds
+      memory              13598.14k
+      OS Memory           34860.00k
+      Timestamp           10/20/2026 02:25:29 AM
+      Step Count                        59  Switch Count  1
+      Page Faults                       0
+      Page Reclaims                     1462
+      Page Swaps                        0
+      Voluntary Context Switches        93
+      Involuntary Context Switches      1
+      Block Input Operations            0
+      Block Output Operations           15384
+      
+
+389        %compare(work.expected_rows,work.actual_rows,v1 v2 v3 v4 v5 v6 v7 v8 v9 v10 v11 v12 v13 v14 v15 v16 v17 v18 v19 v20 v21
+389      ! v22 v23 v24 v25 v26 v27 v28 v29 v30 v31 v32 v33 v34 v35 v36 v37 v38 v39 v40 v41 v42 v43 v44 v45 v46 v47 v48 v49 v50 v51
+389      ! v52 v53 v54 v55 v56 v57 v58 v59 v60 v61 v62 v63 v64 v65 v66 v67 v68 v69 v70 v71 v72 v73 v74 v75 v76 v77 v78 v79 v80
+389      ! label1 label2 label3 label4 label5 label6 label7 label8 label9 label10 label11 label12 label13 label14 label15 label16
+389      ! label17 label18 label19 label20 label21 label22 label23 label24 label25 label26 label27 label28 label29 label30 label31
+389      ! label32 label33 label34 label35 label36 label37 label38 label39 label40 label41 label42 label43 label44 label45 label46
+389      ! label47 label48 label49 label50 label51 label52 label53 label54 label55 label56 label57 label58 label59 label60 label61
+389      ! label62 label63 label64 label65 label66 label67 label68 label69 label70 label71 label72 label73 label74 label75 label76
+389      ! label77 label78 label79 label80,many native rows and rendered labels);
+
+NOTE: There were 2 observations read from the data set WORK.EXPECTED_ROWS.
+NOTE: There were 2 observations read from the data set WORK.ACTUAL_ROWS.
+NOTE: PROCEDURE COMPARE used (Total process time):
+      real time           0.05 seconds
+      user cpu time       0.04 seconds
+      system cpu time     0.02 seconds
+      memory              21570.15k
+      OS Memory           43188.00k
+      Timestamp           10/20/2026 02:25:29 AM
+      Step Count                        60  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     1153
+      Page Swaps                        0
+      Voluntary Context Switches        162
+      Involuntary Context Switches      5
+      Block Input Operations            0
+      Block Output Operations           64
+      
+
+
+NOTE: The data set WORK.CHECK has 1 observations and 3 variables.
+22                                                         The SAS System                       Monday, October 19, 2026 07:25:29 PM
+
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              521.45k
+      OS Memory           22696.00k
+      Timestamp           10/20/2026 02:25:29 AM
+      Step Count                        61  Switch Count  1
+      Page Faults                       0
+      Page Reclaims                     78
+      Page Swaps                        0
+      Voluntary Context Switches        9
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           264
+      
+
+
+NOTE: Appending WORK.CHECK to EVIDENCE.SUMMARY.
+NOTE: There were 1 observations read from the data set WORK.CHECK.
+NOTE: 1 observations added.
+NOTE: The data set EVIDENCE.SUMMARY has 6 observations and 3 variables.
+NOTE: PROCEDURE APPEND used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.00 seconds
+      system cpu time     0.00 seconds
+      memory              862.65k
+      OS Memory           23216.00k
+      Timestamp           10/20/2026 02:25:29 AM
+      Step Count                        62  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     116
+      Page Swaps                        0
+      Voluntary Context Switches        16
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           272
+      
+
+DDIWR_CATALOG_PASS many native rows and rendered labels SYSINFO=8
+390        %put DDIWR_CATALOG_SAS_VERSION=&sysvlong4;
+DDIWR_CATALOG_SAS_VERSION=9.04.01M9P06052025
+391        %put DDIWR_CATALOG_SAS_PLATFORM=&sysscp &sysscpl;
+DDIWR_CATALOG_SAS_PLATFORM=LIN X64 Linux
+392        %put DDIWR_CATALOG_SAS_ENCODING=%sysfunc(getoption(encoding));
+DDIWR_CATALOG_SAS_ENCODING=UTF-8
+393        %put DDIWR_CATALOG_RESULT failures=&failures SYSCC=&syscc;
+DDIWR_CATALOG_RESULT failures=0 SYSCC=0
+394        title "Native SAS catalogs: &sysvlong4 / &sysscp / %sysfunc(getoption(encoding))";
+395        proc print data=evidence.summary noobs; run;
+
+NOTE: There were 6 observations read from the data set EVIDENCE.SUMMARY.
+NOTE: PROCEDURE PRINT used (Total process time):
+      real time           0.00 seconds
+      user cpu time       0.01 seconds
+      system cpu time     0.00 seconds
+      memory              652.18k
+      OS Memory           22696.00k
+23                                                         The SAS System                       Monday, October 19, 2026 07:25:29 PM
+
+      Timestamp           10/20/2026 02:25:29 AM
+      Step Count                        63  Switch Count  0
+      Page Faults                       0
+      Page Reclaims                     93
+      Page Swaps                        0
+      Voluntary Context Switches        5
+      Involuntary Context Switches      0
+      Block Input Operations            0
+      Block Output Operations           16
+      
+
+395      !                                              title; proc printto; run;

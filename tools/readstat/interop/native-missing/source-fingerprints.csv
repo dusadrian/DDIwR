@@ -1,0 +1,9 @@
+file,md5
+R/readstat_internal.R,dc8567cfd9a4f23a5fa7c7fc4989f938
+R/sasCatalog.R,c74721e2c8baa4a64c583a6886e1948a
+R/convert.R,9e218072f3d642eee52c894f518f2b9d
+src/readstat_writer.c,e6ae6d2d7822632f9fa505666e968d61
+src/readstat/sas/readstat_sas7bdat_write.c,0eb8803f489bd908157b3661b94e1deb
+src/readstat/sas/readstat_sas7bcat_write.c,2c9088b7aea545980b4a2bd879436e5f
+tools/readstat/sas-missing-interop.R,3f3108f6bed6998bbc1a36488207352c
+tests/testthat/test-sas-native-missing.R,b0770e564a88d831dfe5fa25040c9ff3

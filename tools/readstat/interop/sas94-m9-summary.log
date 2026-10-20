@@ -1,0 +1,29 @@
+Results: summary.sas
+Results: summary.sas
+Actual SAS interoperability: 9.04.01M9P06052025 / LIN X64 / UTF-8
+The Print Procedure
+Data Set EVIDENCE.INTEROPERABILITY_SUMMARY
+check
+status
+detail
+Finite numeric/date/time values
+PASS
+0differences across 16 finite values
+Character values, including Unicode
+PASS
+0differences across 32 strings
+System and extended missing values
+FAIL
+112differences across 112 missing values
+DDIwR-generated catalog
+FAIL
+PROC CATALOG and PROC FORMAT reject the exported file
+SAS-native catalog control
+PASS
+SAS-created catalog reopened; 12 definitions extracted
+Empty dataset
+PASS
+0observations
+Three-byte numeric/date values
+PASS
+0differences; PROC CONTENTS confirms length 3
