@@ -47,6 +47,8 @@ labels and value labels. It can be created from a labelled data frame with
 \code{\link[=getCodebook]{getCodebook()}}. A data frame can also be passed directly to \code{setupfile()}.
 The generated commands have a configuration section where input and output
 paths must be set before running them in the target software.
+Validation errors do not write blank lines to standard output. Output sinks
+already active in the caller are retained on success and error.
 
 When a path to a metadata directory is specified for the argument \strong{\code{obj}},
 then next argument \strong{\code{file}} is silently ignored and all created setup files
@@ -91,6 +93,10 @@ The argument \code{OS} (case insensitive) can be either:\cr
 
 The end of line character(s) changes only when the target OS is different
 from the running OS.
+
+Stored formats in \code{spss_metadata} and \code{stata_metadata} take precedence
+over legacy format attributes when the input is a data frame. A present
+\code{format = NULL} suppresses legacy fallback and uses the inferred format.
 }
 \examples{
 # A small dataset with variable and value labels
