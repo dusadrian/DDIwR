@@ -734,8 +734,7 @@ metadataProjection <- function(from, columns = seq_len(ncol(from)),
 # @description Capture metadata once and request ordered subsets for progressive
 # displays, DialogR variable selectors, or DDI Codebook generation.
 # @details Internal metadata infrastructure for host applications, not a
-# user-facing data-management API. Exports are retained for downstream
-# application integration.
+# user-facing data-management API.
 # @param from A data frame. The host must invalidate the session after edits,
 # including edits made by reference.
 # @param revision One non-missing atomic revision token, supplied by the host.
@@ -787,7 +786,6 @@ metadataProjection <- function(from, columns = seq_len(ncol(from)),
 # exportCodebook(book, path, session = session, revision = 1L)
 # unlink(path)
 # metadataSweepClose(session)
-#' @export
 #' @noRd
 metadataSweepCapture <- function(from, revision) {
     if (!is.data.frame(from)) {
@@ -866,7 +864,6 @@ metadataSweepCapture <- function(from, revision) {
     return(session)
 }
 
-#' @export
 #' @noRd
 metadataSweepRead <- function(session, revision, columns = NULL,
     fields = NULL, xml_options = list(), profile = "progressive") {
@@ -967,7 +964,6 @@ metadataSweepRead <- function(session, revision, columns = NULL,
     return(result)
 }
 
-#' @export
 #' @noRd
 metadataSweepInvalidate <- function(session, revision) {
     .metadataSessionValidate(session)
@@ -979,7 +975,6 @@ metadataSweepInvalidate <- function(session, revision) {
     return(invisible(NULL))
 }
 
-#' @export
 #' @noRd
 metadataSweepClose <- function(session) {
     if (!inherits(session, "ddiwr_metadata_session") || !is.environment(session)) {
@@ -1175,8 +1170,7 @@ metadataSnapshotClose <- function(snapshot) {
 # controls only which projection is warm when the import returns.
 #
 # @details Internal application integration helper, not a user-facing import
-# function. Use [convert()] for ordinary dataset imports. The export is retained
-# for downstream application integration.
+# function. Use [convert()] for ordinary dataset imports.
 #
 # @param from Path to a dataset supported by [convert()].
 # @param revision One non-missing atomic revision token for the imported data.
@@ -1203,7 +1197,6 @@ metadataSnapshotClose <- function(snapshot) {
 # metadataSweepClose(imported$session)
 # }
 #
-#' @export
 #' @noRd
 metadataSweepImport <- function(from, revision, prepare = "progressive",
     columns = NULL, fields = NULL, xml_options = list(), ...) {

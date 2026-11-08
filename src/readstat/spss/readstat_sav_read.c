@@ -1582,7 +1582,7 @@ static readstat_error_t sav_parse_records_pass2(sav_ctx_t *ctx) {
                         }
                         uint64_t version, cases;
                         memcpy(&version, data_buf, 8);
-                        memcpy(&cases, data_buf + 8, 8);
+                        memcpy(&cases, (const char *)data_buf + 8, 8);
                         if (ctx->bswap) {
                             version = byteswap8(version);
                             cases = byteswap8(cases);

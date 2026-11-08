@@ -135,9 +135,16 @@ test_that("weighted session XML preserves the existing export path", {
     expect_identical(session$analysis_scans, 0L)
 })
 
-test_that("the session API is exported and survives ordinary source edits", {
-    expect_true(all(is.element(c("metadataSweepCapture", "metadataSweepRead",
-        "metadataSweepInvalidate", "metadataSweepClose"), getNamespaceExports("DDIwR"))))
+test_that("metadata sweep helpers remain internal", {
+    helpers <- c(
+        "metadataSweepCapture", "metadataSweepClose", "metadataSweepImport",
+        "metadataSweepInvalidate", "metadataSweepRead"
+    )
+
+    expect_false(any(is.element(helpers, getNamespaceExports("DDIwR"))))
+})
+
+test_that("the session survives ordinary source edits", {
     data <- data.frame(x = c(1, 2, 3))
     attr(data$x, "labels") <- c(one = 1, two = 2)
     session <- metadataSweepCapture(data, 1L)
