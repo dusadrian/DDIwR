@@ -20,6 +20,15 @@
 #' SPSS portable file (with the extension `".por"`) can only be read, but not
 #' written.
 #'
+#' SPSS exports default to byte compression for `.sav` destinations and ZSAV
+#' compression for `.zsav` destinations. Supply `compress = "none"`, `"byte"`
+#' or `"zsav"` through `...` to override that default. `compress = FALSE`
+#' selects no compression and `compress = TRUE` selects ZSAV compression.
+#'
+#' SAS transport exports (`.xpt` or `to = "SAS"`) accept data frames without
+#' labels. A companion SAS setup script is generated only when the data has
+#' variable or value labels.
+#'
 #' SPSS system files (`.sav` and `.zsav`) preserve custom dataset and variable
 #' attributes. They are stored in the R attribute `spss.attributes` on the data
 #' frame and on each column, as a named list of character vectors. For example,
@@ -211,7 +220,7 @@
 #' XML exports are validated against the bundled DDI Codebook 2.6 schema before
 #' writing. Invalid XML causes an error and leaves destination files unchanged.
 #' The following extentions are currently recognized: `.xml` for DDI,
-#' `.rds` for R, `.dta` for Stata, `.sav` for SPSS, `.xpt` for SAS, and
+#' `.rds` for R, `.dta` for Stata, `.sav` and `.zsav` for SPSS, `.xpt` for SAS, and
 #' `.xlsx` for Excel.
 #'
 #' Additional parameters can be specified via the three dots argument
@@ -651,7 +660,7 @@
         else if (
             !is.element(
                 tp_to$fileext,
-                c("RDS", "SAV", "DTA", "XML", "XPT", "SAS7BDAT", "XLSX")
+                c("RDS", "SAV", "ZSAV", "DTA", "XML", "XPT", "SAS7BDAT", "XLSX")
             )
         ) {
             admisc::stopError("Unknown destination software.")
@@ -1048,7 +1057,7 @@
             ... = ...
         )
     }
-    else if (identical(tp_to$fileext, "SAV")) {
+    else if (is.element(tp_to$fileext, c("SAV", "ZSAV"))) {
         data[] <- lapply(data, function(x) {
             x <- ensure_format(x, type = "SPSS")
 
@@ -1078,6 +1087,13 @@
         }
 
         arglist <- list(data = data, path = to)
+
+        if (is.element("compress", names(dots))) {
+            arglist["compress"] <- dots["compress"]
+        }
+        else if (identical(tp_to$fileext, "ZSAV")) {
+            arglist$compress <- "zsav"
+        }
 
         if (is.element("label", names(dots))) {
             arglist["label"] <- dots["label"]
@@ -1302,19 +1318,21 @@
         }
         do.call(write_xpt, arglist)
 
-        to <- file.path(
-            tp_from$completePath,
-            paste(tp_from$filenames, "sas", sep = ".")
-        )
+        if (hasLabels(arglist$data)) {
+            to <- file.path(
+                tp_from$completePath,
+                paste(tp_from$filenames, "sas", sep = ".")
+            )
 
-        setupfile(
-            obj = getCodebook(arglist$data),
-            file = to,
-            type = "SAS",
-            csv = arglist$data,
-            recode = recode,
-            catalog = TRUE,
-            dictionary = dictionary
-        )
+            setupfile(
+                obj = getCodebook(arglist$data),
+                file = to,
+                type = "SAS",
+                csv = arglist$data,
+                recode = recode,
+                catalog = TRUE,
+                dictionary = dictionary
+            )
+        }
     }
 }

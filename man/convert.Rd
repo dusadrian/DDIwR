@@ -65,6 +65,15 @@ native SAS7BDAT output.
 SPSS portable file (with the extension \code{".por"}) can only be read, but not
 written.
 
+SPSS exports default to byte compression for \code{.sav} destinations and ZSAV
+compression for \code{.zsav} destinations. Supply \code{compress = "none"}, \code{"byte"}
+or \code{"zsav"} through \code{...} to override that default. \code{compress = FALSE}
+selects no compression and \code{compress = TRUE} selects ZSAV compression.
+
+SAS transport exports (\code{.xpt} or \code{to = "SAS"}) accept data frames without
+labels. A companion SAS setup script is generated only when the data has
+variable or value labels.
+
 SPSS system files (\code{.sav} and \code{.zsav}) preserve custom dataset and variable
 attributes. They are stored in the R attribute \code{spss.attributes} on the data
 frame and on each column, as a named list of character vectors. For example,
@@ -257,7 +266,7 @@ Supply \code{titl}, \code{IDNo}, \code{agency}, \code{distrbtr}, \code{URI} and 
 XML exports are validated against the bundled DDI Codebook 2.6 schema before
 writing. Invalid XML causes an error and leaves destination files unchanged.
 The following extentions are currently recognized: \code{.xml} for DDI,
-\code{.rds} for R, \code{.dta} for Stata, \code{.sav} for SPSS, \code{.xpt} for SAS, and
+\code{.rds} for R, \code{.dta} for Stata, \code{.sav} and \code{.zsav} for SPSS, \code{.xpt} for SAS, and
 \code{.xlsx} for Excel.
 
 Additional parameters can be specified via the three dots argument

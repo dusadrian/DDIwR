@@ -1,7 +1,30 @@
 Version 0.23
   o update to the latest version of ReadStat
   o exported XML files are now always validated by default
-  o bug fix in function setupfile()
+  o metadata is preserved through convert(), declared conversion and recoding
+  o readers now store vendor metadata in spss_metadata, stata_metadata and
+    sas_metadata lists; writers retain legacy attributes as fallbacks, with
+    vendor list precedence and explicit NULL clearing
+  o added vendorMetadata() to read and edit vendor metadata, and clearFormats()
+    and clearWidths() to clear vendor fields and legacy attributes together
+  o added inspectFile() to read column definitions and metadata without decoding
+    observations, retaining the original row count when stored in the file
+  o dataset labels are preserved in SAV and native SAS7BDAT exports; convert()
+    supports an explicit SPSS label override or clearing
+  o timestamp imports distinguish absent values from genuine epoch-zero values;
+    SAS7BDAT and XPT exports preserve separate modification timestamps
+  o SPSS SAV and ZSAV exports now support multiple-response sets
+  o convert() now supports native SAS7BDAT export, including reduced numeric
+    storage widths and optional paired format catalogs via catalog_to;
+    input catalogs are selected separately through catalog_file
+  o paired SAS catalogs support numeric, character and temporal value labels,
+    including system and extended missing-value labels
+  o SAS catalog rules preserve ranges, endpoint exclusions, LOW/HIGH, OTHER,
+    default widths and numeric fuzz
+  o corrected native SAS missing-value encoding and catalog layout using
+    SAS-created regression fixtures and actual SAS 9.4M9/Linux/UTF-8 validation
+  o setupfile() uses stored vendor formats and preserves caller output sinks
+    on success and error, without extra blank output from validation errors
 
 Version 0.22
   o added reusable metadata sweep sessions via metadataSweepCapture(),

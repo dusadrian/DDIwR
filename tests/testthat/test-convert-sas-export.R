@@ -197,6 +197,46 @@ test_that("SAS shorthand retains XPT output and its existing setup script", {
     expect_identical(as.numeric(result$answer), c(1, 2))
 })
 
+test_that("public XPT export accepts ordinary data frames without a setup script", {
+    directory <- tempfile()
+    dir.create(directory)
+    on.exit(unlink(directory, recursive = TRUE), add = TRUE)
+    path <- file.path(directory, "ordinary.xpt")
+    data <- data.frame(answer = c(1, 2, NA_real_), text = c("one", "two", "three"),
+        day = as.Date("2001-01-01") + 0:2)
+    before <- data
+
+    for (version in c(5L, 8L)) {
+        expect_no_error(convert(data, path, version = version))
+        result <- convert(path, recode = FALSE, declared = FALSE)
+
+        expect_identical(names(result), names(data))
+        expect_identical(as.numeric(result$answer), data$answer)
+        expect_identical(as.character(result$text), data$text)
+        expect_equal(result$day, data$day, ignore_attr = TRUE)
+        expect_identical(data, before)
+    }
+
+    expect_identical(list.files(directory), "ordinary.xpt")
+})
+
+test_that("SAS shorthand accepts an unlabelled RDS without a setup script", {
+    directory <- tempfile()
+    dir.create(directory)
+    on.exit(unlink(directory, recursive = TRUE), add = TRUE)
+    source <- file.path(directory, "ordinary.rds")
+    data <- data.frame(answer = 1:3)
+    saveRDS(data, source)
+
+    expect_no_error(convert(source, "SAS"))
+    result <- convert(file.path(directory, "ordinary.xpt"),
+        recode = FALSE, declared = FALSE)
+
+    expect_identical(as.numeric(result$answer), as.numeric(data$answer))
+    expect_setequal(list.files(directory), c("ordinary.rds", "ordinary.xpt"))
+    expect_identical(readRDS(source), data)
+})
+
 test_that("native public export reserves canonical tags before harmonizing other codes", {
     directory <- tempfile()
     dir.create(directory)
