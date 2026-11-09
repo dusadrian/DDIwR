@@ -30,8 +30,8 @@
 #' \tabular{ll}{
 #'   Package: \tab DDIwR\cr
 #'   Type: \tab Package\cr
-#'   Version: \tab 0.22.2\cr
-#'   Date: \tab 2026-11-07\cr
+#'   Version: \tab 0.23\cr
+#'   Date: \tab 2026-11-08\cr
 #'   License: \tab GPL-v3\cr
 #' }
 #'
@@ -43,7 +43,7 @@
 #' @importFrom xml2 as_list as_xml_document read_xml xml_attr xml_children xml_find_all xml_find_first xml_name xml_ns xml_text
 #' @importFrom readxl read_excel
 #' @importFrom writexl write_xlsx
-#' @importFrom utils capture.output file_test packageVersion read.csv type.convert write.table
+#' @importFrom utils capture.output file_test head packageVersion read.csv tail type.convert write.table
 #' @useDynLib DDIwR, .registration = TRUE
 #'
 NULL
