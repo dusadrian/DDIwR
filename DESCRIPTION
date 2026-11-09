@@ -16,7 +16,7 @@ Depends: R (>= 4.1.0)
 Imports:
     admisc (> 0.36),
     base64enc,
-    declared (> 0.25),
+    declared (>= 0.27),
     digest,
     tools,
     xml2,
