@@ -267,7 +267,7 @@ static void extract_variable_data(
     }
 
     if (include_projection && labels != R_NilValue && XLENGTH(labels) > 0) {
-        SEXP label_names = getAttrib(labels, R_NamesSymbol);
+        SEXP label_names = Rf_getAttrib(labels, R_NamesSymbol);
         int retained = 0;
         int labels_numeric = TYPEOF(labels) == REALSXP || TYPEOF(labels) == INTSXP ||
             TYPEOF(labels) == STRSXP;
@@ -342,7 +342,7 @@ static void extract_variable_data(
 }
 
 static SEXP getListElement(SEXP list, const char *name) {
-    SEXP names = getAttrib(list, R_NamesSymbol);
+    SEXP names = Rf_getAttrib(list, R_NamesSymbol);
     R_xlen_t i = 0;
     if (TYPEOF(list) != VECSXP || TYPEOF(names) != STRSXP) {
         return R_NilValue;
@@ -602,7 +602,7 @@ static SEXP sanitize_na_values(SEXP na_values) {
             if (n == 0) {
                 return R_NilValue;
             }
-            PROTECT(out = allocVector(REALSXP, n));
+            PROTECT(out = Rf_allocVector(REALSXP, n));
             n = 0;
             for (i = 0; i < XLENGTH(na_values); i++) {
                 if (!ISNAN(REAL(na_values)[i])) {
@@ -622,7 +622,7 @@ static SEXP sanitize_na_values(SEXP na_values) {
             if (n == 0) {
                 return R_NilValue;
             }
-            PROTECT(out = allocVector(TYPEOF(na_values), n));
+            PROTECT(out = Rf_allocVector(TYPEOF(na_values), n));
             n = 0;
             for (i = 0; i < XLENGTH(na_values); i++) {
                 int val = INTEGER(na_values)[i];
@@ -641,7 +641,7 @@ static SEXP sanitize_na_values(SEXP na_values) {
             if (n == 0) {
                 return R_NilValue;
             }
-            PROTECT(out = allocVector(STRSXP, n));
+            PROTECT(out = Rf_allocVector(STRSXP, n));
             n = 0;
             for (i = 0; i < XLENGTH(na_values); i++) {
                 if (STRING_ELT(na_values, i) != NA_STRING) {
@@ -657,20 +657,20 @@ static SEXP sanitize_na_values(SEXP na_values) {
 
 static void xmlmeta_process_variable(SEXP data, xmlmeta_result *results, R_xlen_t i, int include_formats) {
     SEXP x = VECTOR_ELT(data, i);
-    SEXP classes = getAttrib(x, R_ClassSymbol);
-    SEXP labels = getAttrib(x, ddiwr_sym_labels);
-    SEXP levels = getAttrib(x, R_LevelsSymbol);
+    SEXP classes = Rf_getAttrib(x, R_ClassSymbol);
+    SEXP labels = Rf_getAttrib(x, ddiwr_sym_labels);
+    SEXP levels = Rf_getAttrib(x, R_LevelsSymbol);
 
     results[i].x = x;
     results[i].classes_attr = classes;
-    results[i].label = getAttrib(x, ddiwr_sym_label);
-    results[i].measurement = getAttrib(x, ddiwr_sym_measurement);
+    results[i].label = Rf_getAttrib(x, ddiwr_sym_label);
+    results[i].measurement = Rf_getAttrib(x, ddiwr_sym_measurement);
     results[i].labels = labels;
     results[i].levels = R_NilValue;
-    results[i].na_values = getAttrib(x, ddiwr_sym_na_values);
-    results[i].na_range = getAttrib(x, ddiwr_sym_na_range);
-    results[i].xmlang = getAttrib(x, ddiwr_sym_xmlang);
-    results[i].id = getAttrib(x, ddiwr_sym_id);
+    results[i].na_values = Rf_getAttrib(x, ddiwr_sym_na_values);
+    results[i].na_range = Rf_getAttrib(x, ddiwr_sym_na_range);
+    results[i].xmlang = Rf_getAttrib(x, ddiwr_sym_xmlang);
+    results[i].id = Rf_getAttrib(x, ddiwr_sym_id);
     results[i].factor_fallback = 0;
     results[i].include_formats = include_formats;
     results[i].is_date = 0;
@@ -870,7 +870,7 @@ SEXP collect_datadscr_stats(SEXP data, SEXP variables, SEXP dates, SEXP include_
     for (i = 0; i < n; i++) {
         SEXP metadata = VECTOR_ELT(variables, i);
         SEXP labels = getListElement(metadata, "labels");
-        SEXP label_names = (labels == R_NilValue) ? R_NilValue : getAttrib(labels, R_NamesSymbol);
+        SEXP label_names = (labels == R_NilValue) ? R_NilValue : Rf_getAttrib(labels, R_NamesSymbol);
         R_xlen_t j = 0;
         if (labels == R_NilValue || TYPEOF(label_names) != STRSXP) {
             continue;
@@ -882,30 +882,30 @@ SEXP collect_datadscr_stats(SEXP data, SEXP variables, SEXP dates, SEXP include_
         }
     }
 
-    PROTECT(out = allocVector(VECSXP, 22));
-    PROTECT(names = allocVector(STRSXP, 22));
-    PROTECT(var_dcml = allocVector(REALSXP, n));
-    PROTECT(var_width = allocVector(REALSXP, n));
-    PROTECT(range_units = allocVector(STRSXP, n));
-    PROTECT(val_min = allocVector(REALSXP, n));
-    PROTECT(val_max = allocVector(REALSXP, n));
-    PROTECT(stat_min = allocVector(REALSXP, n));
-    PROTECT(stat_max = allocVector(REALSXP, n));
-    PROTECT(stat_mean = allocVector(REALSXP, n));
-    PROTECT(stat_medn = allocVector(REALSXP, n));
-    PROTECT(stat_stdev = allocVector(REALSXP, n));
-    PROTECT(sum_valid = allocVector(REALSXP, n));
-    PROTECT(sum_invalid = allocVector(REALSXP, n));
-    PROTECT(cat_counts = allocVector(INTSXP, n));
-    PROTECT(cat_values = allocVector(STRSXP, cat_total));
-    PROTECT(cat_labels = allocVector(STRSXP, cat_total));
-    PROTECT(cat_missing = allocVector(LGLSXP, cat_total));
-    PROTECT(cat_freq = allocVector(REALSXP, cat_total));
-    PROTECT(variable_type = allocVector(STRSXP, n));
-    PROTECT(weight_numeric_compatible = allocVector(LGLSXP, n));
-    PROTECT(weight_has_labels = allocVector(LGLSXP, n));
-    PROTECT(weight_has_observed = allocVector(LGLSXP, n));
-    PROTECT(weight_has_negative = allocVector(LGLSXP, n));
+    PROTECT(out = Rf_allocVector(VECSXP, 22));
+    PROTECT(names = Rf_allocVector(STRSXP, 22));
+    PROTECT(var_dcml = Rf_allocVector(REALSXP, n));
+    PROTECT(var_width = Rf_allocVector(REALSXP, n));
+    PROTECT(range_units = Rf_allocVector(STRSXP, n));
+    PROTECT(val_min = Rf_allocVector(REALSXP, n));
+    PROTECT(val_max = Rf_allocVector(REALSXP, n));
+    PROTECT(stat_min = Rf_allocVector(REALSXP, n));
+    PROTECT(stat_max = Rf_allocVector(REALSXP, n));
+    PROTECT(stat_mean = Rf_allocVector(REALSXP, n));
+    PROTECT(stat_medn = Rf_allocVector(REALSXP, n));
+    PROTECT(stat_stdev = Rf_allocVector(REALSXP, n));
+    PROTECT(sum_valid = Rf_allocVector(REALSXP, n));
+    PROTECT(sum_invalid = Rf_allocVector(REALSXP, n));
+    PROTECT(cat_counts = Rf_allocVector(INTSXP, n));
+    PROTECT(cat_values = Rf_allocVector(STRSXP, cat_total));
+    PROTECT(cat_labels = Rf_allocVector(STRSXP, cat_total));
+    PROTECT(cat_missing = Rf_allocVector(LGLSXP, cat_total));
+    PROTECT(cat_freq = Rf_allocVector(REALSXP, cat_total));
+    PROTECT(variable_type = Rf_allocVector(STRSXP, n));
+    PROTECT(weight_numeric_compatible = Rf_allocVector(LGLSXP, n));
+    PROTECT(weight_has_labels = Rf_allocVector(LGLSXP, n));
+    PROTECT(weight_has_observed = Rf_allocVector(LGLSXP, n));
+    PROTECT(weight_has_negative = Rf_allocVector(LGLSXP, n));
 
     cat_offsets = (R_xlen_t *)calloc((size_t)n, sizeof(R_xlen_t));
     cat_label_idx_arr = (R_xlen_t **)calloc((size_t)n, sizeof(R_xlen_t *));
@@ -921,7 +921,7 @@ SEXP collect_datadscr_stats(SEXP data, SEXP variables, SEXP dates, SEXP include_
     for (i = 0; i < n; i++) {
         REAL(var_dcml)[i] = NA_REAL;
         REAL(var_width)[i] = NA_REAL;
-        SET_STRING_ELT(range_units, i, mkChar("REAL"));
+        SET_STRING_ELT(range_units, i, Rf_mkChar("REAL"));
         REAL(val_min)[i] = NA_REAL;
         REAL(val_max)[i] = NA_REAL;
         REAL(stat_min)[i] = NA_REAL;
@@ -937,7 +937,7 @@ SEXP collect_datadscr_stats(SEXP data, SEXP variables, SEXP dates, SEXP include_
     for (i = 0; i < n; i++) {
         SEXP metadata = VECTOR_ELT(variables, i);
         SEXP labels = getListElement(metadata, "labels");
-        SEXP label_names = (labels == R_NilValue) ? R_NilValue : getAttrib(labels, R_NamesSymbol);
+        SEXP label_names = (labels == R_NilValue) ? R_NilValue : Rf_getAttrib(labels, R_NamesSymbol);
         SEXP na_values = getListElement(metadata, "na_values");
         SEXP na_range = getListElement(metadata, "na_range");
         R_xlen_t j = 0;
@@ -976,7 +976,7 @@ SEXP collect_datadscr_stats(SEXP data, SEXP variables, SEXP dates, SEXP include_
                         double lnum = 0.0;
                         if (sexp_as_double(labels, j, &lnum)) {
                             snprintf(buf, sizeof(buf), "%.15g", lnum);
-                            SET_STRING_ELT(cat_values, pos, mkChar(buf));
+                            SET_STRING_ELT(cat_values, pos, Rf_mkChar(buf));
                         } else {
                             SET_STRING_ELT(cat_values, pos, NA_STRING);
                         }
@@ -1041,7 +1041,7 @@ SEXP collect_datadscr_stats(SEXP data, SEXP variables, SEXP dates, SEXP include_
             classification = job->classification_distinct_count < 15 ? "numcat" : "num";
         }
 
-        SET_STRING_ELT(variable_type, i, mkChar(classification));
+        SET_STRING_ELT(variable_type, i, Rf_mkChar(classification));
         LOGICAL(weight_numeric_compatible)[i] = job->source_numeric_candidate;
         LOGICAL(weight_has_labels)[i] = job->has_labels;
         LOGICAL(weight_has_observed)[i] = job->has_observed_value;
@@ -1050,7 +1050,7 @@ SEXP collect_datadscr_stats(SEXP data, SEXP variables, SEXP dates, SEXP include_
         if (job->is_numericish && job->sum_valid > 0) {
             REAL(var_dcml)[i] = (double)job->max_dcml;
             REAL(var_width)[i] = (double)job->max_width;
-            SET_STRING_ELT(range_units, i, mkChar(job->whole ? "INT" : "REAL"));
+            SET_STRING_ELT(range_units, i, Rf_mkChar(job->whole ? "INT" : "REAL"));
 
             if (!job->date_var && (job->sum_valid - job->sum_invalid) > 0) {
                 REAL(val_min)[i] = job->val_min;
@@ -1104,29 +1104,29 @@ SEXP collect_datadscr_stats(SEXP data, SEXP variables, SEXP dates, SEXP include_
     SET_VECTOR_ELT(out, 19, weight_has_labels);
     SET_VECTOR_ELT(out, 20, weight_has_observed);
     SET_VECTOR_ELT(out, 21, weight_has_negative);
-    SET_STRING_ELT(names, 0, mkChar("var_dcml"));
-    SET_STRING_ELT(names, 1, mkChar("var_width"));
-    SET_STRING_ELT(names, 2, mkChar("range_units"));
-    SET_STRING_ELT(names, 3, mkChar("val_min"));
-    SET_STRING_ELT(names, 4, mkChar("val_max"));
-    SET_STRING_ELT(names, 5, mkChar("stat_min"));
-    SET_STRING_ELT(names, 6, mkChar("stat_max"));
-    SET_STRING_ELT(names, 7, mkChar("stat_mean"));
-    SET_STRING_ELT(names, 8, mkChar("stat_medn"));
-    SET_STRING_ELT(names, 9, mkChar("stat_stdev"));
-    SET_STRING_ELT(names, 10, mkChar("sum_valid"));
-    SET_STRING_ELT(names, 11, mkChar("sum_invalid"));
-    SET_STRING_ELT(names, 12, mkChar("cat_counts"));
-    SET_STRING_ELT(names, 13, mkChar("cat_values"));
-    SET_STRING_ELT(names, 14, mkChar("cat_labels"));
-    SET_STRING_ELT(names, 15, mkChar("cat_missing"));
-    SET_STRING_ELT(names, 16, mkChar("cat_freq"));
-    SET_STRING_ELT(names, 17, mkChar("variable_type"));
-    SET_STRING_ELT(names, 18, mkChar("weight_numeric_compatible"));
-    SET_STRING_ELT(names, 19, mkChar("weight_has_labels"));
-    SET_STRING_ELT(names, 20, mkChar("weight_has_observed"));
-    SET_STRING_ELT(names, 21, mkChar("weight_has_negative"));
-    setAttrib(out, R_NamesSymbol, names);
+    SET_STRING_ELT(names, 0, Rf_mkChar("var_dcml"));
+    SET_STRING_ELT(names, 1, Rf_mkChar("var_width"));
+    SET_STRING_ELT(names, 2, Rf_mkChar("range_units"));
+    SET_STRING_ELT(names, 3, Rf_mkChar("val_min"));
+    SET_STRING_ELT(names, 4, Rf_mkChar("val_max"));
+    SET_STRING_ELT(names, 5, Rf_mkChar("stat_min"));
+    SET_STRING_ELT(names, 6, Rf_mkChar("stat_max"));
+    SET_STRING_ELT(names, 7, Rf_mkChar("stat_mean"));
+    SET_STRING_ELT(names, 8, Rf_mkChar("stat_medn"));
+    SET_STRING_ELT(names, 9, Rf_mkChar("stat_stdev"));
+    SET_STRING_ELT(names, 10, Rf_mkChar("sum_valid"));
+    SET_STRING_ELT(names, 11, Rf_mkChar("sum_invalid"));
+    SET_STRING_ELT(names, 12, Rf_mkChar("cat_counts"));
+    SET_STRING_ELT(names, 13, Rf_mkChar("cat_values"));
+    SET_STRING_ELT(names, 14, Rf_mkChar("cat_labels"));
+    SET_STRING_ELT(names, 15, Rf_mkChar("cat_missing"));
+    SET_STRING_ELT(names, 16, Rf_mkChar("cat_freq"));
+    SET_STRING_ELT(names, 17, Rf_mkChar("variable_type"));
+    SET_STRING_ELT(names, 18, Rf_mkChar("weight_numeric_compatible"));
+    SET_STRING_ELT(names, 19, Rf_mkChar("weight_has_labels"));
+    SET_STRING_ELT(names, 20, Rf_mkChar("weight_has_observed"));
+    SET_STRING_ELT(names, 21, Rf_mkChar("weight_has_negative"));
+    Rf_setAttrib(out, R_NamesSymbol, names);
 
     for (i = 0; i < n; i++) {
         free(cat_label_idx_arr[i]);
@@ -1277,8 +1277,8 @@ SEXP collect_xml_metadata(SEXP data, SEXP include_formats) {
         free(jobs);
     }
 
-    PROTECT(out = allocVector(VECSXP, n));
-    PROTECT(out_names = getAttrib(data, R_NamesSymbol));
+    PROTECT(out = Rf_allocVector(VECSXP, n));
+    PROTECT(out_names = Rf_getAttrib(data, R_NamesSymbol));
 
     for (i = 0; i < n; i++) {
         SEXP item = R_NilValue;
@@ -1296,46 +1296,46 @@ SEXP collect_xml_metadata(SEXP data, SEXP include_formats) {
         if (has_labels) fields++;
         if (has_na_values) fields++;
 
-        PROTECT(item = allocVector(VECSXP, fields));
-        PROTECT(item_names = allocVector(STRSXP, fields));
+        PROTECT(item = Rf_allocVector(VECSXP, fields));
+        PROTECT(item_names = Rf_allocVector(STRSXP, fields));
 
         if (classes == R_NilValue) {
-            PROTECT(classes = allocVector(STRSXP, 1));
-            SET_STRING_ELT(classes, 0, mkChar(type2char(TYPEOF(results[i].x))));
+            PROTECT(classes = Rf_allocVector(STRSXP, 1));
+            SET_STRING_ELT(classes, 0, Rf_mkChar(Rf_type2char(TYPEOF(results[i].x))));
         }
         else {
             PROTECT(classes);
         }
         SET_VECTOR_ELT(item, idx, classes);
-        SET_STRING_ELT(item_names, idx++, mkChar("classes"));
+        SET_STRING_ELT(item_names, idx++, Rf_mkChar("classes"));
 
         if (has_label) {
             SET_VECTOR_ELT(item, idx, results[i].label);
-            SET_STRING_ELT(item_names, idx++, mkChar("label"));
+            SET_STRING_ELT(item_names, idx++, Rf_mkChar("label"));
         }
 
         if (has_measurement) {
             SET_VECTOR_ELT(item, idx, results[i].measurement);
-            SET_STRING_ELT(item_names, idx++, mkChar("measurement"));
+            SET_STRING_ELT(item_names, idx++, Rf_mkChar("measurement"));
         }
 
         if (has_labels) {
             SEXP labels = results[i].labels;
             if (results[i].factor_fallback) {
                 R_xlen_t k = XLENGTH(results[i].levels);
-                SEXP fac_labels = PROTECT(allocVector(INTSXP, k));
-                SEXP fac_names = PROTECT(allocVector(STRSXP, k));
+                SEXP fac_labels = PROTECT(Rf_allocVector(INTSXP, k));
+                SEXP fac_names = PROTECT(Rf_allocVector(STRSXP, k));
                 R_xlen_t j = 0;
 
                 for (j = 0; j < k; j++) {
                     INTEGER(fac_labels)[j] = (int)(j + 1);
                     SET_STRING_ELT(fac_names, j, STRING_ELT(results[i].levels, j));
                 }
-                setAttrib(fac_labels, R_NamesSymbol, fac_names);
+                Rf_setAttrib(fac_labels, R_NamesSymbol, fac_names);
                 labels = fac_labels;
             }
             SET_VECTOR_ELT(item, idx, labels);
-            SET_STRING_ELT(item_names, idx++, mkChar("labels"));
+            SET_STRING_ELT(item_names, idx++, Rf_mkChar("labels"));
             if (results[i].factor_fallback) {
                 UNPROTECT(2);
             }
@@ -1345,13 +1345,13 @@ SEXP collect_xml_metadata(SEXP data, SEXP include_formats) {
             SEXP na_values = PROTECT(sanitize_na_values(results[i].na_values));
             if (na_values != R_NilValue) {
                 SET_VECTOR_ELT(item, idx, na_values);
-                SET_STRING_ELT(item_names, idx++, mkChar("na_values"));
+                SET_STRING_ELT(item_names, idx++, Rf_mkChar("na_values"));
             }
             UNPROTECT(1);
         }
 
         SET_VECTOR_ELT(item, idx, results[i].na_range);
-        SET_STRING_ELT(item_names, idx++, mkChar("na_range"));
+        SET_STRING_ELT(item_names, idx++, Rf_mkChar("na_range"));
 
         if (do_formats) {
             SEXP spss = ddiwr_metadata_effective_field(results[i].x, DECLARED_SPSS, "format", "format.spss");
@@ -1359,35 +1359,35 @@ SEXP collect_xml_metadata(SEXP data, SEXP include_formats) {
             int has_spss = TYPEOF(spss) == STRSXP && XLENGTH(spss) == 1 && STRING_ELT(spss, 0) != NA_STRING;
             int has_stata = TYPEOF(stata) == STRSXP && XLENGTH(stata) == 1 && STRING_ELT(stata, 0) != NA_STRING;
             if (results[i].is_date && !has_spss && !has_stata) {
-                SEXP fmt = PROTECT(mkString("date"));
+                SEXP fmt = PROTECT(Rf_mkString("date"));
                 SET_VECTOR_ELT(item, idx, fmt);
                 UNPROTECT(1);
             }
             else {
-                SEXP fmt = PROTECT(allocVector(STRSXP, 2));
+                SEXP fmt = PROTECT(Rf_allocVector(STRSXP, 2));
                 SET_STRING_ELT(fmt, 0, has_spss ? STRING_ELT(spss, 0) :
-                    mkChar(results[i].is_date ? "DATE" : results[i].format_spss));
+                    Rf_mkChar(results[i].is_date ? "DATE" : results[i].format_spss));
                 SET_STRING_ELT(fmt, 1, has_stata ? STRING_ELT(stata, 0) :
-                    mkChar(results[i].is_date ? "%td" : results[i].format_stata));
+                    Rf_mkChar(results[i].is_date ? "%td" : results[i].format_stata));
                 SET_VECTOR_ELT(item, idx, fmt);
                 UNPROTECT(1);
             }
-            SET_STRING_ELT(item_names, idx++, mkChar("varFormat"));
+            SET_STRING_ELT(item_names, idx++, Rf_mkChar("varFormat"));
         }
 
         SET_VECTOR_ELT(item, idx, results[i].xmlang);
-        SET_STRING_ELT(item_names, idx++, mkChar("xmlang"));
+        SET_STRING_ELT(item_names, idx++, Rf_mkChar("xmlang"));
 
         SET_VECTOR_ELT(item, idx, results[i].id);
-        SET_STRING_ELT(item_names, idx++, mkChar("ID"));
+        SET_STRING_ELT(item_names, idx++, Rf_mkChar("ID"));
 
-        setAttrib(item, R_NamesSymbol, item_names);
+        Rf_setAttrib(item, R_NamesSymbol, item_names);
         SET_VECTOR_ELT(out, i, item);
         UNPROTECT(3);
     }
 
     if (TYPEOF(out_names) == STRSXP && XLENGTH(out_names) == n) {
-        setAttrib(out, R_NamesSymbol, out_names);
+        Rf_setAttrib(out, R_NamesSymbol, out_names);
     }
 
     free(results);
@@ -1413,7 +1413,7 @@ SEXP label_freqs(SEXP x, SEXP labels, SEXP wt) {
         Rf_error("Argument 'wt' must have same length as 'x'.");
     }
 
-    PROTECT(out = allocVector(REALSXP, k));
+    PROTECT(out = Rf_allocVector(REALSXP, k));
     for (j = 0; j < k; j++) {
         REAL(out)[j] = 0.0;
     }

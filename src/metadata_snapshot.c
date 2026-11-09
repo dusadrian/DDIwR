@@ -38,6 +38,19 @@ static void *allocate_items(R_xlen_t count, size_t width) {
     return result;
 }
 
+static SEXP snapshot_attribute_names(SEXP value) {
+#if R_VERSION >= R_Version(4, 6, 0)
+    return R_getAttribNames(value);
+#else
+    SEXP call = PROTECT(Rf_lang2(Rf_install("attributes"), value));
+    SEXP attributes = PROTECT(Rf_eval(call, R_BaseEnv));
+    SEXP names = Rf_getAttrib(attributes, R_NamesSymbol);
+
+    UNPROTECT(2);
+    return names;
+#endif
+}
+
 static void capture_node(SEXP value, metadata_node **destination, int depth) {
     if (depth > 8) Rf_error("Metadata nesting exceeds snapshot limit.");
     metadata_node *node = allocate_items(1, sizeof(*node));
@@ -53,19 +66,16 @@ static void capture_node(SEXP value, metadata_node **destination, int depth) {
         case REALSXP: width = sizeof(double); break;
         default: Rf_error("Unsupported metadata storage type.");
     }
-    /* Reject rather than silently discard an unsupported attribute. */
-#if R_VERSION >= R_Version(4, 6, 0)
-    SEXP attribute_names = PROTECT(R_getAttribNames(value));
+    /* Only names are stored in the snapshot. */
+    SEXP attribute_names = PROTECT(snapshot_attribute_names(value));
+
     for (R_xlen_t i = 0; attribute_names != R_NilValue && i < XLENGTH(attribute_names); i++) {
-        if (strcmp(CHAR(STRING_ELT(attribute_names, i)), "names") != 0)
+        if (strcmp(CHAR(STRING_ELT(attribute_names, i)), "names") != 0) {
             Rf_error("Unsupported metadata attribute.");
+        }
     }
+
     UNPROTECT(1);
-#else
-    for (SEXP attribute = ATTRIB(value); attribute != R_NilValue; attribute = CDR(attribute)) {
-        if (TAG(attribute) != R_NamesSymbol) Rf_error("Unsupported metadata attribute.");
-    }
-#endif
     node->values = allocate_items(node->length, width);
     if (node->type == VECSXP) {
         metadata_node **children = node->values;
@@ -81,15 +91,15 @@ static void capture_node(SEXP value, metadata_node **destination, int depth) {
             size_t length = (size_t)LENGTH(string);
             strings[i] = allocate_items(length + 1, 1);
             memcpy(strings[i], CHAR(string), length + 1);
-            node->encodings[i] = getCharCE(string);
+            node->encodings[i] = Rf_getCharCE(string);
         }
     } else {
         const void *source = node->type == REALSXP ? (const void *)REAL(value) :
             node->type == INTSXP ? (const void *)INTEGER(value) : (const void *)LOGICAL(value);
         memcpy(node->values, source, (size_t)node->length * width);
     }
-    if (getAttrib(value, R_NamesSymbol) != R_NilValue) {
-        capture_node(getAttrib(value, R_NamesSymbol), &node->names, depth + 1);
+    if (Rf_getAttrib(value, R_NamesSymbol) != R_NilValue) {
+        capture_node(Rf_getAttrib(value, R_NamesSymbol), &node->names, depth + 1);
     }
 }
 
@@ -136,7 +146,7 @@ static void capture_value_node(SEXP value, metadata_node **destination) {
 
             strings[i] = allocate_items(length + 1, 1);
             memcpy(strings[i], CHAR(string), length + 1);
-            node->encodings[i] = getCharCE(string);
+            node->encodings[i] = Rf_getCharCE(string);
         }
     }
     else {
@@ -154,7 +164,7 @@ static void capture_value_node(SEXP value, metadata_node **destination) {
 
 static SEXP restore_node(const metadata_node *node) {
     if (node->type == NILSXP) return R_NilValue;
-    SEXP value = PROTECT(allocVector(node->type, node->length));
+    SEXP value = PROTECT(Rf_allocVector(node->type, node->length));
     if (node->type == VECSXP) {
         metadata_node **children = node->values;
         for (R_xlen_t i = 0; i < node->length; i++) SET_VECTOR_ELT(value, i, restore_node(children[i]));
@@ -162,7 +172,7 @@ static SEXP restore_node(const metadata_node *node) {
         char **strings = node->values;
         for (R_xlen_t i = 0; i < node->length; i++) {
             SET_STRING_ELT(value, i, strings[i] == NULL ? NA_STRING :
-                mkCharCE(strings[i], (cetype_t)node->encodings[i]));
+                Rf_mkCharCE(strings[i], (cetype_t)node->encodings[i]));
         }
     } else {
         void *target = node->type == REALSXP ? (void *)REAL(value) :
@@ -172,14 +182,14 @@ static SEXP restore_node(const metadata_node *node) {
     }
     if (node->names != NULL) {
         SEXP names = PROTECT(restore_node(node->names));
-        setAttrib(value, R_NamesSymbol, names);
+        Rf_setAttrib(value, R_NamesSymbol, names);
         UNPROTECT(1);
     }
     UNPROTECT(1);
     return value;
 }
 
-static SEXP snapshot_tag(void) { return install("DDIwR.metadata.snapshot.v1"); }
+static SEXP snapshot_tag(void) { return Rf_install("DDIwR.metadata.snapshot.v1"); }
 
 static void finalize_snapshot(SEXP pointer) {
     release_node(R_ExternalPtrAddr(pointer));
@@ -203,7 +213,7 @@ static SEXP clean_text_body(void *context) {
     capture_context *capture = context;
     capture_node(capture->input, &capture->root, 0);
     metadata_node *node = capture->root;
-    SEXP fallback = PROTECT(allocVector(LGLSXP, node->length));
+    SEXP fallback = PROTECT(Rf_allocVector(LGLSXP, node->length));
     char **strings = node->values;
     for (R_xlen_t i = 0; i < node->length; i++) {
         LOGICAL(fallback)[i] = 0;
@@ -218,7 +228,7 @@ static SEXP clean_text_body(void *context) {
             strings[i] = cleaned;
         }
     }
-    SEXP result = PROTECT(allocVector(VECSXP, 2));
+    SEXP result = PROTECT(Rf_allocVector(VECSXP, 2));
     SET_VECTOR_ELT(result, 0, restore_node(node));
     SET_VECTOR_ELT(result, 1, fallback);
     UNPROTECT(2);
@@ -248,29 +258,29 @@ static SEXP capture_raw_body(void *context) {
     root->type = VECSXP;
     root->length = XLENGTH(capture->input);
     root->values = allocate_items(root->length, sizeof(metadata_node *));
-    SEXP column_names = getAttrib(capture->input, R_NamesSymbol);
+    SEXP column_names = Rf_getAttrib(capture->input, R_NamesSymbol);
     if (column_names != R_NilValue) capture_node(column_names, &root->names, 0);
     metadata_node **columns = root->values;
     for (R_xlen_t i = 0; i < root->length; i++) {
         if (i % 256 == 0) R_CheckUserInterrupt();
         SEXP column = VECTOR_ELT(capture->input, i);
-        SEXP record = PROTECT(allocVector(VECSXP, XLENGTH(capture->fields)));
+        SEXP record = PROTECT(Rf_allocVector(VECSXP, XLENGTH(capture->fields)));
         for (R_xlen_t j = 0; j < XLENGTH(capture->fields); j++) {
             const char *field = CHAR(STRING_ELT(capture->fields, j));
             SEXP value;
             if (strcmp(field, "storage") == 0) {
-                value = PROTECT(mkString(type2char(TYPEOF(column))));
+                value = PROTECT(Rf_mkString(Rf_type2char(TYPEOF(column))));
             } else if (strcmp(field, "length") == 0) {
-                value = PROTECT(ScalarReal((double)XLENGTH(column)));
+                value = PROTECT(Rf_ScalarReal((double)XLENGTH(column)));
             } else if (strcmp(field, "position") == 0) {
-                value = PROTECT(ScalarReal((double)i + 1));
+                value = PROTECT(Rf_ScalarReal((double)i + 1));
             } else {
-                value = PROTECT(getAttrib(column, install(strcmp(field, "classes") == 0 ? "class" : field)));
+                value = PROTECT(Rf_getAttrib(column, Rf_install(strcmp(field, "classes") == 0 ? "class" : field)));
             }
             SET_VECTOR_ELT(record, j, value);
             UNPROTECT(1);
         }
-        setAttrib(record, R_NamesSymbol, capture->fields);
+        Rf_setAttrib(record, R_NamesSymbol, capture->fields);
         capture_node(record, &columns[i], 0);
         UNPROTECT(1);
     }
@@ -303,7 +313,7 @@ static SEXP copy_values_body(void *context) {
     value_copy_context *copy = context;
     metadata_node *root = allocate_items(1, sizeof(*root));
     metadata_node **values = NULL;
-    SEXP source_names = getAttrib(copy->data, R_NamesSymbol);
+    SEXP source_names = Rf_getAttrib(copy->data, R_NamesSymbol);
 
     copy->root = root;
     root->type = VECSXP;
@@ -312,7 +322,7 @@ static SEXP copy_values_body(void *context) {
     values = root->values;
 
     if (source_names != R_NilValue) {
-        SEXP selected_names = PROTECT(allocVector(STRSXP, root->length));
+        SEXP selected_names = PROTECT(Rf_allocVector(STRSXP, root->length));
 
         for (R_xlen_t i = 0; i < root->length; i++) {
             int position = INTEGER(copy->columns)[i] - 1;
@@ -383,8 +393,8 @@ static SEXP restore_fields(const metadata_node *record, SEXP fields) {
             if (available[j] != NULL && strcmp(CHAR(STRING_ELT(fields, i)), available[j]) == 0) count++;
         }
     }
-    SEXP result = PROTECT(allocVector(VECSXP, count));
-    SEXP names = PROTECT(allocVector(STRSXP, count));
+    SEXP result = PROTECT(Rf_allocVector(VECSXP, count));
+    SEXP names = PROTECT(Rf_allocVector(STRSXP, count));
     metadata_node **children = record->values;
     R_xlen_t index = 0;
     for (R_xlen_t i = 0; i < XLENGTH(fields); i++) {
@@ -395,7 +405,7 @@ static SEXP restore_fields(const metadata_node *record, SEXP fields) {
             }
         }
     }
-    setAttrib(result, R_NamesSymbol, names);
+    Rf_setAttrib(result, R_NamesSymbol, names);
     UNPROTECT(2);
     return result;
 }
@@ -410,8 +420,8 @@ SEXP metadata_snapshot_read(SEXP pointer, SEXP columns, SEXP fields) {
         if (INTEGER(columns)[i] < 1 || INTEGER(columns)[i] > root->length)
             Rf_error("Column position is outside the snapshot.");
     }
-    SEXP result = PROTECT(allocVector(VECSXP, XLENGTH(columns)));
-    SEXP names = PROTECT(allocVector(STRSXP, XLENGTH(columns)));
+    SEXP result = PROTECT(Rf_allocVector(VECSXP, XLENGTH(columns)));
+    SEXP names = PROTECT(Rf_allocVector(STRSXP, XLENGTH(columns)));
     metadata_node **children = root->values;
     for (R_xlen_t i = 0; i < XLENGTH(columns); i++) {
         int position = INTEGER(columns)[i] - 1;
@@ -419,10 +429,10 @@ SEXP metadata_snapshot_read(SEXP pointer, SEXP columns, SEXP fields) {
         if (root->names != NULL) {
             char **strings = root->names->values;
             SET_STRING_ELT(names, i, strings[position] == NULL ? NA_STRING :
-                mkCharCE(strings[position], (cetype_t)root->names->encodings[position]));
+                Rf_mkCharCE(strings[position], (cetype_t)root->names->encodings[position]));
         }
     }
-    if (root->names != NULL) setAttrib(result, R_NamesSymbol, names);
+    if (root->names != NULL) Rf_setAttrib(result, R_NamesSymbol, names);
     UNPROTECT(2);
     return result;
 }
@@ -470,7 +480,7 @@ static SEXP normalize_body(void *context) {
     unsigned long index = 0;
     for (R_xlen_t i = 0; i < XLENGTH(records); i++) {
         SEXP record = VECTOR_ELT(records, i);
-        SEXP names = getAttrib(record, R_NamesSymbol);
+        SEXP names = Rf_getAttrib(record, R_NamesSymbol);
         const metadata_node *source = source_columns[INTEGER(work->columns)[i] - 1];
         char **source_names = source->names == NULL ? NULL : source->names->values;
         metadata_node **values = source->values;
@@ -496,8 +506,8 @@ static SEXP normalize_body(void *context) {
     index = 0;
     for (R_xlen_t i = 0; i < XLENGTH(records); i++) {
         SEXP record = VECTOR_ELT(records, i);
-        SEXP names = getAttrib(record, R_NamesSymbol);
-        SEXP pending = PROTECT(allocVector(LGLSXP, XLENGTH(record)));
+        SEXP names = Rf_getAttrib(record, R_NamesSymbol);
+        SEXP pending = PROTECT(Rf_allocVector(LGLSXP, XLENGTH(record)));
         for (R_xlen_t j = 0; j < XLENGTH(record); j++, index++) {
             ddiwr_text_job *job = &work->jobs[index];
             if (job->status < 0) Rf_error("Cannot allocate normalized metadata text.");
@@ -509,21 +519,21 @@ static SEXP normalize_body(void *context) {
             if (fallback || !text_field(field)) continue;
             R_xlen_t nvalues = TYPEOF(value) == STRSXP ? XLENGTH(value) : 0;
             for (R_xlen_t k = 0; k < nvalues; k++) {
-                if (job->output[k]) SET_STRING_ELT(value, k, mkChar(job->output[k]));
+                if (job->output[k]) SET_STRING_ELT(value, k, Rf_mkChar(job->output[k]));
             }
-            SEXP label_names = strcmp(field, "labels") == 0 ? getAttrib(value, R_NamesSymbol) : R_NilValue;
+            SEXP label_names = strcmp(field, "labels") == 0 ? Rf_getAttrib(value, R_NamesSymbol) : R_NilValue;
             if (label_names != R_NilValue) {
                 for (R_xlen_t k = 0; k < XLENGTH(label_names); k++) {
-                    if (job->output[nvalues + k]) SET_STRING_ELT(label_names, k, mkChar(job->output[nvalues + k]));
+                    if (job->output[nvalues + k]) SET_STRING_ELT(label_names, k, Rf_mkChar(job->output[nvalues + k]));
                 }
             }
         }
-        setAttrib(record, install("ddiwr_cleanup_pending"), pending);
+        Rf_setAttrib(record, Rf_install("ddiwr_cleanup_pending"), pending);
         UNPROTECT(1);
     }
-    SEXP result = PROTECT(allocVector(VECSXP, 2));
+    SEXP result = PROTECT(Rf_allocVector(VECSXP, 2));
     SET_VECTOR_ELT(result, 0, records);
-    SET_VECTOR_ELT(result, 1, ScalarInteger(used));
+    SET_VECTOR_ELT(result, 1, Rf_ScalarInteger(used));
     UNPROTECT(2);
     return result;
 }

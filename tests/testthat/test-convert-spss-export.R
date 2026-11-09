@@ -63,3 +63,27 @@ test_that("public SPSS export honors explicit compression and keeps the SAV defa
         expect_identical(as.character(result$text), data$text)
     }
 })
+
+test_that("serial SPSS import keeps missing values alive during garbage collection", {
+    path <- tempfile(fileext = ".sav")
+    on.exit(unlink(path), add = TRUE)
+    data <- data.frame(
+        answer = declared::declared(c(1, 91, 92), na_values = c(91, 92)),
+        reason = declared::declared(c("yes", "dk", "ref"), na_values = c("dk", "ref"))
+    )
+    convert(data, path)
+    spec <- source_file(path)
+
+    read <- function() {
+        previous_step <- gctorture2(1L)
+        on.exit(gctorture2(previous_step))
+
+        .Call("declared_df_parse_sav_file", spec, "", TRUE, integer(), -1L, 0L,
+            PACKAGE = "DDIwR")
+    }
+
+    result <- read()
+
+    expect_identical(attr(result$answer, "na_values"), c(91, 92))
+    expect_identical(attr(result$reason, "na_values"), c("dk", "ref"))
+})

@@ -200,7 +200,9 @@ static int sas7bcat_make_block(sas7bcat_block_t *block, readstat_label_set_t *se
         cat_w2(p+2, 5+label->label_len);
         cat_w2(p+6, 6);
         cat_w2(p+8, label->label_len);
-        memcpy(p+10, label->label, label->label_len);
+        if (label->label_len > 0) {
+            memcpy(p+10, label->label, label->label_len);
+        }
         p += 11+label->label_len;
     }
     free(sorted);

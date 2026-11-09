@@ -1,16 +1,13 @@
-#define R_NO_REMAP
 #include <R.h>
 #include <Rinternals.h>
 #include <R_ext/Memory.h>
 #include <R_ext/Utils.h>
 #include <ctype.h>
+#include <limits.h>
+#include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
-
-static int is_string_like(SEXP x) {
-    return TYPEOF(x) == STRSXP || TYPEOF(x) == CHARSXP;
-}
 
 static int same_key_ci(const char *lhs, const char *rhs) {
     unsigned char a;
@@ -267,6 +264,13 @@ static void add_dictionary_entry(
     (*n_entries)++;
 }
 
+static void free_dictionary_entries(MissingDictionaryEntry *entries, R_xlen_t n_entries) {
+    for (R_xlen_t i = 0; i < n_entries; ++i) {
+        R_Free(entries[i].label);
+    }
+    R_Free(entries);
+}
+
 static int dictionary_entry_cmp_old(const void *a, const void *b) {
     const MissingDictionaryEntry *ea = (const MissingDictionaryEntry *) a;
     const MissingDictionaryEntry *eb = (const MissingDictionaryEntry *) b;
@@ -466,6 +470,7 @@ SEXP build_dictionary_(SEXP dataset, SEXP to, SEXP start) {
     const char *target;
     int tospss;
     int start_value;
+    int64_t first_code = 0;
     MissingDictionaryEntry *entries = NULL;
     R_xlen_t n_entries = 0;
     R_xlen_t cap_entries = 0;
@@ -490,9 +495,25 @@ SEXP build_dictionary_(SEXP dataset, SEXP to, SEXP start) {
         collect_missing_codes_from_variable(VECTOR_ELT(dataset, i), &entries, &n_entries, &cap_entries, (int) i);
     }
 
-    qsort(entries, (size_t) n_entries, sizeof(MissingDictionaryEntry), dictionary_entry_cmp_old);
-    if (n_entries > 0) {
+    if (tospss && n_entries > 0) {
+        int64_t base_code = n_entries < 5000 ? 5000 : (int64_t) n_entries + 1;
+        int64_t start_magnitude = start_value < 0 ? -(int64_t) start_value : start_value;
+        first_code = base_code + start_magnitude - 1;
+
+        if (start_value == NA_INTEGER || first_code + n_entries - 1 > INT_MAX) {
+            free_dictionary_entries(entries, n_entries);
+            Rf_error("Argument 'start' must be non-missing and keep generated SPSS codes within the integer range.");
+        }
+    }
+    else if (!tospss && n_entries > 26) {
+        free_dictionary_entries(entries, n_entries);
+        Rf_error("Too many overall missing values.");
+    }
+
+    if (n_entries > 1) {
         int all_negative = 1;
+
+        qsort(entries, (size_t) n_entries, sizeof(MissingDictionaryEntry), dictionary_entry_cmp_old);
         for (i = 0; i < n_entries; ++i) {
             if (!(entries[i].old < 0)) {
                 all_negative = 0;
@@ -521,18 +542,13 @@ SEXP build_dictionary_(SEXP dataset, SEXP to, SEXP start) {
         SEXP count = PROTECT(Rf_allocVector(INTSXP, n_entries));
         SEXP n_variables = PROTECT(Rf_allocVector(INTSXP, n_entries));
 
-        if (!tospss && n_entries > (R_xlen_t) strlen("abcdefghijklmnopqrstuvwxyz")) {
-            Rf_error("Too many overall missing values.");
-        }
-
         for (i = 0; i < n_entries; ++i) {
             SET_STRING_ELT(label, i, Rf_mkChar(entries[i].label != NULL ? entries[i].label : ""));
             REAL(old)[i] = entries[i].old;
             INTEGER(count)[i] = entries[i].count;
             INTEGER(n_variables)[i] = entries[i].n_variables;
             if (tospss) {
-                int base_code = 5000 > ((int) n_entries + 1) ? 5000 : ((int) n_entries + 1);
-                int code = (int) (base_code + abs(start_value) - 1 + i);
+                int code = (int) (first_code + i);
                 INTEGER(new_values)[i] = start_value < 0 ? -code : code;
             } else {
                 char tag[2];
@@ -562,14 +578,7 @@ SEXP build_dictionary_(SEXP dataset, SEXP to, SEXP start) {
     Rf_setAttrib(out, R_RowNamesSymbol, row_names);
     Rf_setAttrib(out, R_ClassSymbol, Rf_mkString("data.frame"));
 
-    if (entries != NULL) {
-        for (i = 0; i < n_entries; ++i) {
-            if (entries[i].label != NULL) {
-                R_Free(entries[i].label);
-            }
-        }
-        R_Free(entries);
-    }
+    free_dictionary_entries(entries, n_entries);
 
     UNPROTECT(3);
     return out;
@@ -772,7 +781,13 @@ static SEXP append_label_matches(SEXP na_values, SEXP labels, SEXP old, SEXP new
 
     if (matched == 0) {
         R_Free(seen);
-        return na_values == R_NilValue ? R_NilValue : Rf_duplicate(na_values);
+        if (na_values == R_NilValue) {
+            return R_NilValue;
+        }
+
+        out = Rf_duplicate(na_values);
+        UNPROTECT(1);
+        return out;
     }
 
     out_n = na_n + matched;
@@ -795,12 +810,11 @@ static SEXP append_label_matches(SEXP na_values, SEXP labels, SEXP old, SEXP new
 }
 
 static SEXP recode_vector(SEXP x, SEXP new_chr, const char **old_keys, R_xlen_t n_old) {
-    SEXP out = Rf_duplicate(x);
+    SEXP out = PROTECT(Rf_duplicate(x));
     R_xlen_t n = XLENGTH(out);
     R_xlen_t i;
     int index;
     const char *key;
-    const char *replacement;
     int ignore_case = TYPEOF(out) == STRSXP;
 
     switch (TYPEOF(out)) {
@@ -886,6 +900,7 @@ static SEXP recode_vector(SEXP x, SEXP new_chr, const char **old_keys, R_xlen_t 
             break;
     }
 
+    UNPROTECT(1);
     return out;
 }
 
@@ -977,9 +992,9 @@ SEXP recode_to_spss_full_(SEXP x, SEXP labels, SEXP na_values, SEXP na_index, SE
     }
 
     if (na_values != R_NilValue) {
-        SEXP recoded = PROTECT(recode_vector(na_values, new_chr, old_keys, n_old));
-        na_values_new = PROTECT(append_label_matches(recoded, labels, old, new_chr));
-        UNPROTECT(1);
+        PROTECT_INDEX index;
+        PROTECT_WITH_INDEX(na_values_new = recode_vector(na_values, new_chr, old_keys, n_old), &index);
+        REPROTECT(na_values_new = append_label_matches(na_values_new, labels, old, new_chr), index);
     } else if (labels != R_NilValue) {
         na_values_new = PROTECT(append_label_matches(R_NilValue, labels, old, new_chr));
     }

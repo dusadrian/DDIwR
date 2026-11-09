@@ -91,11 +91,6 @@ static char *str_dup(const char *x) {
     return out;
 }
 
-static int is_intish(double x) {
-    double ix = (double) ((int) x);
-    return !ISNAN(x) && x == ix;
-}
-
 static double tag_code_value(char tag) {
     char lower = (char) tolower((unsigned char) tag);
     if (lower < 'a' || lower > 'z') {
@@ -485,7 +480,9 @@ static int reader_variable(int index, readstat_variable_t *variable, const char 
     if (ctx->user_na && n_ranges > 0) {
         if (readstat_variable_get_type(variable) == READSTAT_TYPE_STRING ||
             readstat_variable_get_type(variable) == READSTAT_TYPE_STRING_REF) {
-            SEXP na_values = PROTECT(Rf_allocVector(STRSXP, 0));
+            PROTECT_INDEX na_values_index;
+            SEXP na_values;
+            PROTECT_WITH_INDEX(na_values = Rf_allocVector(STRSXP, 0), &na_values_index);
             SEXP na_range = PROTECT(Rf_allocVector(STRSXP, 2));
             int has_range = 0;
             int single_count = 0;
@@ -496,7 +493,7 @@ static int reader_variable(int index, readstat_variable_t *variable, const char 
                 const char *lo = readstat_string_value(lo_value);
                 const char *hi = readstat_string_value(hi_value);
                 if (lo == hi) {
-                    na_values = Rf_lengthgets(na_values, single_count + 1);
+                    REPROTECT(na_values = Rf_lengthgets(na_values, single_count + 1), na_values_index);
                     SET_STRING_ELT(na_values, single_count, lo == NULL ? NA_STRING : Rf_mkCharCE(lo, CE_UTF8));
                     single_count++;
                 } else {
@@ -515,7 +512,9 @@ static int reader_variable(int index, readstat_variable_t *variable, const char 
         } else {
             int single_count = 0;
             int has_range = 0;
-            SEXP na_values = PROTECT(Rf_allocVector(REALSXP, 0));
+            PROTECT_INDEX na_values_index;
+            SEXP na_values;
+            PROTECT_WITH_INDEX(na_values = Rf_allocVector(REALSXP, 0), &na_values_index);
             SEXP na_range = PROTECT(Rf_allocVector(REALSXP, 2));
 
             for (i = 0; i < n_ranges; ++i) {
@@ -524,7 +523,7 @@ static int reader_variable(int index, readstat_variable_t *variable, const char 
                 double lo = readstat_double_value(lo_value);
                 double hi = readstat_double_value(hi_value);
                 if (lo == hi) {
-                    na_values = Rf_lengthgets(na_values, single_count + 1);
+                    REPROTECT(na_values = Rf_lengthgets(na_values, single_count + 1), na_values_index);
                     REAL(na_values)[single_count] = lo;
                     single_count++;
                 } else {
@@ -553,9 +552,10 @@ static int reader_value(int obs_index, readstat_variable_t *variable, readstat_v
     ReaderCtx *ctx = (ReaderCtx *) ctx_;
     int var_index = readstat_variable_get_index_after_skipping(variable);
     ColumnInfo *col_info = &ctx->cols[var_index];
-    SEXP col = VECTOR_ELT(ctx->output, var_index);
 
     ensure_row_capacity(ctx, obs_index);
+    SEXP col = VECTOR_ELT(ctx->output, var_index);
+
     if (obs_index >= ctx->nrows) {
         ctx->nrows = obs_index + 1;
     }
@@ -701,16 +701,6 @@ static int reader_value_label(const char *val_labels, readstat_value_t value, co
             break;
     }
     return READSTAT_HANDLER_OK;
-}
-
-static SEXP make_names_from_labels(LabelSet *set) {
-    size_t i;
-    SEXP names = PROTECT(Rf_allocVector(STRSXP, (R_xlen_t) set->n));
-    for (i = 0; i < set->n; ++i) {
-        SET_STRING_ELT(names, i, Rf_mkCharCE(set->labels[i], CE_UTF8));
-    }
-    UNPROTECT(1);
-    return names;
 }
 
 static SEXP labelset_to_sexp(LabelSet *set) {
@@ -999,7 +989,10 @@ static SEXP parse_file(FileExt ext, SEXP spec, SEXP encoding, SEXP user_na, SEXP
         }
         readstat_set_file_character_encoding(parser,
             cat_enc != NULL && *cat_enc != '\0' ? cat_enc : NULL);
+        /* Catalogs supply labels, while the data file owns the column metadata. */
+        readstat_set_metadata_handler(parser, NULL);
         result = readstat_parse_sas7bcat(parser, cat_path, &ctx);
+        readstat_set_metadata_handler(parser, reader_metadata);
         if (result != READSTAT_OK) {
             failed_path = cat_path;
         }
@@ -1076,18 +1069,18 @@ SEXP declared_df_parse_por_file(SEXP spec, SEXP encoding, SEXP user_na, SEXP col
 }
 
 SEXP declared_df_parse_dta_file(SEXP spec, SEXP encoding, SEXP cols_skip, SEXP n_max, SEXP rows_skip) {
-    return parse_file(DECLARED_DTA, spec, encoding, ScalarLogical(1), cols_skip, n_max, rows_skip, R_NilValue, R_NilValue, 0);
+    return parse_file(DECLARED_DTA, spec, encoding, Rf_ScalarLogical(1), cols_skip, n_max, rows_skip, R_NilValue, R_NilValue, 0);
 }
 
 SEXP declared_df_parse_sas_file(SEXP spec_b7dat, SEXP spec_b7cat, SEXP encoding, SEXP catalog_encoding, SEXP cols_skip, SEXP n_max, SEXP rows_skip) {
-    return parse_file(DECLARED_SAS7BDAT, spec_b7dat, encoding, ScalarLogical(0), cols_skip, n_max, rows_skip, spec_b7cat, catalog_encoding, 0);
+    return parse_file(DECLARED_SAS7BDAT, spec_b7dat, encoding, Rf_ScalarLogical(0), cols_skip, n_max, rows_skip, spec_b7cat, catalog_encoding, 0);
 }
 
 SEXP declared_df_parse_xpt_file(SEXP spec, SEXP cols_skip, SEXP n_max, SEXP rows_skip) {
-    return parse_file(DECLARED_XPT, spec, R_NilValue, ScalarLogical(0), cols_skip, n_max, rows_skip, R_NilValue, R_NilValue, 0);
+    return parse_file(DECLARED_XPT, spec, R_NilValue, Rf_ScalarLogical(0), cols_skip, n_max, rows_skip, R_NilValue, R_NilValue, 0);
 }
 
 SEXP ddiwr_inspect_file(SEXP spec, SEXP ext, SEXP encoding, SEXP spec_cat, SEXP catalog_encoding) {
-    return parse_file((FileExt)Rf_asInteger(ext), spec, encoding, ScalarLogical(1),
+    return parse_file((FileExt)Rf_asInteger(ext), spec, encoding, Rf_ScalarLogical(1),
             R_NilValue, R_NilValue, R_NilValue, spec_cat, catalog_encoding, 1);
 }

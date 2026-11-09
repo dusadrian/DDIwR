@@ -1,3 +1,30 @@
+test_that("paired SAS reads retain data-file metadata and catalog labels", {
+    directory <- tempfile()
+    dir.create(directory)
+    on.exit(unlink(directory, recursive = TRUE), add = TRUE)
+    path <- file.path(directory, "data.sas7bdat")
+    catalog <- file.path(directory, "data.sas7bcat")
+    data <- data.frame(answer = c(1, 2, 1), text = c("one", "two", "three"))
+    labels <- c(Yes = 1, No = 2)
+    attr(data$answer, "labels") <- labels
+    attr(data, "label") <- "Data file metadata"
+    write_sas(data, path, catalog_file = catalog)
+
+    for (limit in c(0L, 3L)) {
+        result <- read_sas(path, catalog_file = catalog, n_max = limit)
+
+        expect_identical(names(result), names(data))
+        expect_identical(nrow(result), limit)
+        expect_identical(attr(result, "label"), attr(data, "label"))
+        expect_identical(attr(result$answer, "labels"), labels)
+        expect_equal(result$answer, data$answer[seq_len(limit)], ignore_attr = TRUE)
+        expect_equal(result$text, data$text[seq_len(limit)], ignore_attr = TRUE)
+    }
+
+    unlink(path)
+    expect_error(read_sas(path, catalog_file = catalog))
+})
+
 test_that("native SAS catalogs include the structural records required by SAS", {
     skip_if(.Platform$endian != "little", "Native byte fixtures use the Linux little-endian layout.")
     fixture <- test_path("fixtures", "readstat", "sas94-m9-reference.sas7bcat")

@@ -11,7 +11,9 @@ buildDictionary(dataset, to = c("SPSS", "Stata", "SAS"), start = -91)
 
 \item{to}{Target software for the recoding dictionary.}
 
-\item{start}{Starting code for generated SPSS-style numeric missings.}
+\item{start}{Starting code for generated SPSS-style numeric missings.
+When generating codes, this must be non-missing and leave room for all
+generated codes within the R integer range.}
 }
 \value{
 A data frame with columns such as \code{label}, \code{old}, \code{new}, \code{count},

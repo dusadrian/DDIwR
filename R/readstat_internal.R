@@ -275,6 +275,8 @@ recode_to_spss_full_native <- function(
 #' @param dataset A data frame.
 #' @param to Target software for the recoding dictionary.
 #' @param start Starting code for generated SPSS-style numeric missings.
+#'   When generating codes, this must be non-missing and leave room for all
+#'   generated codes within the R integer range.
 #'
 #' @return A data frame with columns such as `label`, `old`, `new`, `count`,
 #' and `n_variables`.

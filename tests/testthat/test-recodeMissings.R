@@ -125,6 +125,43 @@ test_that("buildDictionary() builds SPSS-style numeric recodes", {
   expect_equal(as.integer(dictionary$new), c(-5090L, -5091L, -5092L))
 })
 
+test_that("buildDictionary() bounds generated SPSS codes to the integer range", {
+    limit <- .Machine$integer.max
+    start <- limit - 5001L
+
+    expect_identical(buildDictionary(xexport, to = "SPSS", start = start)$new,
+        seq.int(limit - 2L, limit))
+    expect_identical(buildDictionary(xexport, to = "SPSS", start = -start)$new,
+        -seq.int(limit - 2L, limit))
+    expect_error(buildDictionary(xexport, to = "SPSS", start = start + 1L),
+        "integer range")
+    expect_error(buildDictionary(xexport, to = "SPSS", start = NA_integer_),
+        "non-missing")
+})
+
+test_that("native SPSS recoding keeps results alive during garbage collection", {
+    recode <- function() {
+        previous_step <- gctorture2(1L)
+        on.exit(gctorture2(previous_step))
+
+        list(
+            recode_to_spss_native(c(1L, -91L), old = -91, new = -5000),
+            recode_to_spss_full_native(c(1, -91), labels = c(DK = -91),
+                na_values = -92, old = -91, new = -5000),
+            recode_to_spss_full_native(c(1, -91), labels = c(Yes = 1),
+                na_values = -91, old = -91, new = -5000)
+        )
+    }
+
+    result <- recode()
+
+    expect_identical(result[[1]]$x, c(1L, -5000L))
+    expect_identical(result[[2]]$x, c(1, -5000))
+    expect_identical(result[[2]]$labels, c(DK = -5000))
+    expect_identical(result[[2]]$na_values, c("-92", "-5000"))
+    expect_identical(result[[3]]$na_values, -5000)
+})
+
 test_that("can_build_dictionary() detects foreign tag overflow", {
   expect_true(can_build_dictionary(xexport, to = "Stata"))
   expect_false(can_build_dictionary(xmany, to = "Stata"))

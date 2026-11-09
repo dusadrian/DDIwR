@@ -297,6 +297,24 @@ test_that("public XPT export accepts ordinary data frames without a setup script
     expect_identical(list.files(directory), "ordinary.xpt")
 })
 
+test_that("XPT import preserves the first value after growing the row buffer", {
+    directory <- tempfile()
+    dir.create(directory)
+    on.exit(unlink(directory, recursive = TRUE), add = TRUE)
+    path <- file.path(directory, "large.xpt")
+    rows <- 100003L
+    data <- data.frame(
+        answer = as.numeric(seq_len(rows)),
+        text = rep(c("one", "two"), length.out = rows)
+    )
+
+    convert(data, path)
+    result <- convert(path, recode = FALSE, declared = FALSE)
+
+    expect_identical(as.numeric(result$answer), data$answer)
+    expect_identical(as.character(result$text), data$text)
+})
+
 test_that("SAS shorthand accepts an unlabelled RDS without a setup script", {
     directory <- tempfile()
     dir.create(directory)

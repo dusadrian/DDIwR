@@ -124,5 +124,6 @@ OBJECTS = \
 	sc_parallel_read.o \
 	tagged_na.o
 
+PKG_CPPFLAGS = -DR_NO_REMAP
 PKG_CFLAGS =  -Ireadstat -DHAVE_ZLIB
 PKG_LIBS = -lz

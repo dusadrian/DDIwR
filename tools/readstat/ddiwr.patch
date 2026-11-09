@@ -728,10 +728,10 @@ index c4ee717..7b0c9ee 100644
              .endianness = hinfo->little_endian ? READSTAT_ENDIAN_LITTLE : READSTAT_ENDIAN_BIG,
              .is64bit = ctx->u64
 diff --git a/sas/readstat_sas7bcat_write.c b/sas/readstat_sas7bcat_write.c
-index 3528634..3d50a63 100644
+index 3528634..866d112 100644
 --- a/sas/readstat_sas7bcat_write.c
 +++ b/sas/readstat_sas7bcat_write.c
-@@ -1,275 +1,496 @@
+@@ -1,275 +1,498 @@
 -
  #include <stdio.h>
  #include <stdlib.h>
@@ -1032,7 +1032,9 @@ index 3528634..3d50a63 100644
 +        cat_w2(p+2, 5+label->label_len);
 +        cat_w2(p+6, 6);
 +        cat_w2(p+8, label->label_len);
-+        memcpy(p+10, label->label, label->label_len);
++        if (label->label_len > 0) {
++            memcpy(p+10, label->label, label->label_len);
++        }
 +        p += 11+label->label_len;
      }
 +    free(sorted);
@@ -2090,7 +2092,7 @@ index a80755c..e898060 100644
          if (p == end || *p != ' ') {
              retval = READSTAT_ERROR_BAD_MR_STRING;
 diff --git a/spss/readstat_sav_read.c b/spss/readstat_sav_read.c
-index ab8ec9a..66cf37f 100644
+index ab8ec9a..f053ec5 100644
 --- a/spss/readstat_sav_read.c
 +++ b/spss/readstat_sav_read.c
 @@ -14,6 +14,7 @@
@@ -2122,7 +2124,7 @@ index ab8ec9a..66cf37f 100644
 +                        }
 +                        uint64_t version, cases;
 +                        memcpy(&version, data_buf, 8);
-+                        memcpy(&cases, data_buf + 8, 8);
++                        memcpy(&cases, (const char *)data_buf + 8, 8);
 +                        if (ctx->bswap) {
 +                            version = byteswap8(version);
 +                            cases = byteswap8(cases);

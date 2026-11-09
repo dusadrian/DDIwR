@@ -971,7 +971,8 @@ static readstat_error_t define_variable_int(WriterCtx *ctx, SEXP x, const char *
         }
     } else {
         label_set = build_numeric_label_set(ctx, x, name,
-            variable_type != READSTAT_TYPE_DOUBLE && variable_type != READSTAT_TYPE_FLOAT, column);
+            ctx->ext == DECLARED_DTA && variable_type != READSTAT_TYPE_DOUBLE &&
+                variable_type != READSTAT_TYPE_FLOAT, column);
     }
 
     var = readstat_add_variable(ctx->writer, name, variable_type, scalar_int_attr(x, "width"));
