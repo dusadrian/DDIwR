@@ -506,12 +506,15 @@
 #'   is the destination catalog. For other conversions from `.sas7bdat` it
 #'   is the input catalog. Omit to use the matching filename convention or
 #'   pass `NULL` to skip the catalog for that operation.
+#' @param setup Logical, write the companion SAS setup script for labelled
+#'   XPT output. Defaults to `TRUE`.
 #'
 #' @export
 
 `convert` <- function(
     from, to = NULL, declared = TRUE, chartonum = FALSE, recode = TRUE,
-    encoding = "UTF-8", csv = NULL, n_max = -1L, skip = 0L, ..., catalog = NULL
+    encoding = "UTF-8", csv = NULL, n_max = -1L, skip = 0L, ...,
+    catalog = NULL, setup = TRUE
 ) {
 
     if (missing(from)) {
@@ -1310,6 +1313,10 @@
             auto_catalog = auto_catalog)
     }
     else {
+        if (!is.logical(setup) || length(setup) != 1L || is.na(setup)) {
+            stop("'setup' must be TRUE or FALSE.", call. = FALSE)
+        }
+
         lnms <- nchar(colnames(data))
         if (any(lnms > 8)) {
             admisc::stopError("SAS .xpt files do not allow more than 8 characters for column names.")
@@ -1332,7 +1339,7 @@
         }
         do.call(write_xpt, arglist)
 
-        if (hasLabels(arglist$data)) {
+        if (setup && hasLabels(arglist$data)) {
             setup_path <- paste0(tools::file_path_sans_ext(to), ".sas")
 
             setupfile(

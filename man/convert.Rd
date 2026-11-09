@@ -15,7 +15,8 @@ convert(
   n_max = -1L,
   skip = 0L,
   ...,
-  catalog = NULL
+  catalog = NULL,
+  setup = TRUE
 )
 }
 \arguments{
@@ -49,6 +50,9 @@ including \code{language} when importing translated DDI labels and
 is the destination catalog. For other conversions from \code{.sas7bdat} it
 is the input catalog. Omit to use the matching filename convention or
 pass \code{NULL} to skip the catalog for that operation.}
+
+\item{setup}{Logical, write the companion SAS setup script for labelled
+XPT output. Defaults to \code{TRUE}.}
 }
 \value{
 An invisible R data frame, when the argument \strong{\code{to}} is NULL.

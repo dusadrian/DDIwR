@@ -272,6 +272,15 @@ test_that("XPT setup scripts follow the output path when only value labels are p
         "1 = 'Yes'", "2 = 'No';", "ANSWER labels_1_group."), commands)))
     expect_true(all(is.element(c("value $labels_2_group", "'y' = 'Yes'", "'n' = 'No';",
         "STATUS $labels_2_group."), commands)))
+
+    script <- file.path(export_dir, "xptdata.sas")
+    writeLines("existing script", script)
+    convert(data, file.path(export_dir, "xptdata.xpt"), setup = FALSE)
+    expect_identical(readLines(script), "existing script")
+
+    invalid_path <- file.path(export_dir, "invalid.xpt")
+    expect_error(convert(data, invalid_path, setup = NA), "'setup' must be TRUE or FALSE")
+    expect_false(file.exists(invalid_path))
 })
 
 test_that("public XPT export accepts ordinary data frames without a setup script", {
