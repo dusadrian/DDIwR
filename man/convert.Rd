@@ -77,7 +77,9 @@ selects no compression and \code{compress = TRUE} selects ZSAV compression.
 
 SAS transport exports (\code{.xpt} or \code{to = "SAS"}) accept data frames without
 labels. A companion SAS setup script is generated only when the data has
-variable or value labels.
+variable or value labels. Value labels alone are enough. The script uses
+the XPT output's base name and directory and targets the SAS dataset with
+that name in that directory.
 
 SPSS system files (\code{.sav} and \code{.zsav}) preserve custom dataset and variable
 attributes. They are stored in the R attribute \code{spss.attributes} on the data

@@ -812,12 +812,6 @@
         }
     }
 
-    `checkvarlab` <- function(variables) {
-        any(sapply(variables, function(x) {
-            is.element("label", names(x))
-        }))
-    }
-
     # variables that have missing values, with or without labels
     `variables_missing` <- function(variables) {
         lapply(variables, function(x) {
@@ -825,8 +819,13 @@
         })
     }
 
+    allow_value_labels <- identical(type, "SAS") && catalog
+    has_setup_labels <- any(vapply(dataDscr_vars, function(variable) {
+        return(is.element("label", names(variable)) ||
+            (allow_value_labels && length(variable[["labels", exact = TRUE]]) > 0L))
+    }, logical(1)))
 
-    if (is.null(names(dataDscr_vars)) | !checkvarlab(dataDscr_vars)) {
+    if (is.null(names(dataDscr_vars)) || !has_setup_labels) {
         stop_setupfile(
             "The object does not contain variables and / or labels."
         )
@@ -2823,6 +2822,12 @@
 
         for (i in seq(length(unique_list))) {
             n <- unique_list[[i]][1]
+            format <- paste0("labels_", i, "_group.")
+
+            if (charvars[n]) {
+                format <- paste0("$", format)
+            }
+
             for (j in unique_list[[i]]) {
                 cat(paste(
                     "        ",
@@ -2831,7 +2836,7 @@
                         rep(" ", maxchars - nchar(j)),
                         collapse = ""
                     ),
-                    " labels_", i, "_group", ".",
+                    " ", format,
                     enter,
                     sep = ""
                 ))

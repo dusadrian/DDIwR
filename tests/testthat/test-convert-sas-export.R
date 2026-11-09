@@ -247,6 +247,33 @@ test_that("SAS shorthand retains XPT output and its existing setup script", {
     expect_identical(as.numeric(result$answer), c(1, 2))
 })
 
+test_that("XPT setup scripts follow the output path when only value labels are present", {
+    directory <- tempfile()
+    dir.create(directory)
+    on.exit(unlink(directory, recursive = TRUE), add = TRUE)
+    export_dir <- file.path(directory, "export")
+    dir.create(export_dir)
+    source <- file.path(directory, "survey.rds")
+    data <- data.frame(
+        answer = declared::declared(c(1, 2), labels = c(Yes = 1, No = 2)),
+        status = declared::declared(c("y", "n"), labels = c(Yes = "y", No = "n"))
+    )
+    saveRDS(data, source)
+
+    convert(source, file.path(export_dir, "xptdata.xpt"))
+
+    expect_setequal(list.files(directory, recursive = TRUE),
+        c("survey.rds", "export/xptdata.xpt", "export/xptdata.sas"))
+    commands <- trimws(readLines(file.path(export_dir, "xptdata.sas")))
+    library_path <- normalizePath(export_dir, winslash = "/")
+    expect_true(is.element(paste0('libname datadir "', library_path, '";'), commands))
+    expect_true(all(is.element(c("data datadir.xptdata;", "set datadir.xptdata;"), commands)))
+    expect_true(all(is.element(c("proc format library = datadir;", "value labels_1_group",
+        "1 = 'Yes'", "2 = 'No';", "ANSWER labels_1_group."), commands)))
+    expect_true(all(is.element(c("value $labels_2_group", "'y' = 'Yes'", "'n' = 'No';",
+        "STATUS $labels_2_group."), commands)))
+})
+
 test_that("public XPT export accepts ordinary data frames without a setup script", {
     directory <- tempfile()
     dir.create(directory)

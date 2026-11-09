@@ -27,7 +27,9 @@
 #'
 #' SAS transport exports (`.xpt` or `to = "SAS"`) accept data frames without
 #' labels. A companion SAS setup script is generated only when the data has
-#' variable or value labels.
+#' variable or value labels. Value labels alone are enough. The script uses
+#' the XPT output's base name and directory and targets the SAS dataset with
+#' that name in that directory.
 #'
 #' SPSS system files (`.sav` and `.zsav`) preserve custom dataset and variable
 #' attributes. They are stored in the R attribute `spss.attributes` on the data
@@ -1331,14 +1333,11 @@
         do.call(write_xpt, arglist)
 
         if (hasLabels(arglist$data)) {
-            to <- file.path(
-                tp_from$completePath,
-                paste(tp_from$filenames, "sas", sep = ".")
-            )
+            setup_path <- paste0(tools::file_path_sans_ext(to), ".sas")
 
             setupfile(
                 obj = getCodebook(arglist$data),
-                file = to,
+                file = setup_path,
                 type = "SAS",
                 csv = arglist$data,
                 recode = recode,
