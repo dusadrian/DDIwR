@@ -4,11 +4,12 @@ Version 0.24
     output catalog when the data has value labels, factor levels or SAS
     format rules. Export replaces any existing catalog at the output path,
     including an automatically chosen path. Use catalog = NULL to skip the
-    catalog for the selected operation.
+    catalog for the selected operation
   o XPT setup scripts use the output directory and filename stem for both
     the .sas file and its target SAS dataset. Value labels alone trigger
     script generation, with format assignments for numeric and character
-    variables.
+    variables
+  o fixed additional CRAN issues in relation to the C code
 
 Version 0.23
   o update to the latest version of ReadStat
