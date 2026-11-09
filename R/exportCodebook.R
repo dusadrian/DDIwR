@@ -246,7 +246,7 @@
             list(codeBook = removeExtra(codeBook))
         )
 
-        codeBook_xml <- as.character(codeBook)
+        codeBook_xml <- .xmlDocumentText(codeBook)
         dataDscr_match <- regexpr(
             "(?m)^[ \\t]*<dataDscr\\s*/>\\r?\\n?",
             codeBook_xml,
@@ -316,7 +316,7 @@
         )
 
         if (!identical(indent, 2) || !identical(OS, "")) {
-            xmlfile <- strsplit(as.character(codeBook), "\n", fixed = TRUE)[[1]]
+            xmlfile <- strsplit(.xmlDocumentText(codeBook), "\n", fixed = TRUE)[[1]]
 
             defaultOS <- Sys.info()[["sysname"]]
             checkArgument(indent, default = 2)
@@ -333,7 +333,7 @@
             writeLines(xmlfile, con = to, sep = enter, useBytes = TRUE)
         }
         else {
-            .validateCodebookXML(as.character(codeBook))
+            .validateCodebookXML(.xmlDocumentText(codeBook))
             xml2::write_xml(codeBook, file = to)
         }
     }

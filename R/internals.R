@@ -1127,7 +1127,15 @@ NULL
 #' @keywords internal
 #' @export
 `getHashes` <- function(nodes) {
-    sapply(nodes, function(child) digest::digest(xml2::xml_serialize(child, NULL)))
+    sapply(nodes, function(child) {
+        document <- xml2::as_xml_document(child)
+        # Retain xml2's serialized-node representation so existing hashes match.
+        serialized <- serialize(structure(
+            .xmlDocumentText(document), class = "xml_serialized_node"
+        ), NULL)
+
+        return(digest::digest(serialized))
+    })
 }
 
 
@@ -1376,6 +1384,19 @@ NULL
         na_values = na_values,
         na_range = na_range
     ))
+}
+
+
+.xmlDocumentText <- function(document) {
+    connection <- rawConnection(raw(), "wb")
+    on.exit(close(connection), add = TRUE)
+
+    # The connection writer avoids xml2's leaking character-buffer writer.
+    xml2::write_xml(document, connection, encoding = "UTF-8", options = "format")
+    output <- rawToChar(rawConnectionValue(connection))
+    Encoding(output) <- "UTF-8"
+
+    return(output)
 }
 
 

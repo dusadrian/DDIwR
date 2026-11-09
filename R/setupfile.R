@@ -712,7 +712,7 @@
             )
 
             document <- xml2::read_xml(
-                as.character(document),
+                .xmlDocumentText(document),
                 options = c("HUGE", "NONET", "NOBLANKS")
             )
 

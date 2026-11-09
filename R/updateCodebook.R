@@ -66,7 +66,8 @@
     # Work with elements rather than lines, including repeated and empty sections.
     for (section in unique(replacement_names)) {
         existing <- xml2::xml_children(root)
-        xml2::xml_remove(existing[xml2::xml_name(existing) == section])
+        # This document is local, and removed sections are never used again.
+        xml2::xml_remove(existing[xml2::xml_name(existing) == section], free = TRUE)
         following <- xml2::xml_children(root)
         following <- following[
             match(xml2::xml_name(following), sections) > match(section, sections)
@@ -82,7 +83,7 @@
         }
     }
 
-    lines <- strsplit(as.character(xml), "\n", fixed = TRUE)[[1]]
+    lines <- strsplit(.xmlDocumentText(xml), "\n", fixed = TRUE)[[1]]
     output <- paste(prespace(lines, indent), collapse = enter)
     .validateCodebookXML(output)
     writeLines(output, con = xmlfile, sep = enter, useBytes = TRUE)

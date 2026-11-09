@@ -88,7 +88,7 @@ test_that("DDI 2.6 XSD rejects the original missing study description", {
     expect_length(study, 1L)
 
     # Reproduce the original export defect without changing the other content.
-    xml2::xml_remove(study)
+    xml2::xml_remove(study, free = TRUE)
     xml2::write_xml(document, target)
     invalid <- xml2::read_xml(target, options = "NONET")
     valid <- xml2::xml_validate(invalid, schema)
