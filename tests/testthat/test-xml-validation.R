@@ -137,7 +137,20 @@ test_that("unavailable schema dependencies fail closed", {
         validator(output, schema_path = schema_path)
     }, .package = "DDIwR")
 
-    expect_error(exportCodebook(book, to = target), "XML validation failed")
+    schema_warnings <- character()
+    expect_error(withCallingHandlers(
+        exportCodebook(book, to = target),
+        warning = function(warning) {
+            schema_warnings <<- c(schema_warnings, conditionMessage(warning))
+            invokeRestart("muffleWarning")
+        }
+    ), "XML validation failed")
+
+    # libxml2 versions differ in how many missing-import warnings they emit.
+    expect_true(all(grepl(
+        '^failed to load external entity ".*(xml[.]xsd|codebook[.]xsd)" \\[1549\\]$',
+        schema_warnings
+    )))
     expect_identical(readBin(target, "raw", n = file.info(target)$size), original)
     expect_error(validator("<codeBook/>", schema_path = ""), "schema is unavailable")
 })
