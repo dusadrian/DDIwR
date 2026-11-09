@@ -1,0 +1,245 @@
+--- a/src/xml2_doc.cpp
++++ b/src/xml2_doc.cpp
+@@ -6,6 +6,7 @@
+ #include "xml2_types.h"
+ #include "xml2_utils.h"
+ #include <cstring>
++#include <cstdlib>
+ 
+ // [[export]]
+ extern "C" SEXP  xml_parse_options_() {
+@@ -180,37 +181,160 @@
+ #undef HAS_IGNORE_ENC
+ }
+ 
++// Defer R conditions until libxml2 has released its temporary parser buffers.
++struct ParseError {
++  xmlError error;
++  ParseError* next;
++};
++
++struct ParseContext {
++  xmlParserCtxtPtr parser;
++  SEXP output;
++  const char* path;
++  const char* bytes;
++  int size;
++  const char* encoding;
++  const char* base_url;
++  bool as_html;
++  int options;
++  ParseError* errors;
++  ParseError* last_error;
++  bool out_of_memory;
++};
++
++static void release_parser(ParseContext* context) {
++  if (context->parser == NULL) {
++    return;
++  }
++  if (context->parser->myDoc != NULL) {
++    xmlFreeDoc(context->parser->myDoc);
++    context->parser->myDoc = NULL;
++  }
++  if (context->as_html) {
++    htmlFreeParserCtxt(context->parser);
++  } else {
++    xmlFreeParserCtxt(context->parser);
++  }
++  context->parser = NULL;
++}
++
++static void cleanup_parse(void* data, Rboolean) {
++  ParseContext* context = static_cast<ParseContext*>(data);
++  release_parser(context);
++  while (context->errors != NULL) {
++    ParseError* error = context->errors;
++    context->errors = error->next;
++    xmlResetError(&error->error);
++    free(error);
++  }
++}
++
++#if LIBXML_VERSION >= 21200
++static void capture_parse_error(void* data, const xmlError* error) {
++#else
++static void capture_parse_error(void* data, xmlError* error) {
++#endif
++#if LIBXML_VERSION >= 21300
++  ParseContext* context = static_cast<ParseContext*>(data);
++#else
++  xmlParserCtxtPtr parser = static_cast<xmlParserCtxtPtr>(data);
++  ParseContext* context = static_cast<ParseContext*>(parser->_private);
++#endif
++  ParseError* record = static_cast<ParseError*>(calloc(1, sizeof(ParseError)));
++  if (record == NULL || xmlCopyError(const_cast<xmlError*>(error), &record->error) != 0) {
++    if (record != NULL) {
++      xmlResetError(&record->error);
++      free(record);
++    }
++    context->out_of_memory = true;
++    xmlStopParser(context->parser);
++    return;
++  }
++  if (context->last_error == NULL) {
++    context->errors = record;
++  } else {
++    context->last_error->next = record;
++  }
++  context->last_error = record;
++  if (error->level > XML_ERR_ERROR) {
++    xmlStopParser(context->parser);
++  }
++}
++
++static SEXP parse_document(void* data) {
++  ParseContext* context = static_cast<ParseContext*>(data);
++  context->parser = context->as_html ? htmlNewParserCtxt() : xmlNewParserCtxt();
++  if (context->parser == NULL) {
++    Rf_error("Failed to allocate XML parser context");
++  }
++
++#if LIBXML_VERSION >= 21300
++  xmlCtxtSetErrorHandler(context->parser, capture_parse_error, context);
++#else
++  context->parser->_private = context;
++  context->parser->sax->serror = capture_parse_error;
++#endif
++
++  xmlDoc* document;
++  if (context->path != NULL) {
++    document = context->as_html ?
++      htmlCtxtReadFile(context->parser, context->path, context->encoding, context->options) :
++      xmlCtxtReadFile(context->parser, context->path, context->encoding, context->options);
++  } else {
++    document = context->as_html ?
++      htmlCtxtReadMemory(context->parser, context->bytes, context->size,
++        context->base_url, context->encoding, context->options) :
++      xmlCtxtReadMemory(context->parser, context->bytes, context->size,
++        context->base_url, context->encoding, context->options);
++  }
++
++  // The R pointer owns any returned document before warnings can become errors.
++  R_SetExternalPtrAddr(context->output, document);
++  context->parser->myDoc = NULL;
++  release_parser(context);
++
++  if (context->out_of_memory) {
++    Rf_error("Failed to allocate XML parser diagnostic");
++  }
++  for (ParseError* error = context->errors; error != NULL; error = error->next) {
++    char* message = error->error.message;
++    if (message == NULL) {
++      message = const_cast<char*>("XML parsing failed");
++    } else {
++      size_t length = strlen(message);
++      if (length > 0 && message[length - 1] == '\n') {
++        message[length - 1] = '\0';
++      }
++    }
++    if (error->error.level <= XML_ERR_ERROR) {
++      Rf_warning("%s [%i]", message, error->error.code);
++    } else {
++      Rf_error("%s [%i]", message, error->error.code);
++    }
++  }
++  if (document == NULL) {
++    if (context->path != NULL) {
++      Rf_error("Failed to parse %s", context->path);
++    }
++    Rf_error("Failed to parse text");
++  }
++  return context->output;
++}
++
+ // [[export]]
+ extern "C" SEXP doc_parse_file(
+     SEXP path_sxp,
+     SEXP encoding_sxp,
+     SEXP as_html_sxp,
+     SEXP options_sxp) {
+-
+-  const char* path = CHAR(STRING_ELT(path_sxp, 0));
+   const char* encoding = CHAR(STRING_ELT(encoding_sxp, 0));
+-  bool as_html = LOGICAL(as_html_sxp)[0];
+-  int options = INTEGER(options_sxp)[0];
+-  xmlDoc* pDoc;
+-  if (as_html) {
+-    pDoc = htmlReadFile(
+-      path,
+-      encoding[0] == '\0' ? NULL : encoding,
+-      options
+-    );
+-  } else {
+-    pDoc = xmlReadFile(
+-      path,
+-      encoding[0] == '\0' ? NULL : encoding,
+-      options
+-    );
+-  }
+-
+-  if (pDoc == NULL) {
+-    Rf_error("Failed to parse %s", path);
+-  }
+-
+-  return SEXP(XPtrDoc(pDoc));
++  SEXP output = PROTECT(SEXP(XPtrDoc(static_cast<xmlDoc*>(NULL))));
++  ParseContext context = {NULL, output, CHAR(STRING_ELT(path_sxp, 0)), NULL, 0,
++    encoding[0] == '\0' ? NULL : encoding, NULL,
++    static_cast<bool>(LOGICAL(as_html_sxp)[0]), INTEGER(options_sxp)[0], NULL, NULL, false};
++  R_UnwindProtect(parse_document, &context, cleanup_parse, &context, NULL);
++  UNPROTECT(1);
++  return output;
+ }
+ 
+ // [[export]]
+@@ -220,39 +344,16 @@
+     SEXP base_url_sxp,
+     SEXP as_html_sxp,
+     SEXP options_sxp) {
+-
+-  BEGIN_CPP
+-  std::string encoding(CHAR(STRING_ELT(encoding_sxp, 0)));
+-  std::string base_url(CHAR(STRING_ELT(base_url_sxp, 0)));
+-  bool as_html = LOGICAL(as_html_sxp)[0];
+-  int options = INTEGER(options_sxp)[0];
+-
+-  xmlDoc* pDoc;
+-  if (as_html) {
+-    pDoc = htmlReadMemory(
+-      (const char *) RAW(x),
+-      Rf_length(x),
+-      base_url == "" ? NULL : base_url.c_str(),
+-      encoding == "" ? NULL : encoding.c_str(),
+-      options
+-    );
+-  } else {
+-    pDoc = xmlReadMemory(
+-      (const char *) RAW(x),
+-      Rf_length(x),
+-      base_url == "" ? NULL : base_url.c_str(),
+-      encoding == "" ? NULL : encoding.c_str(),
+-      options
+-    );
+-  }
+-
+-  if (pDoc == NULL) {
+-    Rf_error("Failed to parse text");
+-  }
+-
+-  return SEXP(XPtrDoc(pDoc));
+-
+-  END_CPP
++  const char* encoding = CHAR(STRING_ELT(encoding_sxp, 0));
++  const char* base_url = CHAR(STRING_ELT(base_url_sxp, 0));
++  SEXP output = PROTECT(SEXP(XPtrDoc(static_cast<xmlDoc*>(NULL))));
++  ParseContext context = {NULL, output, NULL, reinterpret_cast<const char*>(RAW(x)),
++    Rf_length(x), encoding[0] == '\0' ? NULL : encoding,
++    base_url[0] == '\0' ? NULL : base_url,
++    static_cast<bool>(LOGICAL(as_html_sxp)[0]), INTEGER(options_sxp)[0], NULL, NULL, false};
++  R_UnwindProtect(parse_document, &context, cleanup_parse, &context, NULL);
++  UNPROTECT(1);
++  return output;
+ }
+ 
+ // [[export]]

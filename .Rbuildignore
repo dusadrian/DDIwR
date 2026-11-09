@@ -22,6 +22,7 @@
 ^tools/browser-stats-experiment$
 ^tools/browser-analysis$
 ^tools/readstat$
+^tools/xml2$
 ^configure[.]log$
 ^openmp[.]log$
 ^AGENTS.md$

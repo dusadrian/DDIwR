@@ -1,0 +1,13 @@
+Package: xml2
+Version: 1.6.0
+Source: https://cloud.r-project.org/src/contrib/xml2_1.6.0.tar.gz
+SourceSHA256: b0660edab0a839866a0cccd44721c54d497000fd6577a25106a33280318bf579
+Patch: xml2-1.6.0-parser-cleanup.patch
+PatchSHA256: 4a61959b06ea580e25574ac8ab0aeb71e5e844e3286741ebf6f14019b8f32763
+Purpose: Free parser contexts and unfinished documents on R errors.
+Apply: From an extracted xml2 1.6.0 source directory, run
+    patch -p1 < /path/to/xml2-1.6.0-parser-cleanup.patch
+Install: R CMD INSTALL --preclean -l /path/to/library /path/to/xml2
+Verify: With that library first in R_LIBS, run
+    Rscript /path/to/verify-parser-cleanup.R
+Scope: Local dependency patch; not applied by DDIwR installation.
