@@ -69,7 +69,7 @@ for (case in names(cases)) {
     }
 
     convert(data, file.path(output, paste0(actual, ".sas7bdat")),
-        catalog_to = file.path(output, paste0(actual, ".sas7bcat")))
+        catalog = file.path(output, paste0(actual, ".sas7bcat")))
     program <- c(program,
         paste0("proc format library=incoming.", base, " cntlout=work.native; run;"),
         "data work.expected; set work.native; select(fmtname);"

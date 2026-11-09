@@ -14,7 +14,8 @@ convert(
   csv = NULL,
   n_max = -1L,
   skip = 0L,
-  ...
+  ...,
+  catalog = NULL
 )
 }
 \arguments{
@@ -41,9 +42,13 @@ SAS files}
 or SAS files}
 
 \item{...}{Additional options specific to the source or destination format,
-including \code{language} when importing translated DDI labels, \code{catalog_file}
-and \code{catalog_encoding} for SAS catalog input, and \code{catalog_to} for paired
-SAS value-label catalog output; see the Details section}
+including \code{language} when importing translated DDI labels and
+\code{catalog_encoding} when reading a SAS catalog. See the Details section.}
+
+\item{catalog}{Path to a SAS format catalog. For \code{.sas7bdat} output this
+is the destination catalog. For other conversions from \code{.sas7bdat} it
+is the input catalog. Omit to use the matching filename convention or
+pass \code{NULL} to skip the catalog for that operation.}
 }
 \value{
 An invisible R data frame, when the argument \strong{\code{to}} is NULL.
@@ -339,10 +344,11 @@ generated codebook is unique to this package and automatically detected when
 converting to another statistical software. This will likely be replaced with
 a time insensitive text version.
 
-Native SAS import uses ReadStat directly. SAS value-label definitions are
-read from a companion format catalog. Supply its path via \strong{\code{catalog_file}},
-or place it alongside the \code{.sas7bdat} file with the same base name and the
-extension \code{.sas7bcat} for automatic discovery.
+Native SAS import uses ReadStat directly. When reading a \code{.sas7bdat} file
+into R or another format, \code{catalog} gives the path to its input format
+catalog. Omit \code{catalog} to look for a companion \code{.sas7bcat} file with the
+same base name in the same directory, or set \code{catalog = NULL} to read only
+the dataset.
 When a catalog does not declare an encoding, it inherits the effective
 data-file encoding. Use \strong{\code{encoding}} and \strong{\code{catalog_encoding}} to override
 their encodings independently; a catalog override does not affect data-file
@@ -354,17 +360,21 @@ key, distinct from the ordinary NA key for system missing. These keys also
 apply to dates and timestamps and are preserved in RDS storage.
 
 Standalone SAS7BDAT and XPT output does not contain value-label definitions.
-Native SAS7BDAT output supports an optional paired value-label catalog:
-\code{convert(data, "data.sas7bdat", catalog_to = "data.sas7bcat")}.
-\code{catalog_file} and \code{catalog_encoding} apply only to the input catalog;
-\code{catalog_to} is the output catalog path and is supported only with a
-\code{.sas7bdat} destination. Omitting \code{catalog_to}, or setting it to NULL,
-writes only the data file and leaves existing catalog files unchanged.
-An input catalog is never reused as an output
-destination implicitly. For example, this reads one catalog and writes another:
+When writing a \code{.sas7bdat} file, \code{catalog} gives the output catalog path.
+Omit it to write a companion \code{.sas7bcat} file with the same base name in
+the same directory whenever the exported columns have value labels
+(including factor levels) or SAS catalog rules. Set \code{catalog = NULL} to
+write only the dataset.
 
-\if{html}{\out{<div class="sourceCode">}}\preformatted{convert("input.sas7bdat", "output.sas7bdat",
-    catalog_file = "input.sas7bcat", catalog_to = "output.sas7bcat")
+\strong{Export replaces any existing file at the output catalog path, including
+when the path is chosen automatically.}
+
+When both paths are \code{.sas7bdat} files, \code{catalog} controls the output and
+the input catalog is discovered by its matching name. To use an input
+catalog with a different name or location, read the dataset into R first.
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{data <- convert("input.sas7bdat", catalog = "input-labels.sas7bcat", recode = FALSE)
+convert(data, "output.sas7bdat", catalog = "output-labels.sas7bcat")
 }\if{html}{\out{</div>}}
 
 Native SAS7BDAT output preserves system missing, \code{._} and existing letter
@@ -451,9 +461,9 @@ retain their existing behavior and do not write these label definitions.
 
 Paired export writes both files to temporary siblings before replacing the
 destinations. Publication retains backups and attempts to restore both
-originals if either rename fails. The two renames are not a single atomic
-operation. Input objects are not modified. SAS value-label catalogs can
-also be supplied as setup commands; see \bold{\code{\link{setupfile}()}}.
+originals if publication fails. Another process may observe the files
+between publication steps. SAS value-label catalogs can also be supplied
+as setup commands. See \bold{\code{\link{setupfile}()}}.
 
 The argument \strong{\code{recode}} controls how missing values are treated. If the
 input file has SPSS like numeric codes, they will be recoded to extended

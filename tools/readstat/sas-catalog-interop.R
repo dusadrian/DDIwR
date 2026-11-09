@@ -104,7 +104,7 @@ for (case in names(cases)) {
         attr(data[[index]], "sas_metadata") <- metadata
     }
 
-    convert(data, path, catalog_to = catalog)
+    convert(data, path, catalog = catalog)
     files <- c(files, base_path, native_catalog, path, catalog)
     program <- c(program,
         paste0("proc catalog catalog=incoming.", member, "; contents; run; quit;"),

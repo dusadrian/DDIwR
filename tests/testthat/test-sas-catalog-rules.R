@@ -25,7 +25,7 @@ test_that("native SAS ranges retain boundaries, exclusions, OTHER and defaults",
     path <- tempfile(fileext = ".sas7bdat")
     output_catalog <- tempfile(fileext = ".sas7bcat")
     on.exit(unlink(c(path, output_catalog)), add = TRUE)
-    convert(data, path, catalog_to = output_catalog)
+    convert(data, path, catalog = output_catalog)
     output <- read_sas(path, catalog_file = output_catalog)
     expect_identical(vendorMetadata(output$n, "SAS", "catalog_rules"), numeric)
     expect_identical(vendorMetadata(output$c, "SAS", "catalog_rules"), character)
@@ -64,7 +64,7 @@ test_that("long character rules and default-only native formats round trip", {
             expect_null(attr(imported$value, "labels"))
         }
 
-        convert(imported, path, catalog_to = catalog)
+        convert(imported, path, catalog = catalog)
         output <- read_sas(path, catalog_file = catalog)
         expect_identical(vendorMetadata(output$value, "SAS", "catalog_rules"), rules)
         expect_identical(plain_values(output$value), plain_values(imported$value))
@@ -81,13 +81,13 @@ test_that("rule edits and NULL clearing select the intended catalog representati
     path <- tempfile(fileext = ".sas7bdat")
     catalog <- tempfile(fileext = ".sas7bcat")
     on.exit(unlink(c(path, catalog)), add = TRUE)
-    convert(data, path, catalog_to = catalog)
+    convert(data, path, catalog = catalog)
     imported <- read_sas(path, catalog_file = catalog)
     expect_identical(vendorMetadata(imported$value, "SAS", "catalog_rules")$label, rules$label)
     expect_identical(attr(imported$value, "labels"), c(exact = 1))
     expect_identical(data, before)
     vendorMetadata(data$value, "SAS", "catalog_rules") <- NULL
-    convert(data, path, catalog_to = catalog)
+    convert(data, path, catalog = catalog)
     expect_identical(attr(read_sas(path, catalog_file = catalog)$value, "labels"), c(One = 1))
 })
 
@@ -112,7 +112,7 @@ test_that("invalid catalog rules fail before publishing either file", {
 
     for (rules in invalid) {
         vendorMetadata(data$value, "SAS", "catalog_rules") <- rules
-        expect_error(convert(data, path, catalog_to = catalog))
+        expect_error(convert(data, path, catalog = catalog))
         expect_identical(readLines(path), "data sentinel")
         expect_identical(readLines(catalog), "catalog sentinel")
     }
@@ -129,7 +129,7 @@ test_that("rule catalogs retain temporal meaning and share identical definitions
     vendorMetadata(data$day, "SAS", "catalog_rules") <- rules
     vendorMetadata(data$day, "SAS", "format") <- "DAYRULE"
     data$second <- data$day
-    convert(data, path, catalog_to = catalog)
+    convert(data, path, catalog = catalog)
     imported <- read_sas(path, catalog_file = catalog)
     expect_s3_class(imported$day, "Date")
     expect_identical(as.vector(imported$day), as.vector(data$day))
@@ -139,7 +139,7 @@ test_that("rule catalogs retain temporal meaning and share identical definitions
     vendorMetadata(data$second, "SAS", "catalog_rules") <- transform(rules,
         label = c("Changed", "Later", "Other"))
     previous <- readBin(path, "raw", file.info(path)$size)
-    expect_error(convert(data, path, catalog_to = catalog), "Conflicting")
+    expect_error(convert(data, path, catalog = catalog), "Conflicting")
     expect_identical(readBin(path, "raw", file.info(path)$size), previous)
 })
 
@@ -164,7 +164,7 @@ test_that("character LOW bounds sort first and use native padded sentinel bytes"
     write_sas(data, source)
     fixture <- rule_fixture("sas94-m9-long-rules.sas7bcat")
     imported <- read_sas(source, catalog_file = fixture)
-    convert(imported, path, catalog_to = catalog)
+    convert(imported, path, catalog = catalog)
     actual <- readBin(catalog, "raw", file.info(catalog)$size)
     native <- readBin(fixture, "raw", file.info(fixture)$size)
     marker <- charToRaw("$LIMITS ")

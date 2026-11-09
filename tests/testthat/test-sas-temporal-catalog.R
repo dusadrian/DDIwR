@@ -29,7 +29,7 @@ test_that("paired SAS catalogs preserve temporal classes, units and every missin
     }
 
     before <- data
-    convert(data, path, catalog_to = catalog)
+    convert(data, path, catalog = catalog)
     expect_identical(data, before)
     result <- read_sas(path, catalog_file = catalog)
     records <- sas_export_catalog_records(catalog)
@@ -68,7 +68,7 @@ test_that("paired SAS catalogs preserve temporal classes, units and every missin
 
     copy <- file.path(directory, "copy.sas7bdat")
     copy_catalog <- file.path(directory, "copy.sas7bcat")
-    convert(path, copy, catalog_file = catalog, catalog_to = copy_catalog, encoding = NULL,
+    convert(path, copy, catalog = copy_catalog, encoding = NULL,
         recode = FALSE)
     repeated <- read_sas(copy, catalog_file = copy_catalog)
 

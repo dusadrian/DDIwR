@@ -284,7 +284,7 @@ The `._` label key retains its tagged NA payload; byte comparisons are needed
 because R's `identical()` treats different NA payloads as equal. These tests
 also document that standalone SAS7BDAT and XPT exports do not contain value-label
 definitions. Reusing a catalog requires unchanged formats and code mappings.
-`convert(..., catalog_to = ...)` and the internal
+`convert(..., catalog = ...)` and the internal
 `write_sas(..., catalog_file = ...)` path stage and publish SAS7BDAT/catalog
 pairs, reusing the data writer's missing-code maps for numeric definitions.
 Character definitions use `$` format names and named character label vectors.

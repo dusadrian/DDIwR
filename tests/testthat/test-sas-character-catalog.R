@@ -13,7 +13,7 @@ test_that("paired SAS catalogs retain mixed character and numeric label definiti
     attr(data$text, "sas_metadata") <- list(format = "$customfmt24", informat = "$CHAR40", width = 40L)
     attr(data$number, "labels") <- c(First = 1, Last = 10, System = NA_real_)
     before <- data
-    convert(data, path, catalog_to = catalog)
+    convert(data, path, catalog = catalog)
     result <- read_sas(path, catalog_file = catalog)
     expected <- sub(" +$", "", labels)
     records <- sas_export_catalog_records(catalog)
@@ -36,7 +36,7 @@ test_that("paired SAS catalogs retain mixed character and numeric label definiti
 
     copy <- file.path(directory, "copy.sas7bdat")
     copy_catalog <- file.path(directory, "copy.sas7bcat")
-    convert(path, copy, catalog_file = catalog, catalog_to = copy_catalog, encoding = NULL)
+    convert(path, copy, catalog = copy_catalog, encoding = NULL)
     expect_identical(attr(read_sas(copy, catalog_file = copy_catalog)$text, "labels"), expected)
 })
 
@@ -45,7 +45,7 @@ test_that("independent character catalogs round trip across endian and string-of
     dir.create(directory)
     on.exit(unlink(directory, recursive = TRUE), add = TRUE)
     source <- file.path(directory, "source.sas7bdat")
-    fixture <- file.path(directory, "independent.sas7bcat")
+    fixture <- file.path(directory, "source.sas7bcat")
     path <- file.path(directory, "output.sas7bdat")
     catalog <- file.path(directory, "output.sas7bcat")
     labels <- c(Leading = " code", Unicode = "café", Blank = "", Long = strrep("z", 40),
@@ -64,7 +64,7 @@ test_that("independent character catalogs round trip across endian and string-of
             original <- readBin(fixture, "raw", n = file.info(fixture)$size)
 
             for (limit in c(-1L, 0L)) {
-                convert(source, path, catalog_file = fixture, catalog_to = catalog,
+                convert(source, path, catalog = catalog,
                     encoding = NULL, n_max = limit)
                 result <- read_sas(path, catalog_file = catalog)
                 expect_identical(attr(result$text, "labels"), labels)
@@ -80,7 +80,7 @@ test_that("independent character catalogs round trip across endian and string-of
 
     sas_label_catalog(fixture, endian = "big", encoding = 0L, text_encoding = "windows-1252",
         formats = "$LONG_CHARACTER_FORMAT", character_labels = c(`Français é` = "café"))
-    convert(source, path, catalog_file = fixture, catalog_to = catalog,
+    convert(source, path, catalog = catalog,
         encoding = NULL, catalog_encoding = "windows-1252")
     expect_identical(attr(read_sas(path, catalog_file = catalog)$text, "labels"),
         c(`Français é` = "café"))
@@ -125,7 +125,7 @@ test_that("generated character format names obey clearing and legacy precedence"
 
     for (case in list(list(), list(format = "$OVERRIDE20"), list(format = NULL))) {
         attr(data$text, "sas_metadata") <- case
-        convert(data, path, catalog_to = catalog)
+        convert(data, path, catalog = catalog)
         expected <- "$LEGACY12"
 
         if (is.element("format", names(case))) {
@@ -140,7 +140,7 @@ test_that("generated character format names obey clearing and legacy precedence"
             expected)
     }
 
-    convert(clearFormats(data), path, catalog_to = catalog)
+    convert(clearFormats(data), path, catalog = catalog)
     expect_identical(attr(read_sas(path, catalog_file = catalog)$text, "sas_metadata")$format,
         "$DDI1F")
 })
@@ -156,7 +156,7 @@ test_that("wide character keys and labels survive chained catalog pages", {
     data <- data.frame(text = character())
     attr(data$text, "labels") <- labels
     attr(data$text, "sas_metadata") <- list(format = paste0("$", strrep("A", 31)))
-    convert(data, path, catalog_to = catalog)
+    convert(data, path, catalog = catalog)
     result <- read_sas(path, catalog_file = catalog)
     expect_identical(attr(result$text, "labels"), labels)
     records <- sas_export_catalog_records(catalog)
@@ -166,7 +166,7 @@ test_that("wide character keys and labels survive chained catalog pages", {
 
     populated <- data.frame(text = keys)
     attributes(populated$text) <- attributes(data$text)
-    convert(populated, path, catalog_to = catalog)
+    convert(populated, path, catalog = catalog)
     result <- read_sas(path, catalog_file = catalog)
     expect_identical(as.vector(result$text), keys)
     expect_identical(attr(result$text, "labels"), labels)

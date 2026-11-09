@@ -35,6 +35,54 @@ test_that("convert writes native SAS7BDAT with long names and vendor metadata", 
     expect_identical(list.files(directory), "native.sas7bdat")
 })
 
+test_that("automatic SAS catalogs preserve labels and replace existing catalogs", {
+    directory <- tempfile()
+    dir.create(directory)
+    on.exit(unlink(directory, recursive = TRUE), add = TRUE)
+    path <- file.path(directory, "survey.data.SAS7BDAT")
+    catalog <- file.path(directory, "survey.data.sas7bcat")
+    data <- data.frame(answer = c(1, 2))
+    attr(data$answer, "labels") <- c(Yes = 1, No = 2)
+    convert(data, path)
+
+    expect_identical(attr(convert(path)$answer, "labels"), c(Yes = 1, No = 2))
+    original_catalog <- readBin(catalog, "raw", n = file.info(catalog)$size)
+    attr(data$answer, "labels") <- c(Agree = 1, Disagree = 2)
+
+    convert(data, path, catalog = NULL)
+    expect_identical(readBin(catalog, "raw", n = file.info(catalog)$size), original_catalog)
+    expect_null(attr(convert(path, catalog = NULL)$answer, "labels"))
+
+    convert(data, path)
+    expect_identical(attr(convert(path)$answer, "labels"), c(Agree = 1, Disagree = 2))
+    expect_null(attr(convert(path, catalog = NULL)$answer, "labels"))
+    expect_setequal(list.files(directory, all.files = TRUE, no.. = TRUE),
+        basename(c(path, catalog)))
+})
+
+test_that("factor levels alone trigger automatic SAS catalog export", {
+    path <- tempfile(fileext = ".sas7bdat")
+    catalog <- paste0(tools::file_path_sans_ext(path), ".sas7bcat")
+    on.exit(unlink(c(path, catalog)), add = TRUE)
+    data <- data.frame(group = factor(character(), levels = c("one", "two")))
+    convert(data, path)
+
+    expect_identical(attr(convert(path)$group, "labels"), c(one = 1, two = 2))
+})
+
+test_that("SAS format rules alone trigger automatic catalog export", {
+    path <- tempfile(fileext = ".sas7bdat")
+    catalog <- paste0(tools::file_path_sans_ext(path), ".sas7bcat")
+    on.exit(unlink(c(path, catalog)), add = TRUE)
+    data <- data.frame(score = c(1, 3))
+    rules <- data.frame(start = "1", end = "3", label = "Low")
+    attr(data$score, "sas_metadata") <- list(catalog_rules = rules)
+    convert(data, path)
+
+    imported <- vendorMetadata(convert(path)$score, "SAS", "catalog_rules")
+    expect_identical(imported[names(rules)], rules)
+})
+
 test_that("public paired catalogs use the same missing dictionary as native data", {
     directory <- tempfile()
     dir.create(directory)
@@ -49,8 +97,8 @@ test_that("public paired catalogs use the same missing dictionary as native data
     attr(data$ordinary, "labels") <- c(Nine = 9, NinetyNine = 99)
     before <- data
     dictionary <- data.frame(old = c(9, 99), new = c("z", "b"))
-    convert(data, path, catalog_to = catalog, dictionary = dictionary)
-    result <- convert(path, catalog_file = catalog, encoding = NULL, recode = FALSE)
+    convert(data, path, catalog = catalog, dictionary = dictionary)
+    result <- convert(path, catalog = catalog, encoding = NULL, recode = FALSE)
 
     expect_identical(data, before)
     expect_identical(as.numeric(result$answer), c(1, NA_real_, NA_real_, NA_real_))
@@ -63,7 +111,7 @@ test_that("public paired catalogs use the same missing dictionary as native data
     expect_identical(attr(result$answer, "sas_metadata")$label_tags, c("", "Z", "B"))
     expect_setequal(list.files(directory), c("data.sas7bdat", "labels.sas7bcat"))
 
-    convert(data, path, catalog_to = catalog)
+    convert(data, path, catalog = catalog)
     result <- read_sas(path, catalog_file = catalog)
     expect_setequal(as.numeric(attr(result$answer, "labels"))[-1], c(-91, -92))
     expect_identical(as.numeric(result$ordinary), c(9, 99, 9, 99))
@@ -74,7 +122,7 @@ test_that("file conversion keeps input and output catalogs and encodings separat
     dir.create(directory)
     on.exit(unlink(directory, recursive = TRUE), add = TRUE)
     source <- file.path(directory, "source.sas7bdat")
-    fixture <- file.path(directory, "input-labels.sas7bcat")
+    fixture <- file.path(directory, "source.sas7bcat")
     path <- file.path(directory, "output.sas7bdat")
     catalog <- file.path(directory, "output.sas7bcat")
     data <- data.frame(number = c(0, NA_real_, NA_real_, NA_real_))
@@ -88,7 +136,7 @@ test_that("file conversion keeps input and output catalogs and encodings separat
     expected <- read_sas(source, catalog_file = fixture, catalog_encoding = "windows-1252")
 
     for (limit in c(-1L, 0L, 1L)) {
-        convert(source, path, catalog_file = fixture, catalog_to = catalog,
+        convert(source, path, catalog = catalog,
             encoding = NULL, catalog_encoding = "windows-1252", n_max = limit)
         result <- convert(path, encoding = NULL, recode = FALSE, declared = FALSE)
         expect_identical(attr(result$number, "labels"), attr(expected$number, "labels"))
@@ -106,7 +154,7 @@ test_that("file conversion keeps input and output catalogs and encodings separat
         expect_identical(readBin(fixture, "raw", n = file.info(fixture)$size), original_catalog)
     }
 
-    convert(source, path, catalog_file = fixture, catalog_to = catalog,
+    convert(source, path, catalog = catalog,
         encoding = NULL, catalog_encoding = "windows-1252",
         dictionary = data.frame(old = -116, new = "b"))
     remapped <- read_sas(path, catalog_file = catalog)
@@ -114,8 +162,8 @@ test_that("file conversion keeps input and output catalogs and encodings separat
     expect_identical(attr(remapped$number, "sas_metadata")$label_tags, c(".", "_", "B"))
 
     standalone <- file.path(directory, "standalone.sas7bdat")
-    convert(source, standalone, catalog_file = fixture,
-        encoding = NULL, catalog_encoding = "windows-1252")
+    convert(source, standalone,
+        encoding = NULL, catalog_encoding = "windows-1252", catalog = NULL)
     expect_false(file.exists(file.path(directory, "standalone.sas7bcat")))
     expect_null(attr(read_sas(standalone)$number, "labels"))
     expect_identical(readBin(fixture, "raw", n = file.info(fixture)$size), original_catalog)
@@ -131,16 +179,16 @@ test_that("automatic input catalogs do not become implicit output catalogs", {
     catalog <- file.path(directory, "output.sas7bcat")
     data <- data.frame(number = c(-2.5, 1.25, NA_real_))
     attr(data$number, "labels") <- c(Negative = -2.5, Fraction = 1.25, System = NA_real_)
-    convert(data, source, catalog_to = fixture)
+    convert(data, source, catalog = fixture)
     original <- readBin(fixture, "raw", n = file.info(fixture)$size)
-    convert(source, path, encoding = NULL, catalog_to = catalog)
+    convert(source, path, encoding = NULL)
     result <- convert(path, encoding = NULL)
     expect_identical(attr(result$number, "labels"), attr(data$number, "labels"))
     expect_identical(as.numeric(result$number), as.numeric(data$number))
     expect_identical(readBin(fixture, "raw", n = file.info(fixture)$size), original)
 
     unlink(catalog)
-    convert(source, path, encoding = NULL, catalog_to = NULL)
+    convert(source, path, encoding = NULL, catalog = NULL)
     expect_false(file.exists(catalog))
     expect_identical(readBin(fixture, "raw", n = file.info(fixture)$size), original)
 })
@@ -159,24 +207,26 @@ test_that("invalid public catalog destinations fail without replacing files", {
     invalid <- list("", NA_character_, character(), c("a", "b"), 1, list("labels"))
 
     for (destination in invalid) {
-        expect_error(convert(data, path, catalog_to = destination), "catalog_to")
+        expect_error(convert(data, path, catalog = destination), "catalog must be")
         expect_identical(readBin(path, "raw", n = length(bytes)), bytes)
         expect_identical(readBin(catalog, "raw", n = length(bytes)), bytes)
     }
 
     for (destination in list(NULL, file.path(directory, "data.sav"),
         file.path(directory, "data.xpt"))) {
-        expect_error(convert(data, destination, catalog_to = catalog), "only for SAS7BDAT output")
+        expect_error(convert(data, destination, catalog = catalog), "requires SAS7BDAT")
         expect_identical(readBin(catalog, "raw", n = length(bytes)), bytes)
     }
 
-    expect_error(convert(data, path, catalog_to = path), "distinct files")
-    expect_error(convert(data, path, catalog_to = directory), "distinct files")
-    expect_error(convert(data, path, catalog_to = file.path(directory, "absent", "data.sas7bcat")),
+    expect_error(convert(data, path, catalog_to = NULL), "Use the 'catalog' argument")
+    expect_error(convert(path, catalog_file = catalog), "Use the 'catalog' argument")
+    expect_error(convert(data, path, catalog = path), "distinct files")
+    expect_error(convert(data, path, catalog = directory), "distinct files")
+    expect_error(convert(data, path, catalog = file.path(directory, "absent", "data.sas7bcat")),
         "existing directories")
     data$number <- c("a", "b")
     attr(data$number, "labels") <- c(First = 1)
-    expect_error(convert(data, path, catalog_to = catalog), "keys must match")
+    expect_error(convert(data, path, catalog = catalog), "keys must match")
     expect_identical(readBin(path, "raw", n = file.info(path)$size), bytes)
     expect_identical(readBin(catalog, "raw", n = file.info(catalog)$size), bytes)
 })
@@ -249,7 +299,7 @@ test_that("native public export reserves canonical tags before harmonizing other
     before <- data
 
     for (harmonize in c(TRUE, FALSE)) {
-        convert(data, path, catalog_to = catalog, harmonize = harmonize)
+        convert(data, path, catalog = catalog, harmonize = harmonize)
         result <- read_sas(path, catalog_file = catalog)
         other_codes <- c(-92, -93)
 
@@ -267,7 +317,7 @@ test_that("native public export reserves canonical tags before harmonizing other
     source <- file.path(directory, "source.dta")
     write_dta(data, source, dictionary = data.frame(old = c(-91, -116, 9, 99),
         new = c("a", "z", "b", "c")))
-    convert(source, path, encoding = NULL, catalog_to = catalog)
+    convert(source, path, encoding = NULL, catalog = catalog)
     expect_identical(attr(read_sas(path, catalog_file = catalog)$answer, "na_index"),
         c("-91" = 2L, "-116" = 3L, "-92" = 4L, "-93" = 5L))
 })
@@ -285,7 +335,7 @@ test_that("public paired export preserves every missing-label category", {
     labels <- c(System = NA_real_, Underscore = sas_label_underscore(),
         setNames(as.numeric(-91:-116), LETTERS))
     attr(data$answer, "labels") <- labels
-    convert(data, path, catalog_to = catalog)
+    convert(data, path, catalog = catalog)
     result <- read_sas(path, catalog_file = catalog)
     expect_identical(attr(result$answer, "na_index"), attr(data$answer, "na_index"))
     expect_identical(writeBin(unname(attr(result$answer, "labels")), raw()),
@@ -304,8 +354,8 @@ test_that("empty data frames retain numeric catalog definitions and factor codes
         label = "Answer", labels = c(Yes = 1, Missing = 99), na_values = 99),
         group = factor(character(), levels = c("one", "two")))
     attr(data, "label") <- "Empty dataset"
-    convert(data, path, catalog_to = catalog)
-    result <- convert(path, catalog_file = catalog, encoding = NULL, recode = FALSE)
+    convert(data, path, catalog = catalog)
+    result <- convert(path, catalog = catalog, encoding = NULL, recode = FALSE)
     expect_identical(dim(result), c(0L, 2L))
     expect_identical(attr(result, "label"), "Empty dataset")
     expect_identical(attr(result$answer, "labels"), c(Yes = 1, Missing = -91))
@@ -324,9 +374,9 @@ test_that("SPSS and XPT inputs retain their missing values in native SAS output"
     path <- file.path(directory, "output.sas7bdat")
     write_sav(data, sav)
     write_xpt(data, xpt, dictionary = data.frame(old = 9, new = "z"))
-    convert(sav, path)
+    convert(sav, path, catalog = NULL)
     expect_identical(attr(read_sas(path)$answer, "na_index"), c("-91" = 2L))
-    expect_warning(convert(xpt, path), "sas_metadata\\$version")
+    expect_warning(convert(xpt, path, catalog = NULL), "sas_metadata\\$version")
     expect_identical(attr(read_sas(path)$answer, "na_index"), c("-116" = 2L))
 })
 
@@ -337,8 +387,8 @@ test_that("requesting a catalog for unlabelled data produces a readable empty ca
     path <- file.path(directory, "data.sas7bdat")
     catalog <- file.path(directory, "data.sas7bcat")
     data <- data.frame(number = c(1, 2), text = c("one", "two"))
-    convert(data, path, catalog_to = catalog)
-    result <- convert(path, catalog_file = catalog, encoding = NULL, recode = FALSE)
+    convert(data, path, catalog = catalog)
+    result <- convert(path, catalog = catalog, encoding = NULL, recode = FALSE)
     expect_identical(as.numeric(result$number), data$number)
     expect_identical(as.character(result$text), data$text)
     expect_null(attr(result$number, "labels"))

@@ -1160,10 +1160,24 @@ write_dta <- function(
     invisible(data)
 }
 
-write_sas <- function(data, path, dictionary = NULL, catalog_file = NULL) {
+write_sas <- function(data, path, dictionary = NULL, catalog_file = NULL, auto_catalog = FALSE) {
     validate_dataset_label(attr(data, "label", exact = TRUE), "SAS7BDAT", 256L)
     data_out <- prepare_vendor_metadata(data, "sas7bdat")$data
     data_out <- as_declared(data_out)
+
+    automatic_catalog <- auto_catalog && is.null(catalog_file) && any(vapply(data_out,
+        function(column) {
+            labels <- attr(column, "labels", exact = TRUE)
+            rules <- vendor_metadata(column, "sas_metadata")[["catalog_rules", exact = TRUE]]
+
+            return(length(labels) > 0L || !is.null(rules) ||
+                (is.null(labels) && is.factor(column) && nlevels(column) > 0L))
+        }, logical(1)
+    ))
+
+    if (automatic_catalog) {
+        catalog_file <- paste0(tools::file_path_sans_ext(path), ".sas7bcat")
+    }
 
     if (!is.null(catalog_file)) {
         destinations <- c(path, catalog_file)

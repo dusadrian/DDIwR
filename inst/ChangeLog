@@ -1,3 +1,11 @@
+Version 0.24
+  o convert() uses catalog to select a SAS7BDAT input or output catalog.
+    Omitting it looks for a matching input catalog or writes a matching
+    output catalog when the data has value labels, factor levels or SAS
+    format rules. Export replaces any existing catalog at the output path,
+    including an automatically chosen path. Use catalog = NULL to skip the
+    catalog for the selected operation.
+
 Version 0.23
   o update to the latest version of ReadStat
   o exported XML files are now always validated by default
