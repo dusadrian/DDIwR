@@ -196,7 +196,13 @@ static readstat_error_t xport_parse_timestamp(const char *text, time_t *timestam
     if (ts.tm_mday > month_days[ts.tm_mon] + (ts.tm_mon == 1 && leap)) {
         return READSTAT_ERROR_BAD_TIMESTAMP_STRING;
     }
+#ifdef _WIN32
+    if (!ddiwr_sas_mktime(&ts, timestamp)) {
+        return READSTAT_ERROR_BAD_TIMESTAMP_STRING;
+    }
+#else
     *timestamp = mktime(&ts);
+#endif
     *present = 1;
     return READSTAT_OK;
 }

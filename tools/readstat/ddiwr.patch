@@ -483,7 +483,7 @@ index 9777e2a..8c7e23a 100644
  }
  
 diff --git a/sas/readstat_sas.c b/sas/readstat_sas.c
-index 8cd78cb..25d2112 100644
+index 8cd78cb..8ce8d3e 100644
 --- a/sas/readstat_sas.c
 +++ b/sas/readstat_sas.c
 @@ -246,6 +246,8 @@ readstat_error_t sas_read_header(readstat_io_t *io, sas_header_info_t *hinfo,
@@ -495,7 +495,27 @@ index 8cd78cb..25d2112 100644
  
      uint32_t header_size, page_size;
  
-@@ -447,15 +449,17 @@ readstat_error_t sas_write_header(readstat_writer_t *writer, sas_header_info_t *
+@@ -363,6 +365,11 @@ cleanup:
+ /* Seconds between local time and UTC at the given instant (local - UTC).
+  * SAS stores its timestamps in local time and records this offset next to them. */
+ static double sas_local_utc_offset(time_t timestamp) {
++#ifdef _WIN32
++    struct tm local;
++    int offset;
++    return ddiwr_sas_localtime(timestamp, &local, &offset) ? offset : 0;
++#else
+     struct tm *gmt = gmtime(&timestamp);
+     if (gmt == NULL)
+         return 0;
+@@ -372,6 +379,7 @@ static double sas_local_utc_offset(time_t timestamp) {
+     if (reinterpreted == (time_t)-1)
+         return 0;
+     return difftime(timestamp, reinterpreted);
++#endif
+ }
+ 
+ static void sas_write_padded_ascii(char *dst, size_t dst_len, const char *src, char pad) {
+@@ -447,15 +455,17 @@ readstat_error_t sas_write_header(readstat_writer_t *writer, sas_header_info_t *
  
      memcpy(&header[156], header_start.file_info, sizeof(header_start.file_info));
  
@@ -516,7 +536,7 @@ index 8cd78cb..25d2112 100644
  
      uint32_t header_size = hinfo->header_size;
      uint32_t page_size = hinfo->page_size;
-@@ -517,7 +521,7 @@ readstat_error_t sas_write_header(readstat_writer_t *writer, sas_header_info_t *
+@@ -517,7 +527,7 @@ readstat_error_t sas_write_header(readstat_writer_t *writer, sas_header_info_t *
  sas_header_info_t *sas_header_info_init(readstat_writer_t *writer, int is_64bit) {
      sas_header_info_t *hinfo = calloc(1, sizeof(sas_header_info_t));
      hinfo->creation_time = writer->timestamp;
@@ -526,10 +546,22 @@ index 8cd78cb..25d2112 100644
      hinfo->u64 = !!is_64bit;
  
 diff --git a/sas/readstat_sas.h b/sas/readstat_sas.h
-index 80eb046..266b74f 100644
+index 80eb046..4155106 100644
 --- a/sas/readstat_sas.h
 +++ b/sas/readstat_sas.h
-@@ -49,6 +49,8 @@ typedef struct sas_header_info_s {
+@@ -2,6 +2,11 @@
+ #include "../readstat.h"
+ #include "../readstat_bits.h"
+ 
++#ifdef _WIN32
++int ddiwr_sas_localtime(time_t timestamp, struct tm *local, int *offset);
++int ddiwr_sas_mktime(const struct tm *local, time_t *timestamp);
++#endif
++
+ #pragma pack(push, 1)
+ 
+ typedef struct sas_header_start_s {
+@@ -49,6 +54,8 @@ typedef struct sas_header_info_s {
      uint32_t page_number_mask;
      time_t   creation_time;
      time_t   modification_time;
@@ -1665,7 +1697,7 @@ index f77fe58..c43aebb 100644
      writer->callbacks.begin_data = &sas7bdat_begin_data;
      writer->callbacks.end_data = &sas7bdat_end_data;
 diff --git a/sas/readstat_xport_read.c b/sas/readstat_xport_read.c
-index 26e339e..d8420d7 100644
+index 26e339e..b5d9391 100644
 --- a/sas/readstat_xport_read.c
 +++ b/sas/readstat_xport_read.c
 @@ -24,9 +24,12 @@ typedef struct xport_ctx_s {
@@ -1724,7 +1756,7 @@ index 26e339e..d8420d7 100644
          }
      }
  
-@@ -161,6 +157,50 @@ cleanup:
+@@ -161,6 +157,56 @@ cleanup:
      return retval;
  }
  
@@ -1767,7 +1799,13 @@ index 26e339e..d8420d7 100644
 +    if (ts.tm_mday > month_days[ts.tm_mon] + (ts.tm_mon == 1 && leap)) {
 +        return READSTAT_ERROR_BAD_TIMESTAMP_STRING;
 +    }
++#ifdef _WIN32
++    if (!ddiwr_sas_mktime(&ts, timestamp)) {
++        return READSTAT_ERROR_BAD_TIMESTAMP_STRING;
++    }
++#else
 +    *timestamp = mktime(&ts);
++#endif
 +    *present = 1;
 +    return READSTAT_OK;
 +}
@@ -1775,7 +1813,7 @@ index 26e339e..d8420d7 100644
  static readstat_error_t xport_read_table_name_record(xport_ctx_t *ctx) {
      char line[LINE_LEN+1];
      readstat_error_t retval = READSTAT_OK;
-@@ -174,6 +214,8 @@ static readstat_error_t xport_read_table_name_record(xport_ctx_t *ctx) {
+@@ -174,6 +220,8 @@ static readstat_error_t xport_read_table_name_record(xport_ctx_t *ctx) {
      if (retval != READSTAT_OK)
          goto cleanup;
  
@@ -1784,7 +1822,7 @@ index 26e339e..d8420d7 100644
  cleanup:
      return retval;
  }
-@@ -186,6 +228,10 @@ static readstat_error_t xport_read_file_label_record(xport_ctx_t *ctx) {
+@@ -186,6 +234,10 @@ static readstat_error_t xport_read_file_label_record(xport_ctx_t *ctx) {
      if (retval != READSTAT_OK)
          goto cleanup;
  
@@ -1795,7 +1833,7 @@ index 26e339e..d8420d7 100644
      retval = readstat_convert(ctx->file_label, sizeof(ctx->file_label), &line[32],
              40, ctx->converter);
      if (retval != READSTAT_OK)
-@@ -214,34 +260,20 @@ cleanup:
+@@ -214,34 +266,20 @@ cleanup:
      return retval;
  }
  
@@ -1835,7 +1873,7 @@ index 26e339e..d8420d7 100644
  cleanup:
      return retval;
  }
-@@ -269,24 +301,29 @@ static readstat_error_t xport_read_namestr_header_record(xport_ctx_t *ctx) {
+@@ -269,24 +307,29 @@ static readstat_error_t xport_read_namestr_header_record(xport_ctx_t *ctx) {
          goto cleanup;
      }
  
@@ -1872,7 +1910,7 @@ index 26e339e..d8420d7 100644
  }
  
  static readstat_error_t xport_read_obs_header_record(xport_ctx_t *ctx) {
-@@ -546,6 +583,10 @@ static readstat_error_t xport_read_variables(xport_ctx_t *ctx) {
+@@ -546,6 +589,10 @@ static readstat_error_t xport_read_variables(xport_ctx_t *ctx) {
              goto cleanup;
      }
  
@@ -1883,7 +1921,7 @@ index 26e339e..d8420d7 100644
      ctx->row_length = 0;
  
      int index_after_skipping = 0;
-@@ -652,7 +693,7 @@ static readstat_error_t xport_read_data(xport_ctx_t *ctx) {
+@@ -652,7 +699,7 @@ static readstat_error_t xport_read_data(xport_ctx_t *ctx) {
      char *row = readstat_malloc(ctx->row_length);
      char *blank_row = readstat_malloc(ctx->row_length);
      int num_blank_rows = 0;
@@ -1892,7 +1930,7 @@ index 26e339e..d8420d7 100644
  
      if (row == NULL || blank_row == NULL) {
          retval = READSTAT_ERROR_MALLOC;
-@@ -661,7 +702,7 @@ static readstat_error_t xport_read_data(xport_ctx_t *ctx) {
+@@ -661,7 +708,7 @@ static readstat_error_t xport_read_data(xport_ctx_t *ctx) {
  
      memset(blank_row, ' ', ctx->row_length);
      while (1) {
@@ -1901,7 +1939,7 @@ index 26e339e..d8420d7 100644
              break;
  
          ssize_t bytes_read = read_bytes(ctx, row, ctx->row_length);
-@@ -677,7 +718,7 @@ static readstat_error_t xport_read_data(xport_ctx_t *ctx) {
+@@ -677,7 +724,7 @@ static readstat_error_t xport_read_data(xport_ctx_t *ctx) {
  
          /* When the row count is known, blank rows are real data rather
           * than potential end-of-file padding */
@@ -1910,7 +1948,7 @@ index 26e339e..d8420d7 100644
  
          for (pos=0; pos<ctx->row_length; pos++) {
              if (row[pos] != ' ') {
-@@ -733,6 +774,7 @@ readstat_error_t readstat_parse_xport(readstat_parser_t *parser, const char *pat
+@@ -733,6 +780,7 @@ readstat_error_t readstat_parse_xport(readstat_parser_t *parser, const char *pat
      ctx->user_ctx = user_ctx;
      ctx->io = io;
      ctx->row_limit = parser->row_limit;
@@ -1918,7 +1956,7 @@ index 26e339e..d8420d7 100644
      if (parser->row_offset > 0)
          ctx->row_offset = parser->row_offset;
  
-@@ -764,11 +806,11 @@ readstat_error_t readstat_parse_xport(readstat_parser_t *parser, const char *pat
+@@ -764,11 +812,11 @@ readstat_error_t readstat_parse_xport(readstat_parser_t *parser, const char *pat
      if (retval != READSTAT_OK)
          goto cleanup;
  
@@ -1933,10 +1971,24 @@ index 26e339e..d8420d7 100644
          goto cleanup;
  
 diff --git a/sas/readstat_xport_write.c b/sas/readstat_xport_write.c
-index 9199625..70b0500 100644
+index 9199625..e4d3c03 100644
 --- a/sas/readstat_xport_write.c
 +++ b/sas/readstat_xport_write.c
-@@ -427,11 +427,17 @@ static readstat_error_t xport_begin_data(void *writer_ctx) {
+@@ -405,7 +405,13 @@ static readstat_error_t xport_write_obs_header_record(readstat_writer_t *writer)
+ }
+ 
+ static readstat_error_t xport_format_timestamp(char *output, size_t output_len, time_t timestamp) {
++#ifdef _WIN32
++    struct tm local;
++    int offset;
++    struct tm *ts = ddiwr_sas_localtime(timestamp, &local, &offset) ? &local : NULL;
++#else
+     struct tm *ts = localtime(&timestamp);
++#endif
+ 
+     if (!ts)
+         return READSTAT_ERROR_BAD_TIMESTAMP_VALUE;
+@@ -427,11 +433,17 @@ static readstat_error_t xport_begin_data(void *writer_ctx) {
      readstat_writer_t *writer = (readstat_writer_t *)writer_ctx;
      readstat_error_t retval = READSTAT_OK;
      char timestamp[17];
@@ -1954,7 +2006,7 @@ index 9199625..70b0500 100644
      retval = xport_write_first_header_record(writer);
      if (retval != READSTAT_OK)
          goto cleanup;
-@@ -440,7 +446,7 @@ static readstat_error_t xport_begin_data(void *writer_ctx) {
+@@ -440,7 +452,7 @@ static readstat_error_t xport_begin_data(void *writer_ctx) {
      if (retval != READSTAT_OK)
          goto cleanup;
  
@@ -1963,7 +2015,7 @@ index 9199625..70b0500 100644
      if (retval != READSTAT_OK)
          goto cleanup;
  
-@@ -456,7 +462,7 @@ static readstat_error_t xport_begin_data(void *writer_ctx) {
+@@ -456,7 +468,7 @@ static readstat_error_t xport_begin_data(void *writer_ctx) {
      if (retval != READSTAT_OK)
          goto cleanup;
  

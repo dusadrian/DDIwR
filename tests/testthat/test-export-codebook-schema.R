@@ -77,7 +77,9 @@ test_that("exportCodebook output validates across its writing paths", {
                             bytes <- readBin(target, "raw", n = file.info(target)$size)
                         }
 
-                        expect_true(grepl("\r\n", rawToChar(bytes), fixed = TRUE))
+                        xml <- rawToChar(bytes)
+                        expect_true(grepl("\r\n", xml, fixed = TRUE))
+                        expect_false(grepl("(?<!\r)\n|\r(?!\n)", xml, perl = TRUE))
                     }
                 }, finally = {
                     if (connection) {

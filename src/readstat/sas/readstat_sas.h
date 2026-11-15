@@ -2,6 +2,11 @@
 #include "../readstat.h"
 #include "../readstat_bits.h"
 
+#ifdef _WIN32
+int ddiwr_sas_localtime(time_t timestamp, struct tm *local, int *offset);
+int ddiwr_sas_mktime(const struct tm *local, time_t *timestamp);
+#endif
+
 #pragma pack(push, 1)
 
 typedef struct sas_header_start_s {

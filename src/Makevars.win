@@ -1,6 +1,7 @@
 SOURCES = \
     metadata_text.c \
     metadata_snapshot.c \
+    sas_time_win.c \
     xmlvars.c \
     variable_analysis.c \
     variable_threads.c \
@@ -64,6 +65,7 @@ SOURCES = \
 OBJECTS = \
     metadata_text.o \
     metadata_snapshot.o \
+    sas_time_win.o \
     xmlvars.o \
     variable_analysis.o \
     variable_threads.o \

@@ -1,6 +1,7 @@
 #ifndef DDIWR_STATA_CHARACTERISTICS_H
 #define DDIWR_STATA_CHARACTERISTICS_H
 
+#include <errno.h>
 #include <limits.h>
 #include <stdlib.h>
 #include <string.h>
@@ -12,8 +13,9 @@ static int ddiwr_stata_note_name(const char *name) {
     if (strncmp(name, "note", 4) || name[4] < '1' || name[4] > '9') {
         return 0;
     }
+    errno = 0;
     index = strtol(name + 4, &end, 10);
-    return !*end && index <= INT_MAX;
+    return !*end && errno != ERANGE && index <= INT_MAX;
 }
 
 static void ddiwr_attach_stata_characteristics(SEXP output, SEXP column_names,

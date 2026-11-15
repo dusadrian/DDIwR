@@ -405,7 +405,13 @@ static readstat_error_t xport_write_obs_header_record(readstat_writer_t *writer)
 }
 
 static readstat_error_t xport_format_timestamp(char *output, size_t output_len, time_t timestamp) {
+#ifdef _WIN32
+    struct tm local;
+    int offset;
+    struct tm *ts = ddiwr_sas_localtime(timestamp, &local, &offset) ? &local : NULL;
+#else
     struct tm *ts = localtime(&timestamp);
+#endif
 
     if (!ts)
         return READSTAT_ERROR_BAD_TIMESTAMP_VALUE;

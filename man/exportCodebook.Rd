@@ -88,8 +88,8 @@ The argument \strong{\code{OS}} can be either:\cr
 \code{"MacOS"}, \code{"Darwin"}, \code{"Apple"}, \code{"Mac"}, \code{"mac"},\cr
 \code{"Linux"}, \code{"linux"}.
 
-The end of line separator changes only when the target OS is different from
-the running OS.
+Windows line endings are written explicitly to files and binary connections.
+Text connections use the running system's newline translation.
 
 The argument \strong{\code{indent}} controls how many spaces will be used in the XML
 file, to indent the different sub-elements.

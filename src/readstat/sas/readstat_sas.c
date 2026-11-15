@@ -365,6 +365,11 @@ cleanup:
 /* Seconds between local time and UTC at the given instant (local - UTC).
  * SAS stores its timestamps in local time and records this offset next to them. */
 static double sas_local_utc_offset(time_t timestamp) {
+#ifdef _WIN32
+    struct tm local;
+    int offset;
+    return ddiwr_sas_localtime(timestamp, &local, &offset) ? offset : 0;
+#else
     struct tm *gmt = gmtime(&timestamp);
     if (gmt == NULL)
         return 0;
@@ -374,6 +379,7 @@ static double sas_local_utc_offset(time_t timestamp) {
     if (reinterpreted == (time_t)-1)
         return 0;
     return difftime(timestamp, reinterpreted);
+#endif
 }
 
 static void sas_write_padded_ascii(char *dst, size_t dst_len, const char *src, char pad) {

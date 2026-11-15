@@ -51,8 +51,8 @@
 #' `"MacOS"`, `"Darwin"`, `"Apple"`, `"Mac"`, `"mac"`,\cr
 #' `"Linux"`, `"linux"`.
 #'
-#' The end of line separator changes only when the target OS is different from
-#' the running OS.
+#' Windows line endings are written explicitly to files and binary connections.
+#' Text connections use the running system's newline translation.
 #'
 #' The argument **`indent`** controls how many spaces will be used in the XML
 #' file, to indent the different sub-elements.
@@ -128,6 +128,20 @@
 
     if (is.character(to) && length(to) == 1L && nzchar(to)) {
         to <- path.expand(to)
+    }
+
+    line_ending <- function(OS) {
+        enter <- getEnter(OS)
+
+        # getEnter() relies on Windows text mode to translate LF into CRLF.
+        if (identical(enter, "\n") && is.element(toupper(OS), c("WINDOWS", "WIN"))) {
+            if ((is.character(to) && length(to) == 1L && nzchar(to)) ||
+                (inherits(to, "connection") && identical(summary(to)$text, "binary"))) {
+                return("\r\n")
+            }
+        }
+
+        return(enter)
     }
 
     if (codeBook$.extra$name == "codeBook") {
@@ -266,7 +280,7 @@
             checkArgument(indent, default = 2)
             checkArgument(OS, default = defaultOS)
 
-            enter <- getEnter(OS = ifelse(OS == "", defaultOS, OS))
+            enter <- line_ending(ifelse(OS == "", defaultOS, OS))
             xmlfile <- paste0(xml_prefix, dataDscr_xml, xml_suffix)
             xml_lines <- unlist(strsplit(xmlfile, "\n", fixed = TRUE))
             xmlfile <- paste(
@@ -322,7 +336,7 @@
             checkArgument(indent, default = 2)
             checkArgument(OS, default = defaultOS)
 
-            enter <- getEnter(OS = ifelse(OS == "", defaultOS, OS))
+            enter <- line_ending(ifelse(OS == "", defaultOS, OS))
 
             xmlfile <- paste(
                 prespace(xmlfile, indent),
@@ -330,6 +344,11 @@
             )
 
             .validateCodebookXML(xmlfile)
+            if (is.character(to) && length(to) == 1L && nzchar(to)) {
+                to <- file(to, "wb")
+                on.exit(close(to), add = TRUE)
+            }
+
             writeLines(xmlfile, con = to, sep = enter, useBytes = TRUE)
         }
         else {
