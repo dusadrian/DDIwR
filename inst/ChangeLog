@@ -1,3 +1,6 @@
+Version 0.25
+  o speed up conversion and codebook validation
+
 Version 0.24
   o convert() uses catalog to select a SAS7BDAT input or output catalog.
     Omitting it looks for a matching input catalog or writes a matching

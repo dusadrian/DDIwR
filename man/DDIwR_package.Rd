@@ -25,8 +25,8 @@ under grant agreement no. 262608 (DwB - Data without Boundaries)
 \tabular{ll}{
 Package: \tab DDIwR\cr
 Type: \tab Package\cr
-Version: \tab 0.24\cr
-Date: \tab 2026-11-09\cr
+Version: \tab 0.24.1\cr
+Date: \tab 2026-11-21\cr
 License: \tab GPL-v3\cr
 }
 }
