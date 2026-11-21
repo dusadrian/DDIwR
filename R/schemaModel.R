@@ -60,6 +60,25 @@ ddiModelBounds <- function(model, name) {
 # branch greedily when a nested/repeated choice has several possible matches.
 ddiModelMatches <- function(model, children, complete = TRUE) {
     count <- length(children)
+    # A sequence of distinct element slots has a single possible assignment.
+    if (identical(model$kind, "sequence") && model$min == 1 && model$max == 1 &&
+        all(vapply(model$particles, function(p) identical(p$kind, "element"), logical(1)))) {
+        slots <- unname(vapply(model$particles, "[[", character(1), "name"))
+
+        if (!anyDuplicated(slots)) {
+            positions <- match(children, slots)
+            if (anyNA(positions) || is.unsorted(positions)) {
+                return(FALSE)
+            }
+
+            totals <- tabulate(positions, nbins = length(slots))
+            maximum <- vapply(model$particles, "[[", numeric(1), "max")
+            minimum <- vapply(model$particles, "[[", numeric(1), "min")
+
+            return(all(totals <= maximum) && (!complete || all(totals >= minimum)))
+        }
+    }
+
     memo <- new.env(parent = emptyenv())
 
     matchParticle <- function(p, start, key) {

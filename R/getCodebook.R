@@ -61,7 +61,9 @@
 #'
 #' @author Adrian Dusa
 #'
-#' @param from A path to a file, or a data frame object
+#' @param from A data frame, a file path, or a directory of supported inputs.
+#' Directory imports read each dataset from that directory and ignore companion
+#' files such as CSV data and SAS catalogs.
 #'
 #' @param encoding The character encoding used to read a file
 #'
@@ -148,6 +150,21 @@
 
     tp <- treatPath(from, type = "*")
 
+    if (dir.exists(from)) {
+        if (!is.list(tp)) {
+            admisc::stopError(tp)
+        }
+
+        supported <- is.element(tp$fileext, fileexts)
+        if (!any(supported)) {
+            admisc::stopError("The directory contains no supported codebook inputs.")
+        }
+
+        for (field in c("files", "filenames", "fileext")) {
+            tp[[field]] <- tp[[field]][supported]
+        }
+    }
+
     singlefile <- length(tp$files) == 1
 
     if (print_processing & !fromsetupfile & !singlefile) {
@@ -160,7 +177,10 @@
 
     fromPublisher <- identical(ignore, "dataDscr") & isTRUE(dots$dataset)
 
-    for (ff in seq(length(result))) {
+    requested_ignore <- ignore
+
+    for (ff in seq_along(result)) {
+        ignore <- requested_ignore
         if (print_processing & !fromsetupfile & !singlefile) {
             cat(tp$files[ff], "\n")
         }
@@ -185,13 +205,13 @@
 
                     if (any(csvfiles)) {
                         csvexists <- is.element(
-                            toupper(tp$filenames),
+                            toupper(tp$filenames[ff]),
                             toupper(files$filenames[csvfiles])
                         )
 
                         csvfile <- files$files[csvfiles][
                             match(
-                                toupper(tp$filenames),
+                                toupper(tp$filenames[ff]),
                                 toupper(files$filenames[csvfiles])
                             )
                         ]
@@ -226,8 +246,7 @@
                                 names(data) <- names(variables)
                             }
                         }
-
-                        if (ncol(data) == length(variables) + 1) {
+                        else if (ncol(data) == length(variables) + 1L) {
                             if (header) {
                                 data <- NULL
                             }
@@ -243,6 +262,9 @@
                                 )
                                 # data <- data[, -1, drop = FALSE]
                             }
+                        }
+                        else {
+                            data <- NULL
                         }
 
                         if (!is.null(data)) {
@@ -328,7 +350,7 @@
                 arglist$user_na <- user_na
                 if (tp$fileext[ff] == "SAV") {
 
-                    if (encoding == "auto") {
+                    if (identical(encoding, "auto")) {
                         error <- TRUE
                         i <- 1
                         encodings <- c("utf8", "latin1", "windows-1252", "bytes", "default")
@@ -362,13 +384,13 @@
                 }
             }
             else if (tp$fileext[ff] == "XLS" | tp$fileext[ff] == "XLSX") {
-                data <- import_excel(from, dots)
+                data <- import_excel(file.path(tp$completePath, tp$files[ff]), dots)
             }
             else if (tp$fileext[ff] == "DTA") {
                 fargs <- names(formals(read_dta))
                 arglist <- dots[is.element(names(dots), fargs)]
                 arglist$file <- file.path(tp$completePath, tp$files[ff])
-                if (encoding == "auto") {
+                if (identical(encoding, "auto")) {
                     error <- TRUE
                     i <- 1
                     encodings <- c("utf8", "latin1", "windows-1252", "bytes", "default")
@@ -401,11 +423,18 @@
             else if (tp$fileext[ff] == "RDS") {
                 data <- readRDS(file.path(tp$completePath, tp$files[ff]))
             }
-            # not sure about SAS, as far as I understand the metadata is not
-            # embedded in the datafile but it sits into a separate, catalog file
-            # else if (tp$fileext[ff] == "SAS7BDAT") {
-            #     data <- read_sas(file.path(tp$completePath, tp$files[ff]))
-            # }
+            else if (tp$fileext[ff] == "SAS7BDAT") {
+                file_encoding <- encoding
+                if (identical(encoding, "auto")) {
+                    file_encoding <- NULL
+                }
+
+                data <- convert(file.path(tp$completePath, tp$files[ff]),
+                    recode = FALSE, encoding = file_encoding)
+            }
+            else {
+                stop("Unsupported input file: ", tp$files[ff], call. = FALSE)
+            }
 
             if (!is.element("dataDscr", ignore)) {
                 addChildren(

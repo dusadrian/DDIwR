@@ -563,7 +563,7 @@ NULL
         attrs <- lapply(elements, xml2::xml_attrs)
 
         wdata <- which(sapply(elements, function(x) {
-            xml_attr(x, "ID") == "rawdata" &&
+            identical(xml_attr(x, "ID"), "rawdata") &&
             grepl("serialized", xml_attr(x, "subject"))
         }))
 
@@ -573,15 +573,20 @@ NULL
     }
     else {
         checkXMList(xml)
+        codeBook <- xml
         if (!is.element(".extra", names(xml))) {
             codeBook <- coerceDDI(xml)
+        }
+
+        if (is.null(codeBook$fileDscr)) {
+            return(NULL)
         }
 
         wnotes <- indexChildren(codeBook$fileDscr, "notes")
         if (length(wnotes) > 0) {
             elements <- codeBook$fileDscr[wnotes]
             wdata <- which(sapply(elements, function(x) {
-                attr(x, "ID") == "rawdata" &&
+                identical(attr(x, "ID"), "rawdata") &&
                 grepl("serialized", attr(x, "subject"))
             }))
 
@@ -877,6 +882,7 @@ NULL
 
     # get all files
     if (file_test("-d", path)) {
+        pathname <- normalizePath(path, winslash = "/")
         files <- list.files(path)
     }
     else {
@@ -964,10 +970,7 @@ NULL
         fileext <- fileext[fileidxs]
     }
 
-    filenames <- files
-    for (i in seq(length(files))) {
-        filenames[i] <- gsub(paste(".", fileext[i], sep = ""), "", filenames[i])
-    }
+    filenames <- substr(files, 1L, nchar(files) - nchar(fileext) - 1L)
 
     return(
         list(
@@ -3113,6 +3116,14 @@ NULL
                     }
                 }
 
+                if (all(is.element(c("na_min", "na_max"), names(variables)))) {
+                    row <- match(v, variables$name)
+                    bounds <- c(variables$na_min[row], variables$na_max[row])
+                    if (!anyNA(bounds)) {
+                        callist$na_range <- as.numeric(bounds)
+                    }
+                }
+
                 labels <- NULL
                 admisc::tryCatchWEM(labels <- values$value[values$variable == v])
                 if (is.null(labels)) {
@@ -3130,12 +3141,14 @@ NULL
                         labels <- admisc::asNumeric(labels)
                     }
 
-                    if (!all(is.na(vmissing)) && any(vmissing == "y")) {
+                    if (any(vmissing == "y", na.rm = TRUE)) {
                         callist$na_values <- labels[which(vmissing == "y")]
                     }
 
-                    names(labels) <- nms
-                    callist$labels <- labels
+                    labelled <- !is.na(nms)
+                    if (any(labelled)) {
+                        callist$labels <- setNames(labels[labelled], nms[labelled])
+                    }
                 }
 
                 data[[v]] <- do.call("declared", callist)
@@ -3202,25 +3215,6 @@ NULL
     variables, OS = "windows", indent = 4, dirpath = "", filename = ""
 ) {
 
-    on.exit(suppressWarnings(sink()))
-
-    if (OS == "") {
-        OS <- Sys.info()[['sysname']]
-    }
-    enter <- getEnter(OS=OS)
-
-    currentdir <- getwd()
-    setwd(dirpath)
-
-    sink(sprintf("%s.R", filename))
-    cat("codeBook <- list(variables = list(var = list(", enter)
-
-    rs <- function(x) {
-        paste(rep(" ", x * indent), collapse="")
-    }
-
-    #---------------------------------------------------------------------------
-    # TODO: to verify if this is still needed
     if (is.element("dataDscr", names(variables))) {
         variables <- variables$variables
     }
@@ -3228,117 +3222,34 @@ NULL
     if (is.element("var", names(variables))) {
         variables <- variables$var
     }
-    #---------------------------------------------------------------------------
 
-    for (i in seq(length(variables))) {
+    fields <- c("label", "labels", "na_values", "na_range", "type", "measurement")
+    records <- lapply(variables, function(variable) {
+        return(variable[intersect(fields, names(variable))])
+    })
+    object <- list(variables = list(var = records))
+    lines <- deparse(object, control = "all")
+    spaces <- nchar(lines) - nchar(trimws(lines, which = "left"))
+    lines <- paste0(strrep(" ", as.integer(spaces / 4 * indent)), substring(lines, spaces + 1L))
+    lines[1L] <- paste0("codeBook <- ", lines[1L])
 
-        cat(names(variables)[i], " = list(", enter, sep = "")
-
-        cat(rs(1), "label = \"", getElement(variables[[i]], "label"), "\"", sep = "")
-
-        if (is.element("labels", names(variables[[i]]))) {
-            cat(",", enter, rs(1), "labels = c(", enter, sep = "")
-
-            values <- getElement(variables[[i]], "labels")
-            names(values) <- cleanup(names(values))
-            notNum <- any(is.na(suppressWarnings(as.numeric(values))))
-            labl <- names(values)
-
-            for (lbl in seq(length(values))) {
-                cat(rs(2), "\"", labl[lbl], "\" = ", sep = "")
-                quote <- ifelse(notNum, "\"", "")
-                cat(quote, values[lbl], quote, sep = "")
-                cat(
-                    ifelse(
-                        lbl < length(labl),
-                        paste(",", enter, sep = ""),
-                        paste(enter, rs(2), ")", sep = "")
-                    )
-                )
-            }
-        }
-
-        if (is.element("na_values", names(variables[[i]]))) {
-            na_values <- variables[[i]]$na_values
-            notNum <- any(is.na(suppressWarnings(as.numeric(na_values))))
-            cat(",", enter, sep = "")
-            cat(
-                rs(1),
-                "na_values = ",
-                ifelse(
-                    length(na_values) > 1,
-                    paste(
-                        "c(",
-                        paste(
-                            na_values,
-                            collapse = ifelse(
-                                notNum,
-                                "\", \"",
-                                ", "
-                            )
-                        ),
-                        ")",
-                        sep = ""
-                    ),
-                    ifelse(
-                        notNum,
-                        paste("\"", na_values, "\"", sep = ""),
-                        na_values
-                    )
-                ),
-                sep = ""
-            )
-        }
-
-        if (is.element("na_range", names(variables[[i]]))) {
-            na_range <- variables[[i]]$na_range
-            cat(",", enter, sep = "")
-            cat(
-                rs(1),
-                "na_range = c(",
-                paste(na_range, collapse = ", "),
-                ")",
-                sep = ""
-            )
-        }
-
-        if (is.element("type", names(variables[[i]]))) {
-            cat(",", enter, sep = "")
-            cat(rs(1), "type = \"", variables[[i]]$type, "\"", sep = "")
-        }
-
-        if (is.element("measurement", names(variables[[i]]))) {
-            cat(",", enter, sep = "")
-            cat(
-                rs(1),
-                "measurement = \"",
-                variables[[i]]$measurement,
-                "\"",
-                sep = ""
-            )
-        }
-
-        # if (attr) {
-        #     # close the variable specific list
-        #     cat(enter, ")", enter, enter, sep = "")
-        # }
-        # else {
-            cat(
-                enter,
-                ifelse(
-                    i == length(variables),
-                    ")",
-                    "),"
-                ),
-                enter,
-                sep = ""
-            )
-        # }
+    if (!nzchar(dirpath)) {
+        dirpath <- "."
     }
 
-    cat("))", enter)
-    sink()
-    setwd(currentdir)
+    if (!nzchar(OS)) {
+        OS <- Sys.info()[["sysname"]]
+    }
+
+    connection <- file(file.path(dirpath, paste0(filename, ".R")), "wb")
+    on.exit(close(connection), add = TRUE)
+    ending <- getEnter(OS = OS)
+    if (is.element(toupper(OS), c("WINDOWS", "WIN"))) {
+        ending <- "\r\n"
+    }
+
+    writeLines(lines, connection, sep = ending, useBytes = TRUE)
+
 }
 ##------------------------------------------------------------------------------
 
@@ -3405,6 +3316,83 @@ makedfm <- function() {
     ]
 
     return(dfm)
+}
+
+# Keep the target intact until the native writer has closed its output.
+staged_output_path <- function(destination) {
+    if (file.exists(destination) &&
+        (!utils::file_test("-f", destination) || file.access(destination, 2L) != 0L)) {
+        stop("Cannot replace output file: ", destination, call. = FALSE)
+    }
+
+    return(tempfile(".ddiwr-output-", tmpdir = dirname(destination)))
+}
+
+publish_staged_files <- function(staged, destinations) {
+    if (anyDuplicated(destinations) || any(dir.exists(destinations))) {
+        stop("Output destinations must be distinct files.", call. = FALSE)
+    }
+
+    existing <- file.exists(destinations)
+    preserve <- existing & file.exists(staged)
+    if (any(preserve) && !all(Sys.chmod(staged[preserve],
+        file.mode(destinations[preserve]), use_umask = FALSE))) {
+        stop("Could not preserve output file permissions.", call. = FALSE)
+    }
+
+    if (length(destinations) == 1L && (.Platform$OS.type != "windows" || !existing)) {
+        if (!file.rename(staged, destinations)) {
+            stop("Could not publish output file: ", destinations, call. = FALSE)
+        }
+
+        return(invisible(NULL))
+    }
+
+    backups <- rep(NA_character_, length(destinations))
+    installed <- rep(FALSE, length(destinations))
+    published <- FALSE
+
+    on.exit({
+        if (!published) {
+            for (index in rev(seq_along(destinations))) {
+                if (installed[index]) {
+                    unlink(destinations[index])
+                }
+
+                if (!is.na(backups[index]) && !file.rename(backups[index], destinations[index])) {
+                    warning("Could not restore export destination; original retained at ",
+                        backups[index], call. = FALSE)
+                }
+            }
+        }
+        else {
+            unlink(backups[!is.na(backups)])
+        }
+    }, add = TRUE)
+
+    for (index in seq_along(destinations)) {
+        if (file.exists(destinations[index])) {
+            backup <- tempfile(".ddiwr-backup-", tmpdir = dirname(destinations[index]))
+
+            if (!file.rename(destinations[index], backup)) {
+                stop("Could not preserve export destination: ", destinations[index], call. = FALSE)
+            }
+
+            backups[index] <- backup
+        }
+    }
+
+    for (index in seq_along(destinations)) {
+        if (!file.rename(staged[index], destinations[index])) {
+            stop("Could not publish export destination: ", destinations[index], call. = FALSE)
+        }
+
+        installed[index] <- TRUE
+    }
+
+    published <- TRUE
+
+    return(invisible(NULL))
 }
 
 #' @keywords internal

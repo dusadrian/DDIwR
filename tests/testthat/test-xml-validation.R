@@ -154,3 +154,17 @@ test_that("unavailable schema dependencies fail closed", {
     expect_identical(readBin(target, "raw", n = file.info(target)$size), original)
     expect_error(validator("<codeBook/>", schema_path = ""), "schema is unavailable")
 })
+
+test_that("a failed companion CSV export preserves the existing XML", {
+    directory <- tempfile()
+    dir.create(directory)
+    on.exit(unlink(directory, recursive = TRUE), add = TRUE)
+    target <- file.path(directory, "survey.xml")
+    writeLines("Original XML", target)
+    dir.create(file.path(directory, "survey.csv"))
+
+    expect_error(convert(data.frame(x = 1:3), target, embed = FALSE), "Cannot replace")
+    expect_identical(readLines(target), "Original XML")
+    expect_setequal(list.files(directory, all.files = TRUE, no.. = TRUE),
+        c("survey.xml", "survey.csv"))
+})

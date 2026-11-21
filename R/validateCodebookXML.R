@@ -1,6 +1,6 @@
 .validateCodebookXML <- function(output, schema_path = system.file(
     "schemas", "ddi-codebook-2.6", "codebook.xsd", package = "DDIwR"
-)) {
+), from_file = FALSE) {
     if (!nzchar(schema_path) || !file.exists(schema_path)) {
         stop("Cannot validate DDI Codebook XML: the bundled DDI 2.6 schema is unavailable.",
             call. = FALSE)
@@ -8,7 +8,11 @@
 
     result <- tryCatch({
         schema <- xml2::read_xml(schema_path, options = "NONET")
-        document <- xml2::read_xml(charToRaw(enc2utf8(output)),
+        if (!from_file) {
+            output <- charToRaw(enc2utf8(output))
+        }
+
+        document <- xml2::read_xml(output,
             options = c("NONET", "HUGE"))
         valid <- xml2::xml_validate(document, schema)
         diagnostics <- attr(valid, "errors")

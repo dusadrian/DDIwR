@@ -11,6 +11,9 @@
 #' factor. It should be an object of class `"declared"` with a specific
 #' attribute called `"labels"` that stores the value labels.
 #'
+#' Distinct character codes receive distinct numbers, including alternate
+#' spellings such as `01` and `1`.
+#'
 #' Variable labels, display widths, custom SPSS attributes and Stata
 #' characteristics are retained. String formats and storage widths are removed
 #' when the values become numeric; subsequent exports derive numeric formats.
@@ -70,40 +73,23 @@
 
     x[x == ""] <- NA
 
-    # TODO: make sure the values of missing codes are way outside the
-    # range of the normal values
-
     labels <- sort(labels)
-    ux <- unique(c(unname(labels), na_values, x[!is.na(x)]))
-    pnux <- admisc::possibleNumeric(ux, each = TRUE)
+    keys <- unique(c(unname(labels), na_values, x[!is.na(x)]))
+    keys <- as.character(keys[!is.na(keys)])
+    numeric_keys <- which(admisc::possibleNumeric(keys, each = TRUE))
+    codes <- rep(NA_real_, length(keys))
+    parsed <- suppressWarnings(as.numeric(keys[numeric_keys]))
 
-    numeric_map <- suppressWarnings(as.numeric(ux[pnux]))
-    names(numeric_map) <- as.character(ux[pnux])
+    # Prefer the standard spelling when several distinct strings denote one number.
+    priority <- order(keys[numeric_keys] != as.character(parsed))
+    retained <- priority[!duplicated(parsed[priority])]
+    codes[numeric_keys[retained]] <- parsed[retained]
 
-    if (any(!pnux)) {
-        cux <- as.character(ux[!pnux])
-        next_code <- 1L
-        if (length(numeric_map) > 0) {
-            while (next_code %in% numeric_map) {
-                next_code <- next_code + 1L
-            }
-        }
-
-        char_map <- integer(length(cux))
-        for (i in seq_along(cux)) {
-            char_map[i] <- next_code
-            next_code <- next_code + 1L
-            while (next_code %in% numeric_map || next_code %in% char_map[seq_len(i)]) {
-                next_code <- next_code + 1L
-            }
-        }
-        names(char_map) <- cux
-
-        all_map <- c(numeric_map, char_map)
-    }
-    else {
-        all_map <- numeric_map
-    }
+    available <- seq_along(keys)
+    available <- available[!is.element(available, codes)]
+    allocate <- is.na(codes)
+    codes[allocate] <- available[seq_len(sum(allocate))]
+    all_map <- setNames(codes, keys)
 
     x_chr <- as.character(x)
     x <- suppressWarnings(as.numeric(all_map[x_chr]))

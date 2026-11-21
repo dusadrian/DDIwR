@@ -292,3 +292,23 @@ test_that("convert() rejects missing-code overflow within a Stata variable", {
         "Too many overall missing values for harmonized STATA recoding"
     )
 })
+
+test_that("Excel retains unlabelled missing codes and their observations", {
+    path <- tempfile(fileext = ".xlsx")
+    on.exit(unlink(path), add = TRUE)
+    data <- data.frame(x = declared(c(1, 2, 9), labels = c(A = 1, B = 2), na_values = 9),
+        y = declared(c("X", "M", "Y"), label = "Item", na_values = "M"),
+        z = declared(c(2, 50, 99), na_range = c(50, Inf)))
+
+    convert(data, path)
+    restored <- convert(path, recode = FALSE)
+
+    for (variable in names(data)) {
+        expect_equal(attr(restored[[variable]], "labels"), attr(data[[variable]], "labels"))
+        expect_equal(attr(restored[[variable]], "na_values"), attr(data[[variable]], "na_values"))
+        expect_equal(attr(restored[[variable]], "na_range"), attr(data[[variable]], "na_range"))
+        expect_equal(attr(restored[[variable]], "na_index"), attr(data[[variable]], "na_index"))
+        expect_equal(undeclare(restored[[variable]], drop = TRUE),
+            undeclare(data[[variable]], drop = TRUE))
+    }
+})

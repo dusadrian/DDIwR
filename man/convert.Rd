@@ -501,6 +501,15 @@ columns use double storage when exporting to SPSS or SAS to avoid overflow.
 SPSS user-missing codes and ranges remain separate from date/time values;
 they are retained when importing with \code{user_na = TRUE} and discarded with
 \code{user_na = FALSE}.
+
+Excel workbooks record unlabelled missing codes in the values sheet
+with an empty label. Missing ranges, when present, use the \code{na_min} and
+\code{na_max} columns of the variables sheet. Import restores both definitions.
+Single-file SPSS, Stata, SAS and XPT exports replace the destination after
+the writer successfully closes its staged file.
+Stata imports can read large row windows in parallel. Set
+\code{options(DDIwR.readstat_threads = 1L)} for serial input and lower peak
+memory use on large numeric datasets.
 }
 \examples{
 \dontrun{

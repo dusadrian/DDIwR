@@ -79,10 +79,19 @@
             output[[field]] <<- c(output[[field]], problem)
         }
 
+        child_types <- unique(children)
+        slots <- match(children, child_types)
+        occurrences <- integer(length(child_types))
+        optional_children <- vapply(child_types, function(child) {
+            return(ddiModelBounds(model, child)[1L] == 0)
+        }, logical(1))
+
         for (i in seq_along(positions)) {
             child <- node[[positions[i]]]
             childName <- children[i]
-            index <- sum(children[seq_len(i)] == childName)
+            slot <- slots[i]
+            index <- occurrences[slot] + 1L
+            occurrences[slot] <- index
             childPath <- paste0(path, "/", childName, "[", index, "]")
 
             if (!is.list(child) || is.null(child$.extra$name) ||
@@ -92,8 +101,7 @@
                 next
             }
 
-            bounds <- ddiModelBounds(model, childName)
-            visit(child, childPath, optional = bounds[1] == 0)
+            visit(child, childPath, optional = optional_children[slot])
         }
     }
 

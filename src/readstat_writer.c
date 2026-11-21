@@ -1250,8 +1250,10 @@ static void writer_write(WriterCtx *ctx, SEXP dictionary) {
     init_foreign_dictionary(ctx, dictionary);
     init_foreign_missing_maps(ctx);
 
+    VarType *types = (VarType *)R_alloc((size_t)p, sizeof(*types));
     for (j = 0; j < p; ++j) {
         SEXP col = VECTOR_ELT(ctx->data, j);
+        types[j] = numTypeFromSEXP(col);
         const char *name = string_utf8_elt(names, j);
         switch (TYPEOF(col)) {
             case LGLSXP:
@@ -1339,9 +1341,9 @@ static void writer_write(WriterCtx *ctx, SEXP dictionary) {
                             check_status(insert_int_value(ctx, var, code_int, 0), "Failed to insert integer value");
                         }
                     } else if (var->type == READSTAT_TYPE_DOUBLE || var->type == READSTAT_TYPE_FLOAT) {
-                        check_status(insert_double_value(ctx, var, missing ? NA_REAL : adjustDatetimeFromR(ctx->vendor, col, value), missing), "Failed to insert integer value");
+                        check_status(insert_double_value(ctx, var, missing ? NA_REAL : adjustTypedDatetimeFromR(ctx->vendor, types[j], value), missing), "Failed to insert integer value");
                     } else {
-                        check_status(insert_int_value(ctx, var, (int) adjustDatetimeFromR(ctx->vendor, col, value), missing), "Failed to insert integer value");
+                        check_status(insert_int_value(ctx, var, (int) adjustTypedDatetimeFromR(ctx->vendor, types[j], value), missing), "Failed to insert integer value");
                     }
                     break;
                 }
@@ -1357,13 +1359,13 @@ static void writer_write(WriterCtx *ctx, SEXP dictionary) {
                         check_status(insert_int_value(ctx, var, code_int, 0), "Failed to insert numeric value");
                     } else if ((var->type == READSTAT_TYPE_INT8 || var->type == READSTAT_TYPE_INT16 || var->type == READSTAT_TYPE_INT32) &&
                                R_finite(value)) {
-                        check_status(insert_int_value(ctx, var, (int) llround(adjustDatetimeFromR(ctx->vendor, col, value)), 0), "Failed to insert numeric value");
+                        check_status(insert_int_value(ctx, var, (int) llround(adjustTypedDatetimeFromR(ctx->vendor, types[j], value)), 0), "Failed to insert numeric value");
                     } else if (!R_finite(value) && parse_code_double(code, &code_double)) {
                         check_status(insert_double_value(ctx, var, code_double, 0), "Failed to insert numeric value");
                     } else if (!R_finite(value) && code != NULL && strlen(code) == 1 && isalpha((unsigned char) code[0])) {
                         check_status(insert_double_value(ctx, var, make_tagged_na((char) tolower((unsigned char) code[0])), 1), "Failed to insert numeric value");
                     } else {
-                        check_status(insert_double_value(ctx, var, adjustDatetimeFromR(ctx->vendor, col, value), !R_finite(value)), "Failed to insert numeric value");
+                        check_status(insert_double_value(ctx, var, adjustTypedDatetimeFromR(ctx->vendor, types[j], value), !R_finite(value)), "Failed to insert numeric value");
                     }
                     break;
                 }
@@ -1382,11 +1384,11 @@ static void writer_write(WriterCtx *ctx, SEXP dictionary) {
     }
 
     check_status(readstat_end_writing(ctx->writer), "Failed to finalize writing");
-    if (ctx->ext == DECLARED_SAS7BDAT) {
+    {
         FILE *out = ctx->out;
         ctx->out = NULL;
         if (fclose(out) != 0)
-            Rf_error("Failed to close SAS data output '%s'.", ctx->path);
+            Rf_error("Failed to close data output '%s'.", ctx->path);
     }
 }
 

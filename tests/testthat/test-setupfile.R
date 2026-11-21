@@ -192,3 +192,23 @@ test_that("errors during export close only setupfile's own output sink", {
     expect_identical(readLines(file.path(directory, "caller.txt")),
         c("do before", "do after", "sas before", "sas after"))
 })
+
+test_that("single-column SAS input names the variable once with or without value labels", {
+    directory <- tempfile()
+    dir.create(directory)
+    on.exit(unlink(directory, recursive = TRUE), add = TRUE)
+    path <- file.path(directory, "single.sas")
+    csv <- file.path(directory, "single.csv")
+    writeLines(c("score", "1", "2"), csv)
+
+    for (labels in list(NULL, c(One = 1, Two = 2))) {
+        data <- data.frame(score = declared(1:2, label = "Score", labels = labels))
+        setupfile(data, file = path, csv = csv)
+        script <- trimws(readLines(path))
+        input <- grep("^input ", script)
+
+        expect_length(input, 1L)
+        expect_identical(script[input + 0:1], c("input  SCORE", ";"))
+        expect_identical(any(grepl("^proc format", script)), length(labels) > 0L)
+    }
+})

@@ -211,54 +211,6 @@ prepare_sas_catalog <- function(data) {
     return(list(data = data, formats = unname(formats)))
 }
 
-publish_sas_pair <- function(staged, destinations) {
-    backups <- rep(NA_character_, length(destinations))
-    installed <- rep(FALSE, length(destinations))
-    published <- FALSE
-
-    on.exit({
-        if (!published) {
-            for (index in rev(seq_along(destinations))) {
-                if (installed[index]) {
-                    unlink(destinations[index])
-                }
-
-                if (!is.na(backups[index]) && !file.rename(backups[index], destinations[index])) {
-                    warning("Could not restore SAS export destination; original retained at ",
-                        backups[index], call. = FALSE)
-                }
-            }
-        }
-        else {
-            unlink(backups[!is.na(backups)])
-        }
-    }, add = TRUE)
-
-    for (index in seq_along(destinations)) {
-        if (file.exists(destinations[index])) {
-            backup <- tempfile(".ddiwr-sas-backup-", tmpdir = dirname(destinations[index]))
-
-            if (!file.rename(destinations[index], backup)) {
-                stop("Could not preserve SAS export destination: ", destinations[index], call. = FALSE)
-            }
-
-            backups[index] <- backup
-        }
-    }
-
-    for (index in seq_along(destinations)) {
-        if (!file.rename(staged[index], destinations[index])) {
-            stop("Could not publish SAS export destination: ", destinations[index], call. = FALSE)
-        }
-
-        installed[index] <- TRUE
-    }
-
-    published <- TRUE
-
-    return(invisible(NULL))
-}
-
 validate_sas_catalog_rules <- function(rules, character_keys) {
     if (!is.data.frame(rules) || nrow(rules) == 0L ||
         anyDuplicated(names(rules)) > 0L ||

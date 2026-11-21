@@ -89,65 +89,76 @@ static int c_value_in_na_range(double val, const CVariableData *job) {
     return val >= lo && val <= hi;
 }
 
-static int c_value_matches_label(double val, const char *str_val, const CVariableData *job, int cat_idx) {
-    if (job->type == DDIWR_STRING) {
-        if (str_val == NULL || job->cat_label_svals[cat_idx] == NULL) {
-            return 0;
-        }
-        return strcmp(str_val, job->cat_label_svals[cat_idx]) == 0;
-    } else {
-        if (isnan(val) || isnan(job->cat_label_dvals[cat_idx])) {
-            return 0;
-        }
-        return val == job->cat_label_dvals[cat_idx];
+/* Keep the first label for duplicate codes, just as the linear search does. */
+typedef struct {
+    const double *numbers;
+    const char **strings;
+    int count;
+    size_t capacity;
+    int *slots;
+} LabelIndex;
+
+static uint64_t label_hash(double value, const char *text) {
+    if (text != NULL) {
+        uint64_t hash = UINT64_C(14695981039346656037);
+        for (const unsigned char *p = (const unsigned char *)text; *p; p++)
+            hash = (hash ^ *p) * UINT64_C(1099511628211);
+        return hash;
     }
+
+    uint64_t bits = 0;
+    if (value != 0.0) memcpy(&bits, &value, sizeof(bits));
+    bits ^= bits >> 33;
+    bits *= UINT64_C(0xff51afd7ed558ccd);
+    return bits ^ (bits >> 33);
 }
 
-static int c_double_matches_label_value(double val, const CVariableData *job) {
-    if (job->cat_label_dvals == NULL) {
-        return 0;
-    }
-    for (int k = 0; k < job->cat_count; k++) {
-        if (!isnan(job->cat_label_dvals[k]) && val == job->cat_label_dvals[k]) {
-            return 1;
-        }
-    }
-    return 0;
+static int label_equal(const LabelIndex *index, int i, double value, const char *text) {
+    if (index->strings)
+        return index->strings[i] && strcmp(index->strings[i], text) == 0;
+    return index->numbers[i] == value;
 }
 
-static int c_value_matches_classification_label(
-    double val,
-    const char *str_val,
-    const CVariableData *job,
-    int label_idx
-) {
-    double comparable = val;
-
-    if (job->classification_label_svals != NULL && str_val != NULL) {
-        const char *label = job->classification_label_svals[label_idx];
-
-        if (label != NULL && strcmp(str_val, label) == 0) {
-            return 1;
-        }
+static int label_position(const LabelIndex *index, double value, const char *text) {
+    if (index->strings ? text == NULL : (!index->numbers || isnan(value))) return -1;
+    if (!index->slots) {
+        for (int i = 0; i < index->count; i++)
+            if (label_equal(index, i, value, text)) return i;
+        return -1;
     }
 
-    if (job->classification_label_dvals != NULL) {
-        double label = job->classification_label_dvals[label_idx];
-
-        if (str_val != NULL) {
-            char *endptr = NULL;
-
-            comparable = strtod(str_val, &endptr);
-            if (endptr == str_val || *endptr != '\0') {
-                comparable = NAN;
-            }
-        }
-
-        if (!isnan(comparable) && !isnan(label) && comparable == label) {
-            return 1;
-        }
+    size_t mask = index->capacity - 1;
+    size_t slot = label_hash(value, text) & mask;
+    while (index->slots[slot]) {
+        int i = index->slots[slot] - 1;
+        if (label_equal(index, i, value, text)) return i;
+        slot = (slot + 1) & mask;
     }
+    return -1;
+}
 
+static int prepare_labels(LabelIndex *index) {
+    if (index->count < 16 || (!index->numbers && !index->strings)) return 0;
+
+    size_t capacity = 32;
+    while (capacity / 2 < (size_t)index->count) {
+        if (capacity > SIZE_MAX / 2) return 1;
+        capacity *= 2;
+    }
+    index->capacity = capacity;
+    index->slots = calloc(capacity, sizeof(*index->slots));
+    if (!index->slots) return 1;
+
+    for (int i = 0; i < index->count; i++) {
+        const char *text = index->strings ? index->strings[i] : NULL;
+        double value = index->numbers ? index->numbers[i] : 0;
+        if (index->strings ? text == NULL : isnan(value)) continue;
+        size_t slot = label_hash(value, text) & (capacity - 1);
+        while (index->slots[slot] &&
+                !label_equal(index, index->slots[slot] - 1, value, text))
+            slot = (slot + 1) & (capacity - 1);
+        if (!index->slots[slot]) index->slots[slot] = i + 1;
+    }
     return 0;
 }
 
@@ -337,6 +348,18 @@ int ddiwr_process_stats(CVariableData *job) {
         }
     }
 
+    LabelIndex categories = {job->cat_label_dvals, job->cat_label_svals, job->cat_count, 0, NULL};
+    LabelIndex class_numbers = {job->classification_label_dvals, NULL, job->classification_label_count, 0, NULL};
+    LabelIndex class_strings = {NULL, job->type == DDIWR_STRING ? job->classification_label_svals : NULL,
+        job->classification_label_count, 0, NULL};
+    if (prepare_labels(&categories) || prepare_labels(&class_numbers) || prepare_labels(&class_strings)) {
+        free(categories.slots);
+        free(class_numbers.slots);
+        free(class_strings.slots);
+        free(vals);
+        return 1;
+    }
+
     for (ptrdiff_t j = 0; j < len; j++) {
         int is_invalid = 0;
         double val = 0.0;
@@ -374,11 +397,9 @@ int ddiwr_process_stats(CVariableData *job) {
         }
 
         if (job->has_labels && job->cat_count > 0) {
-            for (int cat_i = 0; cat_i < job->cat_count; cat_i++) {
-                if (c_value_matches_label(val, str_val, job, cat_i)) {
-                    job->cat_freq[cat_i] += 1.0;
-                    break;
-                }
+            if ((job->type == DDIWR_STRING) == (categories.strings != NULL)) {
+                int position = label_position(&categories, val, str_val);
+                if (position >= 0) job->cat_freq[position] += 1.0;
             }
         }
 
@@ -425,19 +446,16 @@ int ddiwr_process_stats(CVariableData *job) {
             }
         }
 
-        if (job->include_projection && job->classification_label_count > 0) {
-            int labelled = 0;
-
-            for (int label_idx = 0; label_idx < job->classification_label_count; label_idx++) {
-                if (c_value_matches_classification_label(val, str_val, job, label_idx)) {
-                    labelled = 1;
-                    break;
-                }
+        if (job->include_projection && job->classification_all_values_labelled &&
+                label_position(&class_strings, val, str_val) < 0) {
+            double comparable = val;
+            if (str_val) {
+                char *end = NULL;
+                comparable = strtod(str_val, &end);
+                if (end == str_val || *end) comparable = NAN;
             }
-
-            if (!labelled) {
+            if (label_position(&class_numbers, comparable, NULL) < 0)
                 job->classification_all_values_labelled = 0;
-            }
         }
 
         if (!numericish) {
@@ -488,7 +506,7 @@ int ddiwr_process_stats(CVariableData *job) {
             max_width = width;
         }
 
-        if (!c_double_matches_label_value(val, job) && distinct_nonlabel_n < 5) {
+        if (distinct_nonlabel_n < 5 && (!categories.numbers || label_position(&categories, val, NULL) < 0)) {
             int seen = 0;
             for (int d = 0; d < distinct_nonlabel_n; d++) {
                 if (distinct_nonlabel[d] == val) {
@@ -523,33 +541,35 @@ int ddiwr_process_stats(CVariableData *job) {
 
             printnum = distinct_nonlabel_n > 4 || (valid_n > 2 && job->has_type_num);
             if (printnum) {
-                double *median_work = (double *)malloc((size_t)valid_n * sizeof(double));
-                double median = ddiwr_na_real();
-
-                if (median_work == NULL) {
-                    free(vals);
-                    return 1;
-                }
-                {
-                    memcpy(median_work, vals, (size_t)valid_n * sizeof(double));
-                    qsort(median_work, (size_t)valid_n, sizeof(double), compare_doubles);
-                    if ((valid_n % 2) == 1) {
-                        median = median_work[valid_n / 2];
-                    } else {
-                        median = (median_work[valid_n / 2 - 1] + median_work[valid_n / 2]) / 2.0;
+                double stdev = sqrt(m2 / (double)(valid_n - 1));
+                if ((!isfinite(m2) || !isfinite(mean) || (m2 == 0 && minv != maxv)) &&
+                        isfinite(minv) && isfinite(maxv)) {
+                    /* Rescale by a power of two when the squared deviations overflow or underflow. */
+                    int exponent;
+                    frexp(fmax(fabs(minv), fabs(maxv)), &exponent);
+                    double scaled_mean = 0, scaled_m2 = 0;
+                    for (ptrdiff_t k = 0; k < valid_n; k++) {
+                        double v = scalbn(vals[k], -exponent);
+                        double delta = v - scaled_mean;
+                        scaled_mean += delta / (double)(k + 1);
+                        scaled_m2 += delta * (v - scaled_mean);
                     }
-                    free(median_work);
+                    mean = scalbn(scaled_mean, exponent);
+                    stdev = scalbn(sqrt(scaled_m2 / (double)(valid_n - 1)), exponent);
                 }
 
+                qsort(vals, (size_t)valid_n, sizeof(*vals), compare_doubles);
+                double median = vals[valid_n / 2];
+                if (valid_n % 2 == 0) {
+                    double lower = vals[valid_n / 2 - 1];
+                    double sum = lower + median;
+                    median = isinf(sum) ? lower / 2 + median / 2 : sum / 2;
+                }
                 job->stat_min = minv;
                 job->stat_max = maxv;
                 job->stat_mean = mean;
                 job->stat_medn = median;
-                if (valid_n > 1) {
-                    job->stat_stdev = sqrt(m2 / ((double)valid_n - 1.0));
-                } else {
-                    job->stat_stdev = ddiwr_na_real();
-                }
+                job->stat_stdev = stdev;
             } else {
                 job->stat_min = ddiwr_na_real();
                 job->stat_max = ddiwr_na_real();
@@ -576,8 +596,9 @@ int ddiwr_process_stats(CVariableData *job) {
         job->stat_stdev = ddiwr_na_real();
     }
 
-    if (vals != NULL) {
-        free(vals);
-    }
+    free(categories.slots);
+    free(class_numbers.slots);
+    free(class_strings.slots);
+    free(vals);
     return 0;
 }

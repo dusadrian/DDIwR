@@ -23,6 +23,9 @@ For this function, a categorical variable is something else than a base
 factor. It should be an object of class \code{"declared"} with a specific
 attribute called \code{"labels"} that stores the value labels.
 
+Distinct character codes receive distinct numbers, including alternate
+spellings such as \code{01} and \code{1}.
+
 Variable labels, display widths, custom SPSS attributes and Stata
 characteristics are retained. String formats and storage widths are removed
 when the values become numeric; subsequent exports derive numeric formats.

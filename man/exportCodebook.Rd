@@ -63,7 +63,9 @@ the current version, these are: \code{monolang}, \code{xmlang}, \code{IDNo}, \co
 
 The finished XML is always validated against the bundled, pinned DDI Codebook
 2.6 schema and its local dependencies before writing. Invalid or incomplete
-documents, or unavailable schemas, cause an error. Validation failure leaves
+documents, or unavailable schemas, cause an error. For dataset exports to
+a file, validation reads the staged XML before publication. Companion CSV
+files are staged alongside it. Validation failure leaves
 the destination and any companion CSV unchanged, and writes nothing to an
 output connection. No network access is needed for validation. Most of these
 arguments help create the mandatory element \code{stdyDscr}, which cannot be

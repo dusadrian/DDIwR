@@ -97,3 +97,32 @@ test_that("SAS and XPORT retain values and trailing missing rows", {
     expect_identical(as.vector(read_sas(sas_path)$answer), exported$answer)
     expect_identical(as.vector(read_xpt(xpt_path)$answer), exported$answer)
 })
+
+test_that("parallel Stata windows preserve tagged row indexes across chunks", {
+    skip_if_not(readstat_parallel_supported())
+    values <- rep(c(1, -91, -92, 2), 8000L)
+    source <- data.frame(x = declared(values, labels = c(A = 1, Missing = -91, Other = -92),
+        na_values = c(-91, -92)))
+    path <- tempfile(fileext = ".dta")
+    on.exit(unlink(path), add = TRUE)
+    write_dta(source, path)
+    serial <- read_dta(path, skip = 17L, n_max = 27001L, num_threads = 1L)
+    parallel <- read_dta(path, skip = 17L, n_max = 27001L, num_threads = 2L)
+
+    expect_identical(parallel, serial)
+    expect_equal(undeclare(parallel$x, drop = TRUE), values[18:27018])
+})
+
+test_that("a Stata row-write failure preserves the previous file", {
+    directory <- tempfile()
+    dir.create(directory)
+    on.exit(unlink(directory, recursive = TRUE), add = TRUE)
+    path <- file.path(directory, "survey.dta")
+    convert(data.frame(x = 1:3), path)
+    original <- readBin(path, "raw", n = file.size(path))
+
+    expect_error(convert(data.frame(x = c(1, .Machine$double.xmax)), path),
+        "Failed to insert numeric value")
+    expect_identical(readBin(path, "raw", n = file.size(path)), original)
+    expect_identical(list.files(directory, all.files = TRUE, no.. = TRUE), "survey.dta")
+})

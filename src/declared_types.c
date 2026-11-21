@@ -188,6 +188,10 @@ double adjustDatetimeToR(FileVendor vendor, VarType var, double value) {
 }
 
 double adjustDatetimeFromR(FileVendor vendor, SEXP col, double value) {
+    return adjustTypedDatetimeFromR(vendor, numTypeFromSEXP(col), value);
+}
+
+double adjustTypedDatetimeFromR(FileVendor vendor, VarType type, double value) {
     double offset;
 
     if (ISNAN(value)) {
@@ -195,7 +199,7 @@ double adjustDatetimeFromR(FileVendor vendor, SEXP col, double value) {
     }
 
     offset = (double) daysOffset(vendor);
-    switch (numTypeFromSEXP(col)) {
+    switch (type) {
         case DECLARED_DATETIME:
             value += offset * 86400.0;
             if (vendor == DECLARED_STATA) {

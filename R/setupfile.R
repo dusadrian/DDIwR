@@ -1610,7 +1610,7 @@
             ))
 
 
-            for (i in seq(length(unique_list))) {
+            for (i in seq_along(unique_list)) {
                 n <- unique_list[[i]][1]
 
                 cat(paste(
@@ -2358,7 +2358,7 @@
             sep = ""
         ))
 
-        for (i in seq(length(unique_list))) {
+        for (i in seq_along(unique_list)) {
             n <- unique_list[[i]][1]
 
             # header_label <- paste("label define LABELS_GROUP_", i, sep = "")
@@ -2395,7 +2395,7 @@
             sep = ""
         ))
 
-        for (i in seq(length(unique_list))) {
+        for (i in seq_along(unique_list)) {
             for (ul in unique_list[[i]]) {
                 cat(paste(
                     "label values ", toupper(ul),
@@ -2589,7 +2589,7 @@
                         sep = ""
                     ))
 
-                    for (i in seq(2, length(csvnames))) {
+                    for (i in seq_along(csvnames)[-1L]) {
                         cat(paste(
                             "       ",
                             csvnames[i],
@@ -2750,102 +2750,103 @@
             #     paste(c("* ", rep("-", 76), " ;"), collapse = ""), enter, enter, enter, sep = "")
         }
 
-        cat(paste(
-            "* --- Create value labels groups --- ;",
-            enter, enter,
-            "proc format library = datadir;",
-            enter, enter,
-            sep = ""
-        ))
-
-
-
-        for (i in seq(length(unique_list))) {
-
-            n <- unique_list[[i]][1]
-            na_values <- dataDscr_vars2[[n]]$na_values
-            labels <- dataDscr_vars2[[n]]$labels
-            char <- charvars[n]
-            prefix <- rep(ifelse(char, "'", ""), length(labels))
-            # prefix[is.element(labels, na_values)] <- ""
-
+        if (length(unique_list) > 0L) {
             cat(paste(
-                paste(
-                    "    value ",
-                    ifelse(char, "$", ""),
-                    "labels_", i, "_group",
-                    enter,
-                    sep = ""
-                ),
-                paste(
-                    paste(
-                        paste(
-                            "        ",
-                            # VERY important to use single quotes
-                            # a value label such as "CD&V" would trigger a
-                            # warning that a symbolic reference was not found
-                            # because of "&" whereas 'CD&V' is perfectly alright
-                            prefix,
-                            gsub("'", "''", labels),
-                            prefix,
-                            " = '",
-                            gsub("'", "''", names(labels)),
-                            "'",
-                            sep = ""
-                        ),
-                        collapse = enter
-                    ),
-                    ";",
-                    enter, enter,
-                    sep = ""
-                ),
+                "* --- Create value labels groups --- ;",
+                enter, enter,
+                "proc format library = datadir;",
+                enter, enter,
                 sep = ""
             ))
-        }
 
-        cat(paste(
-            "run;",
-            enter, enter,
-            sep = ""
-        ))
-        # paste(c("* ", rep("-", 76), " ;"), collapse = ""), enter, enter, enter, sep = "")
 
-        cat(paste(
-            "* --- Format variables with value labels --- ;",
-            enter, enter,
-            "data ", sasimport, ";", enter, "    set ", sasimport, ";",
-            enter, enter,
-            "    format",
-            enter,
-            sep = ""
-        ))
 
-        for (i in seq(length(unique_list))) {
-            n <- unique_list[[i]][1]
-            format <- paste0("labels_", i, "_group.")
+            for (i in seq_along(unique_list)) {
 
-            if (charvars[n]) {
-                format <- paste0("$", format)
-            }
+                n <- unique_list[[i]][1]
+                na_values <- dataDscr_vars2[[n]]$na_values
+                labels <- dataDscr_vars2[[n]]$labels
+                char <- charvars[n]
+                prefix <- rep(ifelse(char, "'", ""), length(labels))
+                # prefix[is.element(labels, na_values)] <- ""
 
-            for (j in unique_list[[i]]) {
                 cat(paste(
-                    "        ",
-                    toupper(j),
                     paste(
-                        rep(" ", maxchars - nchar(j)),
-                        collapse = ""
+                        "    value ",
+                        ifelse(char, "$", ""),
+                        "labels_", i, "_group",
+                        enter,
+                        sep = ""
                     ),
-                    " ", format,
-                    enter,
+                    paste(
+                        paste(
+                            paste(
+                                "        ",
+                                # VERY important to use single quotes
+                                # a value label such as "CD&V" would trigger a
+                                # warning that a symbolic reference was not found
+                                # because of "&" whereas 'CD&V' is perfectly alright
+                                prefix,
+                                gsub("'", "''", labels),
+                                prefix,
+                                " = '",
+                                gsub("'", "''", names(labels)),
+                                "'",
+                                sep = ""
+                            ),
+                            collapse = enter
+                        ),
+                        ";",
+                        enter, enter,
+                        sep = ""
+                    ),
                     sep = ""
                 ))
             }
+
+            cat(paste(
+                "run;",
+                enter, enter,
+                sep = ""
+            ))
+            # paste(c("* ", rep("-", 76), " ;"), collapse = ""), enter, enter, enter, sep = "")
+
+            cat(paste(
+                "* --- Format variables with value labels --- ;",
+                enter, enter,
+                "data ", sasimport, ";", enter, "    set ", sasimport, ";",
+                enter, enter,
+                "    format",
+                enter,
+                sep = ""
+            ))
+
+            for (i in seq_along(unique_list)) {
+                n <- unique_list[[i]][1]
+                format <- paste0("labels_", i, "_group.")
+
+                if (charvars[n]) {
+                    format <- paste0("$", format)
+                }
+
+                for (j in unique_list[[i]]) {
+                    cat(paste(
+                        "        ",
+                        toupper(j),
+                        paste(
+                            rep(" ", maxchars - nchar(j)),
+                            collapse = ""
+                        ),
+                        " ", format,
+                        enter,
+                        sep = ""
+                    ))
+                }
+            }
+
+            cat(paste("    ;", enter, "run;", enter, enter, sep = "" ))
+            # paste(c("* ", rep("-", 76), " ;"), collapse = ""), enter, enter, enter, sep = "")
         }
-
-        cat(paste("    ;", enter, "run;", enter, enter, sep = "" ))
-        # paste(c("* ", rep("-", 76), " ;"), collapse = ""), enter, enter, enter, sep = "")
-
 
         sink()
         setwd(currentdir)

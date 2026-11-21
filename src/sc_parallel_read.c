@@ -97,11 +97,6 @@ typedef struct {
 } SCSchema;
 
 typedef struct {
-    long start_row;
-    long row_count;
-} SCChunk;
-
-typedef struct {
     FileExt ext;
     int metadata_probe;
     int row_count_known;
@@ -133,13 +128,17 @@ static long sc_min_rows_per_chunk(long total_rows) {
 }
 
 typedef struct {
+    int position;
+    char tag;
+} SCTaggedRow;
+
+typedef struct {
     double *dvalues;
     char **svalues;
     unsigned char *smissing;
     size_t na_index_n;
     size_t na_index_cap;
-    int *na_index_pos;
-    char **na_index_names;
+    SCTaggedRow *tagged;
 } SCChunkColumn;
 
 typedef struct {
@@ -149,21 +148,19 @@ typedef struct {
 } SCChunkResult;
 
 typedef struct {
-    double *dvalues;
-    char **svalues;
-    unsigned char *smissing;
-    size_t na_index_n;
-    size_t na_index_cap;
-    int *na_index_pos;
-    char **na_index_names;
-} SCMergedColumn;
+    long start_row;
+    long row_count;
+    SCChunkResult *decoded;
+} SCChunk;
 
 typedef struct {
-    long nrows;
-    int ncols;
-    const SCSchema *schema;
-    SCMergedColumn *cols;
-} SCMergedTable;
+    SCSchema *schema;
+    SCChunk *chunks;
+    int count;
+    int user_na;
+    void *workers;
+} SCOutput;
+
 
 typedef struct {
     int mode;
@@ -237,7 +234,7 @@ static char *sc_strdup(const char *x) {
     }
     n = strlen(x);
     out = (char *) SC_CALLOC(n + 1, char);
-    memcpy(out, x, n + 1);
+    if (out != NULL) memcpy(out, x, n + 1);
     return out;
 }
 
@@ -291,16 +288,25 @@ static int sc_spec_path_cstr(SEXP spec, const char **path) {
     return 1;
 }
 
-static void sc_labelset_ensure_capacity(SCLabelSet *set) {
-    if (set->n >= set->cap) {
-        set->cap = set->cap == 0 ? 8 : set->cap * 2;
-        set->labels = (char **) SC_REALLOC(set->labels, set->cap, char *);
-        if (set->type == LABELSET_STRING) {
-            set->svalues = (char **) SC_REALLOC(set->svalues, set->cap, char *);
-        } else if (set->type == LABELSET_DOUBLE) {
-            set->dvalues = (double *) SC_REALLOC(set->dvalues, set->cap, double);
-        }
+static int sc_labelset_ensure_capacity(SCLabelSet *set) {
+    if (set->n < set->cap) return 1;
+    if (set->cap > SIZE_MAX / (2 * sizeof(double)) ||
+            set->cap > SIZE_MAX / (2 * sizeof(char *))) return 0;
+    size_t capacity = set->cap ? set->cap * 2 : 8;
+    char **labels = SC_REALLOC(set->labels, capacity, char *);
+    if (!labels) return 0;
+    set->labels = labels;
+    if (set->type == LABELSET_STRING) {
+        char **values = SC_REALLOC(set->svalues, capacity, char *);
+        if (!values) return 0;
+        set->svalues = values;
+    } else {
+        double *values = SC_REALLOC(set->dvalues, capacity, double);
+        if (!values) return 0;
+        set->dvalues = values;
     }
+    set->cap = capacity;
+    return 1;
 }
 
 static SCLabelSet *sc_find_or_create_labelset(SCSchema *schema, const char *name, SCLabelSetType type) {
@@ -314,15 +320,19 @@ static SCLabelSet *sc_find_or_create_labelset(SCSchema *schema, const char *name
     }
 
     if (schema->label_set_n >= schema->label_set_cap) {
-        schema->label_set_cap = schema->label_set_cap == 0 ? 8 : schema->label_set_cap * 2;
-        schema->label_sets = (SCLabelSet *) SC_REALLOC(schema->label_sets, schema->label_set_cap, SCLabelSet);
+        if (schema->label_set_cap > SIZE_MAX / (2 * sizeof(SCLabelSet))) return NULL;
+        size_t capacity = schema->label_set_cap ? schema->label_set_cap * 2 : 8;
+        SCLabelSet *sets = SC_REALLOC(schema->label_sets, capacity, SCLabelSet);
+        if (!sets) return NULL;
+        schema->label_sets = sets;
+        schema->label_set_cap = capacity;
     }
 
     set = &schema->label_sets[schema->label_set_n++];
     memset(set, 0, sizeof(*set));
     set->name = sc_strdup(name);
     set->type = type;
-    return set;
+    return set->name ? set : NULL;
 }
 
 static SCLabelSet *sc_find_labelset(const SCSchema *schema, const char *name) {
@@ -424,53 +434,10 @@ static void sc_free_chunk_result(SCChunkResult *result) {
         if (result->cols[i].smissing != NULL) {
             SC_FREE(result->cols[i].smissing);
         }
-        if (result->cols[i].na_index_pos != NULL) {
-            SC_FREE(result->cols[i].na_index_pos);
-        }
-        if (result->cols[i].na_index_names != NULL) {
-            for (j = 0; j < result->cols[i].na_index_n; ++j) {
-                SC_FREE(result->cols[i].na_index_names[j]);
-            }
-            SC_FREE(result->cols[i].na_index_names);
-        }
+        SC_FREE(result->cols[i].tagged);
     }
     SC_FREE(result->cols);
     result->cols = NULL;
-}
-
-static void sc_free_merged_table(SCMergedTable *table) {
-    int i;
-    if (table == NULL || table->cols == NULL) {
-        return;
-    }
-    for (i = 0; i < table->ncols; ++i) {
-        size_t j;
-        if (table->cols[i].dvalues != NULL) {
-            SC_FREE(table->cols[i].dvalues);
-        }
-        if (table->cols[i].svalues != NULL) {
-            for (j = 0; j < (size_t) table->nrows; ++j) {
-                if (table->cols[i].svalues[j] != NULL) {
-                    SC_FREE(table->cols[i].svalues[j]);
-                }
-            }
-            SC_FREE(table->cols[i].svalues);
-        }
-        if (table->cols[i].smissing != NULL) {
-            SC_FREE(table->cols[i].smissing);
-        }
-        if (table->cols[i].na_index_pos != NULL) {
-            SC_FREE(table->cols[i].na_index_pos);
-        }
-        if (table->cols[i].na_index_names != NULL) {
-            for (j = 0; j < table->cols[i].na_index_n; ++j) {
-                SC_FREE(table->cols[i].na_index_names[j]);
-            }
-            SC_FREE(table->cols[i].na_index_names);
-        }
-    }
-    SC_FREE(table->cols);
-    table->cols = NULL;
 }
 
 static SCFormatCaps sc_get_format_capabilities(FileExt ext) {
@@ -588,6 +555,7 @@ static int sc_plan_row_chunks(SCImportPlan *plan, SCChunk **chunks_out, int *nch
     }
 
     chunks = (SCChunk *) SC_CALLOC(nchunks, SCChunk);
+    if (!chunks) return 0;
     base = plan->window_rows / nchunks;
     rem = plan->window_rows % nchunks;
 
@@ -635,19 +603,18 @@ static void sc_set_vector_class(SEXP col, VarType var_type) {
     }
 }
 
-static void sc_add_na_index(SCChunkColumn *col, int pos, char tag) {
-    char *tag_name;
-    if (col->na_index_n >= col->na_index_cap) {
-        col->na_index_cap = col->na_index_cap == 0 ? 8 : col->na_index_cap * 2;
-        col->na_index_pos = (int *) SC_REALLOC(col->na_index_pos, col->na_index_cap, int);
-        col->na_index_names = (char **) SC_REALLOC(col->na_index_names, col->na_index_cap, char *);
+static int sc_add_na_index(SCChunkColumn *col, int pos, char tag) {
+    if (col->na_index_n == col->na_index_cap) {
+        if (col->na_index_cap > SIZE_MAX / sizeof(SCTaggedRow) / 2) return 0;
+        size_t capacity = col->na_index_cap ? col->na_index_cap * 2 : 8;
+        SCTaggedRow *rows = SC_REALLOC(col->tagged, capacity, SCTaggedRow);
+        if (!rows) return 0;
+        col->tagged = rows;
+        col->na_index_cap = capacity;
     }
-    tag_name = (char *) SC_CALLOC(2, char);
-    tag_name[0] = (char) tolower((unsigned char) tag);
-    tag_name[1] = '\0';
-    col->na_index_pos[col->na_index_n] = pos;
-    col->na_index_names[col->na_index_n] = tag_name;
-    col->na_index_n++;
+
+    col->tagged[col->na_index_n++] = (SCTaggedRow){pos, tag};
+    return 1;
 }
 
 static int sc_probe_note_handler(int index, const char *note, void *ctx_) {
@@ -655,8 +622,12 @@ static int sc_probe_note_handler(int index, const char *note, void *ctx_) {
     SCSchema *schema = state->schema;
     (void)index;
     if (note != NULL) {
-        schema->notes = (char **)SC_REALLOC(schema->notes, schema->notes_n + 1, char *);
-        schema->notes[schema->notes_n++] = sc_strdup(note);
+        char **notes = SC_REALLOC(schema->notes, schema->notes_n + 1, char *);
+        if (!notes) return READSTAT_HANDLER_ABORT;
+        schema->notes = notes;
+        notes[schema->notes_n] = sc_strdup(note);
+        if (!notes[schema->notes_n]) return READSTAT_HANDLER_ABORT;
+        schema->notes_n++;
     }
     return READSTAT_HANDLER_OK;
 }
@@ -689,10 +660,12 @@ static int sc_probe_metadata_handler(readstat_metadata_t *metadata, void *ctx_) 
     R_PreserveObject(vendor_metadata);
     UNPROTECT(1);
     state->schema->total_rows = readstat_get_row_count(metadata);
+    state->schema->cols = SC_CALLOC(kept, SCColumnSchema);
+    if (kept && !state->schema->cols) return READSTAT_HANDLER_ABORT;
     state->schema->ncols = kept;
-    state->schema->cols = (SCColumnSchema *) SC_CALLOC((size_t) kept, SCColumnSchema);
     if (readstat_get_file_label(metadata) != NULL && *readstat_get_file_label(metadata) != '\0') {
         state->schema->file_label = sc_strdup(readstat_get_file_label(metadata));
+        if (!state->schema->file_label) return READSTAT_HANDLER_ABORT;
     }
     return READSTAT_HANDLER_OK;
 }
@@ -724,6 +697,8 @@ static int sc_probe_variable_handler(int index, readstat_variable_t *variable, c
     col->label = (label != NULL && *label != '\0') ? sc_strdup(label) : NULL;
     col->format = (format != NULL && *format != '\0') ? sc_strdup(format) : NULL;
     col->val_labels_name = (val_labels != NULL && *val_labels != '\0') ? sc_strdup(val_labels) : NULL;
+    if (!col->name || (label && *label && !col->label) || (format && *format && !col->format) ||
+            (val_labels && *val_labels && !col->val_labels_name)) return READSTAT_HANDLER_ABORT;
     SEXP vendor_metadata = PROTECT(ddiwr_column_metadata(variable, schema->vendor));
     col->vendor_metadata = vendor_metadata;
     R_PreserveObject(vendor_metadata);
@@ -746,12 +721,15 @@ static int sc_probe_variable_handler(int index, readstat_variable_t *variable, c
                 const char *hi = readstat_string_value(hi_value);
                 if (lo == hi) {
                     if (col->str_na_values_n < 3) {
-                        col->str_na_values[col->str_na_values_n++] = sc_strdup(lo == NULL ? "" : lo);
+                        col->str_na_values[col->str_na_values_n] = sc_strdup(lo == NULL ? "" : lo);
+                        if (!col->str_na_values[col->str_na_values_n]) return READSTAT_HANDLER_ABORT;
+                        col->str_na_values_n++;
                     }
                 } else {
                     col->has_str_na_range = 1;
                     col->str_na_range[0] = sc_strdup(lo == NULL ? "" : lo);
                     col->str_na_range[1] = sc_strdup(hi == NULL ? "" : hi);
+                    if (!col->str_na_range[0] || !col->str_na_range[1]) return READSTAT_HANDLER_ABORT;
                 }
             } else {
                 double lo = readstat_double_value(lo_value);
@@ -781,15 +759,17 @@ static int sc_probe_value_label_handler(const char *val_labels, readstat_value_t
     switch (value.type) {
         case READSTAT_TYPE_STRING:
             set = sc_find_or_create_labelset(state->schema, val_labels, LABELSET_STRING);
-            sc_labelset_ensure_capacity(set);
+            if (!set || !sc_labelset_ensure_capacity(set)) return READSTAT_HANDLER_ABORT;
             set->labels[set->n] = sc_strdup(label);
             set->svalues[set->n] = sc_strdup(readstat_string_value(value));
             set->n++;
+            if (!set->labels[set->n - 1] || !set->svalues[set->n - 1]) return READSTAT_HANDLER_ABORT;
             break;
         default:
             set = sc_find_or_create_labelset(state->schema, val_labels, LABELSET_DOUBLE);
-            sc_labelset_ensure_capacity(set);
+            if (!set || !sc_labelset_ensure_capacity(set)) return READSTAT_HANDLER_ABORT;
             set->labels[set->n] = sc_strdup(label);
+            if (!set->labels[set->n]) return READSTAT_HANDLER_ABORT;
             if (readstat_value_is_tagged_missing(value)) {
                 set->dvalues[set->n] = make_tagged_na((char) tolower((unsigned char) readstat_value_tag(value)));
             } else {
@@ -841,7 +821,7 @@ static readstat_error_t sc_probe_readstat_metadata(FileExt ext, const char *path
     readstat_set_value_label_handler(parser, sc_probe_value_label_handler);
     readstat_set_characteristic_handler(parser, sc_probe_characteristic_handler);
     if (ext == DECLARED_DTA) {
-        readstat_set_row_limit(parser, 1);
+        /* Without a value handler ReadStat skips the rows and reports the full count. */
         result = readstat_parse_dta(parser, path, &state);
     } else if (ext == DECLARED_SAV) {
         result = readstat_parse_sav(parser, path, &state);
@@ -888,14 +868,23 @@ static readstat_error_t sc_chunk_result_init(const SCSchema *schema, long nrows,
     out->ncols = schema->ncols;
     out->cols = (SCChunkColumn *) SC_CALLOC((size_t) schema->ncols, SCChunkColumn);
 
+    if (schema->ncols && !out->cols) return READSTAT_ERROR_MALLOC;
     for (i = 0; i < schema->ncols; ++i) {
         if (schema->cols[i].readstat_type == READSTAT_TYPE_STRING ||
             schema->cols[i].readstat_type == READSTAT_TYPE_STRING_REF) {
             out->cols[i].svalues = (char **) SC_CALLOC((size_t) nrows, char *);
             out->cols[i].smissing = (unsigned char *) SC_CALLOC((size_t) nrows, unsigned char);
+            if (nrows && (!out->cols[i].svalues || !out->cols[i].smissing)) {
+                sc_free_chunk_result(out);
+                return READSTAT_ERROR_MALLOC;
+            }
         } else {
             long j;
             out->cols[i].dvalues = (double *) SC_CALLOC((size_t) nrows, double);
+            if (nrows && !out->cols[i].dvalues) {
+                sc_free_chunk_result(out);
+                return READSTAT_ERROR_MALLOC;
+            }
             for (j = 0; j < nrows; ++j) {
                 out->cols[i].dvalues[j] = NA_REAL;
             }
@@ -922,15 +911,16 @@ static int sc_worker_value_handler(int obs_index, readstat_variable_t *variable,
             readstat_value_is_system_missing(value) ||
             readstat_value_is_defined_missing(value, variable)) {
             col->smissing[obs_index] = 1;
-        } else if (str_value == NULL) {
-            col->svalues[obs_index] = sc_strdup("");
-        } else {
+        } else if (str_value && *str_value) {
             col->svalues[obs_index] = sc_strdup(str_value);
+            if (!col->svalues[obs_index]) return READSTAT_HANDLER_ABORT;
         }
     } else {
         if (readstat_value_is_tagged_missing(value)) {
             col->dvalues[obs_index] = NA_REAL;
-            sc_add_na_index(col, obs_index + 1, readstat_value_tag(value));
+            if (!sc_add_na_index(col, obs_index + 1, readstat_value_tag(value))) {
+                return READSTAT_HANDLER_ABORT;
+            }
         } else if (readstat_value_is_system_missing(value)) {
             col->dvalues[obs_index] = NA_REAL;
         } else {
@@ -1078,15 +1068,16 @@ static readstat_error_t sc_dta_store_value(
             readstat_value_is_system_missing(value) ||
             readstat_value_is_defined_missing(value, (readstat_variable_t *) variable)) {
             col->smissing[row_index] = 1;
-        } else if (str_value == NULL) {
-            col->svalues[row_index] = sc_strdup("");
-        } else {
+        } else if (str_value && *str_value) {
             col->svalues[row_index] = sc_strdup(str_value);
+            if (!col->svalues[row_index]) return READSTAT_ERROR_MALLOC;
         }
     } else {
         if (readstat_value_is_tagged_missing(value)) {
             col->dvalues[row_index] = NA_REAL;
-            sc_add_na_index(col, (int) row_index + 1, readstat_value_tag(value));
+            if (!sc_add_na_index(col, (int)row_index + 1, readstat_value_tag(value))) {
+                return READSTAT_ERROR_MALLOC;
+            }
         } else if (readstat_value_is_system_missing(value)) {
             col->dvalues[row_index] = NA_REAL;
         } else {
@@ -1108,7 +1099,8 @@ static readstat_error_t sc_dta_decode_row(
     SCChunkResult *result,
     long row_index,
     char *str_buf,
-    size_t str_buf_len
+    size_t str_buf_len,
+    iconv_t converter
 ) {
     int j;
     readstat_off_t offset = 0;
@@ -1138,7 +1130,7 @@ static readstat_error_t sc_dta_decode_row(
                 return READSTAT_ERROR_PARSE;
             }
             str_len = strnlen((const char *) &buf[offset], max_len);
-            retval = readstat_convert_notrim(str_buf, str_buf_len, (const char *) &buf[offset], str_len, ctx->converter);
+            retval = readstat_convert_notrim(str_buf, str_buf_len, (const char *) &buf[offset], str_len, converter);
             if (retval != READSTAT_OK) {
                 return retval;
             }
@@ -1195,9 +1187,21 @@ static readstat_error_t sc_worker_read_chunk_custom_dta(SCWorkerState *worker) {
         }
     }
 
+    iconv_t converter = NULL;
+    if (ctx->converter) {
+        const char *encoding = worker->encoding && *worker->encoding ?
+                worker->encoding : "WINDOWS-1252";
+        converter = iconv_open("UTF-8", encoding);
+        if (converter == (iconv_t)-1) return READSTAT_ERROR_UNSUPPORTED_CHARSET;
+    }
+
     buf = (unsigned char *) SC_CALLOC(ctx->record_len, unsigned char);
     str_buf = (char *) SC_CALLOC(str_buf_len, char);
     fp = fopen(worker->path, "rb");
+    if (!buf || !str_buf) {
+        result = READSTAT_ERROR_MALLOC;
+        goto cleanup;
+    }
     if (fp == NULL) {
         result = READSTAT_ERROR_OPEN;
         goto cleanup;
@@ -1212,13 +1216,14 @@ static readstat_error_t sc_worker_read_chunk_custom_dta(SCWorkerState *worker) {
             result = READSTAT_ERROR_READ;
             goto cleanup;
         }
-        result = sc_dta_decode_row(buf, ctx, worker->schema, &worker->result_data, i, str_buf, str_buf_len);
+        result = sc_dta_decode_row(buf, ctx, worker->schema, &worker->result_data, i, str_buf, str_buf_len, converter);
         if (result != READSTAT_OK) {
             goto cleanup;
         }
     }
 
 cleanup:
+    if (converter) iconv_close(converter);
     if (fp != NULL) {
         fclose(fp);
     }
@@ -1294,75 +1299,6 @@ static void *sc_worker_thread_main(void *arg) {
 }
 #endif
 
-static readstat_error_t sc_merge_chunk_results(const SCSchema *schema, const SCChunk *chunks, SCWorkerState *workers, int nworkers, SCMergedTable *merged) {
-    int i;
-    int j;
-
-    memset(merged, 0, sizeof(*merged));
-    merged->schema = schema;
-    merged->ncols = schema->ncols;
-
-    for (i = 0; i < nworkers; ++i) {
-        merged->nrows += chunks[i].row_count;
-    }
-
-    merged->cols = (SCMergedColumn *) SC_CALLOC((size_t) schema->ncols, SCMergedColumn);
-    for (j = 0; j < schema->ncols; ++j) {
-        if (schema->cols[j].readstat_type == READSTAT_TYPE_STRING ||
-            schema->cols[j].readstat_type == READSTAT_TYPE_STRING_REF) {
-            merged->cols[j].svalues = (char **) SC_CALLOC((size_t) merged->nrows, char *);
-            merged->cols[j].smissing = (unsigned char *) SC_CALLOC((size_t) merged->nrows, unsigned char);
-        } else {
-            merged->cols[j].dvalues = (double *) SC_CALLOC((size_t) merged->nrows, double);
-            for (i = 0; i < merged->nrows; ++i) {
-                merged->cols[j].dvalues[i] = NA_REAL;
-            }
-        }
-    }
-
-    for (i = 0; i < nworkers; ++i) {
-        long dest_start = chunks[i].start_row - chunks[0].start_row;
-        SCChunkResult *chunk = &workers[i].result_data;
-
-        for (j = 0; j < schema->ncols; ++j) {
-            long r;
-            SCMergedColumn *dst = &merged->cols[j];
-            SCChunkColumn *src = &chunk->cols[j];
-
-            if (schema->cols[j].readstat_type == READSTAT_TYPE_STRING ||
-                schema->cols[j].readstat_type == READSTAT_TYPE_STRING_REF) {
-                for (r = 0; r < chunk->nrows; ++r) {
-                    dst->svalues[dest_start + r] = src->svalues[r];
-                    dst->smissing[dest_start + r] = src->smissing[r];
-                    src->svalues[r] = NULL;
-                }
-            } else {
-                memcpy(
-                    dst->dvalues + dest_start,
-                    src->dvalues,
-                    (size_t) chunk->nrows * sizeof(double)
-                );
-            }
-
-            if (src->na_index_n > 0) {
-                size_t old_n = dst->na_index_n;
-                size_t add_n = src->na_index_n;
-                size_t k;
-                dst->na_index_cap = old_n + add_n;
-                dst->na_index_pos = (int *) SC_REALLOC(dst->na_index_pos, dst->na_index_cap, int);
-                dst->na_index_names = (char **) SC_REALLOC(dst->na_index_names, dst->na_index_cap, char *);
-                for (k = 0; k < add_n; ++k) {
-                    dst->na_index_pos[old_n + k] = (int) dest_start + src->na_index_pos[k];
-                    dst->na_index_names[old_n + k] = sc_strdup(src->na_index_names[k]);
-                }
-                dst->na_index_n += add_n;
-            }
-        }
-    }
-
-    return READSTAT_OK;
-}
-
 static SEXP sc_labelset_to_sexp(const SCLabelSet *set) {
     size_t i;
     SEXP out;
@@ -1401,56 +1337,55 @@ static SEXP sc_labelset_to_sexp(const SCLabelSet *set) {
     return out;
 }
 
-static void sc_finalize_tagged_missing_attrs(const SCMergedColumn *col_info, SEXP col) {
-    size_t i;
-    SEXP na_index;
-    SEXP na_names;
-    SEXP na_values;
-    int seen[26];
-    int unique_n = 0;
+static void sc_finalize_tagged_missing_attrs(const SCOutput *data, int column, SEXP col) {
+    R_xlen_t total = 0, at = 0;
+    char tags[26];
+    int seen[26] = {0}, unique = 0;
+    for (int k = 0; k < data->count; k++)
+        total += data->chunks[k].decoded->cols[column].na_index_n;
+    if (total == 0) return;
 
-    if (col_info->na_index_n == 0) {
-        return;
-    }
-
-    PROTECT(na_index = Rf_allocVector(INTSXP, (R_xlen_t) col_info->na_index_n));
-    PROTECT(na_names = Rf_allocVector(STRSXP, (R_xlen_t) col_info->na_index_n));
-    memset(seen, 0, sizeof(seen));
-    for (i = 0; i < col_info->na_index_n; ++i) {
-        char tag = col_info->na_index_names[i][0];
-        char lower = (char) tolower((unsigned char) tag);
-        INTEGER(na_index)[i] = col_info->na_index_pos[i];
-        SET_STRING_ELT(na_names, i, sc_tag_code_name(tag));
-        if (lower >= 'a' && lower <= 'z' && !seen[lower - 'a']) {
-            seen[lower - 'a'] = 1;
-            unique_n++;
+    SEXP index = PROTECT(Rf_allocVector(INTSXP, total));
+    SEXP names = PROTECT(Rf_allocVector(STRSXP, total));
+    for (int k = 0; k < data->count; k++) {
+        const SCChunk *chunk = &data->chunks[k];
+        const SCChunkColumn *source = &chunk->decoded->cols[column];
+        long offset = chunk->start_row - data->chunks[0].start_row;
+        for (size_t j = 0; j < source->na_index_n; j++, at++) {
+            char tag = source->tagged[j].tag;
+            char lower = (char)tolower((unsigned char)tag);
+            INTEGER(index)[at] = (int)(offset + source->tagged[j].position);
+            SET_STRING_ELT(names, at, sc_tag_code_name(tag));
+            if (lower >= 'a' && lower <= 'z' && !seen[lower - 'a']) {
+                seen[lower - 'a'] = 1;
+                tags[unique++] = lower;
+            }
         }
     }
-    Rf_setAttrib(na_index, R_NamesSymbol, na_names);
-    Rf_setAttrib(col, Rf_install("na_index"), na_index);
 
-    PROTECT(na_values = Rf_allocVector(REALSXP, unique_n));
-    unique_n = 0;
-    memset(seen, 0, sizeof(seen));
-    for (i = 0; i < col_info->na_index_n; ++i) {
-        char tag = col_info->na_index_names[i][0];
-        char lower = (char) tolower((unsigned char) tag);
-        if (lower >= 'a' && lower <= 'z' && !seen[lower - 'a']) {
-            REAL(na_values)[unique_n++] = sc_tag_code_value(lower);
-            seen[lower - 'a'] = 1;
-        }
-    }
-    if (unique_n < Rf_length(na_values)) {
-        SEXP shrunk = PROTECT(Rf_lengthgets(na_values, unique_n));
-        Rf_setAttrib(col, Rf_install("na_values"), shrunk);
-        UNPROTECT(1);
-    } else {
-        Rf_setAttrib(col, Rf_install("na_values"), na_values);
-    }
+    Rf_setAttrib(index, R_NamesSymbol, names);
+    Rf_setAttrib(col, Rf_install("na_index"), index);
+    SEXP values = PROTECT(Rf_allocVector(REALSXP, unique));
+    for (int i = 0; i < unique; i++) REAL(values)[i] = sc_tag_code_value(tags[i]);
+    Rf_setAttrib(col, Rf_install("na_values"), values);
     UNPROTECT(3);
 }
 
-static SEXP sc_build_r_output(const SCSchema *schema, const SCMergedTable *merged, int user_na) {
+static void sc_output_cleanup(void *context) {
+    SCOutput *data = context;
+    for (int i = 0; i < data->count; i++)
+        sc_free_chunk_result(data->chunks[i].decoded);
+    SC_FREE(data->workers);
+    SC_FREE(data->chunks);
+    sc_free_schema(data->schema);
+}
+
+static SEXP sc_build_r_output(void *context) {
+    const SCOutput *data = context;
+    const SCSchema *schema = data->schema;
+    int user_na = data->user_na;
+    long nrows = 0;
+    for (int k = 0; k < data->count; k++) nrows += data->chunks[k].row_count;
     int i;
     SEXP output;
     SEXP names;
@@ -1461,26 +1396,32 @@ static SEXP sc_build_r_output(const SCSchema *schema, const SCMergedTable *merge
 
     for (i = 0; i < schema->ncols; ++i) {
         const SCColumnSchema *col_schema = &schema->cols[i];
-        const SCMergedColumn *col_data = &merged->cols[i];
-        SEXP col;
-
+        int strings = col_schema->readstat_type == READSTAT_TYPE_STRING ||
+                col_schema->readstat_type == READSTAT_TYPE_STRING_REF;
+        SEXP col = PROTECT(Rf_allocVector(strings ? STRSXP : REALSXP, nrows));
         SET_STRING_ELT(names, i, Rf_mkCharCE(col_schema->name == NULL ? "" : col_schema->name, CE_UTF8));
 
-        if (col_schema->readstat_type == READSTAT_TYPE_STRING ||
-            col_schema->readstat_type == READSTAT_TYPE_STRING_REF) {
-            long r;
-            PROTECT(col = Rf_allocVector(STRSXP, merged->nrows));
-            for (r = 0; r < merged->nrows; ++r) {
-                if (col_data->smissing != NULL && col_data->smissing[r]) {
-                    SET_STRING_ELT(col, r, NA_STRING);
-                } else if (col_data->svalues[r] == NULL) {
-                    SET_STRING_ELT(col, r, Rf_mkCharCE("", CE_UTF8));
-                } else {
-                    SET_STRING_ELT(col, r, Rf_mkCharCE(col_data->svalues[r], CE_UTF8));
+        for (int k = 0; k < data->count; k++) {
+            const SCChunk *chunk = &data->chunks[k];
+            SCChunkColumn *source = &chunk->decoded->cols[i];
+            long start = chunk->start_row - data->chunks[0].start_row;
+            if (strings) {
+                for (long r = 0; r < chunk->row_count; r++) {
+                    const char *text = source->svalues[r];
+                    SET_STRING_ELT(col, start + r, source->smissing[r] ? NA_STRING :
+                        Rf_mkCharCE(text ? text : "", CE_UTF8));
+                    SC_FREE(source->svalues[r]);
+                    source->svalues[r] = NULL;
                 }
+                SC_FREE(source->svalues);
+                source->svalues = NULL;
+                SC_FREE(source->smissing);
+                source->smissing = NULL;
+            } else {
+                memcpy(REAL(col) + start, source->dvalues, (size_t)chunk->row_count * sizeof(double));
+                SC_FREE(source->dvalues);
+                source->dvalues = NULL;
             }
-        } else {
-            memcpy(REAL(PROTECT(col = Rf_allocVector(REALSXP, merged->nrows))), col_data->dvalues, (size_t) merged->nrows * sizeof(double));
         }
 
         if (col_schema->label != NULL) {
@@ -1530,7 +1471,7 @@ static SEXP sc_build_r_output(const SCSchema *schema, const SCMergedTable *merge
                 UNPROTECT(1);
             }
         }
-        sc_finalize_tagged_missing_attrs(col_data, col);
+        sc_finalize_tagged_missing_attrs(data, i, col);
         SET_VECTOR_ELT(output, i, col);
         UNPROTECT(1);
     }
@@ -1546,7 +1487,7 @@ static SEXP sc_build_r_output(const SCSchema *schema, const SCMergedTable *merge
     ddiwr_attach_stata_characteristics(output, names, schema->stata_characteristics);
     PROTECT(row_names = Rf_allocVector(INTSXP, 2));
     INTEGER(row_names)[0] = NA_INTEGER;
-    INTEGER(row_names)[1] = -(int) merged->nrows;
+    INTEGER(row_names)[1] = -(int) nrows;
     Rf_setAttrib(output, R_RowNamesSymbol, row_names);
     Rf_setAttrib(output, R_ClassSymbol, Rf_mkString("data.frame"));
     UNPROTECT(3);
@@ -1567,9 +1508,7 @@ static SEXP sc_read_parallel(SEXP spec, SEXP encoding, SEXP cols_skip_sexp, SEXP
     SCChunk *chunks = NULL;
     int nchunks = 0;
     SCWorkerState *workers = NULL;
-    SCMergedTable merged;
     ddiwr_dta_prepared_t prepared;
-    SEXP out = R_NilValue;
     readstat_error_t err = READSTAT_OK;
     int i;
     long requested_skip = 0;
@@ -1609,7 +1548,6 @@ static SEXP sc_read_parallel(SEXP spec, SEXP encoding, SEXP cols_skip_sexp, SEXP
 
     memset(&schema, 0, sizeof(schema));
     memset(&plan, 0, sizeof(plan));
-    memset(&merged, 0, sizeof(merged));
     memset(&prepared, 0, sizeof(prepared));
 
     plan.ext = DECLARED_DTA;
@@ -1692,6 +1630,14 @@ static SEXP sc_read_parallel(SEXP spec, SEXP encoding, SEXP cols_skip_sexp, SEXP
     }
 
     workers = (SCWorkerState *) SC_CALLOC(nchunks, SCWorkerState);
+    if (!workers) {
+        dta_prepared_free(&prepared);
+        sc_free_schema(&schema);
+        SC_FREE(chunks);
+        SC_FREE(cols_skip);
+        return sc_read_single_fallback(spec, encoding, cols_skip_sexp, n_max, rows_skip);
+    }
+
     for (i = 0; i < nchunks; ++i) {
         memset(&workers[i], 0, sizeof(SCWorkerState));
         workers[i].plan = &plan;
@@ -1749,37 +1695,11 @@ static SEXP sc_read_parallel(SEXP spec, SEXP encoding, SEXP cols_skip_sexp, SEXP
         }
     }
 
-    err = sc_merge_chunk_results(&schema, chunks, workers, nchunks, &merged);
-    if (err != READSTAT_OK) {
-        int j;
-        for (j = 0; j < nchunks; ++j) {
-            sc_free_chunk_result(&workers[j].result_data);
-        }
-        SC_FREE(workers);
-        SC_FREE(chunks);
-        dta_prepared_free(&prepared);
-        sc_free_schema(&schema);
-        if (cols_skip != NULL) {
-            SC_FREE(cols_skip);
-        }
-        return sc_read_single_fallback(spec, encoding, cols_skip_sexp, n_max, rows_skip);
-    }
-
-    out = sc_build_r_output(&schema, &merged, 1);
-
-    for (i = 0; i < nchunks; ++i) {
-        sc_free_chunk_result(&workers[i].result_data);
-    }
-    SC_FREE(workers);
-    SC_FREE(chunks);
+    for (i = 0; i < nchunks; i++) chunks[i].decoded = &workers[i].result_data;
     dta_prepared_free(&prepared);
-    sc_free_merged_table(&merged);
-    sc_free_schema(&schema);
-    if (cols_skip != NULL) {
-        SC_FREE(cols_skip);
-    }
-
-    return out;
+    SC_FREE(cols_skip);
+    SCOutput output = {&schema, chunks, nchunks, 1, workers};
+    return R_ExecWithCleanup(sc_build_r_output, &output, sc_output_cleanup, &output);
 }
 
 SEXP declared_df_parse_dta_file_parallel(SEXP spec, SEXP encoding, SEXP cols_skip, SEXP n_max, SEXP rows_skip, SEXP num_threads) {
@@ -2090,6 +2010,7 @@ static int sc_sav_decode_chunk_to_columns(SCSavWorkerState *worker) {
                             out_col->smissing[row_index] = 1;
                         } else {
                             out_col->svalues[row_index] = sc_strdup(value.v.string_value);
+                            if (!out_col->svalues[row_index]) goto decode_done;
                         }
                         raw_str_used = 0;
                         segment_offset = 0;
@@ -2126,6 +2047,7 @@ static int sc_sav_decode_chunk_to_columns(SCSavWorkerState *worker) {
         }
     }
 
+decode_done:
     fclose(fp);
     if (converter && converter != (iconv_t) -1) {
         iconv_close(converter);
@@ -2158,55 +2080,6 @@ static void sc_sav_tag_missing_double(readstat_value_t *value, const sav_ctx_t *
     if (long_value == ctx->missing_double || long_value == ctx->lowest_double || long_value == ctx->highest_double || isnan(fp_value)) {
         value->is_system_missing = 1;
     }
-}
-
-static readstat_error_t sc_merge_sav_decoded_chunks(const SCSchema *schema, const SCChunk *chunks, SCSavWorkerState *workers, int nworkers, SCMergedTable *merged) {
-    int i;
-    int j;
-
-    memset(merged, 0, sizeof(*merged));
-    merged->schema = schema;
-    merged->ncols = schema->ncols;
-    for (i = 0; i < nworkers; ++i) {
-        merged->nrows += chunks[i].row_count;
-    }
-
-    merged->cols = (SCMergedColumn *) SC_CALLOC((size_t) schema->ncols, SCMergedColumn);
-    for (j = 0; j < schema->ncols; ++j) {
-        if (schema->cols[j].readstat_type == READSTAT_TYPE_STRING ||
-            schema->cols[j].readstat_type == READSTAT_TYPE_STRING_REF) {
-            merged->cols[j].svalues = (char **) SC_CALLOC((size_t) merged->nrows, char *);
-            merged->cols[j].smissing = (unsigned char *) SC_CALLOC((size_t) merged->nrows, unsigned char);
-        } else {
-            long r;
-            merged->cols[j].dvalues = (double *) SC_CALLOC((size_t) merged->nrows, double);
-            for (r = 0; r < merged->nrows; ++r) {
-                merged->cols[j].dvalues[r] = NA_REAL;
-            }
-        }
-    }
-
-    for (i = 0; i < nworkers; ++i) {
-        long dest_start = chunks[i].start_row - chunks[0].start_row;
-        SCChunkResult *chunk = &workers[i].decoded;
-        for (j = 0; j < schema->ncols; ++j) {
-            long r;
-            SCMergedColumn *dst = &merged->cols[j];
-            SCChunkColumn *src = &chunk->cols[j];
-            if (schema->cols[j].readstat_type == READSTAT_TYPE_STRING ||
-                schema->cols[j].readstat_type == READSTAT_TYPE_STRING_REF) {
-                for (r = 0; r < chunk->nrows; ++r) {
-                    dst->svalues[dest_start + r] = src->svalues[r];
-                    dst->smissing[dest_start + r] = src->smissing[r];
-                    src->svalues[r] = NULL;
-                }
-            } else {
-                memcpy(dst->dvalues + dest_start, src->dvalues, (size_t) chunk->nrows * sizeof(double));
-            }
-        }
-    }
-
-    return READSTAT_OK;
 }
 
 SEXP declared_sav_parallel_prototype(SEXP spec, SEXP num_threads) {
@@ -2356,10 +2229,8 @@ SEXP declared_df_parse_sav_file_parallel_prototype(SEXP spec, SEXP encoding, SEX
     SCChunk *chunks = NULL;
     SCSavCheckpoint *checkpoints = NULL;
     SCSavWorkerState *workers = NULL;
-    SCMergedTable merged;
     int nchunks = 0;
     int i;
-    SEXP out = R_NilValue;
 
     if (!sc_spec_path_cstr(spec, &path)) {
         Rf_error("Invalid file spec.");
@@ -2371,7 +2242,6 @@ SEXP declared_df_parse_sav_file_parallel_prototype(SEXP spec, SEXP encoding, SEX
     memset(&prepared, 0, sizeof(prepared));
     memset(&schema, 0, sizeof(schema));
     memset(&plan, 0, sizeof(plan));
-    memset(&merged, 0, sizeof(merged));
 
     if (sc_probe_readstat_metadata(DECLARED_SAV, path, encoding_c, NULL, 0, &schema) != READSTAT_OK) {
         Rf_error("Failed to probe SAV schema.");
@@ -2460,29 +2330,9 @@ SEXP declared_df_parse_sav_file_parallel_prototype(SEXP spec, SEXP encoding, SEX
         }
     }
 
-    if (sc_merge_sav_decoded_chunks(&schema, chunks, workers, nchunks, &merged) != READSTAT_OK) {
-        int j;
-        for (j = 0; j < nchunks; ++j) {
-            sc_free_chunk_result(&workers[j].decoded);
-        }
-        SC_FREE(workers);
-        SC_FREE(checkpoints);
-        SC_FREE(chunks);
-        sav_prepared_free(&prepared);
-        sc_free_schema(&schema);
-        Rf_error("Failed to merge SAV decoded chunks.");
-    }
-
-    out = sc_build_r_output(&schema, &merged, Rf_asLogical(user_na));
-
-    for (i = 0; i < nchunks; ++i) {
-        sc_free_chunk_result(&workers[i].decoded);
-    }
-    sc_free_merged_table(&merged);
-    SC_FREE(workers);
+    for (i = 0; i < nchunks; i++) chunks[i].decoded = &workers[i].decoded;
     SC_FREE(checkpoints);
-    SC_FREE(chunks);
     sav_prepared_free(&prepared);
-    sc_free_schema(&schema);
-    return out;
+    SCOutput output = {&schema, chunks, nchunks, Rf_asLogical(user_na), workers};
+    return R_ExecWithCleanup(sc_build_r_output, &output, sc_output_cleanup, &output);
 }

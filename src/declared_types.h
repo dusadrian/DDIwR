@@ -33,6 +33,7 @@ VarType numTypeFromSEXP(SEXP x);
 VarType numTypeFromFormat(FileVendor vendor, const char *var_format);
 VarType numTypeFromMetadata(FileVendor vendor, const char *format, const char *informat);
 double adjustDatetimeToR(FileVendor vendor, VarType var, double value);
+double adjustTypedDatetimeFromR(FileVendor vendor, VarType type, double value);
 double adjustDatetimeFromR(FileVendor vendor, SEXP col, double value);
 
 #endif

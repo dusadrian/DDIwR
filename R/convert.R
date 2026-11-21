@@ -486,6 +486,15 @@
 #'
 #' @author Adrian Dusa
 #'
+#' @details Excel workbooks record unlabelled missing codes in the values sheet
+#' with an empty label. Missing ranges, when present, use the `na_min` and
+#' `na_max` columns of the variables sheet. Import restores both definitions.
+#' Single-file SPSS, Stata, SAS and XPT exports replace the destination after
+#' the writer successfully closes its staged file.
+#' Stata imports can read large row windows in parallel. Set
+#' `options(DDIwR.readstat_threads = 1L)` for serial input and lower peak
+#' memory use on large numeric datasets.
+#'
 #' @param from A path to a file, or a data.frame object
 #' @param to Character, the name of a software package or a path to a specific
 #' file
@@ -1281,24 +1290,37 @@
             )
         })
 
+        ranges <- lapply(variables, "[[", "na_range")
+        if (any(lengths(ranges) == 2L)) {
+            # Text also represents the open endpoints -Inf and Inf in Excel.
+            for (i in 1:2) {
+                field <- c("na_min", "na_max")[i]
+                excel$variables[[field]] <- unname(vapply(ranges, function(bounds) {
+                    if (length(bounds) != 2L) {
+                        return(NA_character_)
+                    }
+
+                    return(sprintf("%.17g", bounds[i]))
+                }, character(1)))
+            }
+        }
+
         value_list <- list()
         for (v in names(variables)) {
             labels <- getElement(variables[[v]], "labels")
-            if (!is.null(labels)) {
-                temp <- data.frame(
+            na_values <- getElement(variables[[v]], "na_values")
+            missing_only <- setdiff(na_values, unname(labels))
+            codes <- c(unname(labels), missing_only)
+
+            if (length(codes) > 0L) {
+                rows <- data.frame(
                     variable = v,
-                    value = unname(labels),
-                    label = names(labels),
-                    missing = NA
+                    value = codes,
+                    label = c(names(labels), rep(NA_character_, length(missing_only))),
+                    missing = NA_character_
                 )
-
-                na_values <- getElement(variables[[v]], "na_values")
-
-                if (!is.null(na_values)) {
-                    temp$missing[is.element(labels, na_values)] <- "y"
-                }
-
-                value_list[[length(value_list) + 1]] <- temp
+                rows$missing[is.element(codes, na_values)] <- "y"
+                value_list[[length(value_list) + 1L]] <- rows
             }
         }
         if (length(value_list) > 0) {

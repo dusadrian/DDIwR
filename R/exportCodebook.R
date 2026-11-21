@@ -26,7 +26,9 @@
 #'
 #' The finished XML is always validated against the bundled, pinned DDI Codebook
 #' 2.6 schema and its local dependencies before writing. Invalid or incomplete
-#' documents, or unavailable schemas, cause an error. Validation failure leaves
+#' documents, or unavailable schemas, cause an error. For dataset exports to
+#' a file, validation reads the staged XML before publication. Companion CSV
+#' files are staged alongside it. Validation failure leaves
 #' the destination and any companion CSV unchanged, and writes nothing to an
 #' output connection. No network access is needed for validation. Most of these
 #' arguments help create the mandatory element `stdyDscr`, which cannot be
@@ -236,10 +238,10 @@
             ns <- paste0(ns, ":")
         }
 
-        dataDscr_xml <- paste0(
-            "  <", ns, "dataDscr>\n",
-            paste(var_xml, collapse = ""),
-            "  </", ns, "dataDscr>\n"
+        dataDscr_chunks <- c(
+            paste0("  <", ns, "dataDscr>\n"),
+            var_xml,
+            paste0("  </", ns, "dataDscr>\n")
         )
 
         attr(data, "hashes") <- var_info$hashes
@@ -275,53 +277,68 @@
         xml_prefix <- substr(codeBook_xml, 1L, dataDscr_start - 1L)
         xml_suffix <- substr(codeBook_xml, dataDscr_end + 1L, nchar(codeBook_xml))
 
-        if (!identical(indent, 2) || !identical(OS, "")) {
+        chunks <- c(xml_prefix, dataDscr_chunks, xml_suffix)
+        file_output <- is.character(to) && length(to) == 1L && nzchar(to)
+        custom_format <- !identical(indent, 2) || !identical(OS, "")
+
+        if (custom_format) {
             defaultOS <- Sys.info()[["sysname"]]
             checkArgument(indent, default = 2)
             checkArgument(OS, default = defaultOS)
 
             enter <- line_ending(ifelse(OS == "", defaultOS, OS))
-            xmlfile <- paste0(xml_prefix, dataDscr_xml, xml_suffix)
+            xmlfile <- paste0(chunks, collapse = "")
             xml_lines <- unlist(strsplit(xmlfile, "\n", fixed = TRUE))
             xmlfile <- paste(
                 prespace(xml_lines, indent),
                 collapse = enter
             )
         }
-        else {
-            xmlfile <- paste0(xml_prefix, dataDscr_xml, xml_suffix)
-        }
 
-        .validateCodebookXML(xmlfile)
+        if (file_output) {
+            destination <- normalizePath(to, mustWork = FALSE)
+            staged <- staged_output_path(destination)
+            on.exit(unlink(staged), add = TRUE)
 
-        if (!embed && !isFALSE(dots$csv)) {
-            tp_file <- treatPath(to, type = "*", single = TRUE, check = FALSE)
-            write.table(
-                undeclare(data, drop = TRUE),
-                file = file.path(
-                    tp_file$completePath,
-                    paste(tp_file$filenames[1], "csv", sep = ".")
-                ),
-                sep = ",",
-                na = "",
-                row.names = FALSE
-            )
-        }
-
-        if (is.character(to) && length(to) == 1 && nzchar(to)) {
-            if (!identical(indent, 2) || !identical(OS, "")) {
-                writeTextFileC(to, xmlfile)
-            } else {
-                writeTextFileChunksC(to, c(xml_prefix, dataDscr_xml, xml_suffix))
-            }
-        } else {
-            if (!identical(indent, 2) || !identical(OS, "")) {
-                writeLines(xmlfile, con = to, sep = enter, useBytes = TRUE)
+            if (custom_format) {
+                writeTextFileC(staged, xmlfile)
             }
             else {
-                xmlfile <- paste0(xml_prefix, dataDscr_xml, xml_suffix)
-                writeLines(xmlfile, con = to, useBytes = TRUE)
+                writeTextFileChunksC(staged, chunks)
             }
+
+            .validateCodebookXML(staged, from_file = TRUE)
+        }
+        else {
+            if (!custom_format) {
+                xmlfile <- paste0(chunks, collapse = "")
+                enter <- "\n"
+            }
+
+            .validateCodebookXML(xmlfile)
+        }
+
+        if (!embed && !isFALSE(dots$csv)) {
+            if (!file_output) {
+                stop("A companion CSV requires a file destination.", call. = FALSE)
+            }
+
+            csv <- paste0(tools::file_path_sans_ext(to), ".csv")
+            csv <- normalizePath(csv, mustWork = FALSE)
+            csv_staged <- staged_output_path(csv)
+            on.exit(unlink(csv_staged), add = TRUE)
+
+            write.table(undeclare(data, drop = TRUE), file = csv_staged,
+                sep = ",", na = "", row.names = FALSE)
+            staged <- c(staged, csv_staged)
+            destination <- c(destination, csv)
+        }
+
+        if (file_output) {
+            publish_staged_files(staged, destination)
+        }
+        else {
+            writeLines(xmlfile, con = to, sep = enter, useBytes = TRUE)
         }
 
     } else {

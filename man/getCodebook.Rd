@@ -7,7 +7,9 @@
 getCodebook(from = NULL, encoding = "auto", ignore = NULL, ...)
 }
 \arguments{
-\item{from}{A path to a file, or a data frame object}
+\item{from}{A data frame, a file path, or a directory of supported inputs.
+Directory imports read each dataset from that directory and ignore companion
+files such as CSV data and SAS catalogs.}
 
 \item{encoding}{The character encoding used to read a file}
 

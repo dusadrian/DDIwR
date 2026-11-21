@@ -103,3 +103,26 @@ test_that("XML projection reuses the structured analysis", {
     expect_error(metadataProjection(data, fields = "xml", xml_options = list(TRUE)),
         "named list")
 })
+
+test_that("finite large observations have finite median and standard deviation", {
+    data <- data.frame(x = (10:15) * 1e307)
+    summary <- metadataProjection(data, fields = "summaries")$projection$summaries
+    expect_equal(summary$median / 1e307, 12.5)
+    expect_equal(summary$standard_deviation / 1e307, sd(10:15))
+})
+
+test_that("indexed category counts agree with counts on numeric and text codes", {
+    codes <- sprintf("code-%03d", 1:64)
+    rows <- c(64:1, 64L, NA_integer_, 65L)
+    data <- data.frame(number = rows, text = c(codes, "other")[rows])
+    attr(data$number, "labels") <- setNames(1:64, codes)
+    attr(data$text, "labels") <- setNames(codes, paste("Label", 1:64))
+
+    result <- metadataProjection(data, fields = c("categories", "classification"))
+    frequencies <- result$projection$categories$frequencies
+    expect_equal(frequencies, rep(c(rep(1, 63), 2), 2))
+    for (i in seq_along(data)) {
+        expect_equal(unname(result$projection$classification[i]),
+            checkType(data[[i]], attr(data[[i]], "labels")))
+    }
+})

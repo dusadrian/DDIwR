@@ -273,7 +273,7 @@ test_that("pair publication restores both originals when the second rename fails
     writeBin(charToRaw("original catalog"), destinations[2])
     writeBin(charToRaw("replacement data"), staged[1])
 
-    suppressWarnings(expect_error(publish_sas_pair(staged, destinations), "Could not publish"))
+    suppressWarnings(expect_error(publish_staged_files(staged, destinations), "Could not publish"))
     expect_identical(readBin(destinations[1], "raw", n = 100L), charToRaw("original data"))
     expect_identical(readBin(destinations[2], "raw", n = 100L), charToRaw("original catalog"))
     expect_identical(sort(list.files(directory, all.files = TRUE, no.. = TRUE)),

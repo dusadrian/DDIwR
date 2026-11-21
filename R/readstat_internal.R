@@ -985,6 +985,15 @@ validate_dataset_label <- function(label, vendor, max_bytes) {
     return(invisible(NULL))
 }
 
+write_stat_file <- function(routine, data, path, ...) {
+    destination <- normalizePath(path.expand(path), mustWork = FALSE)
+    staged <- staged_output_path(destination)
+    on.exit(unlink(staged), add = TRUE)
+
+    .Call(routine, data, staged, ..., PACKAGE = "DDIwR")
+    publish_staged_files(staged, destination)
+}
+
 write_sav <- function(data, path, compress = "byte", adjust_tz = TRUE,
     label = attr(data, "label", exact = TRUE)) {
     validate_dataset_label(label, "SPSS", 64L)
@@ -1011,13 +1020,10 @@ write_sav <- function(data, path, compress = "byte", adjust_tz = TRUE,
 
     data_out <- as_declared(data_out)
     data_out <- prepare_spss_mr_sets(data_out)
-    invisible(.Call(
-        "declared_write_sav_",
-        data_out,
-        normalizePath(path, mustWork = FALSE),
-        compress,
-        PACKAGE = "DDIwR"
-    ))
+    write_stat_file(
+        "declared_write_sav_", data_out, path,
+        compress
+    )
     invisible(data)
 }
 
@@ -1149,16 +1155,13 @@ write_dta <- function(
     }
 
     data_out <- as_declared(data_out)
-    invisible(.Call(
-        "declared_write_dta_",
-        data_out,
-        normalizePath(path, mustWork = FALSE),
+    write_stat_file(
+        "declared_write_dta_", data_out, path,
         file_format,
         label,
         as.integer(strl_threshold),
-        dictionary,
-        PACKAGE = "DDIwR"
-    ))
+        dictionary
+    )
     invisible(data)
 }
 
@@ -1210,18 +1213,15 @@ write_sas <- function(data, path, dictionary = NULL, catalog_file = NULL, auto_c
         .Call("declared_write_sas_catalog_", data_out, staged[2], prepared$formats,
             dictionary, PACKAGE = "DDIwR")
         .Call("declared_write_sas_", data_out, staged[1], dictionary, PACKAGE = "DDIwR")
-        publish_sas_pair(staged, destinations)
+        publish_staged_files(staged, destinations)
 
         return(invisible(data_out))
     }
 
-    invisible(.Call(
-        "declared_write_sas_",
-        data_out,
-        normalizePath(path, mustWork = FALSE),
-        dictionary,
-        PACKAGE = "DDIwR"
-    ))
+    write_stat_file(
+        "declared_write_sas_", data_out, path,
+        dictionary
+    )
     invisible(data_out)
 }
 
@@ -1260,15 +1260,12 @@ write_xpt <- function(
     }
 
     data_out <- as_declared(data_out)
-    invisible(.Call(
-        "declared_write_xpt_",
-        data_out,
-        normalizePath(path, mustWork = FALSE),
+    write_stat_file(
+        "declared_write_xpt_", data_out, path,
         as.integer(version),
         name,
         label,
-        dictionary,
-        PACKAGE = "DDIwR"
-    ))
+        dictionary
+    )
     invisible(data)
 }
